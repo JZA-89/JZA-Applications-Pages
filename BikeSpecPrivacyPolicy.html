@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — BikeSpec</title>
+  <style>
+    :root {
+      --text: #1d1d1f;
+      --muted: #6e6e73;
+      --link: #0066cc;
+      --bg: #ffffff;
+      --rule: #d2d2d7;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --text: #f5f5f7;
+        --muted: #a1a1a6;
+        --link: #2997ff;
+        --bg: #000000;
+        --rule: #38383a;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+      -webkit-text-size-adjust: 100%;
+    }
+    h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 0.25em; }
+    h2 { font-size: 1.35rem; margin: 2em 0 0.5em; padding-top: 0.5em; border-top: 1px solid var(--rule); }
+    .updated { color: var(--muted); font-size: 0.95rem; margin: 0 0 2em; }
+    .lede {
+      background: rgba(127,127,127,0.08);
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin: 1.5em 0 2em;
+    }
+    p { margin: 0.8em 0; }
+    ul { margin: 0.8em 0; padding-left: 1.4em; }
+    li { margin: 0.4em 0; }
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    strong { font-weight: 600; }
+    .contact { margin-top: 0.5em; }
+  </style>
+</head>
+<body>
+
+  <h1>Privacy Policy for BikeSpec</h1>
+  <p class="updated">Last updated: 20 June 2026</p>
+
+  <p>This Privacy Policy describes how BikeSpec ("the app", "we", "us") handles your information. BikeSpec is developed by JZA Applications.</p>
+
+  <p class="lede">In short: <strong>BikeSpec is built to keep your data on your own devices and in your own iCloud account. We do not run servers that collect your data, we do not use analytics or advertising, and we do not share your information with third parties.</strong></p>
+
+  <h2>The data BikeSpec works with</h2>
+  <p>BikeSpec stores the information you enter about your bikes, including:</p>
+  <ul>
+    <li>Bike details and specifications (make, model, size, components, geometry, tyres, suspension settings, and any custom spec items you add).</li>
+    <li>Setups, adjustments, change logs, and service records.</li>
+    <li>Photos you add to a bike, whether chosen from your photo library or generated on device.</li>
+    <li>Notes and other text you choose to enter.</li>
+  </ul>
+  <p>You decide what to enter. None of these fields are required for the app to function, and you can edit or delete them at any time.</p>
+
+  <h2>Where your data is stored</h2>
+  <p>Your bike data is stored locally on your device using Apple's SwiftData framework. If you are signed in to iCloud and have iCloud enabled for BikeSpec, your data is synced through <strong>Apple's CloudKit</strong> to your <strong>private iCloud account</strong> so it stays consistent across your devices.</p>
+  <p>This data lives in your personal iCloud container. We, the developer, <strong>cannot access it</strong>. It is governed by <a href="https://www.apple.com/legal/privacy/">Apple's iCloud terms and Apple's Privacy Policy</a>. You can disable iCloud sync for BikeSpec at any time in your device's Settings.</p>
+
+  <h2>On-device processing</h2>
+  <p>Several BikeSpec features process data entirely on your device. This information is <strong>not</strong> sent to us or to any third-party server:</p>
+  <ul>
+    <li><strong>Spec scanning.</strong> When you photograph a manufacturer spec sheet or geometry chart, the image is read using Apple's on-device Vision text recognition and Apple's on-device foundation models (Apple Intelligence). The photo and the extracted text are processed locally and are not transmitted off the device.</li>
+    <li><strong>Bike image generation.</strong> Generated bike images are created on device using Apple's Image Playground. Your prompts and any reference photo stay on the device.</li>
+    <li><strong>Route (GPX) import.</strong> When you import a GPX file for range estimation, BikeSpec reads distance and elevation locally to perform calculations. Location points from the file are used only for that calculation and are not transmitted or stored as a tracked route.</li>
+  </ul>
+  <p>Apple's on-device intelligence features are subject to Apple's own privacy terms. See <a href="https://www.apple.com/legal/privacy/">Apple's Privacy Policy</a>.</p>
+
+  <h2>Photos</h2>
+  <p>If you add a photo to a bike, BikeSpec accesses only the specific image you select through the system photo picker. The app does not scan or upload your photo library. Selected and generated images are stored with your bike data (locally and, if enabled, in your private iCloud).</p>
+
+  <h2>Purchases</h2>
+  <p>BikeSpec offers a one-time in-app purchase to unlock unlimited bikes. Purchases are processed entirely by <strong>Apple's App Store and StoreKit</strong>. We do not receive or store your name, payment card, or other payment details. Your purchase entitlement is read directly from the App Store and tied to your Apple ID, which is how it restores across your devices and reinstalls.</p>
+  <p>Purchases are subject to <a href="https://www.apple.com/legal/privacy/">Apple's Privacy Policy</a>.</p>
+
+  <h2>Notifications</h2>
+  <p>BikeSpec may use Apple Push Notification service to support iCloud syncing across your devices. We do not send marketing notifications and do not collect data through notifications.</p>
+
+  <h2>Data we collect</h2>
+  <p>We do <strong>not</strong> collect, transmit, sell, or share your personal data. Specifically, BikeSpec:</p>
+  <ul>
+    <li>Does not use third-party analytics, advertising, or tracking SDKs.</li>
+    <li>Does not maintain developer-operated servers that receive your bike data.</li>
+    <li>Does not create user accounts with us or require you to provide an email or password.</li>
+    <li>Does not track you across apps or websites.</li>
+  </ul>
+
+  <h2>Children's privacy</h2>
+  <p>BikeSpec is not directed at children and does not knowingly collect personal information from anyone, including children under 13.</p>
+
+  <h2>Your control over your data</h2>
+  <p>Because your data is stored on your device and in your own iCloud account, you remain in control:</p>
+  <ul>
+    <li>Edit or delete any bike, setup, photo, or record from within the app at any time.</li>
+    <li>Turn off iCloud sync for BikeSpec in your device Settings.</li>
+    <li>Delete the app to remove its local data from a device. Data already synced to iCloud can be managed or removed through your device's iCloud settings.</li>
+  </ul>
+
+  <h2>Changes to this policy</h2>
+  <p>We may update this Privacy Policy from time to time. Material changes will be reflected by updating the "Last updated" date above and, where appropriate, within the app or App Store listing.</p>
+
+  <h2>Contact</h2>
+  <p>If you have questions about this Privacy Policy or your data, contact:</p>
+  <p class="contact"><strong>JZA Applications</strong><br>
+  Email: <a href="mailto:jza.applications@gmail.com">jza.applications@gmail.com</a></p>
+
+</body>
+</html>
