@@ -6,114 +6,151 @@
 <title>Privacy Policy — GhostDelta</title>
 <style>
   :root {
-    --text: #1d1d1f;
-    --muted: #6e6e73;
-    --link: #0066cc;
-    --bg: #ffffff;
-    --rule: #d2d2d7;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --text: #f5f5f7;
-      --muted: #a1a1a6;
-      --link: #2997ff;
-      --bg: #000000;
-      --rule: #38383a;
-    }
+    --bg: #111110;
+    --surface: #1C1C1A;
+    --fg: #F0EFE9;
+    --muted: #8A8A82;
+    --accent: #FFD600;
+    --rule: #2A2A28;
   }
   * { box-sizing: border-box; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    line-height: 1.6;
-    color: var(--text);
+    margin: 0;
+    padding: 4rem 1.25rem 5rem;
     background: var(--bg);
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 40px 24px 80px;
+    color: var(--fg);
+    font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-text-size-adjust: 100%;
   }
-  h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 0.25em; }
-  h2 { font-size: 1.35rem; margin: 2em 0 0.5em; padding-top: 0.5em; border-top: 1px solid var(--rule); }
-  .updated { color: var(--muted); font-size: 0.95rem; margin: 0 0 2em; }
-  .lede {
-    background: rgba(127,127,127,0.08);
-    border-radius: 12px;
-    padding: 18px 20px;
-    margin: 1.5em 0 2em;
+  main { max-width: 640px; margin: 0 auto; }
+  .wordmark {
+    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    font-size: 2.1rem;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    margin: 0 0 0.5rem;
   }
-  p { margin: 0.8em 0; }
-  ul { margin: 0.8em 0; padding-left: 1.4em; }
-  li { margin: 0.4em 0; }
-  a { color: var(--link); text-decoration: none; }
-  a:hover { text-decoration: underline; }
+  .wordmark a { color: inherit; text-decoration: none; }
+  .wordmark .delta { color: var(--accent); }
+  .tagline {
+    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin: 0 0 0.75rem;
+  }
+  .updated {
+    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin: 0 0 3rem;
+  }
+  h2 {
+    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin: 3rem 0 0.75rem;
+  }
+  p { margin: 0 0 1rem; }
+  ul { margin: 0 0 1rem; padding-left: 1.25rem; }
+  li { margin-bottom: .35rem; }
+  a { color: var(--accent); }
   strong { font-weight: 600; }
-  .contact { margin-top: 0.5em; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 1.25rem 1.35rem;
+    margin: 1rem 0 1.5rem;
+  }
+  .card p { margin: 0; }
+  footer {
+    border-top: 1px solid var(--rule);
+    margin-top: 3.5rem;
+    padding-top: 1.5rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  footer a { margin-right: 1.25rem; }
 </style>
 </head>
 <body>
+<main>
 
-<h1>Privacy Policy for GhostDelta</h1>
-<p class="updated">Last updated: 5 August 2026</p>
+  <header>
+    <p class="wordmark"><a href="./">GHOST<span class="delta">DELTA</span></a></p>
+    <p class="tagline">PRIVACY POLICY</p>
+    <p class="updated">Last updated: 5 August 2026</p>
+  </header>
 
-<p>This Privacy Policy describes how GhostDelta ("the app", "we", "us") handles your information. GhostDelta is developed by JZA Applications.</p>
+  <p>This Privacy Policy describes how GhostDelta ("the app", "we", "us") handles your information. GhostDelta is developed by JZA Applications.</p>
 
-<div class="lede">
-  <p><strong>In short:</strong> GhostDelta is built to keep your data on your own devices. We do not run servers that collect your data, we do not use analytics or advertising, we do not require an account, and we do not share your information with third parties.</p>
-</div>
+  <div class="card">
+    <p><strong>In short:</strong> GhostDelta is built to keep your data on your own devices. We do not run servers that collect your data, we do not use analytics or advertising, we do not require an account, and we do not share your information with third parties.</p>
+  </div>
 
-<h2>The data GhostDelta works with</h2>
-<p>GhostDelta records and stores:</p>
-<ul>
-  <li><strong>Location and motion data.</strong> While a session is recording, the app logs your GPS position, speed, altitude and heading to build the track for that session.</li>
-  <li><strong>Session information.</strong> Times, distances, laps, Stage and Circuit results, activity type, and the weather conditions at the time of the session.</li>
-  <li><strong>Health data, if you allow it.</strong> Heart rate and calorie figures read from Apple Health so they can be shown alongside a session.</li>
-  <li><strong>Anything you name or note.</strong> Session names, Stage and Circuit names, and any text you choose to enter.</li>
-</ul>
-<p>You decide what to record, and you can edit or delete any session, Stage or Circuit at any time.</p>
+  <h2>The data GhostDelta works with</h2>
+  <p>GhostDelta records and stores:</p>
+  <ul>
+    <li><strong>Location and motion data.</strong> While a session is recording, the app logs your GPS position, speed, altitude and heading to build the track for that session.</li>
+    <li><strong>Session information.</strong> Times, distances, laps, Stage and Circuit results, activity type, and the weather conditions at the time of the session.</li>
+    <li><strong>Health data, if you allow it.</strong> Heart rate and calorie figures read from Apple Health so they can be shown alongside a session.</li>
+    <li><strong>Anything you name or note.</strong> Session names, Stage and Circuit names, and any text you choose to enter.</li>
+  </ul>
+  <p>You decide what to record, and you can edit or delete any session, Stage or Circuit at any time.</p>
 
-<h2>Where your data is stored</h2>
-<p>Your sessions are stored locally on your Apple Watch and iPhone using Apple's SwiftData framework. Sessions recorded on the Watch are transferred to your iPhone directly between your own two devices using Apple's Watch Connectivity framework.</p>
-<p>We, the developer, have no access to any of this. There is no GhostDelta account, no developer-operated server, and no copy of your sessions held by us. If you back up your iPhone or Apple Watch, your GhostDelta data may be included in that backup, which is governed by Apple's terms and Apple's <a href="https://www.apple.com/legal/privacy/">Privacy Policy</a>.</p>
+  <h2>Where your data is stored</h2>
+  <p>Your sessions are stored locally on your Apple Watch and iPhone using Apple's SwiftData framework. Sessions recorded on the Watch are transferred to your iPhone directly between your own two devices using Apple's Watch Connectivity framework.</p>
+  <p>We, the developer, have no access to any of this. There is no GhostDelta account, no developer-operated server, and no copy of your sessions held by us. If you back up your iPhone or Apple Watch, your GhostDelta data may be included in that backup, which is governed by Apple's terms and Apple's <a href="https://www.apple.com/legal/privacy/">Privacy Policy</a>.</p>
 
-<h2>Location</h2>
-<p>GhostDelta requests location access so it can record your track. Location is used to draw your session on the map, calculate speed, distance and altitude, detect laps and uplift, and match your runs against saved Stages and Circuits. All of this happens on your device.</p>
-<p>Your location is not transmitted to us and is not shared with any third party for advertising, profiling or tracking. You can revoke location access at any time in your device's Settings, though the app cannot record a session without it.</p>
+  <h2>Location</h2>
+  <p>GhostDelta requests location access so it can record your track. Location is used to draw your session on the map, calculate speed, distance and altitude, detect laps and uplift, and match your runs against saved Stages and Circuits. All of this happens on your device.</p>
+  <p>Your location is not transmitted to us and is not shared with any third party for advertising, profiling or tracking. You can revoke location access at any time in your device's Settings, though the app cannot record a session without it.</p>
 
-<h2>Apple Health</h2>
-<p>Health integration is optional and is requested per session, not imposed on you. Where you allow it, GhostDelta reads workout data such as heart rate and calories so those figures can appear alongside your session, and can save a completed session to Apple Health so it counts towards your activity rings.</p>
-<p>Health data stays within Apple's Health framework on your device. It is never sent to us, and we cannot read it. You can change or withdraw these permissions at any time in the Health app under Sharing.</p>
+  <h2>Apple Health</h2>
+  <p>Health integration is optional and is requested per session, not imposed on you. Where you allow it, GhostDelta reads workout data such as heart rate and calories so those figures can appear alongside your session, and can save a completed session to Apple Health so it counts towards your activity rings.</p>
+  <p>Health data stays within Apple's Health framework on your device. It is never sent to us, and we cannot read it. You can change or withdraw these permissions at any time in the Health app under Sharing.</p>
 
-<h2>Weather</h2>
-<p>To record the conditions of a session, GhostDelta uses Apple's WeatherKit service. This means the approximate location and time of your session are sent to Apple in order to return the weather for that place and time. This request goes to Apple, not to us, and is covered by Apple's <a href="https://www.apple.com/legal/privacy/">Privacy Policy</a> and WeatherKit terms.</p>
+  <h2>Weather</h2>
+  <p>To record the conditions of a session, GhostDelta uses Apple's WeatherKit service. This means the approximate location and time of your session are sent to Apple in order to return the weather for that place and time. This request goes to Apple, not to us, and is covered by Apple's <a href="https://www.apple.com/legal/privacy/">Privacy Policy</a> and WeatherKit terms.</p>
 
-<h2>Files you import and export</h2>
-<p>GhostDelta can open and save GhostDelta track, Stage, Circuit and package files, and can read GPX files. These files are read and written on your device, and go only where you send them. If you choose to share a file — by AirDrop, Messages, email or any other app — that transfer is handled by the app or service you picked, and is subject to its own privacy terms.</p>
+  <h2>Files you import and export</h2>
+  <p>GhostDelta can open and save GhostDelta track, Stage, Circuit and package files, and can read GPX files. These files are read and written on your device, and go only where you send them. If you choose to share a file — by AirDrop, Messages, email or any other app — that transfer is handled by the app or service you picked, and is subject to its own privacy terms.</p>
 
-<h2>Purchases</h2>
-<p>GhostDelta offers unlimited session recording as a yearly subscription or a one-time lifetime unlock. Purchases are processed entirely by Apple's App Store and StoreKit. We do not receive or store your name, payment card, or other payment details. Your entitlement is read directly from the App Store and tied to your Apple Account, which is how it restores across your devices and reinstalls.</p>
-<p>Purchases are subject to Apple's <a href="https://www.apple.com/legal/privacy/">Privacy Policy</a>.</p>
+  <h2>Purchases</h2>
+  <p>GhostDelta offers unlimited session recording as a yearly subscription or a one-time lifetime unlock. Purchases are processed entirely by Apple's App Store and StoreKit. We do not receive or store your name, payment card, or other payment details. Your entitlement is read directly from the App Store and tied to your Apple Account, which is how it restores across your devices and reinstalls.</p>
+  <p>Purchases are subject to Apple's <a href="https://www.apple.com/legal/privacy/">Privacy Policy</a>.</p>
 
-<h2>Data we collect</h2>
-<p>We do not collect, transmit, sell, or share your personal data. Specifically, GhostDelta:</p>
-<ul>
-  <li>Does not use third-party analytics, advertising, or tracking SDKs.</li>
-  <li>Does not maintain developer-operated servers that receive your sessions.</li>
-  <li>Does not create user accounts with us or require you to provide an email or password.</li>
-  <li>Does not track you across apps or websites.</li>
-</ul>
+  <h2>Data we collect</h2>
+  <p>We do not collect, transmit, sell, or share your personal data. Specifically, GhostDelta:</p>
+  <ul>
+    <li>Does not use third-party analytics, advertising, or tracking SDKs.</li>
+    <li>Does not maintain developer-operated servers that receive your sessions.</li>
+    <li>Does not create user accounts with us or require you to provide an email or password.</li>
+    <li>Does not track you across apps or websites.</li>
+  </ul>
 
-<h2>Children's privacy</h2>
-<p>GhostDelta is not directed at children and does not knowingly collect personal information from anyone, including children under 13.</p>
+  <h2>Children's privacy</h2>
+  <p>GhostDelta is not directed at children and does not knowingly collect personal information from anyone, including children under 13.</p>
 
-<h2>Your control over your data</h2>
-<p>You can delete any individual session, Stage or Circuit within the app. Deleting the app removes the data held on that device. Location and Health permissions can be changed or revoked at any time in your device's Settings.</p>
+  <h2>Your control over your data</h2>
+  <p>You can delete any individual session, Stage or Circuit within the app. Deleting the app removes the data held on that device. Location and Health permissions can be changed or revoked at any time in your device's Settings.</p>
 
-<h2>Changes to this policy</h2>
-<p>If this policy changes, the updated version will be posted on this page with a new date at the top.</p>
+  <h2>Changes to this policy</h2>
+  <p>If this policy changes, the updated version will be posted on this page with a new date at the top.</p>
 
-<h2>Contact</h2>
-<p class="contact">Questions about this policy or about GhostDelta: <a href="mailto:jza.applications@gmail.com">jza.applications@gmail.com</a></p>
-<p><a href="support.html">GhostDelta support</a> &middot; <a href="../">All apps</a></p>
+  <h2>Contact</h2>
+  <p>Questions about this policy or about GhostDelta: <a href="mailto:jza.applications@gmail.com">jza.applications@gmail.com</a></p>
 
+  <footer>
+    <a href="./">GhostDelta</a>
+    <a href="support.html">Support</a>
+    <a href="../">All apps</a>
+    <span>© 2026 JZA Applications</span>
+  </footer>
+
+</main>
 </body>
 </html>
