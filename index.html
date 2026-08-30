@@ -10,17 +10,19 @@
     --fg: #1c1c1e;
     --muted: #6b6b70;
     --rule: #e4e4e7;
-    --accent: #0a6cff;
+    --accent: #d99e00;
+    --accent-bright: #ffd60a;
     --card: #f7f7f8;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #111113;
+      --bg: #121110;
       --fg: #f2f2f4;
       --muted: #a1a1a8;
-      --rule: #2a2a2e;
-      --accent: #6aa8ff;
-      --card: #1a1a1d;
+      --rule: #2c2a26;
+      --accent: #ffd60a;
+      --accent-bright: #ffd60a;
+      --card: #1b1a18;
     }
   }
   * { box-sizing: border-box; }
@@ -33,22 +35,99 @@
     -webkit-text-size-adjust: 100%;
   }
   main { max-width: 640px; margin: 0 auto; }
-  header { border-bottom: 1px solid var(--rule); padding-bottom: 1.5rem; margin-bottom: 2rem; }
-  h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 .4rem; letter-spacing: -0.02em; }
+  header {
+    border-bottom: 3px solid var(--accent-bright);
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  h1 {
+    font-size: 2.1rem;
+    line-height: 1.2;
+    margin: 0 0 .4rem;
+    letter-spacing: -0.02em;
+  }
+  h1 .jza { color: var(--accent); }
   .tagline { color: var(--muted); margin: 0; }
   h2 { font-size: 1.15rem; margin: 2.5rem 0 .75rem; letter-spacing: -0.01em; }
   p { margin: 0 0 1rem; }
   a { color: var(--accent); }
+
+  /* App tiles — each one wears its own app's colours */
   .app {
-    background: var(--card);
-    border: 1px solid var(--rule);
-    border-radius: 12px;
+    border-radius: 14px;
     padding: 1.25rem 1.35rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.1rem;
+    border: 1px solid var(--rule);
+    transition: transform .15s ease, box-shadow .15s ease;
   }
-  .app h3 { margin: 0 0 .3rem; font-size: 1.15rem; letter-spacing: -0.01em; }
-  .app p { color: var(--muted); margin: 0 0 .9rem; }
-  .links a { margin-right: 1.25rem; font-weight: 500; }
+  .app:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  }
+  .app h3 { margin: 0 0 .3rem; font-size: 1.2rem; letter-spacing: -0.01em; }
+  .app p { margin: 0 0 .9rem; }
+  .links a { margin-right: 1.25rem; font-weight: 500; text-decoration: none; }
+  .links a:hover { text-decoration: underline; }
+
+  /* BananaBomb — warm dark brown, banana yellow, a hint of peel green */
+  .app.bananabomb {
+    background: #211E19;
+    border-color: #433A30;
+    color: #ffffff;
+  }
+  .app.bananabomb p { color: #AEAEB2; }
+  .app.bananabomb .bomb { color: #FFD60A; }
+  .app.bananabomb .links a { color: #FFD60A; }
+  .app.bananabomb .links a:nth-child(2) { color: #30D158; }
+  .app.bananabomb .links a:nth-child(3) { color: #FFD60A; }
+
+  /* BikeSpec — clean, adaptive, workshop blue */
+  .app.bikespec {
+    background: var(--card);
+    border-color: var(--rule);
+  }
+  .app.bikespec .spec { color: #0a6cff; }
+  .app.bikespec p { color: var(--muted); }
+  .app.bikespec .links a { color: #0a6cff; }
+  @media (prefers-color-scheme: dark) {
+    .app.bikespec .spec { color: #6aa8ff; }
+    .app.bikespec .links a { color: #6aa8ff; }
+  }
+
+  /* GhostDelta — near-black, mono wordmark, racing yellow */
+  .app.ghostdelta {
+    background: #111110;
+    border-color: #2A2A28;
+    color: #F0EFE9;
+  }
+  .app.ghostdelta h3 {
+    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.22em;
+    font-weight: 700;
+  }
+  .app.ghostdelta .delta { color: #FFD600; }
+  .app.ghostdelta p { color: #8A8A82; }
+  .app.ghostdelta .links a { color: #FFD600; }
+
+  /* PowerGlass — dark blue-neutral, yellow-to-blue gradient wordmark */
+  .app.powerglass {
+    background: #0F1318;
+    border-color: #252C34;
+    color: #EEF2F5;
+  }
+  .app.powerglass h3 {
+    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.22em;
+    font-weight: 700;
+    background: linear-gradient(90deg, #FFD948, #2CB8F0);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    display: inline-block;
+  }
+  .app.powerglass p { color: #87929D; }
+  .app.powerglass .links a { color: #2CB8F0; }
+
   footer {
     margin-top: 3.5rem;
     padding-top: 1.5rem;
@@ -63,14 +142,14 @@
 <main>
 
   <header>
-    <h1>JZA Applications</h1>
-    <p class="tagline">Small, private apps for iPhone and iPad.</p>
+    <h1><span class="jza">JZA</span> Applications</h1>
+    <p class="tagline">Small, private apps for iPhone, iPad and Apple Watch.</p>
   </header>
 
   <h2>Apps</h2>
 
-  <div class="app">
-    <h3>BananaBomb</h3>
+  <div class="app bananabomb">
+    <h3>Banana<span class="bomb">Bomb</span> 🍌💣</h3>
     <p>Swipe-based photo cleaning with on-device AI — peel the keepers, bomb the rest, reclaim your storage.</p>
     <p class="links">
       <a href="bananabomb/">About</a>
@@ -79,8 +158,8 @@
     </p>
   </div>
 
-  <div class="app">
-    <h3>BikeSpec</h3>
+  <div class="app bikespec">
+    <h3>Bike<span class="spec">Spec</span></h3>
     <p>Bike details, setups, service records and photos — kept on your device and in your own iCloud.</p>
     <p class="links">
       <a href="bikespec/support.html">Support</a>
@@ -88,8 +167,8 @@
     </p>
   </div>
 
-  <div class="app">
-    <h3>GhostDelta</h3>
+  <div class="app ghostdelta">
+    <h3>GHOST<span class="delta">DELTA</span></h3>
     <p>Watch-first GPS session tracking for karting, mountain biking, motorcycling, boating and more.</p>
     <p class="links">
       <a href="ghostdelta/">About</a>
@@ -97,8 +176,9 @@
       <a href="ghostdelta/GhostDeltaPrivacyPolicy.html">Privacy policy</a>
     </p>
   </div>
-  <div class="app">
-    <h3>PowerGlass</h3>
+
+  <div class="app powerglass">
+    <h3>POWERGLASS</h3>
     <p>Apple Watch battery life in hours, not percent — a live prediction learned from how you actually use your watch.</p>
     <p class="links">
       <a href="powerglass/">About</a>
