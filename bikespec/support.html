@@ -6,22 +6,12 @@
 <title>BikeSpec Support — JZA Applications</title>
 <style>
   :root {
-    --bg: #ffffff;
-    --fg: #1c1c1e;
-    --muted: #6b6b70;
-    --rule: #e4e4e7;
-    --accent: #0a6cff;
-    --card: #f7f7f8;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #111113;
-      --fg: #f2f2f4;
-      --muted: #a1a1a8;
-      --rule: #2a2a2e;
-      --accent: #6aa8ff;
-      --card: #1a1a1d;
-    }
+    --bg: #0B0B0E;
+    --fg: #ffffff;
+    --muted: rgba(255, 255, 255, 0.62);
+    --rule: rgba(255, 255, 255, 0.06);
+    --accent: #FF8A3D;
+    --card: #16161B;
   }
   * { box-sizing: border-box; }
   body {
@@ -35,6 +25,7 @@
   main { max-width: 640px; margin: 0 auto; }
   header { border-bottom: 1px solid var(--rule); padding-bottom: 1.5rem; margin-bottom: 2rem; }
   h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 .4rem; letter-spacing: -0.02em; }
+  h1 .spec { color: var(--accent); }
   .tagline { color: var(--muted); margin: 0; }
   h2 { font-size: 1.15rem; margin: 2.5rem 0 .75rem; letter-spacing: -0.01em; }
   h3 { font-size: 1rem; margin: 1.5rem 0 .35rem; }
@@ -64,7 +55,7 @@
 <body>
 <main>
   <header>
-    <h1>BikeSpec Support</h1>
+    <h1>Bike<span class="spec">Spec</span> Support</h1>
     <p class="tagline">An app by JZA Applications</p>
   </header>
   <p>BikeSpec keeps your bike details, setups, service records and photos in one place, stored on your own device and in your own iCloud account.</p>

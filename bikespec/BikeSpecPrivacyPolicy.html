@@ -6,20 +6,12 @@
   <title>Privacy Policy — BikeSpec</title>
   <style>
     :root {
-      --text: #1d1d1f;
-      --muted: #6e6e73;
-      --link: #0066cc;
-      --bg: #ffffff;
-      --rule: #d2d2d7;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --text: #f5f5f7;
-        --muted: #a1a1a6;
-        --link: #2997ff;
-        --bg: #000000;
-        --rule: #38383a;
-      }
+      --text: #ffffff;
+      --muted: rgba(255, 255, 255, 0.62);
+      --link: #FF8A3D;
+      --bg: #0B0B0E;
+      --rule: rgba(255, 255, 255, 0.06);
+      --card: #16161B;
     }
     * { box-sizing: border-box; }
     body {
@@ -36,11 +28,13 @@
     h2 { font-size: 1.35rem; margin: 2em 0 0.5em; padding-top: 0.5em; border-top: 1px solid var(--rule); }
     .updated { color: var(--muted); font-size: 0.95rem; margin: 0 0 2em; }
     .lede {
-      background: rgba(127,127,127,0.08);
+      background: var(--card);
+      border: 1px solid var(--rule);
       border-radius: 12px;
       padding: 18px 20px;
       margin: 1.5em 0 2em;
     }
+    h1 .spec { color: var(--link); }
     p { margin: 0.8em 0; }
     ul { margin: 0.8em 0; padding-left: 1.4em; }
     li { margin: 0.4em 0; }
@@ -52,7 +46,7 @@
 </head>
 <body>
 
-  <h1>Privacy Policy for BikeSpec</h1>
+  <h1>Privacy Policy for Bike<span class="spec">Spec</span></h1>
   <p class="updated">Last updated: 20 June 2026</p>
 
   <p>This Privacy Policy describes how BikeSpec ("the app", "we", "us") handles your information. BikeSpec is developed by JZA Applications.</p>
