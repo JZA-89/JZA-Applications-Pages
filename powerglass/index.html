@@ -7,12 +7,13 @@
 <meta name="description" content="PowerGlass turns your Apple Watch battery percentage into a live time-remaining prediction, learned from how you actually use your watch.">
 <style>
   :root {
-    --bg: #101211;
-    --surface: #1A1D1B;
-    --fg: #EDF1EE;
-    --muted: #85908A;
-    --accent: #30D158;
-    --rule: #272B28;
+    --bg: #0F1318;
+    --surface: #181E25;
+    --fg: #EEF2F5;
+    --muted: #87929D;
+    --accent: #2CB8F0;
+    --accent-yellow: #FFD948;
+    --rule: #252C34;
   }
   * { box-sizing: border-box; }
   body {
@@ -31,7 +32,12 @@
     letter-spacing: 0.28em;
     margin: 0 0 0.5rem;
   }
-  .wordmark .glass { color: var(--accent); }
+  .wordmark {
+    background: linear-gradient(90deg, var(--accent-yellow), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
   .tagline {
     font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
     color: var(--muted);
