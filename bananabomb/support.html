@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BananaBomb Support — JZA Applications</title>
+<style>
+  :root {
+    --bg: #211E19;
+    --surface: #352E25;
+    --fg: #FFFFFF;
+    --muted: #AEAEB2;
+    --accent: #FFD60A;
+    --rule: #433A30;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 4rem 1.25rem 5rem;
+    background: var(--bg);
+    color: var(--fg);
+    font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  main { max-width: 640px; margin: 0 auto; }
+  .wordmark {
+    font-size: 2.1rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    margin: 0 0 0.5rem;
+  }
+  .wordmark a { color: inherit; text-decoration: none; }
+  .wordmark .bomb { color: var(--accent); }
+  .tagline {
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.95rem;
+    margin: 0 0 3rem;
+  }
+  h2 {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin: 3rem 0 0.75rem;
+  }
+  h3 { font-size: 1rem; margin: 1.75rem 0 0.35rem; letter-spacing: -0.01em; }
+  p { margin: 0 0 1rem; }
+  ul { margin: 0 0 1rem; padding-left: 1.25rem; color: var(--muted); }
+  li { margin-bottom: .35rem; }
+  a { color: var(--accent); }
+  strong { font-weight: 600; color: var(--fg); }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 1.25rem 1.35rem;
+    margin: 1rem 0 1.5rem;
+  }
+  .card p { margin: 0 0 0.5rem; }
+  .card p:last-child { margin: 0; color: var(--muted); }
+  .email a {
+    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    font-size: 1.05rem;
+  }
+  footer {
+    border-top: 1px solid var(--rule);
+    margin-top: 3.5rem;
+    padding-top: 1.5rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  footer a { margin-right: 1.25rem; }
+</style>
+</head>
+<body>
+<main>
+
+  <header>
+    <p class="wordmark"><a href="./">Banana<span class="bomb">Bomb</span></a></p>
+    <p class="tagline">Support</p>
+  </header>
+
+  <p>BananaBomb is a swipe-based photo cleaner for iPhone. Swipe right to peel (keep), swipe left to bomb (delete), and let the on-device AI surface duplicates and the photos you're most likely to want gone.</p>
+
+  <h2>Get in touch</h2>
+
+  <div class="card">
+    <p class="email"><a href="mailto:jza.applications@gmail.com">jza.applications@gmail.com</a></p>
+    <p>Questions, bug reports and feature requests all welcome. I aim to reply within a few days.</p>
+  </div>
+
+  <p>To help me sort things out quickly, it's useful if you can include:</p>
+  <ul>
+    <li>Your iPhone model and iOS version</li>
+    <li>The BananaBomb version number (shown at the bottom of Settings)</li>
+    <li>What you were doing when the problem happened, and what you expected instead</li>
+    <li>Roughly how large your photo library is, if it relates to scanning or performance</li>
+  </ul>
+
+  <h2>Common questions</h2>
+
+  <h3>Are photos deleted as soon as I bomb them?</h3>
+  <p>No. Bombed photos collect in a batch, and nothing is removed until you confirm the standard iOS deletion dialog. Even after that, iOS keeps deleted photos in the <strong>Recently Deleted</strong> album for around 30 days, so you can recover them from the Photos app.</p>
+
+  <h3>Why does BananaBomb need full photo library access?</h3>
+  <p>The app's whole job is reviewing and cleaning your library, so it needs to read your photos to analyse and show them, and delete permission to remove the ones you bomb. All analysis happens on your device — see the <a href="BananaBombPrivacyPolicy.html">privacy policy</a>.</p>
+
+  <h3>What are bunches?</h3>
+  <p>Bunches are groups of duplicate or near-identical photos, found by comparing on-device fingerprints of every photo. You can tune how strict the matching is with the <strong>Bunch Detection sensitivity</strong> slider in Settings.</p>
+
+  <h3>What is BananaBrain, and what does AI Confidence mean?</h3>
+  <p><strong>BananaBrain</strong> is the on-device model that learns from your swipes and ranks upcoming photos so the most bomb-worthy come first. <strong>AI Confidence</strong> in Settings shows how well it has learned your preferences — swipe at least 10 photos to start training it.</p>
+
+  <h3>Why is Barry AI greyed out?</h3>
+  <p>Barry's AI-generated quips and poses use Apple Intelligence, so they need a device and iOS version that support it. On other devices Barry still animates and reacts — he just sticks to his classic material.</p>
+
+  <h3>The bunch counts or categories look incomplete</h3>
+  <p>BananaBomb scans your library in the background after you grant access, and large libraries take a while on the first pass. Counts fill in as scanning progresses — you can check <strong>Library Scanned</strong> in Settings. If something still looks wrong, <strong>Force Rescan Library</strong> in Settings clears the analysis cache and starts over without touching your review history.</p>
+
+  <h3>What does BananaBomb Pro get me?</h3>
+  <p>Unlimited cleaning, available as a yearly subscription or a one-time lifetime unlock. Purchases go through the App Store and are tied to your Apple Account, so they restore on other devices and after a reinstall — use <strong>Restore Purchase</strong> in Settings.</p>
+
+  <h3>Can I start over?</h3>
+  <p>Yes. <strong>Reset Review History</strong> in Settings clears your reviewed photos and the AI's learning data, and you'll start fresh next session. It doesn't restore anything you've already deleted.</p>
+
+  <h3>I have an idea for a feature</h3>
+  <p>Send it through. BananaBomb is developed by one person, so I read everything that comes in.</p>
+
+  <h2>Privacy</h2>
+  <p>Read the <a href="BananaBombPrivacyPolicy.html">BananaBomb privacy policy</a>.</p>
+
+  <footer>
+    <a href="./">BananaBomb</a>
+    <a href="BananaBombPrivacyPolicy.html">Privacy Policy</a>
+    <a href="../">All apps</a>
+    <span>© 2026 JZA Applications</span>
+  </footer>
+
+</main>
+</body>
+</html>
