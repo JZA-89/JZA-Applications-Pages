@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PowerGlass Support — JZA Applications</title>
+<style>
+  :root {
+    --bg: #101211;
+    --surface: #1A1D1B;
+    --fg: #EDF1EE;
+    --muted: #85908A;
+    --accent: #30D158;
+    --rule: #272B28;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 4rem 1.25rem 5rem;
+    background: var(--bg);
+    color: var(--fg);
+    font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  main { max-width: 640px; margin: 0 auto; }
+  .wordmark {
+    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    font-size: 2.1rem;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    margin: 0 0 0.5rem;
+  }
+  .wordmark a { color: inherit; text-decoration: none; }
+  .wordmark .glass { color: var(--accent); }
+  .tagline {
+    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin: 0 0 3rem;
+  }
+  h2 {
+    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin: 3rem 0 0.75rem;
+  }
+  h3 { font-size: 1rem; margin: 1.75rem 0 0.35rem; letter-spacing: -0.01em; }
+  p { margin: 0 0 1rem; }
+  ul { margin: 0 0 1rem; padding-left: 1.25rem; color: var(--muted); }
+  li { margin-bottom: .35rem; }
+  a { color: var(--accent); }
+  strong { font-weight: 600; color: var(--fg); }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 1.25rem 1.35rem;
+    margin: 1rem 0 1.5rem;
+  }
+  .card p { margin: 0 0 0.5rem; }
+  .card p:last-child { margin: 0; color: var(--muted); }
+  .email a {
+    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    font-size: 1.05rem;
+  }
+  footer {
+    border-top: 1px solid var(--rule);
+    margin-top: 3.5rem;
+    padding-top: 1.5rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  footer a { margin-right: 1.25rem; }
+</style>
+</head>
+<body>
+<main>
+
+  <header>
+    <p class="wordmark"><a href="./">POWER<span class="glass">GLASS</span></a></p>
+    <p class="tagline">SUPPORT</p>
+  </header>
+
+  <p>PowerGlass is an Apple Watch app that turns your battery percentage into a live time-remaining prediction, learned from your own usage patterns. Everything runs and stays on your watch.</p>
+
+  <h2>Get in touch</h2>
+
+  <div class="card">
+    <p class="email"><a href="mailto:jza.applications@gmail.com">jza.applications@gmail.com</a></p>
+    <p>Questions, bug reports and feature requests all welcome. I aim to reply within a few days.</p>
+  </div>
+
+  <p>To help me sort things out quickly, it's useful if you can include:</p>
+  <ul>
+    <li>Your Apple Watch model and watchOS version</li>
+    <li>The PowerGlass version number</li>
+    <li>What you were doing when the problem happened, and what you expected instead</li>
+    <li>A screenshot of Page 2 (learning stats) if the question is about prediction accuracy</li>
+  </ul>
+
+  <h2>Common questions</h2>
+
+  <h3>How long until predictions are accurate?</h3>
+  <p>PowerGlass learns your hourly drain pattern as you wear the watch. Give it a few days of normal use — you can track coverage and learning progress on Page 2. The more hours of the day it has observed, the better the prediction.</p>
+
+  <h3>Why do predictions seem stale or the complication isn't updating?</h3>
+  <p>PowerGlass depends on watchOS background app refresh. Make sure Background App Refresh is enabled for PowerGlass in the Watch app settings, and keep a PowerGlass complication on your active watch face — watchOS gives apps with a visible complication far more frequent refresh opportunities.</p>
+
+  <h3>Why does the app ask me to open it in Low Power Mode?</h3>
+  <p>In Low Power Mode, watchOS heavily restricts background refresh, so PowerGlass can't sample the battery on its own. Opening the app periodically while in this mode keeps the Low Power learning model accurate.</p>
+
+  <h3>What do Steady, Balanced and Responsive mean?</h3>
+  <p>They control the learning speed — how quickly new days are averaged into your model. <strong>Steady</strong> remembers roughly two weeks, <strong>Balanced</strong> about a week, and <strong>Responsive</strong> about half a week. Balanced is the default and right for most people; pick Responsive if your routine just changed and you want the model to catch up faster.</p>
+
+  <h3>Why are there separate Standard and Low Power models?</h3>
+  <p>Drain rates in the two modes are very different, so PowerGlass learns them separately. Tell the app which mode you're in and it predicts from the matching model — switching modes never contaminates the other model's data.</p>
+
+  <h3>What is the "Charge before" time?</h3>
+  <p>It's the depletion estimate — the day and time your battery is predicted to run out at your learned drain rate, so you know when you'll next need the charger.</p>
+
+  <h3>Can I start the learning over?</h3>
+  <p>Yes. Settings → Reset All Data wipes the learned model and starts fresh. Useful if you picked the wrong watch model during setup or your usage has completely changed.</p>
+
+  <h3>I have an idea for a feature</h3>
+  <p>Send it through. PowerGlass is developed by one person, so I read everything that comes in.</p>
+
+  <h2>Privacy</h2>
+  <p>Read the <a href="PowerGlassPrivacyPolicy.html">PowerGlass privacy policy</a>.</p>
+
+  <footer>
+    <a href="./">PowerGlass</a>
+    <a href="PowerGlassPrivacyPolicy.html">Privacy Policy</a>
+    <a href="../">All apps</a>
+    <span>© 2026 JZA Applications</span>
+  </footer>
+
+</main>
+</body>
+</html>
