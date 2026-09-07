@@ -27,11 +27,11 @@
     // ── The menu: Home, then every app (order mirrors the home page) ──
     // Each label is rendered in its own home-screen wordmark style.
     var apps = [
-        { path: "pointfoundry/", html: '<span class="jza-app-pf">POINTFOUNDRY</span>' },
+        { path: "bananabomb/",   html: '<span class="jza-app-bb">Banana<span class="b">Bomb</span></span> 🍌💣' },
+        { path: "bikespec/",     html: '<span class="jza-app-bs">Bike<span class="s">Spec</span></span>' },
         { path: "ghostdelta/",   html: '<span class="jza-app-gd">GHOST<span class="d">DELTA</span></span>' },
         { path: "powerglass/",   html: '<span class="jza-app-pg">PowerGlass</span>' },
-        { path: "bananabomb/",   html: '<span class="jza-app-bb">Banana<span class="b">Bomb</span></span> 🍌💣' },
-        { path: "bikespec/",     html: '<span class="jza-app-bs">Bike<span class="s">Spec</span></span>' }
+        { path: "pointfoundry/", html: '<span class="jza-app-pf">POINTFOUNDRY</span>' }
     ];
 
     // ── Styles — neutral translucent panel that reads on any page ──
@@ -46,8 +46,9 @@
         ".jza-nav summary:hover{background:rgba(34,34,38,0.86);}" +
         ".jza-nav-icon{font-size:15px;line-height:1;}" +
         ".jza-nav-label{font-weight:600;letter-spacing:0.04em;}" +
-        ".jza-nav[open] summary{border-radius:11px 11px 0 0;}" +
-        ".jza-nav-panel{display:flex;flex-direction:column;min-width:216px;" +
+        ".jza-nav[open]{width:216px;}" +
+        ".jza-nav[open] summary{display:flex;width:100%;box-sizing:border-box;border-radius:11px 11px 0 0;}" +
+        ".jza-nav-panel{display:flex;flex-direction:column;width:216px;box-sizing:border-box;" +
         "background:rgba(18,18,20,0.94);border:1px solid rgba(255,255,255,0.16);border-top:none;" +
         "border-radius:0 0 11px 11px;overflow:hidden;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);" +
         "box-shadow:0 12px 28px rgba(0,0,0,0.36);}" +
