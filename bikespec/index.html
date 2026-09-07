@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BikeSpec — Every bike, every spec, every setup.</title>
+<meta name="description" content="BikeSpec keeps your bikes' specifications, setups, service records and photos in one place — scanned from spec sheets on device, synced through your own iCloud, never shared with anyone.">
+<style>
+  :root {
+    --bg: #0B0B0E;
+    --fg: #ffffff;
+    --muted: rgba(255, 255, 255, 0.62);
+    --rule: rgba(255, 255, 255, 0.06);
+    --accent: #FF8A3D;
+    --card: #16161B;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 4rem 1.25rem 5rem;
+    background: var(--bg);
+    color: var(--fg);
+    font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  main { max-width: 640px; margin: 0 auto; }
+  .wordmark {
+    font-size: 2.1rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.5rem;
+  }
+  .wordmark .spec { color: var(--accent); }
+  .tagline {
+    color: var(--muted);
+    letter-spacing: 0.02em;
+    margin: 0 0 3rem;
+  }
+  h2 {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin: 3rem 0 0.75rem;
+  }
+  p { margin: 0 0 1rem; }
+  .muted { color: var(--muted); }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 1.25rem 1.35rem;
+    margin: 1rem 0 1.5rem;
+  }
+  .card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 0.4rem;
+    letter-spacing: -0.01em;
+  }
+  .card p { margin: 0; color: var(--muted); }
+  a { color: var(--accent); }
+  footer {
+    border-top: 1px solid var(--rule);
+    margin-top: 3.5rem;
+    padding-top: 1.5rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  footer a { margin-right: 1.25rem; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="wordmark">Bike<span class="spec">Spec</span></p>
+    <p class="tagline">Every bike, every spec, every setup.</p>
+  </header>
+
+  <p>BikeSpec keeps everything about your bikes in one place — the full specification, how each one is set up, what's been serviced, and the photos. It's the spec sheet and logbook you'll actually keep up to date, stored on your own device and synced through your private iCloud.</p>
+  <p class="muted">One bike or a whole stable — it's built to hold the detail that's otherwise scattered across manuals, receipts and memory.</p>
+
+  <h2>Specifications</h2>
+  <div class="card">
+    <h3>The whole bike, on record</h3>
+    <p>Make, model, size, components, geometry, tyres and suspension settings — plus any custom spec items you want to track. As much or as little detail as you like.</p>
+  </div>
+
+  <h2>Spec scanning</h2>
+  <div class="card">
+    <h3>Photograph a spec sheet, keep the numbers</h3>
+    <p>Point the camera at a manufacturer spec sheet or geometry chart and BikeSpec reads it with Apple's on-device Vision and Apple Intelligence, pulling the figures out for you. The photo and text never leave your device.</p>
+  </div>
+
+  <h2>Setups &amp; service</h2>
+  <div class="card">
+    <h3>Every adjustment and repair, logged</h3>
+    <p>Record setups and adjustments, keep a change log, and track service records so you always know what was done, and when.</p>
+  </div>
+
+  <h2>Photos &amp; bike images</h2>
+  <div class="card">
+    <h3>Add your own, or generate one</h3>
+    <p>Attach photos from your library, or create a bike image on device with Apple's Image Playground. Your prompts and reference photos stay on the device.</p>
+  </div>
+
+  <h2>Range estimation</h2>
+  <div class="card">
+    <h3>Import a route, size up the ride</h3>
+    <p>Bring in a GPX route and BikeSpec works out the distance and climbing on device, so you can gauge whether a bike — or a battery — is up to it. Route points are used only for the calculation, never stored as a tracked ride.</p>
+  </div>
+
+  <h2>iCloud sync</h2>
+  <div class="card">
+    <h3>The same garage on every device</h3>
+    <p>With iCloud enabled, your bikes sync through Apple's CloudKit to your private iCloud account, staying consistent across your devices — with no account to create and nothing held by us.</p>
+  </div>
+
+  <h2>Your data</h2>
+  <p class="muted">No account, no servers, no analytics. Your bikes live on your device and in your own private iCloud — we can't see any of it, and nothing is shared with third parties.</p>
+
+  <h2>Pricing</h2>
+  <p class="muted">Free to use, with a one-time in-app purchase to unlock unlimited bikes. Purchases go through the App Store and are tied to your Apple Account, so they restore across your devices.</p>
+
+  <p style="margin-top: 3rem;">Available on the App Store for iPhone.</p>
+  <p style="margin: 1.25rem 0 0;">
+    <a href="https://apps.apple.com/app/id6779177098" style="display:inline-block;">
+      <img src="https://toolbox.marketingtools.apple.com/api/badges/download-on-the-app-store/black/en-us?size=250x83"
+           alt="Download BikeSpec on the App Store" style="height:52px;width:auto;">
+    </a>
+  </p>
+
+  <footer>
+    <a href="support.html">Support</a>
+    <a href="BikeSpecPrivacyPolicy.html">Privacy Policy</a>
+    <a href="../">All apps</a>
+    <span>© 2026 JZA Applications</span>
+  </footer>
+</main>
+</body>
+</html>
