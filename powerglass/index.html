@@ -26,19 +26,18 @@
   }
   main { max-width: 640px; margin: 0 auto; }
   .wordmark {
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    font-family: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: 2.1rem;
     font-weight: 700;
-    letter-spacing: 0.28em;
+    letter-spacing: -0.01em;
     margin: 0 0 0.5rem;
   }
   .wordmark {
     display: inline-block;
-    background: linear-gradient(90deg, #FFD60A, #FF9F0A, #64D2FF, #0A84FF);
+    background: linear-gradient(90deg, #FFBF00 0%, #FFBF00 12%, #FFCC00 40%, #34C759 62%, #32ADE6 88%, #32ADE6 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    filter: drop-shadow(0 2px 3px rgba(10, 132, 255, 0.35));
   }
   .tagline {
     font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
@@ -85,8 +84,8 @@
 <body>
 <main>
   <header>
-    <p class="wordmark">POWER<span class="glass">GLASS</span></p>
-    <p class="tagline">HOURS, NOT PERCENT.</p>
+    <p class="wordmark">PowerGlass</p>
+    <p class="tagline">Intelligent Battery Analytics</p>
   </header>
 
   <p>PowerGlass turns your Apple Watch battery percentage into a live time-remaining prediction, based on how you actually use your watch. By learning your real-world usage patterns, it shows you exactly how many hours you have left.</p>
@@ -136,5 +135,6 @@
     <span>© 2026 JZA Applications</span>
   </footer>
 </main>
+<script src="../nav.js" id="jza-nav-script"></script>
 </body>
 </html>
