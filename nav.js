@@ -29,7 +29,7 @@
     var apps = [
         { path: "pointfoundry/", html: '<span class="jza-app-pf">POINTFOUNDRY</span>' },
         { path: "ghostdelta/",   html: '<span class="jza-app-gd">GHOST<span class="d">DELTA</span></span>' },
-        { path: "powerglass/",   html: '<span class="jza-app-pg">POWERGLASS</span>' },
+        { path: "powerglass/",   html: '<span class="jza-app-pg">PowerGlass</span>' },
         { path: "bananabomb/",   html: '<span class="jza-app-bb">Banana<span class="b">Bomb</span></span> 🍌💣' },
         { path: "bikespec/",     html: '<span class="jza-app-bs">Bike<span class="s">Spec</span></span>' }
     ];
@@ -65,9 +65,9 @@
         ".jza-app-gd{font-family:ui-monospace,'SF Mono',SFMono-Regular,Menlo,monospace;font-weight:700;" +
         "letter-spacing:0.18em;color:#F0EFE9;}" +
         ".jza-app-gd .d{color:#FFD600;}" +
-        ".jza-app-pg{font-family:ui-monospace,'SF Mono',SFMono-Regular,Menlo,monospace;font-weight:700;" +
-        "letter-spacing:0.16em;display:inline-block;" +
-        "background:linear-gradient(90deg,#FFD60A,#FF9F0A,#64D2FF,#0A84FF);" +
+        ".jza-app-pg{font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,sans-serif;" +
+        "font-weight:700;display:inline-block;" +
+        "background:linear-gradient(90deg,#FFBF00 0%,#FFBF00 12%,#FFCC00 40%,#34C759 62%,#32ADE6 88%,#32ADE6 100%);" +
         "-webkit-background-clip:text;background-clip:text;color:transparent;}" +
         ".jza-app-bb{font-weight:800;color:#fff;}" +
         ".jza-app-bb .b{color:#FFD60A;}" +
