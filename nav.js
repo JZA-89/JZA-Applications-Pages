@@ -25,12 +25,13 @@
     var root = self ? self.src.replace(/nav\.js(\?.*)?$/, "") : "";
 
     // ── The menu: Home, then every app (order mirrors the home page) ──
+    // Each label is rendered in its own home-screen wordmark style.
     var apps = [
-        { name: "PointFoundry", path: "pointfoundry/" },
-        { name: "GhostDelta",   path: "ghostdelta/"   },
-        { name: "PowerGlass",   path: "powerglass/"   },
-        { name: "BananaBomb",   path: "bananabomb/"   },
-        { name: "BikeSpec",     path: "bikespec/"     }
+        { path: "pointfoundry/", html: '<span class="jza-app-pf">POINTFOUNDRY</span>' },
+        { path: "ghostdelta/",   html: '<span class="jza-app-gd">GHOST<span class="d">DELTA</span></span>' },
+        { path: "powerglass/",   html: '<span class="jza-app-pg">POWERGLASS</span>' },
+        { path: "bananabomb/",   html: '<span class="jza-app-bb">Banana<span class="b">Bomb</span></span> 🍌💣' },
+        { path: "bikespec/",     html: '<span class="jza-app-bs">Bike<span class="s">Spec</span></span>' }
     ];
 
     // ── Styles — neutral translucent panel that reads on any page ──
@@ -46,15 +47,32 @@
         ".jza-nav-icon{font-size:15px;line-height:1;}" +
         ".jza-nav-label{font-weight:600;letter-spacing:0.04em;}" +
         ".jza-nav[open] summary{border-radius:11px 11px 0 0;}" +
-        ".jza-nav-panel{display:flex;flex-direction:column;min-width:184px;" +
+        ".jza-nav-panel{display:flex;flex-direction:column;min-width:216px;" +
         "background:rgba(18,18,20,0.94);border:1px solid rgba(255,255,255,0.16);border-top:none;" +
         "border-radius:0 0 11px 11px;overflow:hidden;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);" +
         "box-shadow:0 12px 28px rgba(0,0,0,0.36);}" +
-        ".jza-nav-panel a{padding:10px 14px;color:#e9e9ec;text-decoration:none;" +
+        ".jza-nav-panel a{padding:11px 16px;color:#e9e9ec;text-decoration:none;font-size:15px;" +
         "border-top:1px solid rgba(255,255,255,0.07);}" +
         ".jza-nav-panel a:first-child{border-top:none;}" +
-        ".jza-nav-panel a:hover{background:rgba(255,255,255,0.09);color:#fff;}" +
-        ".jza-nav-home{font-weight:600;}";
+        ".jza-nav-panel a:hover{background:rgba(255,255,255,0.09);}" +
+        ".jza-nav-home{font-weight:600;letter-spacing:0.02em;}" +
+        ".jza-nav-home .m{color:#FFD60A;}" +
+        // Per-app wordmarks, mirroring the home page tiles
+        ".jza-app-pf{font-family:ui-monospace,'SF Mono',SFMono-Regular,Menlo,monospace;font-weight:700;" +
+        "letter-spacing:0.16em;display:inline-block;" +
+        "background:linear-gradient(90deg,#FF401A,#FF8C1A,#FFD966,#4DD9B3,#008CFF);" +
+        "-webkit-background-clip:text;background-clip:text;color:transparent;}" +
+        ".jza-app-gd{font-family:ui-monospace,'SF Mono',SFMono-Regular,Menlo,monospace;font-weight:700;" +
+        "letter-spacing:0.18em;color:#F0EFE9;}" +
+        ".jza-app-gd .d{color:#FFD600;}" +
+        ".jza-app-pg{font-family:ui-monospace,'SF Mono',SFMono-Regular,Menlo,monospace;font-weight:700;" +
+        "letter-spacing:0.16em;display:inline-block;" +
+        "background:linear-gradient(90deg,#FFD60A,#FF9F0A,#64D2FF,#0A84FF);" +
+        "-webkit-background-clip:text;background-clip:text;color:transparent;}" +
+        ".jza-app-bb{font-weight:800;color:#fff;}" +
+        ".jza-app-bb .b{color:#FFD60A;}" +
+        ".jza-app-bs{font-weight:800;color:#fff;}" +
+        ".jza-app-bs .s{color:#FF8A3D;}";
     var style = document.createElement("style");
     style.textContent = css;
     document.head.appendChild(style);
@@ -76,13 +94,13 @@
     var home = document.createElement("a");
     home.className = "jza-nav-home";
     home.href = root;
-    home.textContent = "Home";
+    home.innerHTML = '<span class="m" aria-hidden="true">&#8962;</span> Home';
     panel.appendChild(home);
 
     apps.forEach(function (a) {
         var link = document.createElement("a");
         link.href = root + a.path;
-        link.textContent = a.name;
+        link.innerHTML = a.html;
         panel.appendChild(link);
     });
 
