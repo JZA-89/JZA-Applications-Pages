@@ -59,6 +59,15 @@
       a.setAttribute("aria-current", "page");
     }
 
+    /* clicking the icon for the page you're already on scrolls back to
+       the top instead of reloading — same feel as the macOS dock */
+    a.addEventListener("click", function (e) {
+      if (a.classList.contains("active")) {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: reducedMotion ? "auto" : "smooth" });
+      }
+    });
+
     dock.appendChild(a);
   });
 

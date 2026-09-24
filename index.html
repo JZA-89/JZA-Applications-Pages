@@ -31,7 +31,7 @@
     inset: -10%;
     opacity: 0;
     transition: opacity 1.1s ease;
-    animation: amb-drift 32s ease-in-out infinite alternate;
+    animation: amb-drift 22s ease-in-out infinite alternate;
     /* only the visible layer drifts — the hidden five stay parked */
     animation-play-state: paused;
   }
@@ -126,6 +126,15 @@
     left: 50%;
     translate: -50% 0;
     color: var(--faint);
+    display: grid;
+    justify-items: center;
+    gap: 0.5rem;
+  }
+  .scroll-label {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.34em;
+    text-indent: 0.34em; /* recentre the letterspaced text */
   }
   .scroll-hint svg { display: block; animation: bob 2.2s ease-in-out infinite; }
   @keyframes bob {
@@ -495,6 +504,7 @@
     <p class="tagline">Sharp tools for sharp people.</p>
     <p class="hero-sub">Precision engineered with an obsession for detail.</p>
     <span class="scroll-hint" aria-hidden="true">
+      <span class="scroll-label">SCROLL</span>
       <svg width="22" height="12" viewBox="0 0 22 12" fill="none"><path d="M1 1l10 9L21 1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </span>
   </header>
