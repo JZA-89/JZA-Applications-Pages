@@ -133,6 +133,11 @@
 
 html {
   scroll-behavior: smooth;
+  /* clip, not hidden: kills sideways scroll/jolt from off-screen
+     transforms (e.g. flying demo cards) without creating a scroll
+     container. body's overflow-x alone is ignored by iOS Safari. */
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {

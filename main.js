@@ -496,8 +496,10 @@
           var p = pts[i];
           var rx = p[0] * ca + p[2] * sa;
           var rz = p[2] * ca - p[0] * sa;
-          var ry = p[1] * pfCT - rz * pfST;
-          var depth = p[1] * pfST + rz * pfCT + 3.1;
+          /* tilt the world down so the camera sits above: near edge low
+             on screen, far edge high — a true look-down into the room */
+          var ry = p[1] * pfCT + rz * pfST;
+          var depth = rz * pfCT - p[1] * pfST + 3.1;
           var s = w * 0.35 * (2.4 / depth);
           var size = Math.max(1.5, w * 0.0052 * (2.4 / depth));
           pfCtx.fillRect(w / 2 + rx * s - size / 2, h / 2 + h * 0.13 - ry * s - size / 2, size, size);
