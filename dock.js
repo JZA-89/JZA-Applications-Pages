@@ -143,6 +143,10 @@
            the :active press rule can still compose with magnification */
         links[i].style.setProperty("--dock-scale", scale.toFixed(3));
         links[i].style.setProperty("--dock-lift", lift.toFixed(1) + "px");
+        /* stack by magnification, like the macOS dock: the hovered icon
+           is never covered by its neighbours (siblings otherwise paint
+           in DOM order, letting the right neighbour overlap) */
+        links[i].style.zIndex = String(10 + Math.round(falloff * 20));
       }
     };
 
@@ -153,6 +157,7 @@
       for (var i = 0; i < links.length; i++) {
         links[i].style.removeProperty("--dock-lift");
         links[i].style.removeProperty("--dock-scale");
+        links[i].style.zIndex = "";
       }
     };
 
