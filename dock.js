@@ -131,8 +131,19 @@
         dock.classList.add("magnify");
       }, 200);
     });
+    /* coalesce to one magnify pass per frame — high-report-rate mice
+       deliver several pointermoves per frame and all but the last are
+       wasted work */
+    var magnifyX = 0;
+    var magnifyRaf = null;
     dock.addEventListener("pointermove", function (e) {
-      applyMagnify(e.clientX);
+      magnifyX = e.clientX;
+      if (!magnifyRaf) {
+        magnifyRaf = requestAnimationFrame(function () {
+          magnifyRaf = null;
+          applyMagnify(magnifyX);
+        });
+      }
     });
     dock.addEventListener("pointerleave", resetMagnify);
     window.addEventListener("resize", measure);

@@ -193,7 +193,7 @@
   .chapter .wm-pointfoundry { letter-spacing: 0.14em; }
   .chapter .wm-bikespec { color: var(--fg); }
 
-  /* PowerGlass — prism band + device collage (Watch first) */
+  /* PowerGlass — prism band under the wordmark */
   .prism-band {
     height: 8px;
     max-width: 330px;
@@ -588,6 +588,8 @@
 <noscript>
   <style>
     .reveal { opacity: 1; transform: none; }
+    /* the live demos are JS-drawn — without it they're empty shells */
+    .pg-demo, .pf-frame, .gd-watch, .bb-demo { display: none; }
   </style>
 </noscript>
 </head>
@@ -823,6 +825,6 @@
 </main>
 
 <script src="dock.js" id="jza-dock-script"></script>
-<script src="main.js?v=4"></script>
+<script src="main.js?v=5"></script>
 </body>
 </html>

@@ -331,6 +331,10 @@
 
     var bbCycle = function () {
       var card = bbQueue[0];
+      /* heal a pause that landed mid-fly-off: restore the base transition
+         and stack styles before starting a fresh cycle */
+      card.style.transition = "";
+      bbLayout();
       var action = BB_SCRIPT[bbAction % BB_SCRIPT.length];
       bbAction++;
       var dir = action === "peel" ? 1 : -1;
@@ -644,11 +648,16 @@
           pgHourAcc = 0;
           pgHourDirty = false;
         }
-        pgPoints.push({ t: pgT, l: pgLevel });
+        /* record ~0.15h apart — finer than a plot pixel, 3× fewer points */
+        if (pgT - pgPoints[pgPoints.length - 1].t >= 0.15 || pgT >= PG_TOTAL) {
+          pgPoints.push({ t: pgT, l: pgLevel });
+        }
       }
     };
 
     /* ---- battery history & forecast (640×220 canvas space) ---- */
+    var pgAreaGrad = null;
+    var pgLineGrad = null;
     var pgDrawHistory = function () {
       var W = 640;
       var H = 220;
@@ -677,40 +686,40 @@
         g.fillText(PG_DAYS[d], x(m), H - 8);
       }
 
-      /* traced history: area fill then line, both anchored to height */
+      /* traced history: area fill then line, both anchored to height.
+         Gradients have constant geometry, so build them once. */
       if (pgPoints.length > 1) {
-        var area = g.createLinearGradient(0, T + plotH, 0, T);
-        area.addColorStop(0, "rgba(255, 159, 10, 0)");
-        area.addColorStop(0.25, "rgba(255, 191, 0, 0.09)");
-        area.addColorStop(0.5, "rgba(255, 214, 10, 0.18)");
-        area.addColorStop(0.75, "rgba(48, 209, 88, 0.26)");
-        area.addColorStop(1, "rgba(100, 210, 255, 0.35)");
-        var line = g.createLinearGradient(0, T + plotH, 0, T);
-        line.addColorStop(0, "#ff9f0a");
-        line.addColorStop(0.25, "#ffbf00");
-        line.addColorStop(0.5, "#ffd60a");
-        line.addColorStop(0.75, "#30d158");
-        line.addColorStop(1, "#64d2ff");
+        if (!pgAreaGrad) {
+          pgAreaGrad = g.createLinearGradient(0, T + plotH, 0, T);
+          pgAreaGrad.addColorStop(0, "rgba(255, 159, 10, 0)");
+          pgAreaGrad.addColorStop(0.25, "rgba(255, 191, 0, 0.09)");
+          pgAreaGrad.addColorStop(0.5, "rgba(255, 214, 10, 0.18)");
+          pgAreaGrad.addColorStop(0.75, "rgba(48, 209, 88, 0.26)");
+          pgAreaGrad.addColorStop(1, "rgba(100, 210, 255, 0.35)");
+          pgLineGrad = g.createLinearGradient(0, T + plotH, 0, T);
+          pgLineGrad.addColorStop(0, "#ff9f0a");
+          pgLineGrad.addColorStop(0.25, "#ffbf00");
+          pgLineGrad.addColorStop(0.5, "#ffd60a");
+          pgLineGrad.addColorStop(0.75, "#30d158");
+          pgLineGrad.addColorStop(1, "#64d2ff");
+        }
 
-        g.beginPath();
-        g.moveTo(x(pgPoints[0].t), y(pgPoints[0].l));
-        for (var i = 1; i < pgPoints.length; i++) g.lineTo(x(pgPoints[i].t), y(pgPoints[i].l));
+        /* one polyline, drawn twice: closed copy for the fill, open for
+           the stroke */
+        var linePath = new Path2D();
+        linePath.moveTo(x(pgPoints[0].t), y(pgPoints[0].l));
+        for (var i = 1; i < pgPoints.length; i++) linePath.lineTo(x(pgPoints[i].t), y(pgPoints[i].l));
         var last = pgPoints[pgPoints.length - 1];
-        g.save();
-        g.lineTo(x(last.t), y(0));
-        g.lineTo(x(pgPoints[0].t), y(0));
-        g.closePath();
-        g.fillStyle = area;
-        g.fill();
-        g.restore();
-
-        g.beginPath();
-        g.moveTo(x(pgPoints[0].t), y(pgPoints[0].l));
-        for (var k = 1; k < pgPoints.length; k++) g.lineTo(x(pgPoints[k].t), y(pgPoints[k].l));
-        g.strokeStyle = line;
+        var areaPath = new Path2D(linePath);
+        areaPath.lineTo(x(last.t), y(0));
+        areaPath.lineTo(x(pgPoints[0].t), y(0));
+        areaPath.closePath();
+        g.fillStyle = pgAreaGrad;
+        g.fill(areaPath);
+        g.strokeStyle = pgLineGrad;
         g.lineWidth = 4;
         g.lineJoin = "round";
-        g.stroke();
+        g.stroke(linePath);
 
         /* dashed forecast from now down the learned average to empty */
         var avg = pgAvgDrain();
@@ -815,13 +824,26 @@
       g.restore();
     };
 
+    /* text values change every few sim-hours, not every frame — writing
+       identical textContent still dirties layout, so cache and diff */
+    var pgDomCache = {};
+    var pgSetText = function (el, key, text) {
+      if (pgDomCache[key] !== text) {
+        pgDomCache[key] = text;
+        el.textContent = text;
+      }
+    };
     var pgDrawDom = function () {
       var avg = pgAvgDrain();
       var hoursLeft = pgLevel / avg;
-      pgHoursEl.textContent = hoursLeft < 0.5 ? "<1h" : Math.round(hoursLeft) + "h";
-      pgHoursEl.style.color = pgUrgency(hoursLeft);
-      pgAvgEl.textContent = avg.toFixed(2) + "%/hr";
-      pgCapEl.textContent = Math.round(100 / avg) + "h";
+      pgSetText(pgHoursEl, "hours", hoursLeft < 0.5 ? "<1h" : Math.round(hoursLeft) + "h");
+      var tint = pgUrgency(hoursLeft);
+      if (pgDomCache.tint !== tint) {
+        pgDomCache.tint = tint;
+        pgHoursEl.style.color = tint;
+      }
+      pgSetText(pgAvgEl, "avg", avg.toFixed(2) + "%/hr");
+      pgSetText(pgCapEl, "cap", Math.round(100 / avg) + "h");
       /* fill fraction = hours left / hours at 100 = level / 100 */
       pgBandEl.style.clipPath = "inset(0 " + (100 - pgLevel).toFixed(1) + "% 0 0 round 999px)";
     };
@@ -845,7 +867,13 @@
           var dt = Math.min(0.1, (ts - pgLast) / 1000);
           if (pgHold > 0) {
             pgHold -= dt;
-            if (pgHold <= 0) pgReset();
+            if (pgHold > 0) {
+              /* nothing changes during the hold — keep time, skip drawing */
+              pgLast = ts;
+              pgRaf = requestAnimationFrame(pgFrame);
+              return;
+            }
+            pgReset();
           } else {
             pgStep(dt * PG_SPEED);
             if (pgT >= PG_TOTAL) pgHold = 3.2; /* linger on the full picture */
