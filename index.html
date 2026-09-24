@@ -236,9 +236,31 @@
   .pg-hours {
     font: 700 2.6rem/0.95 var(--font-rounded);
     font-variant-numeric: tabular-nums;
-    color: #30d158;
     margin: 0;
-    transition: color 0.4s ease;
+  }
+  .pg-hours span { color: #30d158; transition: color 0.4s ease; }
+  /* the app's green charging bolt, prefixed while on the charger */
+  .pg-bolt {
+    display: none;
+    width: 0.42em;
+    height: 0.63em;
+    margin-right: 0.14em;
+    fill: #30d158;
+  }
+  .pg-hours.charging .pg-bolt { display: inline-block; }
+  /* end-of-loop restart: the readouts cross-fade out, the sim resets
+     while invisible, and the fresh run fades back in — no hard snap */
+  .pg-demo canvas,
+  .pg-demo .pg-hero,
+  .pg-demo .pg-band-track,
+  .pg-demo .pg-band-labels {
+    transition: opacity 0.45s ease;
+  }
+  .pg-demo.resetting canvas,
+  .pg-demo.resetting .pg-hero,
+  .pg-demo.resetting .pg-band-track,
+  .pg-demo.resetting .pg-band-labels {
+    opacity: 0;
   }
   .pg-hours-cap, .pg-avg-cap { margin: 0.15rem 0 0; font-size: 0.75rem; color: #87929d; }
   .pg-avg { text-align: right; }
@@ -645,7 +667,7 @@
           <div class="pg-demo reveal" id="pg-demo" aria-hidden="true">
             <div class="pg-hero">
               <div>
-                <p class="pg-hours" id="pg-hours">19h</p>
+                <p class="pg-hours" id="pg-hours-row"><svg class="pg-bolt" viewBox="0 0 12 18"><path d="M6.8 0 0 10.2h4.4L3.4 18 12 6.6H7.4Z"/></svg><span id="pg-hours">19h</span></p>
                 <p class="pg-hours-cap">remaining</p>
               </div>
               <div class="pg-avg">
@@ -833,6 +855,6 @@
 </main>
 
 <script src="dock.js" id="jza-dock-script"></script>
-<script src="main.js?v=7"></script>
+<script src="main.js?v=9"></script>
 </body>
 </html>

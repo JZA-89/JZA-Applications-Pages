@@ -894,6 +894,10 @@
         pgDomCache.tint = tint;
         pgHoursEl.style.color = tint;
       }
+      if (pgDomCache.bolt !== pgCharging) {
+        pgDomCache.bolt = pgCharging;
+        pgHoursEl.parentNode.classList.toggle("charging", pgCharging);
+      }
       pgSetText(pgAvgEl, "avg", avg.toFixed(2) + "%/hr");
       pgSetText(pgCapEl, "cap", Math.round(capH) + "h");
       /* the app's fill fraction: hours remaining / hours at 100 */
@@ -915,11 +919,18 @@
     } else {
       var pgLast = null;
       var pgRaf = null;
+      var pgFading = false;
       var pgFrame = function (ts) {
         if (pgLast !== null) {
           var dt = Math.min(0.1, (ts - pgLast) / 1000);
           if (pgHold > 0) {
             pgHold -= dt;
+            /* last 0.5s of the hold: cross-fade the readouts out so the
+               reset happens while they're invisible */
+            if (pgHold <= 0.5 && !pgFading) {
+              pgFading = true;
+              pgDemo.classList.add("resetting");
+            }
             if (pgHold > 0) {
               /* nothing changes during the hold — keep time, skip drawing */
               pgLast = ts;
@@ -927,6 +938,8 @@
               return;
             }
             pgReset();
+            pgFading = false;
+            pgDemo.classList.remove("resetting"); /* fresh run fades in */
           } else {
             pgStep(dt * PG_SPEED);
             if (pgT >= PG_TOTAL) pgHold = 3.2; /* linger on the full picture */
