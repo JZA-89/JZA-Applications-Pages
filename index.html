@@ -178,7 +178,10 @@
   }
   /* text-transform + per-app colours below undo the app-page eyebrow
      treatment (site.css "main h2") that would otherwise leak in here */
-  .chapter .wordmark { font-size: clamp(2.1rem, 5vw, 3.3rem); text-transform: none; }
+  /* fit-content: the gradient wordmarks clip their text out of the
+     element's background — a full-column box would stretch the ramp so
+     the word only samples its warm end */
+  .chapter .wordmark { font-size: clamp(2.1rem, 5vw, 3.3rem); text-transform: none; width: fit-content; }
   .chapter-desc {
     color: var(--muted);
     font-size: 1.12rem;
