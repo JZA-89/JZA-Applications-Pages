@@ -30,13 +30,18 @@
   dock.className = "jza-dock";
   dock.setAttribute("aria-label", "JZA apps");
 
-  var here = location.pathname.replace(/index\.html$/, "");
+  /* which app's pages we're on, or null on the index */
+  var appSlug = document.body ? document.body.getAttribute("data-app") : null;
 
   items.forEach(function (item) {
     var a = document.createElement("a");
-    a.href = root + item.path;
+    /* the dock always navigates the showcase: every icon points at that
+       app's chapter on the home page (the chapter's About/Support links
+       are the way into the detail pages) */
+    a.href = item.slug === "home" ? root : root + "#" + item.slug;
     a.setAttribute("data-label", item.label);
     a.setAttribute("aria-label", item.label);
+    a.setAttribute("data-slug", item.slug);
 
     if (item.slug === "home") {
       var glyph = document.createElement("span");
@@ -53,23 +58,52 @@
       a.appendChild(img);
     }
 
-    var target = a.href.replace(/index\.html$/, "");
-    if (target === location.origin + here || target === here) {
+    /* initial dot: this app's icon on its own pages, JZA on the index */
+    if (appSlug ? item.slug === appSlug : item.slug === "home") {
       a.className = "active";
       a.setAttribute("aria-current", "page");
     }
 
-    /* clicking the icon for the page you're already on scrolls back to
-       the top instead of reloading — same feel as the macOS dock */
-    a.addEventListener("click", function (e) {
-      if (a.classList.contains("active")) {
+    if (!appSlug) {
+      /* on the index the dock scrolls the show instead of navigating —
+         chapters snap to centre, so land them there */
+      a.addEventListener("click", function (e) {
         e.preventDefault();
-        window.scrollTo({ top: 0, behavior: reducedMotion ? "auto" : "smooth" });
-      }
-    });
+        var behavior = reducedMotion ? "auto" : "smooth";
+        if (item.slug === "home") {
+          window.scrollTo({ top: 0, behavior: behavior });
+        } else {
+          var chapter = document.getElementById(item.slug);
+          if (chapter) chapter.scrollIntoView({ behavior: behavior, block: "center" });
+        }
+      });
+    }
 
     dock.appendChild(a);
   });
+
+  /* on the index the dot follows the visible chapter: main.js writes
+     data-view on <html> as chapters cross the viewport centre, and the
+     dock mirrors it — a live "you are here" while scrolling */
+  if (!appSlug && "MutationObserver" in window) {
+    var syncActive = function () {
+      var view = document.documentElement.getAttribute("data-view") || "home";
+      var links = dock.querySelectorAll("a");
+      for (var i = 0; i < links.length; i++) {
+        var isActive = links[i].getAttribute("data-slug") === view;
+        links[i].classList.toggle("active", isActive);
+        if (isActive) {
+          links[i].setAttribute("aria-current", "page");
+        } else {
+          links[i].removeAttribute("aria-current");
+        }
+      }
+    };
+    new MutationObserver(syncActive).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-view"],
+    });
+  }
 
   /* macOS-style magnification — fine pointers only, and never under
      prefers-reduced-motion. Touch users get plain, honest tap targets. */
