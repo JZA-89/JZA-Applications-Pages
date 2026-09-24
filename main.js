@@ -504,9 +504,10 @@
              on screen, far edge high — a true look-down into the room */
           var ry = p[1] * pfCT + rz * pfST;
           var depth = rz * pfCT - p[1] * pfST + 3.1;
-          var s = w * 0.35 * (2.4 / depth);
+          var s = w * 0.3 * (2.4 / depth);
           var size = Math.max(1.5, w * 0.0052 * (2.4 / depth));
-          pfCtx.fillRect(w / 2 + rx * s - size / 2, h / 2 + h * 0.13 - ry * s - size / 2, size, size);
+          /* -0.06h vertical offset centres the full rotation sweep */
+          pfCtx.fillRect(w / 2 + rx * s - size / 2, h / 2 - h * 0.06 - ry * s - size / 2, size, size);
         }
       }
     };
@@ -589,11 +590,12 @@
     var PG_START = 7; /* the loop starts Friday 07:00 */
     var PG_DAYS = ["Sat", "Sun", "Mon", "Tue"];
 
-    var pgT, pgLevel, pgCharging, pgPoints, pgSum, pgCnt, pgHourAcc, pgHourDirty, pgJitter, pgHold;
+    var pgT, pgLevel, pgCharging, pgPoints, pgSum, pgCnt, pgHourAcc, pgHourDirty, pgJitter, pgHold, pgShownHours;
 
     var pgReset = function () {
       pgT = 0;
       pgLevel = 82;
+      pgShownHours = Infinity;
       pgCharging = false;
       pgPoints = [{ t: 0, l: 82 }];
       pgSum = [];
@@ -836,6 +838,13 @@
     var pgDrawDom = function () {
       var avg = pgAvgDrain();
       var hoursLeft = pgLevel / avg;
+      /* learning cheap overnight hours lowers the average, which can push
+         level/avg UP while discharging — a countdown that goes up reads
+         as a bug, so the shown value only ratchets down between charges */
+      if (!pgCharging && hoursLeft > pgShownHours) {
+        hoursLeft = pgShownHours;
+      }
+      pgShownHours = hoursLeft;
       pgSetText(pgHoursEl, "hours", hoursLeft < 0.5 ? "<1h" : Math.round(hoursLeft) + "h");
       var tint = pgUrgency(hoursLeft);
       if (pgDomCache.tint !== tint) {
