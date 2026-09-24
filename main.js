@@ -548,8 +548,10 @@
      8. PowerGlass dashboard — 3.5 simulated days in ~35s. The battery
         history line traces out (with overnight charges as steep cyan
         climbs), the dashed blue forecast walks ahead of the now-beam,
-        and the Usage History heat bars sharpen as each hour of the day
-        is observed — the app's "the more you use it" learning story.
+        and the Usage History bars start as the app's grey iPhone seed
+        profile (~24h per charge) and sharpen into learned heat colours
+        as each hour is observed — the app's "the more you use it"
+        learning story, with hours@100 drifting up as the seed retires.
         Chart grammar mirrors the app: height-anchored colour ramps,
         #4073FF now-beam, weekday labels at midnight rules.
      ------------------------------------------------------------------ */
@@ -565,7 +567,7 @@
     /* the app's ramp, low→high: cyan, green, yellow, amber, orange */
     var PG_RAMP = [[100, 210, 255], [48, 209, 88], [255, 214, 10], [255, 191, 0], [255, 159, 10]];
     var PG_NOW = "#4073ff";
-    var PG_SEED = "#3a3a3c";
+    var PG_SEED_GREY = "#3a3a3c";
     var PG_LABEL = "rgba(235, 235, 245, 0.6)";
     var PG_FONT = "20px -apple-system, 'Segoe UI', sans-serif";
 
@@ -585,6 +587,11 @@
 
     /* true hourly drain (%/hr by hour of day) the sim "lives" */
     var PG_CURVE = [0.7, 0.6, 0.6, 0.6, 0.7, 0.9, 1.8, 3.2, 3.6, 3.0, 2.6, 3.4, 4.2, 3.2, 2.8, 3.0, 3.6, 4.6, 5.4, 5.8, 4.8, 3.4, 1.8, 1.0];
+    /* the app never starts empty: a generic iPhone seed profile stands in
+       for every hour until it's actually observed. Mean ≈ 4.2%/hr, i.e.
+       ~24h from a full charge — learning the real (lighter) curve slowly
+       lifts the hours@100 toward ~37h */
+    var PG_SEED = [2.4, 2.2, 2.2, 2.2, 2.4, 2.8, 3.6, 4.6, 5.2, 5.2, 5.0, 5.2, 5.4, 5.2, 5.0, 5.0, 5.2, 5.6, 5.8, 5.6, 5.0, 4.2, 3.2, 2.6];
     var PG_TOTAL = 84; /* sim hours per loop (3.5 days) */
     var PG_SPEED = 2.5; /* sim hours per real second */
     var PG_START = 7; /* the loop starts Friday 07:00 */
@@ -612,14 +619,34 @@
       pgHold = 0;
     };
 
+    /* per-hour estimate: learned average once observed, seed until then */
+    var pgVal = function (h) {
+      return pgCnt[h] ? pgSum[h] / pgCnt[h] : PG_SEED[h];
+    };
+
     var pgAvgDrain = function () {
       var s = 0;
-      var c = 0;
-      for (var i = 0; i < 24; i++) {
-        s += pgSum[i];
-        c += pgCnt[i];
+      for (var i = 0; i < 24; i++) s += pgVal(i);
+      return s / 24;
+    };
+
+    /* the app's prediction is an integration over the usage curve from
+       now, not level ÷ flat average: walk the blended per-hour estimates
+       forward until `level` percent is spent */
+    var pgHoursToEmpty = function (fromT, level) {
+      var remaining = level;
+      var t = fromT;
+      var spent = 0;
+      while (remaining > 0 && spent < 240) {
+        var clock = (PG_START + t) % 24;
+        var frac = 1 - (clock % 1);
+        var drain = pgVal(Math.floor(clock)) * frac;
+        if (drain >= remaining) return spent + frac * (remaining / drain);
+        remaining -= drain;
+        spent += frac;
+        t += frac;
       }
-      return c ? s / c : 3.2;
+      return spent;
     };
 
     var pgStep = function (dtH) {
@@ -723,12 +750,25 @@
         g.lineJoin = "round";
         g.stroke(linePath);
 
-        /* dashed forecast from now down the learned average to empty */
-        var avg = pgAvgDrain();
-        var hitT = pgT + pgLevel / avg;
+        /* dashed forecast: integrate the blended usage curve forward from
+           now — steeper through expensive hours, flatter overnight */
         g.beginPath();
         g.moveTo(x(last.t), y(last.l));
-        g.lineTo(x(Math.min(hitT, PG_TOTAL)), y(Math.max(0, last.l - avg * (Math.min(hitT, PG_TOTAL) - pgT))));
+        var fcT = pgT;
+        var fcL = pgLevel;
+        while (fcL > 0 && fcT < PG_TOTAL) {
+          var fcClock = (PG_START + fcT) % 24;
+          var fcStep = Math.min(0.5, 1 - (fcClock % 1) || 1);
+          var fcDrain = pgVal(Math.floor(fcClock)) * fcStep;
+          if (fcDrain >= fcL) {
+            fcT += fcStep * (fcL / fcDrain);
+            fcL = 0;
+          } else {
+            fcL -= fcDrain;
+            fcT += fcStep;
+          }
+          g.lineTo(x(Math.min(fcT, PG_TOTAL)), y(fcL));
+        }
         g.setLineDash([8, 8]);
         g.strokeStyle = "rgba(10, 132, 255, 0.6)";
         g.lineWidth = 3;
@@ -773,7 +813,7 @@
       var maxV = 0.01;
       var vals = [];
       for (var h = 0; h < 24; h++) {
-        var v = pgCnt[h] ? pgSum[h] / pgCnt[h] : 0;
+        var v = pgVal(h);
         vals.push(v);
         if (v > maxV) maxV = v;
       }
@@ -783,10 +823,10 @@
       for (var i = 0; i < 24; i++) {
         var bx = L + i * slot + slot * 0.08;
         var bw = slot * 0.84;
-        /* unobserved hours show as grey seed stubs until learned */
-        var val = vals[i] || maxV * 0.18;
-        var bh = (val / top) * plotH;
-        g.fillStyle = vals[i] ? pgRampAt(vals[i] / maxV, 1) : PG_SEED;
+        /* seeded hours draw at their seed height in grey (the app's
+           systemGray4 convention) until actually observed */
+        var bh = (vals[i] / top) * plotH;
+        g.fillStyle = pgCnt[i] ? pgRampAt(vals[i] / maxV, 1) : PG_SEED_GREY;
         if (g.roundRect) {
           g.beginPath();
           g.roundRect(bx, T + plotH - bh, bw, bh, 5);
@@ -837,24 +877,28 @@
     };
     var pgDrawDom = function () {
       var avg = pgAvgDrain();
-      var hoursLeft = pgLevel / avg;
-      /* learning cheap overnight hours lowers the average, which can push
-         level/avg UP while discharging — a countdown that goes up reads
-         as a bug, so the shown value only ratchets down between charges */
-      if (!pgCharging && hoursLeft > pgShownHours) {
-        hoursLeft = pgShownHours;
+      var capH = 100 / avg; /* hours a full charge is worth — rises as the
+                               lighter true usage replaces the seed */
+      var hoursNow = pgHoursToEmpty(pgT, pgLevel);
+      /* learning can revise future hours cheaper and push the estimate UP
+         while discharging — a countdown that goes up reads as a bug, so
+         the shown value only ratchets down between charges */
+      var shown = hoursNow;
+      if (!pgCharging && shown > pgShownHours) {
+        shown = pgShownHours;
       }
-      pgShownHours = hoursLeft;
-      pgSetText(pgHoursEl, "hours", hoursLeft < 0.5 ? "<1h" : Math.round(hoursLeft) + "h");
-      var tint = pgUrgency(hoursLeft);
+      pgShownHours = shown;
+      pgSetText(pgHoursEl, "hours", shown < 0.5 ? "<1h" : Math.round(shown) + "h");
+      var tint = pgUrgency(shown);
       if (pgDomCache.tint !== tint) {
         pgDomCache.tint = tint;
         pgHoursEl.style.color = tint;
       }
       pgSetText(pgAvgEl, "avg", avg.toFixed(2) + "%/hr");
-      pgSetText(pgCapEl, "cap", Math.round(100 / avg) + "h");
-      /* fill fraction = hours left / hours at 100 = level / 100 */
-      pgBandEl.style.clipPath = "inset(0 " + (100 - pgLevel).toFixed(1) + "% 0 0 round 999px)";
+      pgSetText(pgCapEl, "cap", Math.round(capH) + "h");
+      /* the app's fill fraction: hours remaining / hours at 100 */
+      var bandPct = Math.max(0, Math.min(1, hoursNow / capH)) * 100;
+      pgBandEl.style.clipPath = "inset(0 " + (100 - bandPct).toFixed(1) + "% 0 0 round 999px)";
     };
 
     var pgRender = function () {
