@@ -131,13 +131,11 @@
   box-sizing: border-box;
 }
 
+/* NOTE: never set overflow-x on html — it demotes the root scroller and
+   silently disables the index's scroll-snap. Horizontal overflow from
+   animations is clipped at the container level instead (.chapter). */
 html {
   scroll-behavior: smooth;
-  /* clip, not hidden: kills sideways scroll/jolt from off-screen
-     transforms (e.g. flying demo cards) without creating a scroll
-     container. body's overflow-x alone is ignored by iOS Safari. */
-  overflow-x: hidden;
-  overflow-x: clip;
 }
 
 body {
