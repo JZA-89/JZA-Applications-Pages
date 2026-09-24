@@ -339,9 +339,13 @@
       stamp.classList.add("show");
 
       bbTimer = setTimeout(function () {
-        /* commit: fast straight fly-off, no rotation — the app's move */
-        card.style.transition = "transform 0.3s cubic-bezier(0.3, 0, 0.9, 1)";
+        /* commit: fast straight fly-off, no rotation — the app's move.
+           The card fades during flight so the recycle back into the
+           deck happens while it's already invisible (desktop viewports
+           are wide enough that the travel alone never leaves them). */
+        card.style.transition = "transform 0.45s cubic-bezier(0.3, 0, 0.8, 1), opacity 0.32s ease-in";
         card.style.transform = "translate(" + dir * 560 + "px, 26px)";
+        card.style.opacity = "0";
         if (action === "peel") {
           bbKept.textContent = String(++bbKeptN);
           bbFlash(bbKeepPill);
@@ -362,7 +366,7 @@
           card.style.transition = "";
           bbLayout();
           bbTimer = setTimeout(bbCycle, 1500);
-        }, 340);
+        }, 480);
       }, 900);
     };
 
