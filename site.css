@@ -15,7 +15,7 @@
   --bg: #08080a;
   --fg: #f2f2f4;
   --muted: #a1a1a8;
-  --faint: #6b6b70;
+  --faint: #9a9aa2; /* AA-safe on the near-black bg at small sizes */
   --accent: #ffd60a;
   --accent-contrast: #1c1c1e;
   --rule: rgba(255, 255, 255, 0.1);
@@ -60,7 +60,7 @@
   --bg: #111110;
   --fg: #f0efe9;
   --muted: #8a8a82;
-  --faint: #6a6a64;
+  --faint: #9c9c93;
   --accent: #ffd600;
   --accent-contrast: #111110;
   --rule: #2a2a28;
@@ -78,8 +78,8 @@
 [data-app="pointfoundry"] {
   --bg: #000000;
   --fg: #ffffff;
-  --muted: rgba(255, 255, 255, 0.45);
-  --faint: rgba(255, 255, 255, 0.25);
+  --muted: rgba(255, 255, 255, 0.6);
+  --faint: rgba(255, 255, 255, 0.55);
   --accent: #ff6b2b;
   --accent-2: #00b5d9;
   --accent-contrast: #000000;
@@ -95,7 +95,7 @@
   --bg: #0b0b0e;
   --fg: #ffffff;
   --muted: rgba(255, 255, 255, 0.62);
-  --faint: rgba(255, 255, 255, 0.42);
+  --faint: rgba(255, 255, 255, 0.55);
   --accent: #ff8a3d;
   --accent-contrast: #180c04;
   --rule: rgba(255, 255, 255, 0.06);
@@ -398,6 +398,8 @@ footer a {
   height: 52px;
   border-radius: 24%;
   transform-origin: bottom center;
+  /* --dock-lift / --dock-scale are set by dock.js while magnifying */
+  transform: translateY(var(--dock-lift, 0px)) scale(var(--dock-scale, 1));
   transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.3, 1.1);
 }
 
@@ -469,7 +471,7 @@ footer a {
 }
 
 .jza-dock a:active {
-  transform: translateY(2px) scale(var(--dock-scale, 1));
+  transform: translateY(calc(var(--dock-lift, 0px) + 2px)) scale(var(--dock-scale, 1));
 }
 
 @media (max-width: 480px) {
@@ -546,14 +548,19 @@ body[data-app]::before {
   font-weight: 700;
   font-size: 0.95rem;
   opacity: 0;
+  /* visibility keeps the hidden pill out of the tab order; the 0.3s
+     delay lets the fade-out finish before it goes */
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0s linear 0.3s;
 }
 
 .jza-toppill.show {
   opacity: 1;
+  visibility: visible;
   transform: translateX(-50%) translateY(0);
   pointer-events: auto;
+  transition-delay: 0s;
 }
 
 .jza-toppill:hover {

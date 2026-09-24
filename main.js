@@ -63,8 +63,13 @@
     var drift = function () {
       ticking = false;
       var mid = window.innerHeight / 2;
-      floats.forEach(function (el) {
-        var rect = el.getBoundingClientRect();
+      /* read all rects first, then write all transforms — interleaving
+         the two forces a layout recalculation per element */
+      var rects = floats.map(function (el) {
+        return el.getBoundingClientRect();
+      });
+      floats.forEach(function (el, i) {
+        var rect = rects[i];
         if (rect.bottom < -200 || rect.top > window.innerHeight + 200) return;
         var offset = (rect.top + rect.height / 2 - mid) * parseFloat(el.getAttribute("data-parallax"));
         el.style.transform = "translateY(" + offset.toFixed(1) + "px)";

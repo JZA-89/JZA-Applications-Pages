@@ -1,4 +1,4 @@
-/* JZA Applications — liquid glass dock (replaces nav.js)
+/* JZA Applications — liquid glass dock
    Self-contained: derives the site root from its own <script> src so it
    works from any folder depth. Markup is injected; styles live in site.css. */
 (function () {
@@ -75,9 +75,14 @@
        .magnify class) so icons follow the pointer directly. */
     var links = [];
     var centers = [];
+    var dockLeft = 0;
+    var magnifyTimer = null;
 
     var measure = function () {
       links = Array.prototype.slice.call(dock.querySelectorAll("a"));
+      /* cache the dock's left edge here — reading it per pointermove
+         forces a layout every event */
+      dockLeft = dock.getBoundingClientRect().left;
       centers = links.map(function (a) {
         return a.offsetLeft + a.offsetWidth / 2;
       });
@@ -85,22 +90,25 @@
 
     var applyMagnify = function (clientX) {
       if (!links.length) measure();
-      var x = clientX - dock.getBoundingClientRect().left;
+      var x = clientX - dockLeft;
       for (var i = 0; i < links.length; i++) {
         var distance = Math.abs(x - centers[i]);
         var falloff = Math.max(0, 1 - distance / 130);
         var scale = 1 + 0.45 * falloff * falloff;
         var lift = -10 * falloff * falloff;
+        /* custom properties only — the stylesheet owns the transform, so
+           the :active press rule can still compose with magnification */
         links[i].style.setProperty("--dock-scale", scale.toFixed(3));
-        links[i].style.transform =
-          "translateY(" + lift.toFixed(1) + "px) scale(" + scale.toFixed(3) + ")";
+        links[i].style.setProperty("--dock-lift", lift.toFixed(1) + "px");
       }
     };
 
     var resetMagnify = function () {
+      clearTimeout(magnifyTimer);
+      magnifyTimer = null;
       dock.classList.remove("magnify");
       for (var i = 0; i < links.length; i++) {
-        links[i].style.transform = "";
+        links[i].style.removeProperty("--dock-lift");
         links[i].style.removeProperty("--dock-scale");
       }
     };
@@ -109,7 +117,8 @@
       measure();
       applyMagnify(e.clientX);
       /* let the entry ease finish, then track directly */
-      setTimeout(function () {
+      clearTimeout(magnifyTimer);
+      magnifyTimer = setTimeout(function () {
         dock.classList.add("magnify");
       }, 200);
     });
@@ -187,9 +196,14 @@
       { threshold: 0.12 }
     );
     var children = document.querySelectorAll("main > *");
-    Array.prototype.forEach.call(children, function (el) {
+    /* read all positions first, then write classes — interleaving the
+       two forces a layout recalculation per element */
+    var tops = Array.prototype.map.call(children, function (el) {
+      return el.getBoundingClientRect().top;
+    });
+    Array.prototype.forEach.call(children, function (el, i) {
       /* only elements below the fold — nothing visible ever blinks out */
-      if (el.getBoundingClientRect().top > window.innerHeight) {
+      if (tops[i] > window.innerHeight) {
         el.classList.add("reveal");
         io.observe(el);
       }
