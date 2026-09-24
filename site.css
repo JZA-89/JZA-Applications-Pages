@@ -413,9 +413,14 @@ footer a {
 .jza-dock a .jza-dock-glyph {
   width: 100%;
   height: 100%;
-  display: block;
   border-radius: 24%;
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.45);
+}
+
+/* display lives on the individual rules — a shared display: block here
+   would out-specify the glyph's centering grid and shove "JZA" top-left */
+.jza-dock a img {
+  display: block;
 }
 
 .jza-dock-glyph {

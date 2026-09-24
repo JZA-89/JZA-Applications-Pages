@@ -307,4 +307,127 @@
       barryWatch.observe(stage);
     }
   }
+
+  /* ------------------------------------------------------------------
+     7. PointFoundry — fake LiDAR point cloud: a scanned room (floor,
+        two walls, a crate) slowly orbiting on a canvas. Procedural, so
+        it costs a couple of KB of JS instead of shipping a real scan.
+        Points are jittered so flat surfaces read as scan data, and
+        coloured floor→ceiling on the app's cyan→orange ramp.
+     ------------------------------------------------------------------ */
+  var pfCanvas = document.getElementById("pf-cloud");
+  if (pfCanvas && pfCanvas.getContext) {
+    var pfCtx = pfCanvas.getContext("2d");
+
+    /* points are bucketed by height so each frame sets fillStyle a
+       dozen times instead of ~2000 */
+    var PF_BUCKETS = 12;
+    var pfBuckets = [];
+    var pfColors = [];
+    var pfMix = function (a, c, t) { return Math.round(a + (c - a) * t); };
+    var pfB;
+    for (pfB = 0; pfB < PF_BUCKETS; pfB++) {
+      pfBuckets.push([]);
+      var pfT = pfB / (PF_BUCKETS - 1);
+      pfColors.push(
+        "rgba(" + pfMix(0, 255, pfT) + ", " + pfMix(181, 107, pfT) + ", " + pfMix(217, 43, pfT) + ", 0.85)"
+      );
+    }
+    var pfJitter = function (v) { return v + (Math.random() - 0.5) * 0.036; };
+    var pfAdd = function (x, y, z) {
+      var t = Math.max(0, Math.min(1, (y + 0.66) / 1.4));
+      pfBuckets[Math.min(PF_BUCKETS - 1, Math.floor(t * PF_BUCKETS))].push([pfJitter(x), pfJitter(y), pfJitter(z)]);
+    };
+
+    /* the room: floor, two walls, a crate sitting on the floor */
+    var PF_STEP = 0.08;
+    var pfX, pfY, pfZ;
+    for (pfX = -1; pfX <= 1; pfX += PF_STEP) {
+      for (pfZ = -1; pfZ <= 1; pfZ += PF_STEP) pfAdd(pfX, -0.62, pfZ);
+    }
+    for (pfX = -1; pfX <= 1; pfX += PF_STEP) {
+      for (pfY = -0.62; pfY <= 0.74; pfY += PF_STEP) pfAdd(pfX, pfY, -1);
+    }
+    for (pfZ = -1; pfZ <= 1; pfZ += PF_STEP) {
+      for (pfY = -0.62; pfY <= 0.74; pfY += PF_STEP) pfAdd(-1, pfY, pfZ);
+    }
+    var PF_BOX = 0.058;
+    for (pfX = 0.08; pfX <= 0.6; pfX += PF_BOX) {
+      for (pfZ = -0.1; pfZ <= 0.42; pfZ += PF_BOX) pfAdd(pfX, -0.2, pfZ);
+      for (pfY = -0.62; pfY <= -0.2; pfY += PF_BOX) {
+        pfAdd(pfX, pfY, 0.42);
+        pfAdd(pfX, pfY, -0.1);
+      }
+    }
+    for (pfZ = -0.1; pfZ <= 0.42; pfZ += PF_BOX) {
+      for (pfY = -0.62; pfY <= -0.2; pfY += PF_BOX) {
+        pfAdd(0.6, pfY, pfZ);
+        pfAdd(0.08, pfY, pfZ);
+      }
+    }
+
+    var PF_TILT = 0.42; /* camera looks slightly down into the room */
+    var pfCT = Math.cos(PF_TILT);
+    var pfST = Math.sin(PF_TILT);
+
+    var pfSize = function () {
+      var rect = pfCanvas.getBoundingClientRect();
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      pfCanvas.width = Math.round(rect.width * dpr);
+      pfCanvas.height = Math.round(rect.height * dpr);
+    };
+
+    var pfDraw = function (angle) {
+      var w = pfCanvas.width;
+      var h = pfCanvas.height;
+      pfCtx.clearRect(0, 0, w, h);
+      var ca = Math.cos(angle);
+      var sa = Math.sin(angle);
+      for (var bi = 0; bi < PF_BUCKETS; bi++) {
+        pfCtx.fillStyle = pfColors[bi];
+        var pts = pfBuckets[bi];
+        for (var i = 0; i < pts.length; i++) {
+          var p = pts[i];
+          var rx = p[0] * ca + p[2] * sa;
+          var rz = p[2] * ca - p[0] * sa;
+          var ry = p[1] * pfCT - rz * pfST;
+          var depth = p[1] * pfST + rz * pfCT + 3.1;
+          var s = w * 0.35 * (2.4 / depth);
+          var size = Math.max(1, w * 0.0042 * (2.4 / depth));
+          pfCtx.fillRect(w / 2 + rx * s - size / 2, h / 2 + h * 0.13 - ry * s - size / 2, size, size);
+        }
+      }
+    };
+
+    pfSize();
+    if (reducedMotion || !("IntersectionObserver" in window)) {
+      pfDraw(-0.5); /* static three-quarter view */
+    } else {
+      var pfAngle = -0.5;
+      var pfLast = null;
+      var pfRaf = null;
+      var pfFrame = function (ts) {
+        if (pfLast !== null) pfAngle += (ts - pfLast) * 0.00016;
+        pfLast = ts;
+        pfDraw(pfAngle);
+        pfRaf = requestAnimationFrame(pfFrame);
+      };
+      var pfIO = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting && !pfRaf) {
+            pfLast = null;
+            pfRaf = requestAnimationFrame(pfFrame);
+          } else if (!entry.isIntersecting && pfRaf) {
+            cancelAnimationFrame(pfRaf);
+            pfRaf = null;
+          }
+        });
+      });
+      pfIO.observe(pfCanvas);
+      window.addEventListener("resize", function () {
+        pfSize();
+        if (!pfRaf) pfDraw(pfAngle);
+      });
+    }
+  }
 })();

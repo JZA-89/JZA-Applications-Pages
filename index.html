@@ -336,33 +336,26 @@
     background: #ffd600;
   }
 
-  /* PointFoundry — scanner frame with drifting points */
+  /* PointFoundry — scanner frame with a live fake LiDAR point cloud
+     (drawn by main.js on the canvas: a scanned room, slowly orbiting) */
   .pf-frame {
     position: relative;
-    padding: 3.2rem;
+    padding: 1.6rem;
     display: grid;
     place-items: center;
     max-width: 420px;
     margin: 0 auto;
-  }
-  .pf-points {
-    position: absolute;
-    inset: 6%;
-    background-image: radial-gradient(rgba(0, 181, 217, 0.55) 1px, transparent 1.7px);
-    background-size: 26px 26px;
-    -webkit-mask-image: radial-gradient(closest-side, #000, transparent);
-    mask-image: radial-gradient(closest-side, #000, transparent);
-    animation: pfdrift 16s linear infinite;
-  }
-  @keyframes pfdrift {
-    to { background-position: 52px 26px; }
   }
   .pf-c { position: absolute; width: 28px; height: 28px; border: 2px solid #ff6b2b; }
   .pf-c.tl { top: 0; left: 0; border-right: 0; border-bottom: 0; }
   .pf-c.tr { top: 0; right: 0; border-left: 0; border-bottom: 0; border-color: #00b5d9; }
   .pf-c.bl { bottom: 0; left: 0; border-right: 0; border-top: 0; border-color: #00b5d9; }
   .pf-c.br { bottom: 0; right: 0; border-left: 0; border-top: 0; }
-  .pf-frame .app-icon { width: clamp(150px, 22vw, 210px); position: relative; }
+  #pf-cloud {
+    display: block;
+    width: min(340px, 74vw);
+    aspect-ratio: 1;
+  }
 
   /* BikeSpec — replica of the app's setup card with deviation signals */
   .bs-card {
@@ -514,7 +507,7 @@
         <img class="app-icon chapter-icon vt-powerglass reveal" src="assets/icon-powerglass.png" alt="PowerGlass app icon" width="124" height="124" loading="lazy" decoding="async" style="--reveal-delay:.08s">
         <h2 class="wordmark wm-powerglass reveal" style="--reveal-delay:.16s">PowerGlass</h2>
         <div class="prism-band reveal" aria-hidden="true" style="--reveal-delay:.24s"></div>
-        <p class="chapter-desc reveal" style="--reveal-delay:.3s">Apple Watch battery life in hours, not percent — a live prediction learned from how you actually use your watch.</p>
+        <p class="chapter-desc reveal" style="--reveal-delay:.3s">Battery life in hours, not percent — a live prediction learned from how you actually use your devices, on Apple Watch, iPhone and iPad.</p>
         <p class="chapter-links reveal" style="--reveal-delay:.38s">
           <a href="powerglass/">About</a>
           <a href="powerglass/support.html">Support</a>
@@ -607,6 +600,7 @@
     <div class="chapter-inner">
       <div class="chapter-copy">
         <p class="chapter-kicker reveal"><b>04</b> · iPhone · LiDAR</p>
+        <img class="app-icon chapter-icon vt-pointfoundry reveal" src="assets/icon-pointfoundry.png" alt="PointFoundry app icon" width="124" height="124" loading="lazy" decoding="async" style="--reveal-delay:.08s">
         <h2 class="wordmark wm-pointfoundry reveal" style="--reveal-delay:.16s">POINTFOUNDRY</h2>
         <p class="chapter-desc reveal" style="--reveal-delay:.3s">Room &amp; object 3D scanner — capture spaces with LiDAR and objects with TrueDepth, then export to OBJ and STL. Everything stays on your device.</p>
         <p class="chapter-links reveal" style="--reveal-delay:.38s">
@@ -619,9 +613,8 @@
       <div class="chapter-art">
         <div data-parallax="0.05">
           <div class="pf-frame reveal">
-            <div class="pf-points" aria-hidden="true"></div>
             <span class="pf-c tl"></span><span class="pf-c tr"></span><span class="pf-c bl"></span><span class="pf-c br"></span>
-            <img class="app-icon vt-pointfoundry" src="assets/icon-pointfoundry.png" alt="PointFoundry app icon" width="210" height="210" loading="lazy" decoding="async">
+            <canvas id="pf-cloud" width="360" height="360" aria-label="Rotating LiDAR point cloud of a scanned room" role="img"></canvas>
           </div>
         </div>
       </div>
