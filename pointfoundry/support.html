@@ -4,91 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PointFoundry Support — JZA Applications</title>
+<meta name="theme-color" content="#000000">
+<link rel="icon" type="image/png" href="../assets/icon-pointfoundry.png">
+<link rel="stylesheet" href="../site.css">
 <style>
-  :root {
-    --bg: #000000;
-    --surface: #101012;
-    --fg: #ffffff;
-    --muted: #8f8f93;
-    --primary: #FF6B2B;
-    --secondary: #00B5D9;
-    --rule: #1e1e20;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    padding: 4rem 1.25rem 5rem;
-    background: var(--bg);
-    color: var(--fg);
-    font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    -webkit-text-size-adjust: 100%;
-  }
-  main { max-width: 640px; margin: 0 auto; }
-  .wordmark {
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-    font-size: 2.1rem;
-    font-weight: 700;
-    letter-spacing: 0.22em;
-    margin: 0 0 0.5rem;
-  }
-  .wordmark a {
-    text-decoration: none;
-    background: linear-gradient(90deg, #FF401A, #FF8C1A, #FFD966, #4DD9B3, #008CFF);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  .tagline {
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-    color: var(--muted);
-    letter-spacing: 0.08em;
-    margin: 0 0 3rem;
-  }
-  h2 {
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.25em;
-    color: var(--primary);
-    text-transform: uppercase;
-    margin: 3rem 0 0.75rem;
-  }
   h3 { font-size: 1rem; margin: 1.75rem 0 0.35rem; letter-spacing: -0.01em; }
-  p { margin: 0 0 1rem; }
-  ul { margin: 0 0 1rem; padding-left: 1.25rem; color: var(--muted); }
-  li { margin-bottom: .35rem; }
-  a { color: var(--primary); }
-  strong { font-weight: 600; color: var(--fg); }
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--rule);
-    border-radius: 12px;
-    padding: 1.25rem 1.35rem;
-    margin: 1rem 0 1.5rem;
-  }
+  ul { color: var(--muted); }
   .card p { margin: 0 0 0.5rem; }
   .card p:last-child { margin: 0; color: var(--muted); }
-  .email a {
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-    font-size: 1.05rem;
-    color: var(--secondary);
-  }
-  footer {
-    border-top: 1px solid var(--rule);
-    margin-top: 3.5rem;
-    padding-top: 1.5rem;
-    font-size: 0.9rem;
-    color: var(--muted);
-  }
-  footer a { margin-right: 1.25rem; }
+  .email a { font-family: var(--font-mono); font-size: 1.05rem; color: var(--accent-2); }
 </style>
 </head>
-<body>
+<body data-app="pointfoundry">
 <main>
 
-  <header>
-    <p class="wordmark"><a href="./">POINTFOUNDRY</a></p>
-    <p class="tagline">SUPPORT</p>
+  <header class="masthead">
+    <img class="app-icon vt-pointfoundry" src="../assets/icon-pointfoundry.png" alt="" width="76" height="76">
+    <div>
+      <p class="wordmark wm-pointfoundry"><a href="./">POINTFOUNDRY</a></p>
+      <p class="tagline">SUPPORT</p>
+    </div>
   </header>
 
   <p>PointFoundry is a 3D scanner for iPhone and iPad. It uses the LiDAR scanner to capture rooms and the TrueDepth camera to capture objects, builds them into point clouds and meshes on your device, and exports them to formats like OBJ and STL.</p>
@@ -145,6 +80,6 @@
   </footer>
 
 </main>
-<script src="../nav.js" id="jza-nav-script"></script>
+<script src="../dock.js" id="jza-dock-script"></script>
 </body>
 </html>

@@ -5,87 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PowerGlass — Hours, not percent.</title>
 <meta name="description" content="PowerGlass turns your Apple Watch battery percentage into a live time-remaining prediction, learned from how you actually use your watch.">
+<meta name="theme-color" content="#060a0d">
+<link rel="icon" type="image/png" href="../assets/icon-powerglass.png">
+<link rel="stylesheet" href="../site.css">
 <style>
-  :root {
-    --bg: #0F1318;
-    --surface: #181E25;
-    --fg: #EEF2F5;
-    --muted: #87929D;
-    --accent: #2CB8F0;
-    --accent-yellow: #FFD948;
-    --rule: #252C34;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    padding: 4rem 1.25rem 5rem;
-    background: var(--bg);
-    color: var(--fg);
-    font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    -webkit-text-size-adjust: 100%;
-  }
-  main { max-width: 640px; margin: 0 auto; }
-  .wordmark {
-    font-family: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 2.1rem;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    margin: 0 0 0.5rem;
-  }
-  .wordmark {
-    display: inline-block;
-    background: linear-gradient(90deg, #FFBF00 0%, #FFBF00 12%, #FFCC00 40%, #34C759 62%, #32ADE6 88%, #32ADE6 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  .tagline {
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-    color: var(--muted);
-    letter-spacing: 0.08em;
-    margin: 0 0 3rem;
-  }
-  h2 {
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.25em;
-    color: var(--accent);
-    text-transform: uppercase;
-    margin: 3rem 0 0.75rem;
-  }
-  p { margin: 0 0 1rem; }
   .muted { color: var(--muted); }
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--rule);
-    border-radius: 12px;
-    padding: 1.25rem 1.35rem;
-    margin: 1rem 0 1.5rem;
-  }
-  .card h3 {
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-    font-size: 1rem;
-    margin: 0 0 0.4rem;
-    letter-spacing: 0.04em;
-  }
+  .card h3 { font-size: 1rem; margin: 0 0 0.4rem; }
   .card p { margin: 0; color: var(--muted); }
-  a { color: var(--accent); }
-  footer {
-    border-top: 1px solid var(--rule);
-    margin-top: 3.5rem;
-    padding-top: 1.5rem;
-    font-size: 0.9rem;
-    color: var(--muted);
-  }
-  footer a { margin-right: 1.25rem; }
 </style>
 </head>
-<body>
+<body data-app="powerglass">
 <main>
-  <header>
-    <p class="wordmark">PowerGlass</p>
-    <p class="tagline">Intelligent Battery Analytics</p>
+  <header class="masthead">
+    <img class="app-icon vt-powerglass" src="../assets/icon-powerglass.png" alt="" width="76" height="76">
+    <div>
+      <p class="wordmark wm-powerglass">PowerGlass</p>
+      <p class="tagline">Intelligent Battery Analytics</p>
+    </div>
   </header>
 
   <p>PowerGlass turns your Apple Watch battery percentage into a live time-remaining prediction, based on how you actually use your watch. By learning your real-world usage patterns, it shows you exactly how many hours you have left.</p>
@@ -121,13 +57,11 @@
   <h2>Your data</h2>
   <p class="muted">Everything happens on your watch. No account, no servers, no analytics — your usage patterns never leave your device.</p>
 
-  <p style="margin-top: 3rem;">Available on the App Store for Apple Watch.</p>
-  <p style="margin: 1.25rem 0 0;">
-    <a href="https://apps.apple.com/app/id6753337355" style="display:inline-block;">
-      <img src="https://toolbox.marketingtools.apple.com/api/badges/download-on-the-app-store/black/en-us?size=250x83"
-           alt="Download PowerGlass on the App Store" style="height:52px;width:auto;">
-    </a>
-  </p>
+  <p>Available on the App Store for Apple Watch.</p>
+  <a class="store-badge" href="https://apps.apple.com/app/id6753337355">
+    <img src="https://toolbox.marketingtools.apple.com/api/badges/download-on-the-app-store/black/en-us?size=250x83"
+         alt="Download PowerGlass on the App Store">
+  </a>
 
   <footer>
     <a href="support.html">Support</a>
@@ -136,6 +70,6 @@
     <span>© 2026 JZA Applications</span>
   </footer>
 </main>
-<script src="../nav.js" id="jza-nav-script"></script>
+<script src="../dock.js" id="jza-dock-script"></script>
 </body>
 </html>

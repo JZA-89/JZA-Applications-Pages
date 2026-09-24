@@ -3,88 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PointFoundry — Room & Object 3D Scanner</title>
+<title>PointFoundry — Room &amp; Object 3D Scanner</title>
 <meta name="description" content="PointFoundry turns the LiDAR scanner and TrueDepth camera on your iPhone and iPad into a 3D scanner — capture rooms and objects as point clouds and meshes, then export to OBJ, STL and more. Everything stays on your device.">
+<meta name="theme-color" content="#000000">
+<link rel="icon" type="image/png" href="../assets/icon-pointfoundry.png">
+<link rel="stylesheet" href="../site.css">
 <style>
-  :root {
-    --bg: #000000;
-    --surface: #101012;
-    --fg: #ffffff;
-    --muted: #8f8f93;
-    --primary: #FF6B2B;
-    --secondary: #00B5D9;
-    --rule: #1e1e20;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    padding: 4rem 1.25rem 5rem;
-    background: var(--bg);
-    color: var(--fg);
-    font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    -webkit-text-size-adjust: 100%;
-  }
-  main { max-width: 640px; margin: 0 auto; }
-  .wordmark {
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-    font-size: 2.1rem;
-    font-weight: 700;
-    letter-spacing: 0.22em;
-    margin: 0 0 0.5rem;
-    background: linear-gradient(90deg, #FF401A, #FF8C1A, #FFD966, #4DD9B3, #008CFF);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    display: inline-block;
-  }
-  .tagline {
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-    color: var(--muted);
-    letter-spacing: 0.08em;
-    margin: 0 0 3rem;
-  }
-  h2 {
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.25em;
-    color: var(--primary);
-    text-transform: uppercase;
-    margin: 3rem 0 0.75rem;
-  }
-  p { margin: 0 0 1rem; }
   .muted { color: var(--muted); }
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--rule);
-    border-radius: 12px;
-    padding: 1.25rem 1.35rem;
-    margin: 1rem 0 1.5rem;
-  }
-  .card h3 {
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-    font-size: 1rem;
-    margin: 0 0 0.4rem;
-    letter-spacing: 0.02em;
-    color: var(--secondary);
-  }
+  .card h3 { font-family: var(--font-mono); font-size: 1rem; margin: 0 0 0.4rem; letter-spacing: 0.02em; color: var(--accent-2); }
   .card p { margin: 0; color: var(--muted); }
-  a { color: var(--primary); }
-  footer {
-    border-top: 1px solid var(--rule);
-    margin-top: 3.5rem;
-    padding-top: 1.5rem;
-    font-size: 0.9rem;
-    color: var(--muted);
-  }
-  footer a { margin-right: 1.25rem; }
 </style>
 </head>
-<body>
+<body data-app="pointfoundry">
 <main>
-  <header>
-    <p class="wordmark">POINTFOUNDRY</p>
-    <p class="tagline">ROOM &amp; OBJECT 3D SCANNER</p>
+  <header class="masthead">
+    <img class="app-icon vt-pointfoundry" src="../assets/icon-pointfoundry.png" alt="" width="76" height="76">
+    <div>
+      <p class="wordmark wm-pointfoundry">POINTFOUNDRY</p>
+      <p class="tagline">ROOM &amp; OBJECT 3D SCANNER</p>
+    </div>
   </header>
 
   <p>PointFoundry turns the depth sensors already in your iPhone and iPad into a proper 3D scanner. Use the LiDAR scanner to capture the spaces you walk around, or the TrueDepth camera to capture the objects you hold in your hand — as dense point clouds and reconstructed meshes you can view, clean up and export.</p>
@@ -122,9 +59,9 @@
 
   <p style="margin-top: 3rem;">Available on the App Store for iPhone and iPad with a LiDAR scanner or TrueDepth camera.</p>
   <p style="margin: 1.25rem 0 0;">
-    <a href="https://apps.apple.com/app/id6759658503" style="display:inline-block;">
+    <a class="store-badge" href="https://apps.apple.com/app/id6759658503">
       <img src="https://toolbox.marketingtools.apple.com/api/badges/download-on-the-app-store/black/en-us?size=250x83"
-           alt="Download PointFoundry on the App Store" style="height:52px;width:auto;">
+           alt="Download PointFoundry on the App Store">
     </a>
   </p>
 
@@ -135,6 +72,6 @@
     <span>© 2026 JZA Applications</span>
   </footer>
 </main>
-<script src="../nav.js" id="jza-nav-script"></script>
+<script src="../dock.js" id="jza-dock-script"></script>
 </body>
 </html>

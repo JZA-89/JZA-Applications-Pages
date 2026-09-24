@@ -4,59 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BikeSpec Support — JZA Applications</title>
-<style>
-  :root {
-    --bg: #0B0B0E;
-    --fg: #ffffff;
-    --muted: rgba(255, 255, 255, 0.62);
-    --rule: rgba(255, 255, 255, 0.06);
-    --accent: #FF8A3D;
-    --card: #16161B;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    padding: 3rem 1.25rem 4rem;
-    background: var(--bg);
-    color: var(--fg);
-    font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    -webkit-text-size-adjust: 100%;
-  }
-  main { max-width: 640px; margin: 0 auto; }
-  header { border-bottom: 1px solid var(--rule); padding-bottom: 1.5rem; margin-bottom: 2rem; }
-  h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 .4rem; letter-spacing: -0.02em; }
-  h1 .spec { color: var(--accent); }
-  .tagline { color: var(--muted); margin: 0; }
-  h2 { font-size: 1.15rem; margin: 2.5rem 0 .75rem; letter-spacing: -0.01em; }
-  h3 { font-size: 1rem; margin: 1.5rem 0 .35rem; }
-  p { margin: 0 0 1rem; }
-  a { color: var(--accent); }
-  ul { margin: 0 0 1rem; padding-left: 1.25rem; }
-  li { margin-bottom: .35rem; }
-  .card {
-    background: var(--card);
-    border: 1px solid var(--rule);
-    border-radius: 12px;
-    padding: 1.25rem 1.35rem;
-    margin: 1rem 0 1.5rem;
-  }
-  .card p:last-child { margin-bottom: 0; }
-  .email { font-size: 1.1rem; font-weight: 600; }
-  footer {
-    margin-top: 3.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--rule);
-    color: var(--muted);
-    font-size: .9rem;
-  }
-  footer a { color: var(--muted); }
-</style>
+<meta name="theme-color" content="#0b0b0e">
+<link rel="icon" type="image/png" href="../assets/icon-bikespec.png">
+<link rel="stylesheet" href="../site.css">
 </head>
-<body>
+<body data-app="bikespec">
 <main>
-  <header>
-    <h1>Bike<span class="spec">Spec</span> Support</h1>
-    <p class="tagline">An app by JZA Applications</p>
+  <header class="masthead">
+    <img class="app-icon vt-bikespec" src="../assets/icon-bikespec.png" alt="" width="76" height="76">
+    <div>
+      <p class="wordmark wm-bikespec"><a href="./">Bike<span class="spec">Spec</span></a></p>
+      <p class="tagline">An app by JZA Applications</p>
+    </div>
   </header>
   <p>BikeSpec keeps your bike details, setups, service records and photos in one place, stored on your own device and in your own iCloud account.</p>
   <h2>Get in touch</h2>
@@ -86,6 +45,6 @@
     <p>&copy; 2026 JZA Applications &middot; <a href="../">All apps</a></p>
   </footer>
 </main>
-<script src="../nav.js" id="jza-nav-script"></script>
+<script src="../dock.js" id="jza-dock-script"></script>
 </body>
 </html>

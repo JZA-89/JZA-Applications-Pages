@@ -4,85 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Privacy Policy — BananaBomb</title>
+<meta name="theme-color" content="#211e19">
+<link rel="icon" type="image/png" href="../assets/icon-bananabomb.png">
+<link rel="stylesheet" href="../site.css">
 <style>
-  :root {
-    --bg: #211E19;
-    --surface: #352E25;
-    --fg: #FFFFFF;
-    --muted: #AEAEB2;
-    --accent: #FFD60A;
-    --rule: #433A30;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    padding: 4rem 1.25rem 5rem;
-    background: var(--bg);
-    color: var(--fg);
-    font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    -webkit-text-size-adjust: 100%;
-  }
-  main { max-width: 640px; margin: 0 auto; }
-  .wordmark {
-    font-size: 2.1rem;
-    font-weight: 800;
-    letter-spacing: 0.02em;
-    margin: 0 0 0.5rem;
-  }
-  .wordmark a { color: inherit; text-decoration: none; }
-  .wordmark .bomb { color: var(--accent); }
-  .tagline {
-    color: var(--muted);
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    font-size: 0.95rem;
-    margin: 0 0 0.75rem;
-  }
-  .updated {
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-    color: var(--muted);
-    font-size: 0.85rem;
-    margin: 0 0 3rem;
-  }
-  h2 {
-    font-size: 0.85rem;
-    font-weight: 700;
-    letter-spacing: 0.25em;
-    color: var(--accent);
-    text-transform: uppercase;
-    margin: 3rem 0 0.75rem;
-  }
-  p { margin: 0 0 1rem; }
+  .updated { font-family: var(--font-mono); color: var(--muted); font-size: 0.85rem; margin: 0.35rem 0 0; }
   ul { margin: 0 0 1rem; padding-left: 1.25rem; }
   li { margin-bottom: .35rem; }
-  a { color: var(--accent); }
-  strong { font-weight: 600; }
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--rule);
-    border-radius: 12px;
-    padding: 1.25rem 1.35rem;
-    margin: 1rem 0 1.5rem;
-  }
   .card p { margin: 0; }
-  footer {
-    border-top: 1px solid var(--rule);
-    margin-top: 3.5rem;
-    padding-top: 1.5rem;
-    font-size: 0.9rem;
-    color: var(--muted);
-  }
-  footer a { margin-right: 1.25rem; }
 </style>
 </head>
-<body>
+<body data-app="bananabomb">
 <main>
 
-  <header>
-    <p class="wordmark"><a href="./">Banana<span class="bomb">Bomb</span></a></p>
-    <p class="tagline">Privacy Policy</p>
-    <p class="updated">Last updated: 30 August 2026</p>
+  <header class="masthead">
+    <img class="app-icon vt-bananabomb" src="../assets/icon-bananabomb.png" alt="" width="76" height="76">
+    <div>
+      <p class="wordmark wm-bananabomb"><a href="./">Banana<span style="color:#fff">Bomb</span></a></p>
+      <p class="tagline">Privacy Policy</p>
+      <p class="updated">Last updated: 30 August 2026</p>
+    </div>
   </header>
 
   <p>This Privacy Policy describes how BananaBomb ("the app", "we", "us") handles your information. BananaBomb is developed by JZA Applications.</p>
@@ -148,6 +89,6 @@
   </footer>
 
 </main>
-<script src="../nav.js" id="jza-nav-script"></script>
+<script src="../dock.js" id="jza-dock-script"></script>
 </body>
 </html>

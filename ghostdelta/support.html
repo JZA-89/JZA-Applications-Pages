@@ -4,84 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GhostDelta Support — JZA Applications</title>
+<meta name="theme-color" content="#111110">
+<link rel="icon" type="image/png" href="../assets/icon-ghostdelta.png">
+<link rel="stylesheet" href="../site.css">
 <style>
-  :root {
-    --bg: #111110;
-    --surface: #1C1C1A;
-    --fg: #F0EFE9;
-    --muted: #8A8A82;
-    --accent: #FFD600;
-    --rule: #2A2A28;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    padding: 4rem 1.25rem 5rem;
-    background: var(--bg);
-    color: var(--fg);
-    font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    -webkit-text-size-adjust: 100%;
-  }
-  main { max-width: 640px; margin: 0 auto; }
-  .wordmark {
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-    font-size: 2.1rem;
-    font-weight: 700;
-    letter-spacing: 0.28em;
-    margin: 0 0 0.5rem;
-  }
-  .wordmark a { color: inherit; text-decoration: none; }
-  .wordmark .delta { color: var(--accent); }
-  .tagline {
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-    color: var(--muted);
-    letter-spacing: 0.08em;
-    margin: 0 0 3rem;
-  }
-  h2 {
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.25em;
-    color: var(--accent);
-    text-transform: uppercase;
-    margin: 3rem 0 0.75rem;
-  }
-  h3 { font-size: 1rem; margin: 1.75rem 0 0.35rem; letter-spacing: -0.01em; }
-  p { margin: 0 0 1rem; }
-  ul { margin: 0 0 1rem; padding-left: 1.25rem; color: var(--muted); }
-  li { margin-bottom: .35rem; }
-  a { color: var(--accent); }
-  strong { font-weight: 600; color: var(--fg); }
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--rule);
-    border-radius: 12px;
-    padding: 1.25rem 1.35rem;
-    margin: 1rem 0 1.5rem;
-  }
   .card p { margin: 0 0 0.5rem; }
   .card p:last-child { margin: 0; color: var(--muted); }
-  .email a {
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-    font-size: 1.05rem;
-  }
-  footer {
-    border-top: 1px solid var(--rule);
-    margin-top: 3.5rem;
-    padding-top: 1.5rem;
-    font-size: 0.9rem;
-    color: var(--muted);
-  }
-  footer a { margin-right: 1.25rem; }
+  .email a { font-family: var(--font-mono); font-size: 1.05rem; }
+  ul { color: var(--muted); }
 </style>
 </head>
-<body>
+<body data-app="ghostdelta">
 <main>
 
-  <header>
-    <p class="wordmark"><a href="./">GHOST<span class="delta">DELTA</span></a></p>
-    <p class="tagline">SUPPORT</p>
+  <header class="masthead">
+    <img class="app-icon vt-ghostdelta" src="../assets/icon-ghostdelta.png" alt="" width="76" height="76">
+    <div>
+      <p class="wordmark wm-ghostdelta"><a href="./">GHOST<span class="delta">DELTA</span></a></p>
+      <p class="tagline">SUPPORT</p>
+    </div>
   </header>
 
   <p>GhostDelta is a precision GPS tracker for outdoor sport — mountain biking, skiing, hiking, running, motorcycling, karting and boating. It records where you went and how fast, times your Stages and Circuits, and syncs to Apple Health only when you choose.</p>
@@ -132,6 +73,6 @@
   </footer>
 
 </main>
-<script src="../nav.js" id="jza-nav-script"></script>
+<script src="../dock.js" id="jza-dock-script"></script>
 </body>
 </html>

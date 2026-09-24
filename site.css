@@ -1,0 +1,636 @@
+/* ==========================================================================
+   JZA Applications — shared design system
+   Dark-only liquid-glass base + per-app brand themes via body[data-app].
+   ========================================================================== */
+
+/* Cross-document view transitions (progressive enhancement) */
+@view-transition {
+  navigation: auto;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* Base (JZA) theme — apps override below */
+  --bg: #08080a;
+  --fg: #f2f2f4;
+  --muted: #a1a1a8;
+  --faint: #6b6b70;
+  --accent: #ffd60a;
+  --accent-contrast: #1c1c1e;
+  --rule: rgba(255, 255, 255, 0.1);
+
+  --glass-fill: rgba(255, 255, 255, 0.055);
+  --glass-fill-strong: rgba(255, 255, 255, 0.09);
+  --glass-edge: rgba(255, 255, 255, 0.14);
+  --glass-blur: 22px;
+
+  --glow-1: rgba(255, 214, 10, 0.14);
+  --glow-2: rgba(90, 60, 220, 0.12);
+
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 11px;
+
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-rounded: ui-rounded, "SF Pro Rounded", -apple-system,
+    BlinkMacSystemFont, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas,
+    monospace;
+  --font-display: var(--font-body);
+}
+
+/* --------------------------------------------------------------------------
+   Per-app brand themes
+   -------------------------------------------------------------------------- */
+[data-app="powerglass"] {
+  --bg: #060a0d;
+  --fg: #eef2f5;
+  --muted: #87929d;
+  --accent: #ffbf00;
+  --accent-contrast: #14100a;
+  --rule: #252c34;
+  --glow-1: rgba(48, 209, 88, 0.16);
+  --glow-2: rgba(44, 184, 240, 0.14);
+  --font-display: var(--font-rounded);
+}
+
+[data-app="ghostdelta"] {
+  --bg: #111110;
+  --fg: #f0efe9;
+  --muted: #8a8a82;
+  --faint: #6a6a64;
+  --accent: #ffd600;
+  --accent-contrast: #111110;
+  --rule: #2a2a28;
+  --glass-fill: #1a1a18;
+  --glass-fill-strong: #222220;
+  --glass-edge: rgba(255, 255, 255, 0.08);
+  --glow-1: rgba(255, 214, 0, 0.09);
+  --glow-2: rgba(155, 89, 182, 0.1);
+  --radius-lg: 14px;
+  --radius-md: 10px;
+  --radius-sm: 8px;
+  --font-display: var(--font-mono);
+}
+
+[data-app="pointfoundry"] {
+  --bg: #000000;
+  --fg: #ffffff;
+  --muted: rgba(255, 255, 255, 0.45);
+  --faint: rgba(255, 255, 255, 0.25);
+  --accent: #ff6b2b;
+  --accent-2: #00b5d9;
+  --accent-contrast: #000000;
+  --rule: rgba(255, 255, 255, 0.1);
+  --glass-fill: rgba(255, 255, 255, 0.04);
+  --glass-fill-strong: rgba(255, 255, 255, 0.08);
+  --glow-1: rgba(255, 107, 43, 0.13);
+  --glow-2: rgba(0, 181, 217, 0.12);
+  --font-display: var(--font-mono);
+}
+
+[data-app="bikespec"] {
+  --bg: #0b0b0e;
+  --fg: #ffffff;
+  --muted: rgba(255, 255, 255, 0.62);
+  --faint: rgba(255, 255, 255, 0.42);
+  --accent: #ff8a3d;
+  --accent-contrast: #180c04;
+  --rule: rgba(255, 255, 255, 0.06);
+  --glass-fill: #16161b;
+  --glass-fill-strong: #1e1e25;
+  --glow-1: rgba(255, 138, 61, 0.12);
+  --glow-2: rgba(93, 178, 255, 0.08);
+  --radius-lg: 22px;
+  --radius-md: 18px;
+  --font-display: var(--font-rounded);
+}
+
+[data-app="bananabomb"] {
+  --bg: #211e19;
+  --fg: #ffffff;
+  --muted: #aeaeb2;
+  --faint: #8e8e93;
+  --accent: #ffd60a;
+  --accent-contrast: #352e25;
+  --rule: #433a30;
+  --glass-fill: rgba(255, 214, 10, 0.06);
+  --glass-fill-strong: #352e25;
+  --glass-edge: rgba(255, 214, 10, 0.18);
+  --glow-1: rgba(255, 214, 10, 0.1);
+  --glow-2: rgba(232, 96, 10, 0.1);
+  --font-display: var(--font-rounded);
+}
+
+/* --------------------------------------------------------------------------
+   Base
+   -------------------------------------------------------------------------- */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 17px/1.65 var(--font-body);
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+}
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 4rem 1.25rem 8rem;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+/* Eyebrow section headings (app pages) */
+.eyebrow,
+main h2 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 3rem 0 0.75rem;
+}
+
+.tagline {
+  color: var(--muted);
+  margin: 0.35rem 0 0;
+}
+
+/* --------------------------------------------------------------------------
+   Glass
+   -------------------------------------------------------------------------- */
+.glass {
+  position: relative;
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.5);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.5);
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+/* Cursor-tracking specular highlight; --mx/--my set by main.js */
+.glass.specular::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background: radial-gradient(
+    380px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.09),
+    transparent 65%
+  );
+}
+
+.glass.specular:hover::after {
+  opacity: 1;
+}
+
+/* Content cards on app pages */
+.card {
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.5);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.5);
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1.35rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.card + .card {
+  margin-top: 1rem;
+}
+
+/* GhostDelta: flat instrument, not glass — its restraint IS the brand */
+[data-app="ghostdelta"] .glass,
+[data-app="ghostdelta"] .card {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--glass-fill);
+  box-shadow: none;
+  border-color: var(--rule);
+}
+
+/* --------------------------------------------------------------------------
+   App page masthead
+   -------------------------------------------------------------------------- */
+.masthead {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  padding-bottom: 1.75rem;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 0.5rem;
+}
+
+.masthead .app-icon {
+  width: 76px;
+  height: 76px;
+}
+
+.app-icon {
+  display: block;
+  border-radius: 22.5%;
+  box-shadow:
+    0 2px 10px rgba(0, 0, 0, 0.45),
+    0 12px 36px rgba(0, 0, 0, 0.35);
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  margin: 0;
+  line-height: 1.15;
+}
+
+.wordmark a {
+  color: inherit;
+}
+
+.wordmark a:hover {
+  text-decoration: none;
+}
+
+/* Brand wordmark treatments */
+.wm-powerglass,
+.wm-pointfoundry {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.wm-powerglass {
+  background-image: linear-gradient(
+    90deg,
+    #ffbf00 0%,
+    #ffbf00 12%,
+    #ffd948 40%,
+    #30d158 62%,
+    #2cb8f0 88%,
+    #2cb8f0 100%
+  );
+}
+
+.wm-pointfoundry {
+  font-family: var(--font-mono);
+  letter-spacing: 0.09em;
+  background-image: linear-gradient(
+    90deg,
+    #ff401a,
+    #ff8c1a 28%,
+    #ffd966 50%,
+    #4dd9b3 72%,
+    #008cff
+  );
+}
+
+.wm-ghostdelta {
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.wm-ghostdelta .delta {
+  color: #ffd600;
+}
+
+.wm-bikespec .spec {
+  color: #ff8a3d;
+}
+
+.wm-bananabomb {
+  color: #ffd60a;
+}
+
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+footer {
+  margin-top: 4rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+  color: var(--faint);
+  font-size: 0.9rem;
+}
+
+footer a {
+  margin-right: 1.25rem;
+  color: var(--muted);
+}
+
+/* --------------------------------------------------------------------------
+   App Store badge
+   -------------------------------------------------------------------------- */
+.store-badge img {
+  height: 52px;
+  width: auto;
+  display: block;
+  transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+
+.store-badge:hover img {
+  transform: scale(1.04);
+}
+
+/* --------------------------------------------------------------------------
+   The Dock (markup injected by dock.js)
+   -------------------------------------------------------------------------- */
+.jza-dock {
+  position: fixed;
+  left: 50%;
+  bottom: calc(0.9rem + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.55rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 26px;
+  background: rgba(22, 22, 26, 0.55);
+  -webkit-backdrop-filter: blur(28px) saturate(1.8);
+  backdrop-filter: blur(28px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 18px 50px rgba(0, 0, 0, 0.5);
+}
+
+.jza-dock a {
+  position: relative;
+  display: block;
+  width: 52px;
+  height: 52px;
+  border-radius: 24%;
+  transform-origin: bottom center;
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.3, 1.1);
+}
+
+/* While the pointer is tracking, icons follow it directly — the eased
+   transition only plays on enter/leave (dock.js toggles this class). */
+.jza-dock.magnify a {
+  transition: none;
+}
+
+.jza-dock a img,
+.jza-dock a .jza-dock-glyph {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 24%;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.45);
+}
+
+.jza-dock-glyph {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(120% 120% at 20% 15%, rgba(255, 255, 255, 0.16), transparent 55%),
+    linear-gradient(160deg, #2a2a30, #101014);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffd60a;
+  font: 800 15px/1 var(--font-rounded);
+  letter-spacing: 0.02em;
+}
+
+/* Tooltip label */
+.jza-dock a::before {
+  content: attr(data-label);
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 0.3rem 0.7rem;
+  border-radius: 9px;
+  background: rgba(24, 24, 28, 0.85);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #f2f2f4;
+  font: 600 12px/1.2 var(--font-body);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.jza-dock a:hover::before,
+.jza-dock a:focus-visible::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Active page dot */
+.jza-dock a.active::after {
+  content: "";
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.jza-dock a:active {
+  transform: translateY(2px) scale(var(--dock-scale, 1));
+}
+
+@media (max-width: 480px) {
+  .jza-dock a {
+    width: 44px;
+    height: 44px;
+  }
+
+  .jza-dock {
+    gap: 0.45rem;
+    padding: 0.5rem 0.65rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Ambient brand glow on app subpages (the index builds its own layered
+   version). Slow drift keeps it alive without being noticeable.
+   -------------------------------------------------------------------------- */
+body[data-app]::before {
+  content: "";
+  position: fixed;
+  inset: -12%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(55% 45% at 15% 8%, var(--glow-1), transparent 70%),
+    radial-gradient(55% 45% at 85% 92%, var(--glow-2), transparent 70%);
+  animation: amb-drift 32s ease-in-out infinite alternate;
+}
+
+@keyframes amb-drift {
+  from { transform: translate3d(-2.5%, -1.8%, 0) scale(1); }
+  to { transform: translate3d(2.5%, 2%, 0) scale(1.1); }
+}
+
+/* Subpage content rises in as it enters the viewport — scroll-driven CSS,
+   no JS, no markup changes; unsupported browsers just show the content. */
+@supports (animation-timeline: view()) {
+  body[data-app] main > * {
+    animation: page-rise 1ms linear both;
+    animation-timeline: view();
+    animation-range: entry 5% entry 45%;
+  }
+}
+
+@keyframes page-rise {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Shrinking-title pill (injected by dock.js) — appears at the top once the
+   page header scrolls away; tapping it returns to the top.
+   -------------------------------------------------------------------------- */
+.jza-toppill {
+  position: fixed;
+  top: calc(0.8rem + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%) translateY(-18px);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 1.05rem 0.4rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(22, 22, 26, 0.55);
+  -webkit-backdrop-filter: blur(28px) saturate(1.8);
+  backdrop-filter: blur(28px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 10px 34px rgba(0, 0, 0, 0.45);
+  color: var(--fg);
+  font-weight: 700;
+  font-size: 0.95rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.jza-toppill.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+.jza-toppill:hover {
+  text-decoration: none;
+}
+
+.jza-toppill img {
+  width: 26px;
+  height: 26px;
+  border-radius: 24%;
+  display: block;
+}
+
+.jza-pill-glyph {
+  width: 26px;
+  height: 26px;
+  border-radius: 24%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(160deg, #2a2a30, #101014);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffd60a;
+  font: 800 9px/1 var(--font-rounded);
+}
+
+/* --------------------------------------------------------------------------
+   Scroll reveals (class toggled by main.js IntersectionObserver)
+   -------------------------------------------------------------------------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 0.7s cubic-bezier(0.2, 0.6, 0.2, 1),
+    transform 0.7s cubic-bezier(0.2, 0.6, 0.2, 1);
+  transition-delay: var(--reveal-delay, 0s);
+}
+
+.reveal.in-view {
+  opacity: 1;
+  transform: none;
+}
+
+/* --------------------------------------------------------------------------
+   View-transition morph names (icon on index chapter ↔ app page masthead)
+   -------------------------------------------------------------------------- */
+.vt-powerglass { view-transition-name: icon-powerglass; }
+.vt-ghostdelta { view-transition-name: icon-ghostdelta; }
+.vt-pointfoundry { view-transition-name: icon-pointfoundry; }
+.vt-bikespec { view-transition-name: icon-bikespec; }
+.vt-bananabomb { view-transition-name: icon-bananabomb; }
+
+/* --------------------------------------------------------------------------
+   Reduced motion — kill the show, keep the content
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+
+  body[data-app]::before {
+    animation: none;
+  }
+
+  body[data-app] main > * {
+    animation: none !important;
+  }
+}
