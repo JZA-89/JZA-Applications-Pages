@@ -509,28 +509,27 @@ body[data-app]::before {
   animation: amb-drift 15s ease-in-out infinite alternate;
 }
 
-/* Edge scrim over the glow (index .ambient and subpage ::before alike).
+/* Page-end fade over the glow (index .ambient and subpage ::before alike).
    At the very top/bottom of a page iOS Safari fills the strip behind the
-   status bar / toolbar with a flat sampled colour, and the glow would stop
-   dead against it — so fade the glow into --bg at the viewport edges, and
-   blank it beyond them. */
+   status bar / toolbar with a flat colour, and the glow would stop dead
+   against it — so the glow fades into --bg at the start and end of the
+   document. Anchored to the page (not the viewport), so mid-page the glow
+   runs edge to edge untouched. */
+html {
+  position: relative;
+}
+
 body::after {
   content: "";
-  position: fixed;
-  /* bottom edge measured in svh: iOS clips fixed layers at the small
-     viewport (toolbar showing), so a vh/percent-based fade would land
-     hidden under the toolbar */
-  top: -50vh;
-  left: 0;
-  right: 0;
-  height: calc(100svh + 100vh);
+  position: absolute;
+  inset: 0;
   z-index: -1;
   pointer-events: none;
   background: linear-gradient(
-    var(--bg) 50vh,
-    transparent calc(50vh + 4rem),
-    transparent calc(50vh + 100svh - 4rem),
-    var(--bg) calc(50vh + 100svh)
+    var(--bg),
+    transparent 6rem,
+    transparent calc(100% - 6rem),
+    var(--bg)
   );
 }
 
