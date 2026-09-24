@@ -74,7 +74,19 @@
           window.scrollTo({ top: 0, behavior: behavior });
         } else {
           var chapter = document.getElementById(item.slug);
-          if (chapter) chapter.scrollIntoView({ behavior: behavior, block: "center" });
+          if (!chapter) return;
+          /* on phones the stacked chapter is taller than the screen, so
+             centring it pushes the title off the top — there, land the
+             content just below the top pill instead */
+          var inner = chapter.querySelector(".chapter-inner") || chapter;
+          var pill = document.querySelector(".jza-toppill");
+          var clearance = (pill ? pill.offsetTop + pill.offsetHeight : 0) + 16;
+          var box = inner.getBoundingClientRect();
+          if (box.height + clearance * 2 <= window.innerHeight) {
+            chapter.scrollIntoView({ behavior: behavior, block: "center" });
+          } else {
+            window.scrollTo({ top: window.scrollY + box.top - clearance, behavior: behavior });
+          }
         }
       });
     }
