@@ -280,7 +280,34 @@
     });
   }
 
+  /* --- bottom page-end fade (see .jza-endfade in site.css): ramps in
+     over the last 200px of scroll, and stays on through the bounce --- */
+  function buildEndFade() {
+    var fade = document.createElement("div");
+    fade.className = "jza-endfade";
+    fade.setAttribute("aria-hidden", "true");
+    var queued = false;
+    var update = function () {
+      queued = false;
+      var root = document.documentElement;
+      var left = root.scrollHeight - window.innerHeight - window.scrollY;
+      fade.style.opacity = Math.min(1, Math.max(0, 1 - left / 200)).toFixed(3);
+    };
+    var request = function () {
+      if (!queued) {
+        queued = true;
+        requestAnimationFrame(update);
+      }
+    };
+    window.addEventListener("scroll", request, { passive: true });
+    window.addEventListener("resize", request);
+    window.addEventListener("load", request);
+    update();
+    return fade;
+  }
+
   function mount() {
+    document.body.appendChild(buildEndFade());
     document.body.appendChild(dock);
     document.body.appendChild(buildPill());
     setupSubpageReveals();

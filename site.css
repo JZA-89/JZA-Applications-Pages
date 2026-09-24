@@ -509,12 +509,14 @@ body[data-app]::before {
   animation: amb-drift 15s ease-in-out infinite alternate;
 }
 
-/* Page-end fade over the glow (index .ambient and subpage ::before alike).
+/* Page-end fades over the glow (index .ambient and subpage ::before alike).
    At the very top/bottom of a page iOS Safari fills the strip behind the
    status bar / toolbar with a flat colour, and the glow would stop dead
-   against it — so the glow fades into --bg at the start and end of the
-   document. Anchored to the page (not the viewport), so mid-page the glow
-   runs edge to edge untouched. */
+   against it. Top: a fade anchored to the start of the document. Bottom:
+   the glow is a fixed layer clipped just above the toolbar, so its fade
+   must be fixed too (a document-anchored one slides away from it when the
+   page bounces) — dock.js fades .jza-endfade in over the last stretch of
+   scroll, so mid-page the glow runs edge to edge untouched. */
 html {
   position: relative;
 }
@@ -522,15 +524,23 @@ html {
 body::after {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: 0 0 auto;
+  height: 6rem;
   z-index: -1;
   pointer-events: none;
-  background: linear-gradient(
-    var(--bg),
-    transparent 6rem,
-    transparent calc(100% - 6rem),
-    var(--bg)
-  );
+  background: linear-gradient(var(--bg), transparent);
+}
+
+.jza-endfade {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 6rem;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(transparent, var(--bg));
+  opacity: 0;
 }
 
 @keyframes amb-drift {
