@@ -280,16 +280,7 @@
     });
   }
 
-  /* --- bottom glow fade (see .jza-endfade in site.css) --- */
-  function buildEndFade() {
-    var fade = document.createElement("div");
-    fade.className = "jza-endfade";
-    fade.setAttribute("aria-hidden", "true");
-    return fade;
-  }
-
   function mount() {
-    document.body.appendChild(buildEndFade());
     document.body.appendChild(dock);
     document.body.appendChild(buildPill());
     setupSubpageReveals();
