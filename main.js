@@ -413,34 +413,58 @@
       pfBuckets[Math.min(PF_BUCKETS - 1, Math.floor(t * PF_BUCKETS))].push([pfJitter(x), pfJitter(y), pfJitter(z)]);
     };
 
-    /* the room: floor, two walls, a crate sitting on the floor */
+    /* the room: a full four-wall scan (no ceiling — it would occlude the
+       look-down view, and real scans rarely capture one) with a door
+       opening, a window opening, a couch against the back wall and a
+       table with four legs */
     var PF_STEP = 0.08;
     var pfX, pfY, pfZ;
+    var PF_FLOOR = -0.62;
+    var PF_TOP = 0.74;
+    /* door hole in the z=+1 wall, window hole in the x=-1 wall */
+    var pfInDoor = function (x, y) { return x > 0.12 && x < 0.58 && y < 0.46; };
+    var pfInWindow = function (z, y) { return z > -0.52 && z < 0.12 && y > -0.1 && y < 0.5; };
     for (pfX = -1; pfX <= 1; pfX += PF_STEP) {
-      for (pfZ = -1; pfZ <= 1; pfZ += PF_STEP) pfAdd(pfX, -0.62, pfZ);
+      for (pfZ = -1; pfZ <= 1; pfZ += PF_STEP) pfAdd(pfX, PF_FLOOR, pfZ);
     }
     for (pfX = -1; pfX <= 1; pfX += PF_STEP) {
-      for (pfY = -0.62; pfY <= 0.74; pfY += PF_STEP) pfAdd(pfX, pfY, -1);
-    }
-    for (pfZ = -1; pfZ <= 1; pfZ += PF_STEP) {
-      for (pfY = -0.62; pfY <= 0.74; pfY += PF_STEP) pfAdd(-1, pfY, pfZ);
-    }
-    var PF_BOX = 0.058;
-    for (pfX = 0.08; pfX <= 0.6; pfX += PF_BOX) {
-      for (pfZ = -0.1; pfZ <= 0.42; pfZ += PF_BOX) pfAdd(pfX, -0.2, pfZ);
-      for (pfY = -0.62; pfY <= -0.2; pfY += PF_BOX) {
-        pfAdd(pfX, pfY, 0.42);
-        pfAdd(pfX, pfY, -0.1);
+      for (pfY = PF_FLOOR; pfY <= PF_TOP; pfY += PF_STEP) {
+        pfAdd(pfX, pfY, -1);
+        if (!pfInDoor(pfX, pfY)) pfAdd(pfX, pfY, 1);
       }
     }
-    for (pfZ = -0.1; pfZ <= 0.42; pfZ += PF_BOX) {
-      for (pfY = -0.62; pfY <= -0.2; pfY += PF_BOX) {
-        pfAdd(0.6, pfY, pfZ);
-        pfAdd(0.08, pfY, pfZ);
+    for (pfZ = -1; pfZ <= 1; pfZ += PF_STEP) {
+      for (pfY = PF_FLOOR; pfY <= PF_TOP; pfY += PF_STEP) {
+        if (!pfInWindow(pfZ, pfY)) pfAdd(-1, pfY, pfZ);
+        pfAdd(1, pfY, pfZ);
+      }
+    }
+    /* couch against the back wall: seat, front face, arms, backrest */
+    var PF_BOX = 0.055;
+    for (pfX = -0.78; pfX <= -0.08; pfX += PF_BOX) {
+      for (pfZ = -0.92; pfZ <= -0.5; pfZ += PF_BOX) pfAdd(pfX, -0.22, pfZ);
+      for (pfY = PF_FLOOR; pfY <= -0.22; pfY += PF_BOX) pfAdd(pfX, pfY, -0.5);
+      for (pfZ = -0.92; pfZ <= -0.75; pfZ += PF_BOX) pfAdd(pfX, 0.08, pfZ);
+      for (pfY = -0.22; pfY <= 0.08; pfY += PF_BOX) pfAdd(pfX, pfY, -0.75);
+    }
+    for (pfZ = -0.92; pfZ <= -0.5; pfZ += PF_BOX) {
+      for (pfY = PF_FLOOR; pfY <= -0.22; pfY += PF_BOX) {
+        pfAdd(-0.78, pfY, pfZ);
+        pfAdd(-0.08, pfY, pfZ);
+      }
+    }
+    /* table with four legs */
+    for (pfX = 0.3; pfX <= 0.78; pfX += PF_BOX) {
+      for (pfZ = -0.15; pfZ <= 0.33; pfZ += PF_BOX) pfAdd(pfX, -0.26, pfZ);
+    }
+    var pfLegs = [[0.35, -0.1], [0.35, 0.28], [0.73, -0.1], [0.73, 0.28]];
+    for (var pfL = 0; pfL < pfLegs.length; pfL++) {
+      for (pfY = PF_FLOOR; pfY <= -0.26; pfY += 0.06) {
+        pfAdd(pfLegs[pfL][0], pfY, pfLegs[pfL][1]);
       }
     }
 
-    var PF_TILT = 0.42; /* camera looks slightly down into the room */
+    var PF_TILT = 0.7; /* look down into the room at ~40° */
     var pfCT = Math.cos(PF_TILT);
     var pfST = Math.sin(PF_TILT);
 
@@ -467,7 +491,7 @@
           var ry = p[1] * pfCT - rz * pfST;
           var depth = p[1] * pfST + rz * pfCT + 3.1;
           var s = w * 0.35 * (2.4 / depth);
-          var size = Math.max(1, w * 0.0042 * (2.4 / depth));
+          var size = Math.max(1.5, w * 0.0052 * (2.4 / depth));
           pfCtx.fillRect(w / 2 + rx * s - size / 2, h / 2 + h * 0.13 - ry * s - size / 2, size, size);
         }
       }
