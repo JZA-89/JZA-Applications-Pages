@@ -180,14 +180,13 @@
     return pill;
   }
 
-  /* --- subpage scroll reveals: JS fallback for browsers without CSS
-     scroll-driven animations (site.css handles the rest) --- */
+  /* --- subpage scroll reveals. Deliberately JS-only: CSS scroll-driven
+     view() animations leave last-viewport content stuck mid-fade (it can
+     never scroll far enough to finish its entry range), so every browser
+     takes this IntersectionObserver path instead. --- */
   function setupSubpageReveals() {
-    var supportsScrollTimeline =
-      window.CSS && CSS.supports && CSS.supports("animation-timeline: view()");
     if (
       !document.body.getAttribute("data-app") ||
-      supportsScrollTimeline ||
       reducedMotion ||
       !("IntersectionObserver" in window)
     ) {

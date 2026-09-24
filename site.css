@@ -512,20 +512,10 @@ body[data-app]::before {
   to { transform: translate3d(4.5%, 3.5%, 0) scale(1.14); }
 }
 
-/* Subpage content rises in as it enters the viewport — scroll-driven CSS,
-   no JS, no markup changes; unsupported browsers just show the content. */
-@supports (animation-timeline: view()) {
-  body[data-app] main > * {
-    animation: page-rise 1ms linear both;
-    animation-timeline: view();
-    animation-range: entry 5% entry 45%;
-  }
-}
-
-@keyframes page-rise {
-  from { opacity: 0; transform: translateY(22px); }
-  to { opacity: 1; transform: none; }
-}
+/* Subpage reveals are JS-driven (dock.js) — CSS scroll-driven view()
+   animations were tried and dropped: content in the last viewport of a
+   page can never scroll far enough to finish an entry-range animation,
+   leaving it stuck half-faded. */
 
 /* --------------------------------------------------------------------------
    Shrinking-title pill (injected by dock.js) — appears at the top once the
@@ -640,9 +630,5 @@ body[data-app]::before {
 
   body[data-app]::before {
     animation: none;
-  }
-
-  body[data-app] main > * {
-    animation: none !important;
   }
 }
