@@ -136,6 +136,9 @@
    animations is clipped at the container level instead (.chapter). */
 html {
   scroll-behavior: smooth;
+  /* no rubber-band at the page ends — on iOS it drags the fixed ambient
+     glow along and exposes a flat-colour band with a hard edge */
+  overscroll-behavior-y: none;
 }
 
 body {
