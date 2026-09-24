@@ -37,13 +37,17 @@
     var revealer = new IntersectionObserver(
       function (entries) {
         entries.forEach(function (entry) {
-          if (entry.isIntersecting) {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.15) {
             entry.target.classList.add("in-view");
-            revealer.unobserve(entry.target);
+          } else if (!entry.isIntersecting && entry.boundingClientRect.top >= window.innerHeight) {
+            /* fully exited below the viewport (the user scrolled back up
+               past it) — re-arm so the reveal replays on the way down.
+               Elements exiting above stay revealed. */
+            entry.target.classList.remove("in-view");
           }
         });
       },
-      { threshold: 0.15 }
+      { threshold: [0, 0.15] }
     );
     reveals.forEach(function (el) {
       revealer.observe(el);
