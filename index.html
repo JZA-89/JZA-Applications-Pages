@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JZA Applications — Sharp tools for sharp people</title>
-<meta name="description" content="Sharp tools for sharp people. PowerGlass, BananaBomb, GhostDelta, PointFoundry and BikeSpec — every app with its own design language, made by JZA Applications.">
+<meta name="description" content="Sharp tools for sharp people. PowerGlass, PointFoundry, GhostDelta, BananaBomb and BikeSpec — every app with its own design language, made by JZA Applications.">
 <meta name="theme-color" content="#08080a">
 <link rel="canonical" href="https://jza.app/">
 <meta property="og:title" content="JZA Applications">
@@ -31,7 +31,7 @@
     inset: -10%;
     opacity: 0;
     transition: opacity 1.1s ease;
-    animation: amb-drift 22s ease-in-out infinite alternate;
+    animation: amb-drift 15s ease-in-out infinite alternate;
     /* only the visible layer drifts — the hidden five stay parked */
     animation-play-state: paused;
   }
@@ -207,29 +207,74 @@
     from { background-position: 0% 0; }
     to { background-position: 100% 0; }
   }
-  .pg-collage {
-    position: relative;
-    max-width: 480px;
+  /* Live dashboard replica (charts drawn by main.js): hero hours,
+     energy bar, battery history + forecast, hourly usage heat bars.
+     Colours and chart grammar match the app (see its STYLE_GUIDE.md). */
+  .pg-demo {
+    max-width: 390px;
     margin: 0 auto;
-    aspect-ratio: 1 / 1.02;
-  }
-  .pg-pos { position: absolute; }
-  .pg-collage img {
-    width: 100%;
-    height: auto;
-    display: block;
-    border-radius: 20px;
+    background: rgba(20, 24, 28, 0.78);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+    border-radius: 20px;
+    padding: 1.1rem 1.15rem 1rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 18px 50px rgba(0, 0, 0, 0.45);
   }
-  .pg-ipad { top: 0; right: 0; width: 78%; z-index: 1; }
-  .pg-ipad img { transform: rotate(2deg); opacity: 0.92; }
-  .pg-phone { top: 16%; left: 0; width: 34%; z-index: 2; }
-  .pg-phone img { transform: rotate(-4deg); }
-  .pg-watch { bottom: 0; right: 7%; width: 44%; z-index: 3; }
-  .pg-watch img { transform: rotate(3deg); }
-  .pg-watch2 { bottom: 7%; left: 27%; width: 36%; z-index: 2; }
-  .pg-watch2 img { transform: rotate(-6deg); }
+  .pg-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 0.9rem;
+  }
+  .pg-hours {
+    font: 700 2.6rem/0.95 var(--font-rounded);
+    font-variant-numeric: tabular-nums;
+    color: #30d158;
+    margin: 0;
+    transition: color 0.4s ease;
+  }
+  .pg-hours-cap, .pg-avg-cap { margin: 0.15rem 0 0; font-size: 0.75rem; color: #87929d; }
+  .pg-avg { text-align: right; }
+  .pg-avg-val {
+    font: 700 1.1rem/1.1 var(--font-rounded);
+    font-variant-numeric: tabular-nums;
+    color: #ffbf00;
+    margin: 0;
+  }
+  .pg-band-track {
+    position: relative;
+    height: 15px;
+    border-radius: 999px;
+    overflow: hidden;
+    background:
+      repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 7px),
+      rgba(255, 255, 255, 0.05);
+  }
+  .pg-band-fill {
+    position: absolute;
+    inset: 0;
+    /* gradient spans the whole track and is cropped by the clip — each
+       position owns a fixed colour, exactly like the app */
+    background: linear-gradient(90deg, #ff9f0a, #ffbf00, #ffd60a, #30d158, #64d2ff);
+  }
+  .pg-band-labels {
+    display: flex;
+    justify-content: space-between;
+    font: 500 0.72rem var(--font-rounded);
+    font-variant-numeric: tabular-nums;
+    color: #87929d;
+    margin-top: 0.3rem;
+  }
+  .pg-chart-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #eef2f5;
+    margin: 0.95rem 0 0.4rem;
+  }
+  .pg-unit { color: #87929d; font-weight: 400; font-size: 0.7rem; }
+  #pg-history, #pg-usage { display: block; width: 100%; height: auto; }
 
   /* GhostDelta — replica of the app's watchOS stage timing tile
      (WatchCard: name / time+delta / sector pills / mini-sector bar),
@@ -433,20 +478,81 @@
     margin-top: 1rem;
   }
 
-  /* BananaBomb — Barry on stage */
-  #barry-stage { position: relative; height: min(430px, 62vw); }
-  .barry-pose {
+  /* BananaBomb — card-feed replica: photo cards of Barry stack like the
+     app's review deck; the top card gets stamped PEEL or BOMB, flies
+     off, and the counters tick (main.js drives the cycle). Stack
+     geometry, stamps and palette match the app. */
+  .bb-demo { max-width: 330px; margin: 0 auto; }
+  .bb-pill {
+    position: relative;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: max-content;
+    margin: 0 auto 1.1rem;
+    padding: 0.42rem 0.85rem;
+    border-radius: 999px;
+    background: rgba(53, 46, 37, 0.72);
+    -webkit-backdrop-filter: blur(16px) saturate(1.5);
+    backdrop-filter: blur(16px) saturate(1.5);
+    border: 1px solid rgba(255, 214, 10, 0.32);
+  }
+  .bb-pill-title { font-size: 0.88rem; font-weight: 700; color: #ffd60a; }
+  .bb-count {
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    padding: 0.14rem 0.5rem;
+    border-radius: 999px;
+    transition: background 0.15s ease;
+  }
+  .bb-count b { font-weight: 700; }
+  .bb-keep { color: #30d158; background: rgba(48, 209, 88, 0.14); }
+  .bb-bomb { color: #ff453a; background: rgba(255, 69, 58, 0.14); }
+  .bb-keep.flash { background: rgba(48, 209, 88, 0.38); }
+  .bb-bomb.flash { background: rgba(255, 69, 58, 0.38); }
+  .bb-stage { position: relative; height: min(400px, 88vw); }
+  .bb-card {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 76%;
+    margin-left: -38%;
+    transform-origin: top center;
+    border-radius: 16px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+    transition:
+      transform 0.5s cubic-bezier(0.25, 1.15, 0.4, 1),
+      filter 0.5s ease,
+      opacity 0.35s ease;
+  }
+  .bb-card img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 16px;
+    background: #433a30;
+  }
+  .bb-stamp {
     position: absolute;
     inset: 0;
-    margin: auto;
-    max-height: 100%;
-    max-width: 100%;
-    object-fit: contain;
+    display: grid;
+    place-items: center;
     opacity: 0;
-    transform: scale(0.96);
-    transition: opacity 0.5s ease, transform 0.5s ease;
+    transition: opacity 0.55s ease;
+    pointer-events: none;
   }
-  .barry-pose.active { opacity: 1; transform: scale(1); }
+  .bb-stamp span {
+    font: 900 1.9rem/1 var(--font-body);
+    letter-spacing: 0.02em;
+    padding: 9px 13px;
+    border-radius: 8px;
+    border: 4px solid;
+  }
+  .bb-stamp.show { opacity: 1; }
+  .bb-stamp.peel span { color: #ffd60a; border-color: #ffd60a; transform: rotate(-15deg); }
+  .bb-stamp.bomb span { color: #e8600a; border-color: #e8600a; transform: rotate(15deg); }
 
   /* ---------- all-apps strip ---------- */
   .strip-section { max-width: 1020px; margin: 0 auto; padding: 3rem 1.5rem 1rem; }
@@ -482,7 +588,6 @@
 <noscript>
   <style>
     .reveal { opacity: 1; transform: none; }
-    .barry-pose:first-child { opacity: 1; transform: none; }
   </style>
 </noscript>
 </head>
@@ -526,38 +631,50 @@
         <a class="store-badge reveal" style="--reveal-delay:.44s" href="https://apps.apple.com/app/id6753337355"><img src="https://toolbox.marketingtools.apple.com/api/badges/download-on-the-app-store/black/en-us?size=250x83" width="250" height="83" loading="lazy" decoding="async" alt="Download PowerGlass on the App Store"></a>
       </div>
       <div class="chapter-art">
-        <div class="pg-collage reveal">
-          <div class="pg-pos pg-ipad" data-parallax="-0.03"><img src="assets/shot-powerglass-ipad.png" alt="PowerGlass on iPad" width="750" height="562" loading="lazy" decoding="async"></div>
-          <div class="pg-pos pg-phone" data-parallax="0.05"><img src="assets/shot-powerglass-1.png" alt="PowerGlass on iPhone showing hours of battery remaining" width="552" height="1200" loading="lazy" decoding="async"></div>
-          <div class="pg-pos pg-watch2" data-parallax="0.09"><img src="assets/shot-powerglass-watch2.png" alt="PowerGlass Apple Watch widgets" width="422" height="514" loading="lazy" decoding="async"></div>
-          <div class="pg-pos pg-watch" data-parallax="0.07"><img src="assets/shot-powerglass-watch.png" alt="PowerGlass on Apple Watch — hours remaining" width="422" height="514" loading="lazy" decoding="async"></div>
+        <div data-parallax="0.04">
+          <div class="pg-demo reveal" id="pg-demo" aria-hidden="true">
+            <div class="pg-hero">
+              <div>
+                <p class="pg-hours" id="pg-hours">19h</p>
+                <p class="pg-hours-cap">remaining</p>
+              </div>
+              <div class="pg-avg">
+                <p class="pg-avg-val" id="pg-avg">3.20%/hr</p>
+                <p class="pg-avg-cap">Average</p>
+              </div>
+            </div>
+            <div class="pg-band-track"><div class="pg-band-fill" id="pg-band"></div></div>
+            <div class="pg-band-labels"><span>0h</span><span id="pg-cap">31h</span></div>
+            <p class="pg-chart-title">Battery History &amp; Forecast</p>
+            <canvas id="pg-history" width="640" height="220"></canvas>
+            <p class="pg-chart-title">Usage History <span class="pg-unit">%/hr</span></p>
+            <canvas id="pg-usage" width="640" height="170"></canvas>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ================= BananaBomb ================= -->
-  <section class="chapter alt" id="bananabomb" data-chapter="bananabomb" data-app="bananabomb">
+  <!-- ================= PointFoundry ================= -->
+  <section class="chapter alt" id="pointfoundry" data-chapter="pointfoundry" data-app="pointfoundry">
     <div class="chapter-inner">
       <div class="chapter-copy">
-        <p class="chapter-kicker reveal"><b>02</b> · iPhone</p>
-        <img class="app-icon chapter-icon vt-bananabomb reveal" src="assets/icon-bananabomb.png" alt="BananaBomb app icon" width="124" height="124" loading="lazy" decoding="async" style="--reveal-delay:.08s">
-        <h2 class="wordmark wm-bananabomb reveal" style="--reveal-delay:.16s">Banana<span style="color:#fff">Bomb</span></h2>
-        <p class="chapter-desc reveal" style="--reveal-delay:.3s">Swipe-based photo cleaning with on-device AI — peel the keepers, bomb the rest, reclaim your storage. Barry supervises.</p>
+        <p class="chapter-kicker reveal"><b>02</b> · iPhone · LiDAR</p>
+        <img class="app-icon chapter-icon vt-pointfoundry reveal" src="assets/icon-pointfoundry.png" alt="PointFoundry app icon" width="124" height="124" loading="lazy" decoding="async" style="--reveal-delay:.08s">
+        <h2 class="wordmark wm-pointfoundry reveal" style="--reveal-delay:.16s">POINTFOUNDRY</h2>
+        <p class="chapter-desc reveal" style="--reveal-delay:.3s">Room &amp; object 3D scanner — capture spaces with LiDAR and objects with TrueDepth, then export to OBJ and STL. Everything stays on your device.</p>
         <p class="chapter-links reveal" style="--reveal-delay:.38s">
-          <a href="bananabomb/">About</a>
-          <a href="bananabomb/support.html">Support</a>
-          <a href="bananabomb/BananaBombPrivacyPolicy.html">Privacy</a>
+          <a href="pointfoundry/">About</a>
+          <a href="pointfoundry/support.html">Support</a>
+          <a href="pointfoundry/PointFoundryPrivacyPolicy.html">Privacy</a>
         </p>
-        <a class="store-badge reveal" style="--reveal-delay:.44s" href="https://apps.apple.com/app/id6759820279"><img src="https://toolbox.marketingtools.apple.com/api/badges/download-on-the-app-store/black/en-us?size=250x83" width="250" height="83" loading="lazy" decoding="async" alt="Download BananaBomb on the App Store"></a>
+        <a class="store-badge reveal" style="--reveal-delay:.44s" href="https://apps.apple.com/app/id6759658503"><img src="https://toolbox.marketingtools.apple.com/api/badges/download-on-the-app-store/black/en-us?size=250x83" width="250" height="83" loading="lazy" decoding="async" alt="Download PointFoundry on the App Store"></a>
       </div>
       <div class="chapter-art">
-        <div data-parallax="0.04">
-          <div id="barry-stage" class="reveal">
-            <img class="barry-pose active" src="assets/barry-lean.png" alt="Barry the Banana leaning casually" width="426" height="640" loading="lazy" decoding="async">
-            <img class="barry-pose" src="assets/barry-flex.png" alt="" width="640" height="640" loading="lazy" decoding="async">
-            <img class="barry-pose" src="assets/barry-cheer.png" alt="" width="640" height="640" loading="lazy" decoding="async">
-            <img class="barry-pose" src="assets/barry-peel.png" alt="" width="640" height="640" loading="lazy" decoding="async">
+        <div data-parallax="0.05">
+          <div class="pf-frame reveal">
+            <span class="pf-c tl"></span><span class="pf-c tr"></span><span class="pf-c bl"></span><span class="pf-c br"></span>
+            <canvas id="pf-cloud" width="360" height="360" aria-label="Rotating LiDAR point cloud of a scanned room" role="img"></canvas>
           </div>
         </div>
       </div>
@@ -605,26 +722,35 @@
     </div>
   </section>
 
-  <!-- ================= PointFoundry ================= -->
-  <section class="chapter alt" id="pointfoundry" data-chapter="pointfoundry" data-app="pointfoundry">
+  <!-- ================= BananaBomb ================= -->
+  <section class="chapter alt" id="bananabomb" data-chapter="bananabomb" data-app="bananabomb">
     <div class="chapter-inner">
       <div class="chapter-copy">
-        <p class="chapter-kicker reveal"><b>04</b> · iPhone · LiDAR</p>
-        <img class="app-icon chapter-icon vt-pointfoundry reveal" src="assets/icon-pointfoundry.png" alt="PointFoundry app icon" width="124" height="124" loading="lazy" decoding="async" style="--reveal-delay:.08s">
-        <h2 class="wordmark wm-pointfoundry reveal" style="--reveal-delay:.16s">POINTFOUNDRY</h2>
-        <p class="chapter-desc reveal" style="--reveal-delay:.3s">Room &amp; object 3D scanner — capture spaces with LiDAR and objects with TrueDepth, then export to OBJ and STL. Everything stays on your device.</p>
+        <p class="chapter-kicker reveal"><b>04</b> · iPhone</p>
+        <img class="app-icon chapter-icon vt-bananabomb reveal" src="assets/icon-bananabomb.png" alt="BananaBomb app icon" width="124" height="124" loading="lazy" decoding="async" style="--reveal-delay:.08s">
+        <h2 class="wordmark wm-bananabomb reveal" style="--reveal-delay:.16s">Banana<span style="color:#fff">Bomb</span></h2>
+        <p class="chapter-desc reveal" style="--reveal-delay:.3s">Swipe-based photo cleaning with on-device AI — peel the keepers, bomb the rest, reclaim your storage. Barry supervises.</p>
         <p class="chapter-links reveal" style="--reveal-delay:.38s">
-          <a href="pointfoundry/">About</a>
-          <a href="pointfoundry/support.html">Support</a>
-          <a href="pointfoundry/PointFoundryPrivacyPolicy.html">Privacy</a>
+          <a href="bananabomb/">About</a>
+          <a href="bananabomb/support.html">Support</a>
+          <a href="bananabomb/BananaBombPrivacyPolicy.html">Privacy</a>
         </p>
-        <a class="store-badge reveal" style="--reveal-delay:.44s" href="https://apps.apple.com/app/id6759658503"><img src="https://toolbox.marketingtools.apple.com/api/badges/download-on-the-app-store/black/en-us?size=250x83" width="250" height="83" loading="lazy" decoding="async" alt="Download PointFoundry on the App Store"></a>
+        <a class="store-badge reveal" style="--reveal-delay:.44s" href="https://apps.apple.com/app/id6759820279"><img src="https://toolbox.marketingtools.apple.com/api/badges/download-on-the-app-store/black/en-us?size=250x83" width="250" height="83" loading="lazy" decoding="async" alt="Download BananaBomb on the App Store"></a>
       </div>
       <div class="chapter-art">
-        <div data-parallax="0.05">
-          <div class="pf-frame reveal">
-            <span class="pf-c tl"></span><span class="pf-c tr"></span><span class="pf-c bl"></span><span class="pf-c br"></span>
-            <canvas id="pf-cloud" width="360" height="360" aria-label="Rotating LiDAR point cloud of a scanned room" role="img"></canvas>
+        <div data-parallax="0.04">
+          <div class="bb-demo reveal" id="bb-demo" aria-hidden="true">
+            <div class="bb-pill">
+              <span class="bb-pill-title">BananaBomb</span>
+              <span class="bb-count bb-keep">🍌 <b id="bb-kept">0</b></span>
+              <span class="bb-count bb-bomb">💣 <b id="bb-bombed">0</b></span>
+            </div>
+            <div class="bb-stage" id="bb-stage">
+              <div class="bb-card"><img src="assets/barry-lean.png" alt="" width="426" height="640" loading="lazy" decoding="async"><span class="bb-stamp"><span></span></span></div>
+              <div class="bb-card"><img src="assets/barry-flex.png" alt="" width="640" height="640" loading="lazy" decoding="async"><span class="bb-stamp"><span></span></span></div>
+              <div class="bb-card"><img src="assets/barry-cheer.png" alt="" width="640" height="640" loading="lazy" decoding="async"><span class="bb-stamp"><span></span></span></div>
+              <div class="bb-card"><img src="assets/barry-peel.png" alt="" width="640" height="640" loading="lazy" decoding="async"><span class="bb-stamp"><span></span></span></div>
+            </div>
           </div>
         </div>
       </div>
@@ -677,9 +803,9 @@
     <h2>All apps</h2>
     <div class="strip">
       <a class="glass specular" href="powerglass/" data-app="powerglass"><img class="app-icon" src="assets/icon-powerglass.png" alt="" width="64" height="64" loading="lazy" decoding="async">PowerGlass</a>
-      <a class="glass specular" href="bananabomb/" data-app="bananabomb"><img class="app-icon" src="assets/icon-bananabomb.png" alt="" width="64" height="64" loading="lazy" decoding="async">BananaBomb</a>
-      <a class="glass specular" href="ghostdelta/" data-app="ghostdelta"><img class="app-icon" src="assets/icon-ghostdelta.png" alt="" width="64" height="64" loading="lazy" decoding="async">GhostDelta</a>
       <a class="glass specular" href="pointfoundry/" data-app="pointfoundry"><img class="app-icon" src="assets/icon-pointfoundry.png" alt="" width="64" height="64" loading="lazy" decoding="async">PointFoundry</a>
+      <a class="glass specular" href="ghostdelta/" data-app="ghostdelta"><img class="app-icon" src="assets/icon-ghostdelta.png" alt="" width="64" height="64" loading="lazy" decoding="async">GhostDelta</a>
+      <a class="glass specular" href="bananabomb/" data-app="bananabomb"><img class="app-icon" src="assets/icon-bananabomb.png" alt="" width="64" height="64" loading="lazy" decoding="async">BananaBomb</a>
       <a class="glass specular" href="bikespec/" data-app="bikespec"><img class="app-icon" src="assets/icon-bikespec.png" alt="" width="64" height="64" loading="lazy" decoding="async">BikeSpec</a>
     </div>
   </section>

@@ -504,12 +504,12 @@ body[data-app]::before {
   background:
     radial-gradient(55% 45% at 15% 8%, var(--glow-1), transparent 70%),
     radial-gradient(55% 45% at 85% 92%, var(--glow-2), transparent 70%);
-  animation: amb-drift 22s ease-in-out infinite alternate;
+  animation: amb-drift 15s ease-in-out infinite alternate;
 }
 
 @keyframes amb-drift {
-  from { transform: translate3d(-4.5%, -3%, 0) scale(1); }
-  to { transform: translate3d(4.5%, 3.5%, 0) scale(1.14); }
+  from { transform: translate3d(-7%, -4.5%, 0) scale(1); }
+  to { transform: translate3d(7%, 5%, 0) scale(1.22); }
 }
 
 /* Subpage reveals are JS-driven (dock.js) — CSS scroll-driven view()

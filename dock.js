@@ -20,9 +20,9 @@
   var items = [
     { path: "", label: "JZA Home", slug: "home" },
     { path: "powerglass/", label: "PowerGlass", slug: "powerglass" },
-    { path: "bananabomb/", label: "BananaBomb", slug: "bananabomb" },
-    { path: "ghostdelta/", label: "GhostDelta", slug: "ghostdelta" },
     { path: "pointfoundry/", label: "PointFoundry", slug: "pointfoundry" },
+    { path: "ghostdelta/", label: "GhostDelta", slug: "ghostdelta" },
+    { path: "bananabomb/", label: "BananaBomb", slug: "bananabomb" },
     { path: "bikespec/", label: "BikeSpec", slug: "bikespec" },
   ];
 

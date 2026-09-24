@@ -281,30 +281,104 @@
   }
 
   /* ------------------------------------------------------------------
-     6. Barry pose cycle in the BananaBomb chapter
+     6. BananaBomb card feed — replica of the app's review deck: three
+        stacked photo cards (scale 1/.9/.8 anchored top, blur 0/2/4),
+        the front card gets a PEEL or BOMB stamp fading in with the
+        drag, flies off fast with no rotation (like the app), and the
+        header counters tick with a 150ms tint flash.
      ------------------------------------------------------------------ */
-  var stage = document.getElementById("barry-stage");
-  if (stage) {
-    var poses = stage.querySelectorAll(".barry-pose");
-    if (poses.length > 1 && !reducedMotion && "IntersectionObserver" in window) {
-      var current = 0;
-      var barryTimer = null;
-      var nextPose = function () {
-        poses[current].classList.remove("active");
-        current = (current + 1) % poses.length;
-        poses[current].classList.add("active");
-      };
-      var barryWatch = new IntersectionObserver(function (entries) {
+  var bbStage = document.getElementById("bb-stage");
+  if (bbStage) {
+    var bbCards = Array.prototype.slice.call(bbStage.querySelectorAll(".bb-card"));
+    var bbKept = document.getElementById("bb-kept");
+    var bbBombed = document.getElementById("bb-bombed");
+    var bbKeepPill = document.querySelector(".bb-count.bb-keep");
+    var bbBombPill = document.querySelector(".bb-count.bb-bomb");
+    /* peel-heavy, like a real clean-out session */
+    var BB_SCRIPT = ["peel", "bomb", "peel", "peel", "bomb", "peel", "bomb", "bomb"];
+
+    var bbQueue = bbCards.slice();
+    var bbAction = 0;
+    var bbKeptN = 0;
+    var bbBombedN = 0;
+    var bbTimer = null;
+
+    var bbLayout = function () {
+      bbQueue.forEach(function (card, i) {
+        card.style.zIndex = String(10 - i);
+        if (i < 3) {
+          card.style.opacity = "1";
+          card.style.transform = "translateY(" + -26 * i + "px) scale(" + (1 - 0.1 * i) + ")";
+          card.style.filter = i ? "blur(" + 2 * i + "px)" : "none";
+        } else {
+          card.style.opacity = "0";
+          card.style.transform = "translateY(-52px) scale(0.8)";
+          card.style.filter = "blur(4px)";
+        }
+      });
+    };
+
+    var bbFlash = function (pill) {
+      pill.classList.add("flash");
+      setTimeout(function () {
+        pill.classList.remove("flash");
+      }, 150);
+    };
+
+    var bbCycle = function () {
+      var card = bbQueue[0];
+      var action = BB_SCRIPT[bbAction % BB_SCRIPT.length];
+      bbAction++;
+      var dir = action === "peel" ? 1 : -1;
+      var stamp = card.querySelector(".bb-stamp");
+      stamp.className = "bb-stamp " + action;
+      stamp.firstElementChild.textContent = action === "peel" ? "PEEL" : "BOMB";
+
+      /* drag toward the decision — stamp opacity rides the drag */
+      card.style.transform = "translate(" + dir * 46 + "px, 6px)";
+      stamp.classList.add("show");
+
+      bbTimer = setTimeout(function () {
+        /* commit: fast straight fly-off, no rotation — the app's move */
+        card.style.transition = "transform 0.3s cubic-bezier(0.3, 0, 0.9, 1)";
+        card.style.transform = "translate(" + dir * 560 + "px, 26px)";
+        if (action === "peel") {
+          bbKept.textContent = String(++bbKeptN);
+          bbFlash(bbKeepPill);
+        } else {
+          bbBombed.textContent = String(++bbBombedN);
+          bbFlash(bbBombPill);
+        }
+
+        bbTimer = setTimeout(function () {
+          /* recycle to the back of the deck without a visible hop */
+          stamp.classList.remove("show");
+          bbQueue.push(bbQueue.shift());
+          card.style.transition = "none";
+          card.style.opacity = "0";
+          card.style.transform = "translateY(-52px) scale(0.8)";
+          card.style.filter = "blur(4px)";
+          void card.offsetWidth; /* flush so the reset isn't animated */
+          card.style.transition = "";
+          bbLayout();
+          bbTimer = setTimeout(bbCycle, 1500);
+        }, 340);
+      }, 900);
+    };
+
+    bbLayout();
+    if (!reducedMotion && "IntersectionObserver" in window) {
+      var bbIO = new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
-          if (entry.isIntersecting && !barryTimer) {
-            barryTimer = setInterval(nextPose, 2400);
-          } else if (!entry.isIntersecting && barryTimer) {
-            clearInterval(barryTimer);
-            barryTimer = null;
+          if (entry.isIntersecting && !bbTimer) {
+            bbTimer = setTimeout(bbCycle, 900);
+          } else if (!entry.isIntersecting && bbTimer) {
+            clearTimeout(bbTimer);
+            bbTimer = null;
           }
         });
       });
-      barryWatch.observe(stage);
+      bbIO.observe(bbStage);
     }
   }
 
@@ -428,6 +502,337 @@
         pfSize();
         if (!pfRaf) pfDraw(pfAngle);
       });
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     8. PowerGlass dashboard — 3.5 simulated days in ~35s. The battery
+        history line traces out (with overnight charges as steep cyan
+        climbs), the dashed blue forecast walks ahead of the now-beam,
+        and the Usage History heat bars sharpen as each hour of the day
+        is observed — the app's "the more you use it" learning story.
+        Chart grammar mirrors the app: height-anchored colour ramps,
+        #4073FF now-beam, weekday labels at midnight rules.
+     ------------------------------------------------------------------ */
+  var pgDemo = document.getElementById("pg-demo");
+  if (pgDemo) {
+    var pgHoursEl = document.getElementById("pg-hours");
+    var pgAvgEl = document.getElementById("pg-avg");
+    var pgBandEl = document.getElementById("pg-band");
+    var pgCapEl = document.getElementById("pg-cap");
+    var pgHist = document.getElementById("pg-history").getContext("2d");
+    var pgUse = document.getElementById("pg-usage").getContext("2d");
+
+    /* the app's ramp, low→high: cyan, green, yellow, amber, orange */
+    var PG_RAMP = [[100, 210, 255], [48, 209, 88], [255, 214, 10], [255, 191, 0], [255, 159, 10]];
+    var PG_NOW = "#4073ff";
+    var PG_SEED = "#3a3a3c";
+    var PG_LABEL = "rgba(235, 235, 245, 0.6)";
+    var PG_FONT = "20px -apple-system, 'Segoe UI', sans-serif";
+
+    var pgRampAt = function (t, alpha) {
+      var pos = Math.max(0, Math.min(1, t)) * (PG_RAMP.length - 1);
+      var i = Math.min(PG_RAMP.length - 2, Math.floor(pos));
+      var f = pos - i;
+      var mix = function (k) {
+        return Math.round(PG_RAMP[i][k] + (PG_RAMP[i + 1][k] - PG_RAMP[i][k]) * f);
+      };
+      return "rgba(" + mix(0) + ", " + mix(1) + ", " + mix(2) + ", " + alpha + ")";
+    };
+
+    var pgUrgency = function (h) {
+      return h < 2 ? "#ff453a" : h < 6 ? "#ff9f0a" : h < 12 ? "#ffd60a" : "#30d158";
+    };
+
+    /* true hourly drain (%/hr by hour of day) the sim "lives" */
+    var PG_CURVE = [0.7, 0.6, 0.6, 0.6, 0.7, 0.9, 1.8, 3.2, 3.6, 3.0, 2.6, 3.4, 4.2, 3.2, 2.8, 3.0, 3.6, 4.6, 5.4, 5.8, 4.8, 3.4, 1.8, 1.0];
+    var PG_TOTAL = 84; /* sim hours per loop (3.5 days) */
+    var PG_SPEED = 2.5; /* sim hours per real second */
+    var PG_START = 7; /* the loop starts Friday 07:00 */
+    var PG_DAYS = ["Sat", "Sun", "Mon", "Tue"];
+
+    var pgT, pgLevel, pgCharging, pgPoints, pgSum, pgCnt, pgHourAcc, pgHourDirty, pgJitter, pgHold;
+
+    var pgReset = function () {
+      pgT = 0;
+      pgLevel = 82;
+      pgCharging = false;
+      pgPoints = [{ t: 0, l: 82 }];
+      pgSum = [];
+      pgCnt = [];
+      for (var i = 0; i < 24; i++) {
+        pgSum.push(0);
+        pgCnt.push(0);
+      }
+      pgHourAcc = 0;
+      pgHourDirty = false;
+      /* per-day wobble so the three passes over each hour differ */
+      pgJitter = [];
+      for (var j = 0; j < 96; j++) pgJitter.push(0.82 + Math.random() * 0.36);
+      pgHold = 0;
+    };
+
+    var pgAvgDrain = function () {
+      var s = 0;
+      var c = 0;
+      for (var i = 0; i < 24; i++) {
+        s += pgSum[i];
+        c += pgCnt[i];
+      }
+      return c ? s / c : 3.2;
+    };
+
+    var pgStep = function (dtH) {
+      var left = dtH;
+      while (left > 0 && pgT < PG_TOTAL) {
+        var dt = Math.min(0.05, left);
+        left -= dt;
+        var prevHour = Math.floor(PG_START + pgT);
+        pgT += dt;
+        var hod = Math.floor((PG_START + pgT) % 24);
+        if (pgCharging) {
+          pgLevel = Math.min(100, pgLevel + 55 * dt);
+          pgHourDirty = true;
+          if (pgLevel >= 100) pgCharging = false;
+        } else {
+          var drain = PG_CURVE[hod] * pgJitter[Math.floor(PG_START + pgT) % 96];
+          pgLevel = Math.max(0, pgLevel - drain * dt);
+          pgHourAcc += drain * dt;
+          if (pgLevel <= 10) pgCharging = true;
+        }
+        if (Math.floor(PG_START + pgT) !== prevHour) {
+          /* completed an hour: learn it, unless charging polluted it */
+          var h = prevHour % 24;
+          if (!pgHourDirty) {
+            pgSum[h] += pgHourAcc;
+            pgCnt[h]++;
+          }
+          pgHourAcc = 0;
+          pgHourDirty = false;
+        }
+        pgPoints.push({ t: pgT, l: pgLevel });
+      }
+    };
+
+    /* ---- battery history & forecast (640×220 canvas space) ---- */
+    var pgDrawHistory = function () {
+      var W = 640;
+      var H = 220;
+      var L = 14;
+      var R = 74;
+      var T = 12;
+      var B = 34;
+      var plotW = W - L - R;
+      var plotH = H - T - B;
+      var x = function (t) { return L + (t / PG_TOTAL) * plotW; };
+      var y = function (l) { return T + (1 - l / 100) * plotH; };
+      var g = pgHist;
+      g.clearRect(0, 0, W, H);
+
+      /* midnight rules + weekday labels */
+      g.font = PG_FONT;
+      g.textAlign = "center";
+      for (var m = 24 - PG_START, d = 0; m < PG_TOTAL; m += 24, d++) {
+        g.strokeStyle = "rgba(255, 255, 255, 0.18)";
+        g.lineWidth = 1.5;
+        g.beginPath();
+        g.moveTo(x(m), T);
+        g.lineTo(x(m), T + plotH);
+        g.stroke();
+        g.fillStyle = PG_LABEL;
+        g.fillText(PG_DAYS[d], x(m), H - 8);
+      }
+
+      /* traced history: area fill then line, both anchored to height */
+      if (pgPoints.length > 1) {
+        var area = g.createLinearGradient(0, T + plotH, 0, T);
+        area.addColorStop(0, "rgba(255, 159, 10, 0)");
+        area.addColorStop(0.25, "rgba(255, 191, 0, 0.09)");
+        area.addColorStop(0.5, "rgba(255, 214, 10, 0.18)");
+        area.addColorStop(0.75, "rgba(48, 209, 88, 0.26)");
+        area.addColorStop(1, "rgba(100, 210, 255, 0.35)");
+        var line = g.createLinearGradient(0, T + plotH, 0, T);
+        line.addColorStop(0, "#ff9f0a");
+        line.addColorStop(0.25, "#ffbf00");
+        line.addColorStop(0.5, "#ffd60a");
+        line.addColorStop(0.75, "#30d158");
+        line.addColorStop(1, "#64d2ff");
+
+        g.beginPath();
+        g.moveTo(x(pgPoints[0].t), y(pgPoints[0].l));
+        for (var i = 1; i < pgPoints.length; i++) g.lineTo(x(pgPoints[i].t), y(pgPoints[i].l));
+        var last = pgPoints[pgPoints.length - 1];
+        g.save();
+        g.lineTo(x(last.t), y(0));
+        g.lineTo(x(pgPoints[0].t), y(0));
+        g.closePath();
+        g.fillStyle = area;
+        g.fill();
+        g.restore();
+
+        g.beginPath();
+        g.moveTo(x(pgPoints[0].t), y(pgPoints[0].l));
+        for (var k = 1; k < pgPoints.length; k++) g.lineTo(x(pgPoints[k].t), y(pgPoints[k].l));
+        g.strokeStyle = line;
+        g.lineWidth = 4;
+        g.lineJoin = "round";
+        g.stroke();
+
+        /* dashed forecast from now down the learned average to empty */
+        var avg = pgAvgDrain();
+        var hitT = pgT + pgLevel / avg;
+        g.beginPath();
+        g.moveTo(x(last.t), y(last.l));
+        g.lineTo(x(Math.min(hitT, PG_TOTAL)), y(Math.max(0, last.l - avg * (Math.min(hitT, PG_TOTAL) - pgT))));
+        g.setLineDash([8, 8]);
+        g.strokeStyle = "rgba(10, 132, 255, 0.6)";
+        g.lineWidth = 3;
+        g.stroke();
+        g.setLineDash([]);
+
+        /* the now-beam */
+        g.save();
+        g.strokeStyle = PG_NOW;
+        g.lineWidth = 5;
+        g.lineCap = "round";
+        g.shadowColor = "rgba(64, 115, 255, 0.6)";
+        g.shadowBlur = 10;
+        g.beginPath();
+        g.moveTo(x(pgT), T);
+        g.lineTo(x(pgT), T + plotH);
+        g.stroke();
+        g.restore();
+      }
+
+      /* y axis: 0 / 50 / 100 on the right, like the app */
+      g.fillStyle = PG_LABEL;
+      g.textAlign = "left";
+      g.fillText("100", W - R + 12, y(100) + 7);
+      g.fillText("50", W - R + 12, y(50) + 7);
+      g.fillText("0", W - R + 12, y(0) + 7);
+    };
+
+    /* ---- usage heat bars (640×170 canvas space) ---- */
+    var pgDrawUsage = function () {
+      var W = 640;
+      var H = 170;
+      var L = 14;
+      var R = 74;
+      var T = 10;
+      var B = 32;
+      var plotW = W - L - R;
+      var plotH = H - T - B;
+      var g = pgUse;
+      g.clearRect(0, 0, W, H);
+
+      var maxV = 0.01;
+      var vals = [];
+      for (var h = 0; h < 24; h++) {
+        var v = pgCnt[h] ? pgSum[h] / pgCnt[h] : 0;
+        vals.push(v);
+        if (v > maxV) maxV = v;
+      }
+      var top = maxV * 1.2; /* the app's 20% headroom */
+
+      var slot = plotW / 24;
+      for (var i = 0; i < 24; i++) {
+        var bx = L + i * slot + slot * 0.08;
+        var bw = slot * 0.84;
+        /* unobserved hours show as grey seed stubs until learned */
+        var val = vals[i] || maxV * 0.18;
+        var bh = (val / top) * plotH;
+        g.fillStyle = vals[i] ? pgRampAt(vals[i] / maxV, 1) : PG_SEED;
+        if (g.roundRect) {
+          g.beginPath();
+          g.roundRect(bx, T + plotH - bh, bw, bh, 5);
+          g.fill();
+        } else {
+          g.fillRect(bx, T + plotH - bh, bw, bh);
+        }
+      }
+
+      /* x labels every 6 hours, the app's fixed clock row */
+      var marks = [[0, "12am"], [6, "6am"], [12, "12pm"], [18, "6pm"], [24, "12am"]];
+      g.font = PG_FONT;
+      g.fillStyle = PG_LABEL;
+      for (var mI = 0; mI < marks.length; mI++) {
+        /* left-align the first label so it isn't clipped by the canvas edge */
+        g.textAlign = mI === 0 ? "left" : "center";
+        g.fillText(marks[mI][1], L + (marks[mI][0] / 24) * plotW - (mI === 0 ? 4 : 0), H - 6);
+      }
+
+      /* y scale: just the ceiling value on the right */
+      g.textAlign = "left";
+      g.fillText(top.toFixed(1), W - R + 12, T + 8);
+      g.fillText("0", W - R + 12, T + plotH + 7);
+
+      /* now-beam at the current clock position */
+      var nowX = L + (((PG_START + pgT) % 24) / 24) * plotW;
+      g.save();
+      g.strokeStyle = PG_NOW;
+      g.lineWidth = 5;
+      g.lineCap = "round";
+      g.shadowColor = "rgba(64, 115, 255, 0.6)";
+      g.shadowBlur = 10;
+      g.beginPath();
+      g.moveTo(nowX, T);
+      g.lineTo(nowX, T + plotH);
+      g.stroke();
+      g.restore();
+    };
+
+    var pgDrawDom = function () {
+      var avg = pgAvgDrain();
+      var hoursLeft = pgLevel / avg;
+      pgHoursEl.textContent = hoursLeft < 0.5 ? "<1h" : Math.round(hoursLeft) + "h";
+      pgHoursEl.style.color = pgUrgency(hoursLeft);
+      pgAvgEl.textContent = avg.toFixed(2) + "%/hr";
+      pgCapEl.textContent = Math.round(100 / avg) + "h";
+      /* fill fraction = hours left / hours at 100 = level / 100 */
+      pgBandEl.style.clipPath = "inset(0 " + (100 - pgLevel).toFixed(1) + "% 0 0 round 999px)";
+    };
+
+    var pgRender = function () {
+      pgDrawHistory();
+      pgDrawUsage();
+      pgDrawDom();
+    };
+
+    pgReset();
+    if (reducedMotion || !("IntersectionObserver" in window)) {
+      /* static: show the loop's completed state */
+      pgStep(PG_TOTAL);
+      pgRender();
+    } else {
+      var pgLast = null;
+      var pgRaf = null;
+      var pgFrame = function (ts) {
+        if (pgLast !== null) {
+          var dt = Math.min(0.1, (ts - pgLast) / 1000);
+          if (pgHold > 0) {
+            pgHold -= dt;
+            if (pgHold <= 0) pgReset();
+          } else {
+            pgStep(dt * PG_SPEED);
+            if (pgT >= PG_TOTAL) pgHold = 3.2; /* linger on the full picture */
+          }
+        }
+        pgLast = ts;
+        pgRender();
+        pgRaf = requestAnimationFrame(pgFrame);
+      };
+      var pgIO = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting && !pgRaf) {
+            pgLast = null;
+            pgRaf = requestAnimationFrame(pgFrame);
+          } else if (!entry.isIntersecting && pgRaf) {
+            cancelAnimationFrame(pgRaf);
+            pgRaf = null;
+          }
+        });
+      });
+      pgIO.observe(pgDemo);
     }
   }
 })();
