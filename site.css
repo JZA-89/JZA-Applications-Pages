@@ -458,7 +458,15 @@ footer a {
   transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
-.jza-dock a:hover::before,
+/* Hover only where there's a real pointer — on touch screens a tap leaves
+   :hover stuck on, so the label would never go away. */
+@media (hover: hover) {
+  .jza-dock a:hover::before {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
 .jza-dock a:focus-visible::before {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
