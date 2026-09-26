@@ -963,4 +963,47 @@
       pgIO.observe(pgDemo);
     }
   }
+
+  /* ------------------------------------------------------------------
+     9. Hero tagline rotation — the lines themselves live in index.html
+        (the HERO TAGLINES list). The first line arrives with the hero's
+        entrance; rotation starts once that finishes, then cycles in order.
+        Pauses while the tab is hidden; off entirely for reduced motion.
+     ------------------------------------------------------------------ */
+  var rotator = document.querySelector(".tagline-rotator");
+  var taglines = rotator ? rotator.children : [];
+  if (taglines.length > 1 && !reducedMotion) {
+    var TAGLINE_HOLD = 5200; // ms each line stays up (crossfade included)
+    var taglineIndex = 0;
+    var taglineTimer = null;
+    var taglineStarted = false;
+
+    var nextTagline = function () {
+      taglines[taglineIndex].classList.remove("is-active");
+      taglineIndex = (taglineIndex + 1) % taglines.length;
+      taglines[taglineIndex].classList.add("is-active");
+      scheduleTagline();
+    };
+    var scheduleTagline = function () {
+      clearTimeout(taglineTimer);
+      taglineTimer = document.hidden ? null : setTimeout(nextTagline, TAGLINE_HOLD);
+    };
+    var startTaglines = function () {
+      if (taglineStarted) return;
+      taglineStarted = true;
+      scheduleTagline();
+    };
+
+    // Wait for the entrance ("rise") to end; the timeout is a safety net
+    // in case the animation event never fires.
+    rotator.addEventListener("animationend", function (e) {
+      if (e.target === rotator) startTaglines();
+    });
+    setTimeout(startTaglines, 2000);
+
+    // Returning to the tab gives the current line a full hold, no jump.
+    document.addEventListener("visibilitychange", function () {
+      if (taglineStarted) scheduleTagline();
+    });
+  }
 })();

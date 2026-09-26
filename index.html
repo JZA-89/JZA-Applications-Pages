@@ -98,7 +98,6 @@
   .hero > * { animation: rise 0.9s cubic-bezier(0.2, 0.6, 0.2, 1) both; }
   .hero .site-title { animation-delay: 0.05s; }
   .hero .tagline { animation-delay: 0.22s; }
-  .hero .hero-sub { animation-delay: 0.38s; }
   .hero .scroll-hint { animation-delay: 0.8s; }
 
   .site-title {
@@ -121,11 +120,34 @@
     50% { background-position: 100% 0; }
   }
   .hero .tagline { font-size: clamp(1.1rem, 2.6vw, 1.45rem); }
-  .hero-sub {
-    color: var(--faint);
-    margin: 1rem auto 0;
-    max-width: 30rem;
-    font-size: 1rem;
+
+  /* Rotating tagline: every line sits in the same grid cell, so the slot
+     is always as tall as the longest line (even when it wraps on a phone)
+     and nothing below shifts. Inactive lines are only visually hidden. */
+  .tagline-rotator {
+    list-style: none;
+    padding: 0;
+    margin: clamp(1.1rem, 2.4vw, 1.6rem) auto 0;
+    max-width: min(36rem, 100%);
+    display: grid;
+  }
+  .tagline-rotator > li {
+    grid-area: 1 / 1;
+    align-self: center;
+    text-wrap: balance;
+    opacity: 0;
+    transform: translateY(0.3em);
+    pointer-events: none;
+    /* Outgoing line: quick, soft fade. */
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .tagline-rotator > li.is-active {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    /* Incoming line waits for the old one to mostly clear, so the two
+       never muddle together at half opacity. */
+    transition: opacity 0.7s ease 0.25s, transform 0.9s cubic-bezier(0.2, 0.6, 0.2, 1) 0.25s;
   }
   .scroll-hint {
     position: absolute;
@@ -645,8 +667,16 @@
 
   <header class="hero" data-chapter="home">
     <h1 class="site-title"><span class="jza">JZA</span> Applications</h1>
-    <p class="tagline">Sharp tools for sharp people.</p>
-    <p class="hero-sub">Precision engineered with an obsession for detail.</p>
+    <!-- ===== HERO TAGLINES =====
+         Shown one at a time, top to bottom, then looping (see main.js §9).
+         Edit, reorder, add or remove <li> lines freely — keep "is-active"
+         on the first one only. -->
+    <ul class="tagline tagline-rotator">
+      <li class="is-active">Sharp tools for sharp people.</li>
+      <li>Precision engineered with an obsession for detail.</li>
+      <li>Private by design. Your data stays on your device.</li>
+      <li>Made independently in New Zealand.</li>
+    </ul>
     <span class="scroll-hint" aria-hidden="true">
       <span class="scroll-label">SCROLL</span>
       <svg width="22" height="12" viewBox="0 0 22 12" fill="none"><path d="M1 1l10 9L21 1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -862,6 +892,6 @@
 </main>
 
 <script src="dock.js?v=6" id="jza-dock-script"></script>
-<script src="main.js?v=9"></script>
+<script src="main.js?v=10"></script>
 </body>
 </html>
