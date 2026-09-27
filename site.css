@@ -435,7 +435,8 @@ footer a {
    75px went soft. The image is laid out at the full magnified size (1.45×, the dock's
    maximum) in its own layer and shown scaled down at rest; magnifying then only ever
    brings it back up to its native size. */
-.jza-dock a img {
+.jza-dock a img,
+.jza-dock a .jza-dock-glyph {
   width: 145%;
   height: 145%;
   transform-origin: 0 0;
@@ -450,18 +451,18 @@ footer a {
   background:
     radial-gradient(120% 120% at 20% 15%, rgba(255, 255, 255, 0.16), transparent 55%),
     linear-gradient(160deg, #2a2a30, #101014);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1.45px solid rgba(255, 255, 255, 0.14);
   color: #ffd60a;
   font: 800 15px/1 var(--font-rounded);
   letter-spacing: 0.02em;
   align-content: center;
-  gap: 3px;
+  gap: 4.35px;   /* sizes here are 1.45× — the tile is drawn at magnified size (below) */
 }
 
 /* Home tile: "JZA" over small spaced caps "APPS", in the site title's colours — the
    yellow sheen on JZA, white for the word. */
 .jza-dock-mark {
-  font: 800 18px/1 var(--font-body);
+  font: 800 26px/1 var(--font-body);
   letter-spacing: -0.01em;
   background: linear-gradient(100deg, #ffd60a 20%, #fff3b0 42%, #ffd60a 60%);
   background-size: 220% 100%;
@@ -472,7 +473,7 @@ footer a {
 }
 
 .jza-dock-word {
-  font: 700 8px/1 var(--font-body);
+  font: 700 11.6px/1 var(--font-body);
   letter-spacing: 0.22em;
   text-transform: uppercase;
   /* tracking adds space after the last letter too; pad the start to keep it centred */
