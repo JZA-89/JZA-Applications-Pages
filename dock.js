@@ -46,13 +46,14 @@
     if (item.slug === "home") {
       var glyph = document.createElement("span");
       glyph.className = "jza-dock-glyph";
-      /* "JZA / Applications" stacked, coloured like the site title */
+      /* "JZA / APPS" stacked, coloured like the site title (the full
+         "Applications" was too cramped at icon size) */
       var mark = document.createElement("span");
       mark.className = "jza-dock-mark";
       mark.textContent = "JZA";
       var word = document.createElement("span");
       word.className = "jza-dock-word";
-      word.textContent = "Applications";
+      word.textContent = "Apps";
       glyph.appendChild(mark);
       glyph.appendChild(word);
       a.appendChild(glyph);
