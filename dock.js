@@ -59,7 +59,7 @@
       a.appendChild(glyph);
     } else {
       var img = document.createElement("img");
-      img.src = root + "assets/icon-" + item.slug + ".png";
+      img.src = root + "assets/icon-" + item.slug + ".jpg";
       img.alt = "";
       img.width = 52;
       img.height = 52;
@@ -219,7 +219,7 @@
 
     if (slug) {
       var icon = document.createElement("img");
-      icon.src = root + "assets/icon-" + slug + ".png";
+      icon.src = root + "assets/icon-" + slug + ".jpg";
       icon.alt = "";
       pill.appendChild(icon);
     } else {
