@@ -46,7 +46,15 @@
     if (item.slug === "home") {
       var glyph = document.createElement("span");
       glyph.className = "jza-dock-glyph";
-      glyph.textContent = "JZA";
+      /* "JZA / Applications" stacked, coloured like the site title */
+      var mark = document.createElement("span");
+      mark.className = "jza-dock-mark";
+      mark.textContent = "JZA";
+      var word = document.createElement("span");
+      word.className = "jza-dock-word";
+      word.textContent = "Applications";
+      glyph.appendChild(mark);
+      glyph.appendChild(word);
       a.appendChild(glyph);
     } else {
       var img = document.createElement("img");

@@ -440,6 +440,36 @@ footer a {
   color: #ffd60a;
   font: 800 15px/1 var(--font-rounded);
   letter-spacing: 0.02em;
+  align-content: center;
+  gap: 2px;
+}
+
+/* Home tile: "JZA" over "Applications", in the site title's colours — the yellow sheen
+   on JZA, white for the word. */
+.jza-dock-mark {
+  font: 800 17px/1 var(--font-body);
+  letter-spacing: -0.02em;
+  background: linear-gradient(100deg, #ffd60a 20%, #fff3b0 42%, #ffd60a 60%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: jza-dock-sheen 6s ease-in-out infinite;
+}
+
+.jza-dock-word {
+  font: 700 7.5px/1 var(--font-body);
+  letter-spacing: -0.01em;
+  color: #f5f5f7;
+}
+
+@keyframes jza-dock-sheen {
+  0%, 100% { background-position: 0% 0; }
+  50% { background-position: 100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jza-dock-mark { animation: none; }
 }
 
 /* Tooltip label */
