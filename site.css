@@ -430,6 +430,20 @@ footer a {
   display: block;
 }
 
+/* Sharp when magnified: the dock grows an icon with a CSS scale on its link, and
+   browsers draw a scaled layer from its un-scaled pixels — so a 52px icon blown up to
+   75px went soft. The image is laid out at the full magnified size (1.45×, the dock's
+   maximum) in its own layer and shown scaled down at rest; magnifying then only ever
+   brings it back up to its native size. */
+.jza-dock a img {
+  width: 145%;
+  height: 145%;
+  transform-origin: 0 0;
+  transform: scale(0.6897);
+  will-change: transform;
+  box-shadow: 0 4.35px 17.4px rgba(0, 0, 0, 0.45);
+}
+
 .jza-dock-glyph {
   display: grid;
   place-items: center;
