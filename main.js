@@ -103,177 +103,285 @@
   }
 
   /* ------------------------------------------------------------------
-     5. GhostDelta timing tile — replica of the app's watchOS WatchCard
-        behaviour: the stage clock ticks continuously, the delta stays
-        an em-dash until the first mini-sector crossing and then only
-        updates at crossings; minis colour on the hue ramp (purple only
-        when both references are beaten); sector pills show live grey
-        elapsed until their sector completes; on completion the card's
-        accent bar crossfades yellow → purple (new PB) or grey. Time is
-        accelerated (~13s per 4-minute stage) so visitors see a full run.
+     5. GhostDelta — a working replica of the Watch app (facelift design).
+        The face cycles three views, as a rider would see them:
+        · Stage timing: the run clock ticks in whole seconds; the gap stays
+          an em-dash until the first sub-sector crossing, then updates at
+          each crossing; the sub-sector being ridden is a hollow yellow
+          outline and takes its colour once complete (purple = beat both
+          references, else green→yellow by how close — never red); a
+          running sector pill shows whole seconds, tenths once complete;
+          on finish the panel edge turns purple (PB) or grey.
+        · Navigation: travelled / remaining / climb, the elevation profile
+          ahead coloured by gradient, "you" moving along it.
+        · Circuit laps: the lap clock keeps its tenths, live gap to the best
+          lap, then the lap-complete screen.
+        Time is accelerated so a visitor sees a whole run of each.
      ------------------------------------------------------------------ */
   var gdStage = document.getElementById("gd-watch");
   if (gdStage) {
-    var timeEl = document.getElementById("gd-time");
-    var deltaEl = document.getElementById("gd-delta");
-    var gdCard = document.getElementById("gd-card");
-    var gdPills = gdCard.querySelectorAll(".gd-pill");
-    var gdMinis = gdCard.querySelectorAll(".gd-mini-group span");
-
-    var ACCENT = "#FFD600";
-    var PURPLE = "#A855F7";
-    var PURPLE_TEXT = "#C084FC";
-    var GREEN = "#36D96C";
-    var MID = "#7AD936";
-    var AMBER = "#D9BE36";
-    var GREY_TEXT = "#8A8A82";
-    var IDLE = "#3A3A38";
-    var EMPTY_BG = "rgba(255, 255, 255, 0.04)";
-    var PB_SECTORS = [82.5, 85.1, 84.9];
+    var YELLOW = "#FFD60A", PB = "#BF5AF2", PB_TEXT = "#C084FC", GREY = "#8E9096", IDLE = "#3A3C42";
+    var scenes = {};
+    Array.prototype.forEach.call(gdStage.querySelectorAll(".gd-scene"), function (el) { scenes[el.dataset.scene] = el; });
+    var tabs = gdStage.querySelectorAll(".gd-tab");
+    var lapDone = document.getElementById("gd-lapdone");
 
     var rgba = function (hex, a) {
-      return (
-        "rgba(" +
-        parseInt(hex.slice(1, 3), 16) + ", " +
-        parseInt(hex.slice(3, 5), 16) + ", " +
-        parseInt(hex.slice(5, 7), 16) + ", " + a + ")"
-      );
+      return "rgba(" + parseInt(hex.slice(1, 3), 16) + ", " + parseInt(hex.slice(3, 5), 16) + ", " +
+        parseInt(hex.slice(5, 7), 16) + ", " + a + ")";
     };
-
-    var stylePill = function (pill, tier, text) {
-      pill.textContent = text;
-      pill.style.color = tier === PURPLE ? PURPLE_TEXT : tier;
-      pill.style.background = rgba(tier, tier === PURPLE ? 0.15 : 0.12);
-      pill.style.borderColor = rgba(tier, tier === PURPLE ? 0.22 : 0.2);
+    /* The app's sector colour: purple for a PB, else HSB hue 140° → 50° by position. */
+    var sectorColour = function (pos) {
+      if (pos === null) return PB;
+      var c = Math.min(Math.max(pos, 0), 1), h = (140 - 90 * c) / 60, s = 0.75, v = 0.85;
+      var i = Math.floor(h), f = h - i, p = v * (1 - s), q = v * (1 - s * f), t = v * (1 - s * (1 - f));
+      var rgb = [[v, t, p], [q, v, p], [p, v, t], [p, q, v], [t, p, v], [v, p, q]][i % 6];
+      return "#" + rgb.map(function (x) { var hx = Math.round(x * 255).toString(16); return hx.length < 2 ? "0" + hx : hx; }).join("");
     };
-
-    var resetPill = function (pill, text) {
-      pill.textContent = text;
-      pill.style.color = "";
-      pill.style.background = "";
-      pill.style.borderColor = "";
+    /* One gap format everywhere: true minus, "+1:28.2" past a minute. */
+    var fmtGap = function (d, unit) {
+      var a = Math.abs(d), sign = d < 0 && a >= 0.05 ? "−" : "+";   /* no "−0.0" */
+      if (a < 60) return sign + a.toFixed(1) + (unit ? " s" : "");
+      var m = Math.floor(a / 60), r = a - m * 60;
+      return sign + m + ":" + (r < 10 ? "0" : "") + r.toFixed(1);
     };
-
     var fmtClock = function (s) {
-      var m = Math.floor(s / 60);
-      var ss = Math.floor(s % 60);
+      var m = Math.floor(s / 60), ss = Math.floor(s % 60);
       return (m < 10 ? "0" : "") + m + ":" + (ss < 10 ? "0" : "") + ss;
     };
+    var fmtLap = function (s) {
+      var m = Math.floor(s / 60), r = s - m * 60;
+      return m + ":" + (r < 10 ? "0" : "") + r.toFixed(1);
+    };
+    var fmtSector = function (s) { return s < 60 ? s.toFixed(1) : fmtLap(s); };
 
-    var fmtSector = function (s) {
-      if (s < 60) return s.toFixed(1);
-      var m = Math.floor(s / 60);
-      var rest = s - m * 60;
-      return m + ":" + (rest < 10 ? "0" : "") + rest.toFixed(1);
+    /* A live timing panel (Stage or lap): pills, sub-sector bar, gap. */
+    var makePanel = function (card, timeEl, deltaEl) {
+      var pills = card.querySelectorAll(".gd-pill");
+      var minis = card.querySelectorAll(".gd-mini-group span");
+      return {
+        reset: function () {
+          Array.prototype.forEach.call(pills, function (p) { p.textContent = "--"; p.style.color = p.style.background = p.style.borderColor = ""; });
+          Array.prototype.forEach.call(minis, function (m) { m.className = ""; m.style.background = ""; });
+          minis[0].className = "is-current";
+          this.edge(YELLOW, true);
+          this.gap(null);
+        },
+        edge: function (colour, glow) {
+          card.style.setProperty("--gd-edge", rgba(colour, 0.75));
+          card.style.setProperty("--gd-glow", glow ? rgba(colour, 0.35) : "transparent");
+        },
+        gap: function (d, colour) {
+          if (d === null) { deltaEl.textContent = "—"; deltaEl.style.color = IDLE; return; }
+          deltaEl.textContent = fmtGap(d);
+          deltaEl.style.color = colour || (d <= 0 ? sectorColour(0) : GREY);
+        },
+        mini: function (i, colour) {
+          minis[i].className = "";
+          minis[i].style.background = colour;
+          if (i + 1 < minis.length) minis[i + 1].className = "is-current";
+        },
+        pillLive: function (i, text) { pills[i].textContent = text; },
+        pillDone: function (i, colour, text) {
+          var pb = colour === PB;
+          pills[i].textContent = text;
+          pills[i].style.color = pb ? PB_TEXT : colour;
+          pills[i].style.background = rgba(colour, pb ? 0.15 : 0.12);
+          pills[i].style.borderColor = rgba(colour, pb ? 0.22 : 0.2);
+        },
+        time: function (text) { timeEl.textContent = text; }
+      };
     };
 
-    var showDelta = function (delta, crossed, finalPB) {
-      if (!crossed) {
-        deltaEl.textContent = "—";
-        deltaEl.style.color = IDLE;
-        return;
+    /* How one sub-sector went: a position on the colour scale (null = PB) and its gap. */
+    var rollMini = function () {
+      var r = Math.random();
+      if (r < 0.22) return { pos: null, d: -(0.2 + Math.random() * 0.5) };
+      if (r < 0.6) return { pos: Math.random() * 0.25, d: -(Math.random() * 0.2) };
+      if (r < 0.85) return { pos: 0.3 + Math.random() * 0.4, d: Math.random() * 0.3 };
+      return { pos: 0.75 + Math.random() * 0.4, d: 0.3 + Math.random() * 0.5 };
+    };
+    var sectorPos = function (secDelta) {
+      return secDelta < -0.35 ? null : secDelta <= 0 ? 0.1 : secDelta < 0.5 ? 0.5 : 0.95;
+    };
+
+    /* ---- Stage timing ---- */
+    var stagePanel = makePanel(document.getElementById("gd-card"), document.getElementById("gd-time"), document.getElementById("gd-delta"));
+    var STAGE_SECTORS = [82.5, 85.1, 84.9], TICKS_PER_MINI = 14;
+    var stage = {};
+    var stageStart = function () {
+      stage = { mini: 0, tick: 0, total: 0, sec: 0, gap: 0, secGap: 0, dur: STAGE_SECTORS[0] + (Math.random() - 0.45) * 5, hold: 0 };
+      stagePanel.reset();
+      stagePanel.time("00:00");
+    };
+    /* returns true when this view has finished its turn */
+    var stageTick = function () {
+      if (stage.hold > 0) return --stage.hold === 0;
+      var step = stage.dur / (3 * TICKS_PER_MINI);
+      stage.sec += step;
+      stage.total += step;
+      stagePanel.time(fmtClock(stage.total));
+      var sector = Math.floor(stage.mini / 3);
+      stagePanel.pillLive(sector, String(Math.floor(stage.sec)));   /* whole seconds while running */
+      if (++stage.tick < TICKS_PER_MINI) return false;
+      stage.tick = 0;
+      var m = rollMini();
+      stagePanel.mini(stage.mini, sectorColour(m.pos));
+      stage.gap += m.d;
+      stage.secGap += m.d;
+      stagePanel.gap(stage.gap);
+      stage.mini++;
+      if (stage.mini % 3 === 0) {
+        stagePanel.pillDone(sector, sectorColour(sectorPos(stage.secGap)), fmtSector(stage.sec));
+        stage.sec = 0;
+        stage.secGap = 0;
+        if (stage.mini < 9) stage.dur = STAGE_SECTORS[stage.mini / 3] + (Math.random() - 0.45) * 5;
       }
-      deltaEl.textContent = (delta <= 0 ? "" : "+") + delta.toFixed(1);
-      deltaEl.style.color = finalPB ? PURPLE : delta <= 0 ? GREEN : GREY_TEXT;
+      if (stage.mini === 9) {
+        var isPB = stage.gap <= 0;
+        stagePanel.edge(isPB ? PB : GREY, isPB);
+        stagePanel.gap(stage.gap, isPB ? PB : GREY);
+        stage.hold = 30;
+      }
+      return false;
     };
+
+    /* ---- Navigation ---- */
+    var navSvg = document.getElementById("gd-nav-svg");
+    var navEls = { done: "gd-nav-done", left: "gd-nav-left", up: "gd-nav-up", down: "gd-nav-down", next: "gd-nav-next" };
+    Object.keys(navEls).forEach(function (k) { navEls[k] = document.getElementById(navEls[k]); });
+    var PROFILE = (function () {
+      var pts = [];
+      for (var i = 0; i <= 40; i++) {
+        var x = i / 40;
+        pts.push(0.55 - 0.18 * Math.sin(x * 5.2 + 0.4) - 0.22 * x + 0.08 * Math.sin(x * 13));
+      }
+      return pts; /* 0 = top of chart, 1 = bottom */
+    })();
+    var gradeColour = function (dy) { return dy > 0.03 ? "#FF9F0A" : dy > 0.012 ? YELLOW : "#30D158"; };
+    var drawProfile = function (frac) {
+      var W = 200, H = 46, n = PROFILE.length - 1, svg = "";
+      var P = function (i) { return [(i / n) * W, 4 + PROFILE[i] * (H - 8)]; };
+      var area = "M0," + H;
+      for (var i = 0; i <= n; i++) { var p = P(i); area += " L" + p[0].toFixed(1) + "," + p[1].toFixed(1); }
+      area += " L" + W + "," + H + " Z";
+      svg += '<path d="' + area + '" fill="rgba(255,255,255,0.04)"/>';
+      var cut = Math.round(frac * n);
+      var done = "";
+      for (i = 0; i <= cut; i++) { p = P(i); done += (i ? " L" : "M") + p[0].toFixed(1) + "," + p[1].toFixed(1); }
+      svg += '<path d="' + done + '" stroke="#4B4E55" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
+      for (i = cut; i < n; i++) {
+        var a = P(i), b = P(i + 1), dy = PROFILE[i] - PROFILE[i + 1];
+        svg += '<line x1="' + a[0].toFixed(1) + '" y1="' + a[1].toFixed(1) + '" x2="' + b[0].toFixed(1) + '" y2="' + b[1].toFixed(1) +
+          '" stroke="' + gradeColour(dy) + '" stroke-width="1.8" stroke-linecap="round"/>';
+      }
+      [0, 13, 27, 40].forEach(function (k) { var q = P(k); svg += '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="1.6" fill="#8E9096"/>'; });
+      var x = (frac * W).toFixed(1);
+      svg += '<line x1="' + x + '" y1="2" x2="' + x + '" y2="' + H + '" stroke="#F5F5F2" stroke-width="1" stroke-dasharray="2 2"/>';
+      navSvg.innerHTML = svg;
+    };
+    var NAV_TICKS = 95, nav = {};
+    var navStart = function () { nav = { t: 0 }; navTick(); };
+    var navTick = function () {
+      var f = Math.min(nav.t / NAV_TICKS, 1);
+      navEls.done.textContent = (1.16 + 0.52 * f).toFixed(2);
+      navEls.left.textContent = (1.74 - 0.52 * f).toFixed(2);
+      navEls.up.textContent = String(Math.round(56 + 17 * f));
+      navEls.down.textContent = String(Math.round(13 + 6 * f));
+      navEls.next.textContent = String(Math.max(10, Math.round(340 - 330 * f)));
+      drawProfile(0.4 + 0.3 * f);
+      return ++nav.t > NAV_TICKS + 12;
+    };
+
+    /* ---- Circuit laps ---- */
+    var lapPanel = makePanel(document.getElementById("gd-lapcard"), document.getElementById("gd-laptime"), document.getElementById("gd-lapdelta"));
+    var BEST_LAP = 98.4, LAP_SECTORS = [31.8, 34.2, 32.4];
+    var lap = {};
+    var lapStart = function () {
+      lap = { mini: 0, tick: 0, t: 0, sec: 0, gap: 0, secGap: 0, dur: LAP_SECTORS[0] + (Math.random() - 0.5) * 1.6, done: 0 };
+      lapPanel.reset();
+      lapPanel.time("0:00.0");
+      lapDone.classList.remove("is-active");
+    };
+    var lapTick = function () {
+      if (lap.done > 0) {
+        if (--lap.done === 0) { lapDone.classList.remove("is-active"); return true; }
+        return false;
+      }
+      var step = lap.dur / (3 * 10);
+      lap.sec += step;
+      lap.t += step;
+      lapPanel.time(fmtLap(lap.t));                                  /* lap clock keeps its tenths */
+      var sector = Math.floor(lap.mini / 3);
+      lapPanel.pillLive(sector, String(Math.floor(lap.sec)));
+      if (++lap.tick < 10) return false;
+      lap.tick = 0;
+      var m = rollMini();
+      lapPanel.mini(lap.mini, sectorColour(m.pos));
+      lap.gap += m.d * 0.6;
+      lap.secGap += m.d * 0.6;
+      lapPanel.gap(lap.gap);
+      lap.mini++;
+      if (lap.mini % 3 === 0) {
+        lapPanel.pillDone(sector, sectorColour(sectorPos(lap.secGap)), fmtSector(lap.sec));
+        lap.sec = 0;
+        lap.secGap = 0;
+        if (lap.mini < 9) lap.dur = LAP_SECTORS[lap.mini / 3] + (Math.random() - 0.5) * 1.6;
+      }
+      if (lap.mini === 9) {
+        /* lap complete screen: the time, then best lap (green) or the gap (red) */
+        var best = lap.t < BEST_LAP;
+        document.getElementById("gd-ld-time").textContent = fmtLap(lap.t);
+        var label = lapDone.querySelectorAll(".gd-caps")[1], gapEl = document.getElementById("gd-ld-gap");
+        label.textContent = best ? "Best lap" : "vs best";
+        label.style.color = best ? "#30D158" : GREY;
+        gapEl.textContent = fmtGap(lap.t - BEST_LAP, true);
+        gapEl.style.color = best ? "#30D158" : "#FF453A";
+        lapDone.classList.add("is-active");
+        lap.done = 28;
+      }
+      return false;
+    };
+
+    /* ---- Cycle ---- */
+    var ORDER = ["stage", "nav", "laps"];
+    var views = {
+      stage: { start: stageStart, tick: stageTick },
+      nav: { start: navStart, tick: navTick },
+      laps: { start: lapStart, tick: lapTick }
+    };
+    var current = "stage";
+    var show = function (name) {
+      current = name;
+      ORDER.forEach(function (n) { scenes[n].classList.toggle("is-active", n === name); });
+      Array.prototype.forEach.call(tabs, function (t) { t.classList.toggle("is-active", t.dataset.go === name); });
+      views[name].start();
+    };
+    Array.prototype.forEach.call(tabs, function (t) {
+      t.addEventListener("click", function () { show(t.dataset.go); });
+    });
 
     if (reducedMotion || !("IntersectionObserver" in window)) {
-      /* static completed snapshot */
-      timeEl.textContent = "04:11";
-      stylePill(gdPills[0], PURPLE, "1:21.9");
-      stylePill(gdPills[1], GREEN, "1:24.8");
-      stylePill(gdPills[2], GREEN, "1:24.3");
-      Array.prototype.forEach.call(gdMinis, function (m, i) {
-        m.style.background = i % 4 === 1 ? PURPLE : i % 3 === 2 ? MID : GREEN;
-      });
-      showDelta(-1.4, true, true);
-      gdCard.style.setProperty("--gd-accent", PURPLE);
-      gdCard.style.setProperty("--gd-accent-glow", rgba(PURPLE, 0.4));
+      /* Still frames: a finished PB run; tabs switch between the three views. */
+      stageStart();
+      stagePanel.time("04:11");
+      [[null, "1:21.9"], [0.1, "1:24.8"], [0.1, "1:24.3"]].forEach(function (p, i) { stagePanel.pillDone(i, sectorColour(p[0]), p[1]); });
+      for (var k = 0; k < 9; k++) stagePanel.mini(k, sectorColour(k % 4 === 1 ? null : k % 3 === 2 ? 0.5 : 0.1));
+      stagePanel.edge(PB, true);
+      stagePanel.gap(-1.4, PB);
+      views.stage.start = function () {};
+      views.nav.start = function () { nav = { t: NAV_TICKS / 2 }; navTick(); };
+      views.laps.start = function () { lapStart(); lapPanel.time("0:52.3"); lapPanel.gap(-0.3); };
     } else {
-      var MINI_TICKS = 14; /* 100ms ticks per mini-sector */
-      var miniIdx, tickInMini, delta, crossed, totalSim, secSim, secDur, secDelta, hold;
+      stageStart();
       var gdTimer = null;
-
-      var gdReset = function () {
-        miniIdx = 0;
-        tickInMini = 0;
-        delta = 0;
-        secDelta = 0;
-        crossed = false;
-        totalSim = 0;
-        secSim = 0;
-        secDur = PB_SECTORS[0] + (Math.random() - 0.45) * 5;
-        hold = 0;
-        timeEl.textContent = "00:00";
-        resetPill(gdPills[0], "--");
-        resetPill(gdPills[1], "--");
-        resetPill(gdPills[2], "--");
-        Array.prototype.forEach.call(gdMinis, function (m) {
-          m.style.background = EMPTY_BG;
-        });
-        gdMinis[0].style.background = ACCENT; /* currently-running mini */
-        gdCard.style.setProperty("--gd-accent", ACCENT);
-        gdCard.style.setProperty("--gd-accent-glow", rgba(ACCENT, 0.4));
-        showDelta(0, false, false);
+      var gdTickAll = function () {
+        if (views[current].tick()) show(ORDER[(ORDER.indexOf(current) + 1) % ORDER.length]);
       };
-
-      var gdTick = function () {
-        if (hold > 0) {
-          if (--hold === 0) gdReset();
-          return;
-        }
-        var step = secDur / (3 * MINI_TICKS);
-        secSim += step;
-        totalSim += step;
-        timeEl.textContent = fmtClock(totalSim);
-
-        var sector = Math.floor(miniIdx / 3);
-        gdPills[sector].textContent = fmtSector(secSim);
-
-        if (++tickInMini < MINI_TICKS) return;
-        tickInMini = 0;
-
-        /* ---- mini-sector crossing ---- */
-        var roll = Math.random();
-        var tier = roll < 0.25 ? PURPLE : roll < 0.62 ? GREEN : roll < 0.85 ? MID : AMBER;
-        var miniDelta =
-          tier === PURPLE ? -(0.2 + Math.random() * 0.5)
-          : tier === GREEN ? -(Math.random() * 0.2)
-          : tier === MID ? Math.random() * 0.3
-          : 0.3 + Math.random() * 0.5;
-        gdMinis[miniIdx].style.background = tier;
-        delta += miniDelta;
-        secDelta += miniDelta;
-        crossed = true;
-        showDelta(delta, true, false);
-        miniIdx++;
-
-        if (miniIdx % 3 === 0) {
-          /* sector complete: pill takes its time + tier colour */
-          var secTier = secDelta < -0.35 ? PURPLE : secDelta <= 0 ? GREEN : secDelta < 0.5 ? MID : AMBER;
-          stylePill(gdPills[sector], secTier, fmtSector(secSim));
-          secSim = 0;
-          secDelta = 0;
-          if (miniIdx < 9) secDur = PB_SECTORS[miniIdx / 3] + (Math.random() - 0.45) * 5;
-        }
-
-        if (miniIdx === 9) {
-          /* stage complete: accent crossfades yellow → purple (PB) or grey */
-          var isPB = delta <= 0;
-          gdCard.style.setProperty("--gd-accent", isPB ? PURPLE : GREY_TEXT);
-          gdCard.style.setProperty("--gd-accent-glow", isPB ? rgba(PURPLE, 0.4) : "transparent");
-          showDelta(delta, true, isPB);
-          hold = 32; /* ~3.2s, then a fresh run */
-        } else {
-          gdMinis[miniIdx].style.background = ACCENT;
-        }
-      };
-
-      gdReset();
       var gdIO = new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
           if (entry.isIntersecting && !gdTimer) {
-            gdTimer = setInterval(gdTick, 100);
+            gdTimer = setInterval(gdTickAll, 100);
           } else if (!entry.isIntersecting && gdTimer) {
             clearInterval(gdTimer);
             gdTimer = null;

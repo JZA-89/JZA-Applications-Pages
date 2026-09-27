@@ -57,22 +57,23 @@
 }
 
 [data-app="ghostdelta"] {
-  --bg: #111110;
-  --fg: #f0efe9;
-  --muted: #8a8a82;
-  --faint: #9c9c93;
-  --accent: #ffd600;
-  --accent-contrast: #111110;
-  --rule: #2a2a28;
-  --glass-fill: #1a1a18;
-  --glass-fill-strong: #222220;
-  --glass-edge: rgba(255, 255, 255, 0.08);
-  --glow-1: rgba(255, 214, 0, 0.09);
-  --glow-2: rgba(155, 89, 182, 0.1);
-  --radius-lg: 14px;
-  --radius-md: 10px;
-  --radius-sm: 8px;
-  --font-display: var(--font-mono);
+  /* The app's facelift palette (STYLE_GUIDE in the GhostDelta repo). */
+  --bg: #0b0c0f;
+  --fg: #f5f5f2;
+  --muted: #8e9096;
+  --faint: #9a9ca2;
+  --accent: #ffd60a;
+  --accent-contrast: #07080a;
+  --rule: #26282d;
+  --glass-fill: #15171b;
+  --glass-fill-strong: #1f2126;
+  --glass-edge: rgba(255, 255, 255, 0.1);
+  --glow-1: rgba(255, 214, 10, 0.09);
+  --glow-2: rgba(191, 90, 242, 0.1);
+  --radius-lg: 22px;
+  --radius-md: 16px;
+  --radius-sm: 11px;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
 }
 
 [data-app="pointfoundry"] {
@@ -238,14 +239,15 @@ main h2 {
   margin-top: 1rem;
 }
 
-/* GhostDelta: flat instrument, not glass — its restraint IS the brand */
+/* GhostDelta: the app's lit panel — a lifted dark gradient with a top-lit hairline edge */
 [data-app="ghostdelta"] .glass,
 [data-app="ghostdelta"] .card {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
-  background: var(--glass-fill);
+  background: linear-gradient(#1b1d22, #111317);
   box-shadow: none;
-  border-color: var(--rule);
+  border-color: rgba(255, 255, 255, 0.1);
+  border-top-color: rgba(255, 255, 255, 0.16);
 }
 
 /* --------------------------------------------------------------------------
@@ -323,13 +325,16 @@ main h2 {
   );
 }
 
+/* Wordmark as in the app: heavy, expanded, tracked. */
 .wm-ghostdelta {
-  font-family: var(--font-mono);
-  letter-spacing: 0.04em;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  font-weight: 900;
+  font-stretch: 125%;
+  letter-spacing: 0.06em;
 }
 
 .wm-ghostdelta .delta {
-  color: #ffd600;
+  color: #ffd60a;
 }
 
 .wm-bikespec .spec {

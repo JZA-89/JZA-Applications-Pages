@@ -63,8 +63,8 @@
   }
   .amb-ghostdelta {
     background:
-      radial-gradient(70% 42% at 50% 88%, rgba(255, 214, 0, 0.2), transparent 72%),
-      radial-gradient(40% 30% at 88% 10%, rgba(255, 214, 0, 0.1), transparent 70%);
+      radial-gradient(70% 42% at 50% 88%, rgba(255, 214, 10, 0.2), transparent 72%),
+      radial-gradient(40% 30% at 88% 10%, rgba(255, 214, 10, 0.1), transparent 70%);
   }
   .amb-pointfoundry {
     background:
@@ -226,7 +226,7 @@
   .chapter .store-badge { display: inline-block; margin-top: 1.5rem; }
 
   /* wordmark letterspacing / base colour to match each app */
-  .chapter .wm-ghostdelta { letter-spacing: 0.2em; color: var(--fg); }
+  .chapter .wm-ghostdelta { letter-spacing: 0.08em; color: var(--fg); }
   .chapter .wm-pointfoundry { letter-spacing: 0.14em; }
   .chapter .wm-bikespec { color: var(--fg); }
 
@@ -335,119 +335,194 @@
   .pg-unit { color: #87929d; font-weight: 400; font-size: 0.7rem; }
   #pg-history, #pg-usage { display: block; width: 100%; height: auto; }
 
-  /* GhostDelta — replica of the app's watchOS stage timing tile
-     (WatchCard: name / time+delta / sector pills / mini-sector bar),
-     scaled 2× from watch points for web legibility. */
+  /* GhostDelta — a working replica of the Watch app (facelift design): the face cycles
+     Stage timing → Navigation → Circuit laps, driven by main.js. Everything is sized in
+     watch points (--u = one point) so the layout is the app's own, just scaled up. */
   .gd-watch {
-    max-width: 340px;
+    --u: min(1.7px, calc((100vw - 48px) / 205));
+    --gd-yellow: #ffd60a;
+    --gd-pb: #bf5af2;
+    --gd-ahead: #30d158;
+    --gd-text: #f5f5f2;
+    --gd-dim: #8e9096;
+    --gd-sf: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+    width: calc(var(--u) * 205);
     margin: 0 auto;
-    font-family: var(--font-mono);
+    font-family: var(--gd-sf);
+  }
+  .gd-face {
+    position: relative;
+    height: calc(var(--u) * 251);
+    background: #000;
+    border-radius: calc(var(--u) * 46);
+    box-shadow: 0 0 0 calc(var(--u) * 5) #16171a, 0 0 0 calc(var(--u) * 6) #2a2c31,
+                0 calc(var(--u) * 20) calc(var(--u) * 50) rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+  }
+  .gd-clock {
+    position: absolute;
+    top: calc(var(--u) * 9);
+    right: calc(var(--u) * 20);
+    font-size: calc(var(--u) * 16);
+    font-weight: 600;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  .gd-scene {
+    position: absolute;
+    inset: calc(var(--u) * 34) calc(var(--u) * 8) calc(var(--u) * 14);
+    opacity: 0;
+    transition: opacity 0.45s ease;
+    pointer-events: none;
+  }
+  .gd-scene.is-active { opacity: 1; }
+  .gd-caps {
+    font-size: calc(var(--u) * 8.5);
+    font-weight: 700;
+    font-stretch: 112%;
+    letter-spacing: calc(var(--u) * 0.9);
+    text-transform: uppercase;
+    color: var(--gd-dim);
   }
   .gd-header {
     display: flex;
     justify-content: space-between;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    color: #6a6a64;
-    padding: 0 8px 6px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    margin-bottom: 10px;
+    padding: 0 calc(var(--u) * 2) calc(var(--u) * 4);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    margin-bottom: calc(var(--u) * 6);
   }
-  .gd-card {
+  .gd-header .gd-acc { color: var(--gd-yellow); margin-left: calc(var(--u) * 5); }
+  /* The lit panel: lifted vertical gradient, top-lit hairline edge. */
+  .gd-panel {
     position: relative;
-    background: #1a1a18;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 20px;
-    padding: 12px 18px 14px 24px;
-    overflow: hidden;
+    background: linear-gradient(#1b1d22, #111317);
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-top-color: rgba(255, 255, 255, 0.17);
+    border-radius: calc(var(--u) * 16);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
   }
-  .gd-card::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 6px;
-    background: var(--gd-accent, #ffd600);
-    box-shadow: 4px 0 10px var(--gd-accent-glow, rgba(255, 214, 0, 0.4));
-    transition: background 0.25s ease, box-shadow 0.25s ease;
+  .gd-live {
+    padding: calc(var(--u) * 8) calc(var(--u) * 11) calc(var(--u) * 9);
+    border-color: var(--gd-edge, rgba(255, 214, 10, 0.75));
+    box-shadow: 0 0 calc(var(--u) * 7) var(--gd-glow, rgba(255, 214, 10, 0.35));
   }
   .gd-name {
-    font-family: var(--font-body);
-    font-size: 19px;
+    font-size: calc(var(--u) * 12);
     font-weight: 600;
-    letter-spacing: -0.1px;
-    color: #f0efe9;
-    margin: 0 0 4px;
+    color: var(--gd-text);
+    margin: 0 0 calc(var(--u) * 2);
   }
-  .gd-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
+  .gd-row { display: flex; justify-content: space-between; align-items: baseline; }
+  .gd-time, .gd-delta, .gd-num { font-variant-numeric: tabular-nums; }
+  .gd-time {
+    font-size: calc(var(--u) * 22);
+    font-weight: 800;
+    color: var(--gd-yellow);
+    letter-spacing: calc(var(--u) * -0.3);
   }
-  .gd-time,
   .gd-delta {
-    font-size: 30px;
+    font-size: calc(var(--u) * 18);
     font-weight: 700;
-    letter-spacing: -0.8px;
-    font-variant-numeric: tabular-nums;
+    color: #3a3c42;
   }
-  .gd-time { color: #ffd600; }
-  .gd-delta { color: #3a3a38; }
-  .gd-pills {
-    display: flex;
-    gap: 4px;
-    margin: 10px 0 8px;
-  }
+  .gd-pills { display: flex; gap: calc(var(--u) * 2); margin: calc(var(--u) * 5) 0 calc(var(--u) * 5); }
   .gd-pill {
     flex: 1;
     text-align: center;
-    font-size: 15px;
-    font-weight: 600;
-    letter-spacing: -0.2px;
-    padding: 3px 0;
-    border-radius: 5px;
-    color: #6a6a64;
+    font-size: calc(var(--u) * 10);
+    font-weight: 700;
+    padding: calc(var(--u) * 2.5) 0;
+    border-radius: calc(var(--u) * 4);
+    color: #6b6e75;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid transparent;
     font-variant-numeric: tabular-nums;
   }
-  .gd-minis {
-    display: flex;
-    gap: 4px;
-    opacity: 0.85;
-  }
-  .gd-mini-group {
-    flex: 1;
-    display: flex;
-    gap: 2px;
-  }
+  .gd-minis { display: flex; gap: calc(var(--u) * 2); height: calc(var(--u) * 2); }
+  .gd-mini-group { flex: 1; display: flex; gap: calc(var(--u) * 1); }
   .gd-mini-group span {
+    position: relative;
     flex: 1;
-    height: 4px;
     border-radius: 1px;
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.05);
+    opacity: 0.9;
   }
-  .gd-chip-row { text-align: center; margin: 14px 0 0; }
+  /* The sub-sector being ridden: hollow yellow outline standing proud of the bar. */
+  .gd-mini-group span.is-current { background: transparent; opacity: 1; }
+  .gd-mini-group span.is-current::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0;
+    top: calc(var(--u) * -2);
+    bottom: calc(var(--u) * -2);
+    border: 1px solid var(--gd-yellow);
+    border-radius: calc(var(--u) * 1.5);
+  }
+  .gd-chip-row { text-align: center; margin: calc(var(--u) * 8) 0 0; }
   .gd-chip {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    padding: 6px 14px;
+    gap: calc(var(--u) * 4);
+    padding: calc(var(--u) * 4) calc(var(--u) * 10);
     border-radius: 999px;
-    background: #222220;
-    border: 1px solid rgba(255, 214, 0, 0.3);
-    font-size: 13px;
-    font-weight: 600;
-    color: #f0efe9;
+    background: rgba(255, 214, 10, 0.16);
+    border: 1px solid rgba(255, 214, 10, 0.7);
+    font-size: calc(var(--u) * 10);
+    font-weight: 700;
+    font-stretch: 112%;
+    color: var(--gd-text);
   }
-  .gd-chip .dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: #ffd600;
+  .gd-chip .dot { width: calc(var(--u) * 5); height: calc(var(--u) * 5); border-radius: 50%; background: var(--gd-yellow); }
+  /* Navigation */
+  .gd-grid2 { display: grid; grid-template-columns: 1fr 1fr; }
+  .gd-cell { text-align: center; padding: calc(var(--u) * 3) 0 calc(var(--u) * 2); }
+  .gd-cell:nth-child(odd) { border-right: 1px solid rgba(255, 255, 255, 0.07); }
+  .gd-cell:nth-child(-n+2) { border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
+  .gd-big { font-size: calc(var(--u) * 18); font-weight: 600; color: var(--gd-text); font-variant-numeric: tabular-nums; }
+  .gd-big.is-yellow { color: var(--gd-yellow); }
+  .gd-unit { font-size: calc(var(--u) * 11); color: var(--gd-dim); margin-left: 1px; }
+  .gd-sub { font-size: calc(var(--u) * 9); color: var(--gd-dim); font-variant-numeric: tabular-nums; }
+  .gd-profile { margin-top: calc(var(--u) * 4); overflow: hidden; }
+  .gd-profile svg { display: block; width: 100%; height: calc(var(--u) * 30); }
+  .gd-stats3 { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; padding: calc(var(--u) * 2) 0 calc(var(--u) * 4); }
+  .gd-mid { font-size: calc(var(--u) * 13); font-weight: 600; color: var(--gd-text); font-variant-numeric: tabular-nums; }
+  /* Lap complete */
+  .gd-lapdone {
+    position: absolute;
+    inset: 0;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
   }
+  .gd-lapdone.is-active { opacity: 1; }
+  .gd-figure {
+    font-size: calc(var(--u) * 42);
+    font-weight: 800;
+    font-stretch: 125%;
+    color: var(--gd-yellow);
+    font-variant-numeric: tabular-nums;
+    margin: calc(var(--u) * 4) 0;
+  }
+  .gd-rule { width: 88%; height: 1px; background: rgba(255, 255, 255, 0.1); margin: calc(var(--u) * 6) 0; }
+  .gd-gap { font-size: calc(var(--u) * 30); font-weight: 700; color: var(--gd-ahead); font-variant-numeric: tabular-nums; }
+  /* Which view is showing — tap to jump. */
+  .gd-tabs { display: flex; justify-content: center; gap: 1.1rem; margin-top: 1.5rem; }
+  .gd-tab {
+    font: 700 0.68rem/1 var(--gd-sf);
+    font-stretch: 112%;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #5d6068;
+    cursor: pointer;
+    padding: 0.35rem 0;
+    border-bottom: 2px solid transparent;
+    transition: color 0.3s ease, border-color 0.3s ease;
+  }
+  .gd-tab.is-active { color: var(--gd-yellow); border-bottom-color: var(--gd-yellow); }
 
   /* PointFoundry — scanner frame with a live fake LiDAR point cloud
      (drawn by main.js on the canvas: a scanned room, slowly orbiting) */
@@ -768,23 +843,79 @@
       <div class="chapter-art">
         <div data-parallax="0.04">
           <div class="gd-watch reveal" id="gd-watch" aria-hidden="true">
-            <div class="gd-header"><span>STAGES</span><span>DELTA</span></div>
-            <div class="gd-card" id="gd-card">
-              <p class="gd-name">Ridgeline DH</p>
-              <div class="gd-row">
-                <span class="gd-time" id="gd-time">00:00</span>
-                <span class="gd-delta" id="gd-delta">—</span>
+            <div class="gd-face">
+              <div class="gd-clock">10:09</div>
+
+              <!-- Stage timing -->
+              <div class="gd-scene is-active" data-scene="stage">
+                <div class="gd-header gd-caps"><span>Stages</span><span>Delta</span></div>
+                <div class="gd-panel gd-live" id="gd-card">
+                  <p class="gd-name">Ridgeline DH</p>
+                  <div class="gd-row">
+                    <span class="gd-time" id="gd-time">00:00</span>
+                    <span class="gd-delta" id="gd-delta">—</span>
+                  </div>
+                  <div class="gd-pills"><span class="gd-pill">--</span><span class="gd-pill">--</span><span class="gd-pill">--</span></div>
+                  <div class="gd-minis">
+                    <span class="gd-mini-group"><span></span><span></span><span></span></span>
+                    <span class="gd-mini-group"><span></span><span></span><span></span></span>
+                    <span class="gd-mini-group"><span></span><span></span><span></span></span>
+                  </div>
+                </div>
+                <p class="gd-chip-row"><span class="gd-chip"><span class="dot"></span>3 stages · 1 PB</span></p>
               </div>
-              <div class="gd-pills" id="gd-pills">
-                <span class="gd-pill">--</span><span class="gd-pill">--</span><span class="gd-pill">--</span>
+
+              <!-- Navigation -->
+              <div class="gd-scene" data-scene="nav">
+                <div class="gd-header gd-caps"><span>Mountain Trail<span class="gd-acc">→ Fwd</span></span></div>
+                <div class="gd-panel gd-grid2">
+                  <div class="gd-cell"><div class="gd-caps">Travelled</div><span class="gd-big" id="gd-nav-done">1.16</span><span class="gd-unit">km</span></div>
+                  <div class="gd-cell"><div class="gd-caps">Remaining</div><span class="gd-big is-yellow" id="gd-nav-left">1.74</span><span class="gd-unit">km</span></div>
+                  <div class="gd-cell"><div class="gd-caps">↑ Ascent</div><span class="gd-big" id="gd-nav-up">56</span><span class="gd-unit">m</span><div class="gd-sub">of 85m</div></div>
+                  <div class="gd-cell"><div class="gd-caps">↓ Descent</div><span class="gd-big" id="gd-nav-down">13</span><span class="gd-unit">m</span><div class="gd-sub">of 28m</div></div>
+                </div>
+                <div class="gd-panel gd-profile">
+                  <svg id="gd-nav-svg" viewBox="0 0 200 46" preserveAspectRatio="none"></svg>
+                  <div class="gd-stats3">
+                    <div><div class="gd-caps">▲ Next</div><span class="gd-mid" id="gd-nav-next">340</span><span class="gd-unit">m</span></div>
+                    <div><div class="gd-caps">Gain</div><span class="gd-mid">56</span><span class="gd-unit">m</span></div>
+                    <div><div class="gd-caps">Gradient</div><span class="gd-mid">6</span><span class="gd-unit">%</span></div>
+                  </div>
+                </div>
               </div>
-              <div class="gd-minis" id="gd-minis">
-                <span class="gd-mini-group"><span></span><span></span><span></span></span>
-                <span class="gd-mini-group"><span></span><span></span><span></span></span>
-                <span class="gd-mini-group"><span></span><span></span><span></span></span>
+
+              <!-- Circuit laps -->
+              <div class="gd-scene" data-scene="laps">
+                <div class="gd-header gd-caps"><span>Laps</span><span>Delta</span></div>
+                <div class="gd-panel gd-live" id="gd-lapcard">
+                  <p class="gd-name" id="gd-lapname">Lap 4</p>
+                  <div class="gd-row">
+                    <span class="gd-time" id="gd-laptime">0:00.0</span>
+                    <span class="gd-delta" id="gd-lapdelta">—</span>
+                  </div>
+                  <div class="gd-pills"><span class="gd-pill">--</span><span class="gd-pill">--</span><span class="gd-pill">--</span></div>
+                  <div class="gd-minis">
+                    <span class="gd-mini-group"><span></span><span></span><span></span></span>
+                    <span class="gd-mini-group"><span></span><span></span><span></span></span>
+                    <span class="gd-mini-group"><span></span><span></span><span></span></span>
+                  </div>
+                </div>
+                <p class="gd-chip-row"><span class="gd-chip"><span class="dot"></span><span id="gd-lapchip">3 laps · best 1:38.4</span></span></p>
+              </div>
+
+              <div class="gd-lapdone" id="gd-lapdone">
+                <span class="gd-caps" id="gd-ld-lap">Lap 4</span>
+                <span class="gd-figure" id="gd-ld-time">1:37.9</span>
+                <span class="gd-rule"></span>
+                <span class="gd-caps" style="color: var(--gd-ahead)">Best lap</span>
+                <span class="gd-gap" id="gd-ld-gap">−0.5 s</span>
               </div>
             </div>
-            <p class="gd-chip-row"><span class="gd-chip"><span class="dot"></span>3 stages · 1 PB</span></p>
+            <div class="gd-tabs">
+              <span class="gd-tab is-active" data-go="stage">Stage timing</span>
+              <span class="gd-tab" data-go="nav">Navigation</span>
+              <span class="gd-tab" data-go="laps">Circuit laps</span>
+            </div>
           </div>
         </div>
       </div>
