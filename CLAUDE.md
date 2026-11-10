@@ -57,6 +57,8 @@ Parlato and ThumbControl are shown before their App Store release. Each chapter 
 
 **When an app goes live:** swap the `.beta-cta` block for a `.store-badge` link like the other chapters, remove the beta tag and the "Public beta" kicker text, and update the About, Support and Privacy pages (they mention TestFlight). There's a comment above each beta chapter saying the same.
 
+**Parlato wording:** every line about Parlato follows R26 in Parlato's own CLAUDE.md: lead with the motorcycle rider and passenger; other examples only where people stay within a few metres (tandem, sidecar, loud workshop, kitchen, job site, concert); state the range as "about 10 metres, the length of a bus"; never "walkie-talkie", hiking, trails, skiing or group rides; "private" never means encrypted.
+
 **ThumbControl trap:** the app's Settings has a "Privacy Policy" row whose link is still a placeholder in the app's code. It should open `https://jza.app/thumbcontrol/ThumbControlPrivacyPolicy.html`, which is also the URL to give App Store Connect.
 
 ## Checking your work
