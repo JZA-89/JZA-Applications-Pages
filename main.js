@@ -1114,4 +1114,95 @@
       if (taglineStarted) scheduleTagline();
     });
   }
+
+  /* ------------------------------------------------------------------
+     10. Parlato chat — replica of the app's chat screen. The turn moves
+         between people (and you), two talk over each other to show it's
+         full duplex, and Sam drops out and reconnects on his own.
+         Static frame for reduced motion; paused offscreen.
+     ------------------------------------------------------------------ */
+  var ptDemo = document.getElementById("pt-demo");
+  if (ptDemo) {
+    var ptCards = {};
+    Array.prototype.forEach.call(ptDemo.querySelectorAll(".pt-card"), function (el) {
+      ptCards[el.dataset.peer] = { el: el, state: el.querySelector(".pt-state"), bars: el.querySelectorAll(".pt-peerwave span") };
+    });
+    var ptYouBars = ptDemo.querySelectorAll(".pt-you span");
+    var ptStatus = document.getElementById("pt-status");
+    var ptTimerEl = document.getElementById("pt-timer");
+    var ptSeconds = 23 * 60 + 42;
+    var ptT = 0;
+
+    /* Who's doing what, in seconds from the start of the loop */
+    var PT_LOOP = 22;
+    var ptScript = function (t) {
+      return {
+        maya: (t >= 0.5 && t < 4) || (t >= 16 && t < 19.5),
+        you: t >= 4.8 && t < 7.6,
+        leo: (t >= 8.4 && t < 11) || (t >= 17 && t < 20),
+        samDown: t >= 11.6 && t < 15.6
+      };
+    };
+    /* the resting dome, as in the app */
+    var ptDome = function (i, n) {
+      var x = (i - (n - 1) / 2) / ((n - 1) / 2);
+      return 6 + 8 * (1 - x * x);
+    };
+    var ptVoice = function (bars, maxH, on, phase) {
+      for (var i = 0; i < bars.length; i++) {
+        var h;
+        if (on) {
+          var env = 0.55 + 0.45 * Math.sin(phase * 1.7 + i * 0.9) * Math.sin(phase * 0.6 + 1);
+          h = 4 + Math.random() * maxH * Math.max(0.25, env);
+        } else {
+          h = bars.length > 10 ? ptDome(i, bars.length) : 4;
+        }
+        bars[i].style.height = h.toFixed(1) + "px";
+      }
+    };
+    var ptRender = function () {
+      var s = ptScript(ptT % PT_LOOP);
+      ["leo", "maya", "sam"].forEach(function (k) {
+        var c = ptCards[k];
+        var talking = !!s[k];
+        var down = k === "sam" && s.samDown;
+        c.el.classList.toggle("is-speaking", talking && !down);
+        c.el.classList.toggle("is-reconnecting", down);
+        c.state.textContent = down
+          ? "Reconnecting · " + Math.max(1, Math.ceil((ptT % PT_LOOP) - 11.6)) + "s"
+          : talking ? "Speaking" : "Active";
+        if (talking) ptVoice(c.bars, 18, true, ptT * 6);
+      });
+      ptDemo.classList.toggle("is-sending", s.you);
+      ptStatus.textContent = s.you ? "Transmitting" : "Listening";
+      ptVoice(ptYouBars, 24, s.you, ptT * 6);
+      var m = Math.floor(ptSeconds / 60), sec = ptSeconds % 60;
+      ptTimerEl.textContent = m + ":" + (sec < 10 ? "0" : "") + sec;
+    };
+
+    if (reducedMotion) {
+      ptT = 2; /* a still of Maya talking */
+      ptRender();
+    } else if ("IntersectionObserver" in window) {
+      ptRender();
+      var ptTimer = null;
+      var ptTick = function () {
+        var before = Math.floor(ptT);
+        ptT += 0.1;
+        if (Math.floor(ptT) !== before) ptSeconds++;
+        ptRender();
+      };
+      var ptIO = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting && !ptTimer) {
+            ptTimer = setInterval(ptTick, 100);
+          } else if (!entry.isIntersecting && ptTimer) {
+            clearInterval(ptTimer);
+            ptTimer = null;
+          }
+        });
+      });
+      ptIO.observe(ptDemo);
+    }
+  }
 })();

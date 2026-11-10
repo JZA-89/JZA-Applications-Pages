@@ -125,6 +125,26 @@
   --font-display: var(--font-rounded);
 }
 
+[data-app="parlato"] {
+  /* The app's palette (STYLE_GUIDE in the Parlato repo): dark only,
+     amber is Parlato and you, green is other people. */
+  --bg: #111111;
+  --fg: #ffffff;
+  --muted: rgba(255, 255, 255, 0.6);
+  --faint: rgba(255, 255, 255, 0.55);
+  --accent: #e08c3a; /* the app's #C87A2F, lifted a touch for text contrast on the web */
+  --accent-contrast: #111111;
+  --rule: #2a2a2a;
+  --glass-fill: #1a1a1a;
+  --glass-fill-strong: #222222;
+  --glass-edge: rgba(255, 255, 255, 0.08);
+  --glow-1: rgba(200, 122, 47, 0.16);
+  --glow-2: rgba(92, 204, 92, 0.07);
+  --radius-lg: 22px;
+  --radius-md: 16px;
+  --font-display: var(--font-rounded);
+}
+
 /* --------------------------------------------------------------------------
    Base
    -------------------------------------------------------------------------- */
@@ -343,6 +363,13 @@ main h2 {
 
 .wm-bananabomb {
   color: #ffd60a;
+}
+
+/* Bold rounded, white, as on the app's Home screen */
+.wm-parlato {
+  font-family: var(--font-rounded);
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 /* --------------------------------------------------------------------------
@@ -669,6 +696,7 @@ body[data-app]::before {
 .vt-pointfoundry { view-transition-name: icon-pointfoundry; }
 .vt-bikespec { view-transition-name: icon-bikespec; }
 .vt-bananabomb { view-transition-name: icon-bananabomb; }
+.vt-parlato { view-transition-name: icon-parlato; }
 
 /* --------------------------------------------------------------------------
    Reduced motion — kill the show, keep the content

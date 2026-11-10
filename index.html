@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JZA Applications — Sharp tools for sharp people</title>
-<meta name="description" content="Sharp tools for sharp people. PowerGlass, PointFoundry, GhostDelta, BananaBomb and BikeSpec — every app with its own design language, made by JZA Applications.">
+<meta name="description" content="Sharp tools for sharp people. PowerGlass, PointFoundry, GhostDelta, BananaBomb, BikeSpec and Parlato — every app with its own design language, made by JZA Applications.">
 <meta name="theme-color" content="#08080a">
 <link rel="canonical" href="https://jza.app/">
 <meta property="og:title" content="JZA Applications">
@@ -17,7 +17,7 @@
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="site.css?v=10">
+<link rel="stylesheet" href="site.css?v=11">
 <style>
   /* ---------- index-only layout ---------- */
   main { max-width: none; padding: 0; }
@@ -50,6 +50,7 @@
   html[data-view="pointfoundry"] .amb-pointfoundry { opacity: 1; animation-play-state: running; }
   html[data-view="bikespec"] .amb-bikespec { opacity: 1; animation-play-state: running; }
   html[data-view="bananabomb"] .amb-bananabomb { opacity: 1; animation-play-state: running; }
+  html[data-view="parlato"] .amb-parlato { opacity: 1; animation-play-state: running; }
 
   .amb-home {
     background:
@@ -80,6 +81,11 @@
     background:
       radial-gradient(55% 45% at 18% 12%, rgba(255, 214, 10, 0.12), transparent 70%),
       radial-gradient(55% 45% at 85% 88%, rgba(232, 96, 10, 0.12), transparent 70%);
+  }
+  .amb-parlato {
+    background:
+      radial-gradient(55% 45% at 50% 10%, rgba(200, 122, 47, 0.18), transparent 70%),
+      radial-gradient(45% 40% at 12% 90%, rgba(92, 204, 92, 0.07), transparent 70%);
   }
 
   /* ---------- hero ---------- */
@@ -229,6 +235,7 @@
   .chapter .wm-ghostdelta { letter-spacing: 0.08em; color: var(--fg); }
   .chapter .wm-pointfoundry { letter-spacing: 0.14em; }
   .chapter .wm-bikespec { color: var(--fg); }
+  .chapter .wm-parlato { color: var(--fg); display: flex; align-items: center; gap: 0.9rem; }
 
   /* PowerGlass — prism band under the wordmark */
   .prism-band {
@@ -714,6 +721,148 @@
   .strip a:hover { transform: translateY(-5px); text-decoration: none; }
   .strip .app-icon { width: 64px; height: 64px; margin: 0 auto 0.8rem; }
 
+  /* ---------- beta apps (TestFlight instead of the App Store) ---------- */
+  .beta-tag {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-indent: 0.18em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    line-height: 1;
+  }
+  .beta-cta { margin-top: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1.4rem; }
+  .beta-join {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.95rem 1.35rem;
+    border-radius: 14px;
+    background: #fff;
+    color: #111;
+    font-weight: 700;
+    font-size: 1.02rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .beta-join:hover { text-decoration: none; transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); }
+  .beta-join svg { flex: none; }
+  .beta-get { font-size: 0.92rem; color: var(--muted); }
+  .beta-get a { font-weight: 500; }
+  .beta-note { color: var(--faint); font-size: 0.85rem; margin: 0.9rem 0 0; max-width: 30rem; }
+
+  /* Parlato — replica of the chat screen (STYLE_GUIDE in the Parlato
+     repo): amber hero with your voice, then the people in the chat.
+     main.js §10 hands the turn between speakers. */
+  .pt-demo {
+    max-width: 370px;
+    margin: 0 auto;
+    background: radial-gradient(120% 70% at 50% 0%, #1e1812 0%, #121212 55%, #0f0f0f 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 32px;
+    padding: 2rem 1rem 1.1rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 24px 60px rgba(0, 0, 0, 0.5);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    color: #fff;
+  }
+  .pt-hero { text-align: center; padding-bottom: 1.6rem; position: relative; }
+  .pt-hero::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    width: 220px;
+    height: 120px;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(closest-side, rgba(200, 122, 47, 0.22), transparent);
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    opacity: 0.7;
+  }
+  .pt-demo.is-sending .pt-hero::before { opacity: 1; }
+  .pt-eyebrow {
+    font: 700 0.7rem var(--font-mono);
+    letter-spacing: 0.16em;
+    text-indent: 0.16em;
+    color: #c87a2f;
+    margin: 0 0 0.4rem;
+  }
+  .pt-timer {
+    font: 700 2.6rem/1 var(--font-rounded);
+    font-variant-numeric: tabular-nums;
+    margin: 0 0 0.9rem;
+    position: relative;
+  }
+  .pt-wave { display: flex; align-items: center; justify-content: center; gap: 4px; height: 30px; position: relative; }
+  .pt-wave span {
+    width: 4px;
+    border-radius: 2px;
+    height: 6px;
+    transition: height 0.07s linear, background-color 0.2s ease;
+  }
+  .pt-you span { background: rgba(200, 122, 47, 0.45); }
+  .pt-demo.is-sending .pt-you span { background: #c87a2f; box-shadow: 0 0 8px rgba(200, 122, 47, 0.55); }
+  .pt-status {
+    font: 500 0.68rem var(--font-mono);
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.55);
+    margin: 0.8rem 0 0;
+    position: relative;
+  }
+  .pt-demo.is-sending .pt-status { color: #c87a2f; }
+  .pt-line {
+    font: 700 0.7rem var(--font-mono);
+    letter-spacing: 0.1em;
+    color: rgba(255, 255, 255, 0.55);
+    margin: 0 0.35rem 0.6rem;
+  }
+  .pt-card {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.7rem 0.85rem;
+    margin-bottom: 0.5rem;
+    border-radius: 14px;
+    background: #181818;
+    border: 1px solid transparent;
+    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .pt-av {
+    width: 40px;
+    height: 40px;
+    flex: none;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 1.15rem;
+    background: #1a1a1a;
+    border: 2px solid rgba(92, 204, 92, 0.35);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .pt-who { flex: 1; min-width: 0; }
+  .pt-name { margin: 0; font-size: 0.95rem; transition: color 0.3s ease; }
+  .pt-state { margin: 0.1rem 0 0; font: 500 0.7rem var(--font-mono); color: rgba(255, 255, 255, 0.55); white-space: nowrap; }
+  .pt-peerwave { gap: 3px; height: 24px; opacity: 0; transition: opacity 0.25s ease; }
+  .pt-peerwave span { width: 3px; background: #5ccc5c; }
+  .pt-card.is-speaking { background: #222; border-color: #333; box-shadow: 0 0 20px rgba(92, 204, 92, 0.1); }
+  .pt-card.is-speaking .pt-av { border-color: #5ccc5c; box-shadow: 0 0 8px rgba(92, 204, 92, 0.35); }
+  .pt-card.is-speaking .pt-name,
+  .pt-card.is-speaking .pt-state { color: #5ccc5c; }
+  .pt-card.is-speaking .pt-peerwave { opacity: 1; }
+  .pt-card.is-reconnecting .pt-av { border: 1.5px dashed #555; }
+  .pt-card.is-reconnecting .pt-state { color: #f5a623; }
+  .pt-caption {
+    text-align: center;
+    color: var(--faint);
+    font-size: 0.85rem;
+    margin: 1rem auto 0;
+    max-width: 340px;
+  }
+
   /* ---------- tail (contact + footer) ---------- */
   .tail { max-width: 640px; margin: 0 auto; padding: 1rem 1.25rem 8rem; }
   .tail h2 { margin-top: 3.5rem; }
@@ -724,6 +873,7 @@
     .reveal { opacity: 1; transform: none; }
     /* the live demos are JS-drawn — without it they're empty shells */
     .pg-demo, .pf-frame, .gd-watch, .bb-demo { display: none; }
+    .pt-peerwave { display: none; }
   </style>
 </noscript>
 </head>
@@ -736,6 +886,7 @@
   <div class="amb amb-pointfoundry"></div>
   <div class="amb amb-bikespec"></div>
   <div class="amb amb-bananabomb"></div>
+  <div class="amb amb-parlato"></div>
 </div>
 
 <main>
@@ -998,6 +1149,52 @@
     </div>
   </section>
 
+  <!-- ================= Parlato (TestFlight beta) =================
+       When Parlato reaches the App Store, swap the .beta-cta block for a
+       store-badge link like the other chapters and drop the beta tag. -->
+  <section class="chapter alt" id="parlato" data-chapter="parlato" data-app="parlato">
+    <div class="chapter-inner">
+      <div class="chapter-copy">
+        <p class="chapter-kicker reveal"><b>06</b> · iPhone · Public beta</p>
+        <img class="app-icon chapter-icon vt-parlato reveal" src="assets/icon-parlato.jpg" alt="Parlato app icon" width="124" height="124" loading="lazy" decoding="async" style="--reveal-delay:.08s">
+        <h2 class="wordmark wm-parlato reveal" style="--reveal-delay:.16s">Parlato <span class="beta-tag">Beta</span></h2>
+        <p class="chapter-desc reveal" style="--reveal-delay:.3s">Keep talking with the people you're with — no internet, no cell signal, no accounts. Phones connect straight to each other, so up to eight people can chat hands-free on a ride, a trail or a job site, with their phones locked in their pockets.</p>
+        <p class="chapter-links reveal" style="--reveal-delay:.38s">
+          <a href="parlato/">About</a>
+          <a href="parlato/support.html">Support</a>
+          <a href="parlato/ParlatoPrivacyPolicy.html">Privacy</a>
+        </p>
+        <div class="beta-cta reveal" style="--reveal-delay:.44s">
+          <a class="beta-join" href="https://testflight.apple.com/join/zTvM7Seb">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            Join the TestFlight beta
+          </a>
+          <span class="beta-get">New to TestFlight? <a href="https://apps.apple.com/app/testflight/id899247664">Get the app first</a></span>
+        </div>
+        <p class="beta-note reveal" style="--reveal-delay:.5s">Parlato is in public testing ahead of its App Store release. Install Apple's free TestFlight app, then tap Join to get the latest build.</p>
+      </div>
+      <div class="chapter-art">
+        <div data-parallax="0.04">
+          <div class="reveal">
+            <div class="pt-demo" id="pt-demo" aria-hidden="true">
+              <div class="pt-hero">
+                <p class="pt-eyebrow">CHAT</p>
+                <p class="pt-timer" id="pt-timer">23:42</p>
+                <div class="pt-wave pt-you" id="pt-you"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <p class="pt-status" id="pt-status">Listening</p>
+              </div>
+              <p class="pt-line">IN CHAT · 3</p>
+              <div class="pt-card" data-peer="leo"><span class="pt-av">🚴</span><div class="pt-who"><p class="pt-name">Leo</p><p class="pt-state">Active</p></div><div class="pt-wave pt-peerwave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>
+              <div class="pt-card" data-peer="maya"><span class="pt-av">🌻</span><div class="pt-who"><p class="pt-name">Maya</p><p class="pt-state">Active</p></div><div class="pt-wave pt-peerwave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>
+              <div class="pt-card" data-peer="sam"><span class="pt-av">🏔️</span><div class="pt-who"><p class="pt-name">Sam</p><p class="pt-state">Active</p></div><div class="pt-wave pt-peerwave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>
+            </div>
+            <p class="pt-caption">Phone to phone over Wi-Fi — everyone can talk at once, and a dropped link reconnects on its own.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= all apps ================= -->
   <section class="strip-section" data-chapter="home">
     <h2>All apps</h2>
@@ -1007,6 +1204,7 @@
       <a class="glass specular" href="ghostdelta/" data-app="ghostdelta"><img class="app-icon" src="assets/icon-ghostdelta.jpg" alt="" width="64" height="64" loading="lazy" decoding="async">GhostDelta</a>
       <a class="glass specular" href="bananabomb/" data-app="bananabomb"><img class="app-icon" src="assets/icon-bananabomb.jpg" alt="" width="64" height="64" loading="lazy" decoding="async">BananaBomb</a>
       <a class="glass specular" href="bikespec/" data-app="bikespec"><img class="app-icon" src="assets/icon-bikespec.jpg" alt="" width="64" height="64" loading="lazy" decoding="async">BikeSpec</a>
+      <a class="glass specular" href="parlato/" data-app="parlato"><img class="app-icon" src="assets/icon-parlato.jpg" alt="" width="64" height="64" loading="lazy" decoding="async">Parlato</a>
     </div>
   </section>
 
@@ -1022,7 +1220,7 @@
 
 </main>
 
-<script src="dock.js?v=9" id="jza-dock-script"></script>
-<script src="main.js?v=11"></script>
+<script src="dock.js?v=10" id="jza-dock-script"></script>
+<script src="main.js?v=12"></script>
 </body>
 </html>

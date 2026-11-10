@@ -24,6 +24,7 @@
     { path: "ghostdelta/", label: "GhostDelta", slug: "ghostdelta" },
     { path: "bananabomb/", label: "BananaBomb", slug: "bananabomb" },
     { path: "bikespec/", label: "BikeSpec", slug: "bikespec" },
+    { path: "parlato/", label: "Parlato (beta)", slug: "parlato" },
   ];
 
   var dock = document.createElement("nav");
