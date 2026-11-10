@@ -1205,4 +1205,84 @@
       ptIO.observe(ptDemo);
     }
   }
+
+  /* ------------------------------------------------------------------
+     11. ThumbControl — replica of the app's Home screen. The situation
+         changes, the Action Button is pressed, the rules are checked top
+         to bottom and the first one that fits lights up (the fallback
+         when none do). Background actions (music, home scenes) post the
+         app's confirmation banner, as the app does; actions that open
+         another app don't. Static frame for reduced motion; paused
+         offscreen.
+     ------------------------------------------------------------------ */
+  var tcDemo = document.getElementById("tc-demo");
+  if (tcDemo) {
+    var tcNow = document.getElementById("tc-now");
+    var tcMsg = document.getElementById("tc-msg");
+    var tcRows = tcDemo.querySelectorAll(".tc-row");
+    var tcCls = { t: "c-time", p: "c-place", a: "c-audio", m: "c-move" };
+    /* each scene: what's true right now, which rule wins, and the banner
+       text if the app would post one */
+    var tcScenes = [
+      { now: [["t", "8:05 AM"], ["m", "Driving"], ["a", "CarPlay"]], win: 0, msg: "Playing Music" },
+      { now: [["t", "6:40 PM"], ["p", "Home"]], win: 2 },
+      { now: [["t", "10:30 PM"], ["p", "Home"]], win: 1, msg: "Activated Goodnight" },
+      { now: [["t", "5:15 PM"], ["p", "Supermarket"]], win: 3 },
+      { now: [["t", "11:20 PM"], ["m", "Walking"]], win: 4 }
+    ];
+    var TC_SCENE = 4.6; /* seconds per scene */
+    var tcShown = -1;
+    var tcSetNow = function (scene) {
+      var html = '<span class="tc-now-label">RIGHT NOW</span>';
+      scene.now.forEach(function (c) {
+        html += '<span class="tc-pill ' + tcCls[c[0]] + '">' + c[1] + "</span>";
+      });
+      tcNow.innerHTML = html;
+    };
+    var tcRender = function (t) {
+      var i = Math.floor(t / TC_SCENE) % tcScenes.length;
+      var u = t % TC_SCENE; /* time within the scene */
+      var sc = tcScenes[i];
+      if (i !== tcShown) {
+        tcShown = i;
+        tcSetNow(sc);
+      }
+      tcNow.classList.toggle("is-changing", u > TC_SCENE - 0.3);
+      tcDemo.classList.toggle("is-pressed", u >= 0.9 && u < 1.15);
+      tcDemo.classList.toggle("is-glowing", u >= 0.95 && u < 2.6);
+      /* the check runs down the list, one rule every 0.14s */
+      var checked = u < 1.1 ? -1 : Math.floor((u - 1.1) / 0.14);
+      var clear = u >= 4.1;
+      for (var r = 0; r < tcRows.length; r++) {
+        var done = !clear && checked >= Math.min(r, sc.win);
+        tcRows[r].classList.toggle("is-match", done && r === sc.win);
+        tcRows[r].classList.toggle("is-skipped", done && r !== sc.win);
+      }
+      var bannerOn = !!sc.msg && u >= 1.9 && u < 3.9;
+      if (bannerOn) tcMsg.textContent = sc.msg;
+      tcDemo.classList.toggle("is-banner", bannerOn);
+    };
+
+    if (reducedMotion) {
+      tcRender(2 * TC_SCENE + 3); /* a still of the bedtime press: Goodnight wins over the TV remote */
+    } else if ("IntersectionObserver" in window) {
+      var tcT = 0.4;
+      tcRender(tcT);
+      var tcTimer = null;
+      var tcIO = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting && !tcTimer) {
+            tcTimer = setInterval(function () {
+              tcT += 0.05;
+              tcRender(tcT);
+            }, 50);
+          } else if (!entry.isIntersecting && tcTimer) {
+            clearInterval(tcTimer);
+            tcTimer = null;
+          }
+        });
+      });
+      tcIO.observe(tcDemo);
+    }
+  }
 })();

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ThumbControl Support — JZA Applications</title>
+<meta name="theme-color" content="#0a0a0a">
+<link rel="icon" type="image/png" href="../assets/icon-thumbcontrol.jpg">
+<link rel="stylesheet" href="../site.css?v=14">
+<style>
+  h3 { font-size: 1rem; margin: 1.75rem 0 0.35rem; letter-spacing: -0.01em; }
+  ul { margin: 0 0 1rem; padding-left: 1.25rem; color: var(--muted); }
+  li { margin-bottom: .35rem; }
+  .card p { margin: 0 0 0.5rem; }
+  .card p:last-child { margin: 0; color: var(--muted); }
+  .email a { font-family: var(--font-mono); font-size: 1.05rem; }
+</style>
+</head>
+<body data-app="thumbcontrol">
+<main>
+  <header class="masthead">
+    <img class="app-icon vt-thumbcontrol" src="../assets/icon-thumbcontrol.jpg" alt="" width="76" height="76">
+    <div>
+      <h1 class="wordmark wm-thumbcontrol"><a href="./">ThumbControl</a></h1>
+      <p class="tagline">Support</p>
+    </div>
+  </header>
+  <p>ThumbControl makes your iPhone's Action Button context-aware, so one press does the right thing for the moment. It's currently in public beta on <a href="https://testflight.apple.com/join/KvbUzRVB">TestFlight</a>.</p>
+  <h2>Get in touch</h2>
+  <div class="card">
+    <p class="email"><a href="mailto:jza.applications@gmail.com">jza.applications@gmail.com</a></p>
+    <p>Questions, bug reports and feature requests all welcome. If you're testing the beta, you can also send feedback straight from the TestFlight app.</p>
+  </div>
+  <p>To help me sort things out quickly, it's useful if you can include:</p>
+  <ul>
+    <li>Your iPhone model and iOS version (Settings &rsaquo; General &rsaquo; About)</li>
+    <li>The rule that didn't behave, and what you expected it to do</li>
+    <li>The entry for that press from ThumbControl's History screen (Settings &rsaquo; Action History): open it, tap Copy log, and paste it into your email.</li>
+  </ul>
+  <h2>Common questions</h2>
+  <h3>How do I put ThumbControl on the Action Button?</h3>
+  <p>In ThumbControl, open Settings and follow the Action Button steps: first add the ThumbControl shortcut in the Shortcuts app, then go to iOS Settings &rsaquo; Action Button, choose Shortcut, and pick ThumbControl.</p>
+  <h3>My iPhone doesn't have an Action Button</h3>
+  <p>You can still use ThumbControl. Set it up on Back Tap (Settings &rsaquo; Accessibility &rsaquo; Touch &rsaquo; Back Tap), say "Run ThumbControl" to Siri, or add the ThumbControl widget to your Home Screen.</p>
+  <h3>The wrong rule ran</h3>
+  <p>Rules are checked from the top of the list down, and the first one that fits wins. Tap Test on the Home screen to see which rule would fire right now and why each one passed or failed, then put the rules in the order you want: in the tool's editor, touch and hold a rule and drag it.</p>
+  <h3>A location rule doesn't fire</h3>
+  <p>Check that ThumbControl is allowed to use your location (Settings &rsaquo; Privacy &amp; Security &rsaquo; Location Services &rsaquo; ThumbControl), and that Precise Location is on. If you're near the edge of a place, widen its radius in the rule. Turning on High Location Accuracy in ThumbControl's Settings also helps.</p>
+  <h3>Building a rule in plain English isn't available</h3>
+  <p>That feature uses Apple Intelligence, which needs a supported iPhone with Apple Intelligence turned on in Settings. You can always build the same rule by hand.</p>
+  <h3>Why does ThumbControl open briefly for some actions?</h3>
+  <p>Actions that hand you over to another app, like Maps, Phone or a Shortcut, need ThumbControl to come forward for a moment first. Background actions, like playing music, running a home scene or logging to Health, happen without leaving what you're doing, and show a short confirmation instead.</p>
+  <h3>Where's my data?</h3>
+  <p>On your phone. ThumbControl has no accounts and no servers. Details are in the <a href="ThumbControlPrivacyPolicy.html">privacy policy</a>.</p>
+  <h2>Privacy</h2>
+  <p>Read the <a href="ThumbControlPrivacyPolicy.html">ThumbControl privacy policy</a>.</p>
+  <footer>
+    <p>&copy; 2026 JZA Applications &middot; <a href="../">All apps</a></p>
+  </footer>
+</main>
+<script src="../dock.js?v=11" id="jza-dock-script"></script>
+</body>
+</html>

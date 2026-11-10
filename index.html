@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JZA Applications — Sharp tools for sharp people</title>
-<meta name="description" content="Sharp tools for sharp people. PowerGlass, PointFoundry, GhostDelta, BananaBomb, BikeSpec and Parlato — every app with its own design language, made by JZA Applications.">
+<meta name="description" content="Sharp tools for sharp people. PowerGlass, PointFoundry, GhostDelta, BananaBomb, BikeSpec, Parlato and ThumbControl — every app with its own design language, made by JZA Applications.">
 <meta name="theme-color" content="#08080a">
 <link rel="canonical" href="https://jza.app/">
 <meta property="og:title" content="JZA Applications">
@@ -17,7 +17,7 @@
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="site.css?v=11">
+<link rel="stylesheet" href="site.css?v=14">
 <style>
   /* ---------- index-only layout ---------- */
   main { max-width: none; padding: 0; }
@@ -51,6 +51,7 @@
   html[data-view="bikespec"] .amb-bikespec { opacity: 1; animation-play-state: running; }
   html[data-view="bananabomb"] .amb-bananabomb { opacity: 1; animation-play-state: running; }
   html[data-view="parlato"] .amb-parlato { opacity: 1; animation-play-state: running; }
+  html[data-view="thumbcontrol"] .amb-thumbcontrol { opacity: 1; animation-play-state: running; }
 
   .amb-home {
     background:
@@ -86,6 +87,11 @@
     background:
       radial-gradient(55% 45% at 50% 10%, rgba(200, 122, 47, 0.18), transparent 70%),
       radial-gradient(45% 40% at 12% 90%, rgba(92, 204, 92, 0.07), transparent 70%);
+  }
+  .amb-thumbcontrol {
+    background:
+      radial-gradient(55% 45% at 82% 14%, rgba(255, 107, 0, 0.16), transparent 70%),
+      radial-gradient(50% 42% at 14% 88%, rgba(191, 90, 242, 0.09), transparent 70%);
   }
 
   /* ---------- hero ---------- */
@@ -236,6 +242,7 @@
   .chapter .wm-pointfoundry { letter-spacing: 0.14em; }
   .chapter .wm-bikespec { color: var(--fg); }
   .chapter .wm-parlato { color: var(--fg); display: flex; align-items: center; gap: 0.9rem; }
+  .chapter .wm-thumbcontrol { text-transform: uppercase; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.9rem; font-size: clamp(1.75rem, 3.9vw, 2.75rem); }
 
   /* PowerGlass — prism band under the wordmark */
   .prism-band {
@@ -863,6 +870,215 @@
     max-width: 340px;
   }
 
+  /* ThumbControl — replica of the app's Home screen (Views/HomeScreen.swift
+     and Utilities/Theme.swift in the ThumbControl repo): the active tool's
+     "What the button will do" card. main.js §11 changes the situation,
+     presses the Action Button, and lights up the rule that wins. */
+  .tc-wrap { max-width: 370px; margin: 0 auto; }
+  .tc-now {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 1.9rem;
+    margin: 0 0 0.9rem;
+  }
+  .tc-now-label {
+    font: 700 0.66rem var(--font-mono);
+    letter-spacing: 0.16em;
+    color: var(--faint);
+    margin-right: 0.2rem;
+  }
+  .tc-pill {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 500;
+    line-height: 1;
+    padding: 0.32rem 0.55rem;
+    border-radius: 999px;
+    color: var(--c);
+    background: color-mix(in srgb, var(--c) 12%, transparent);
+    white-space: nowrap;
+  }
+  .tc-now .tc-pill { font-size: 0.76rem; transition: opacity 0.25s ease; }
+  .tc-now.is-changing .tc-pill { opacity: 0; }
+  .c-time { --c: #ff6b00; }
+  .c-place { --c: #30d158; }
+  .c-audio { --c: #0a84ff; }
+  .c-move { --c: #bf5af2; }
+
+  .tc-demo {
+    position: relative;
+    background: #0a0a0a;
+    border: 1px solid #2a2a2a;
+    border-radius: 40px;
+    padding: 1.6rem 1rem 1.2rem;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    color: #f0f0f0;
+  }
+  /* the Action Button on the phone's left edge */
+  .tc-side {
+    position: absolute;
+    left: -5px;
+    top: 92px;
+    width: 4px;
+    height: 34px;
+    border-radius: 3px 0 0 3px;
+    background: #3a3a3a;
+    transition: transform 0.12s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .tc-demo.is-pressed .tc-side { transform: translateX(2px); background: #ff6b00; box-shadow: 0 0 12px rgba(255, 107, 0, 0.7); }
+  /* the app's edge glow: a sweep of orange round the screen edge */
+  .tc-glow {
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 3px;
+    background: conic-gradient(from var(--tc-a, 0deg), #ff6b00, rgba(255, 107, 0, 0.4), transparent 30%, transparent 70%, rgba(255, 107, 0, 0.4), #ff6b00);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+    filter: drop-shadow(0 0 6px rgba(255, 107, 0, 0.6));
+  }
+  .tc-demo.is-glowing .tc-glow { opacity: 1; animation: tc-spin 1.2s linear infinite; }
+  @property --tc-a { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+  @keyframes tc-spin { to { --tc-a: 360deg; } }
+  .tc-brand {
+    font: 900 0.95rem var(--font-body);
+    letter-spacing: 0.12em;
+    color: #ff6b00;
+    margin: 0 0 0.1rem 0.25rem;
+  }
+  .tc-title { font-size: 1.75rem; font-weight: 700; margin: 0 0 0.9rem 0.25rem; line-height: 1.15; }
+  .tc-card {
+    background: #141414;
+    border: 1px solid rgba(255, 107, 0, 0.22);
+    border-radius: 16px;
+    box-shadow: 0 6px 36px rgba(255, 107, 0, 0.16);
+    padding: 1rem 0.9rem 0.95rem;
+  }
+  .tc-active {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #30d158;
+    margin: 0;
+  }
+  .tc-active::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #30d158;
+    box-shadow: 0 0 6px rgba(48, 209, 88, 0.6);
+  }
+  .tc-tool { font-size: 1.3rem; font-weight: 700; margin: 0.3rem 0 0.1rem; }
+  .tc-tooldesc { font-size: 0.82rem; color: #999; margin: 0 0 0.85rem; }
+  .tc-div { height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 107, 0, 0.5), transparent), #2a2a2a; margin: 0 0 0.8rem; }
+  .tc-cap {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    color: #666;
+    margin: 0 0 0.45rem;
+  }
+  .tc-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.42rem 0.4rem;
+    margin: 0 -0.4rem;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    transition: background-color 0.25s ease, border-color 0.25s ease, opacity 0.25s ease, box-shadow 0.25s ease;
+  }
+  .tc-n {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #666;
+    background: #242424;
+  }
+  .tc-row.is-top .tc-n { color: #ff6b00; background: rgba(255, 107, 0, 0.12); }
+  .tc-ic {
+    flex: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    display: grid;
+    place-items: center;
+    color: var(--c);
+    background: color-mix(in srgb, var(--c) 10%, transparent);
+  }
+  .tc-ic svg { width: 15px; height: 15px; }
+  .tc-what { min-width: 0; padding-top: 0.2rem; }
+  .tc-act { margin: 0 0 0.3rem; font-size: 0.86rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tc-pills { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+  .tc-fb {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    color: #666;
+    margin: 0.35rem 0 0.15rem;
+  }
+  .tc-fb::before, .tc-fb::after { content: ""; flex: 1; height: 1px; background: #2a2a2a; }
+  .tc-row.is-fallback .tc-what { padding-top: 0.4rem; }
+  .tc-row.is-fallback .tc-act { margin: 0; }
+  /* while the press is evaluated: rules that don't fit dim, the winner lights */
+  .tc-row.is-skipped { opacity: 0.35; }
+  .tc-row.is-match {
+    background: rgba(255, 107, 0, 0.08);
+    border-color: rgba(255, 107, 0, 0.45);
+    box-shadow: 0 0 18px rgba(255, 107, 0, 0.18);
+  }
+  /* the confirmation banner the app posts when an action runs */
+  .tc-banner {
+    position: absolute;
+    left: 0.7rem;
+    right: 0.7rem;
+    top: 0.7rem;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: 20px;
+    background: rgba(44, 44, 46, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    transform: translateY(-12px) scale(0.96);
+    opacity: 0;
+    transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.25s ease;
+  }
+  .tc-demo.is-banner .tc-banner { transform: none; opacity: 1; }
+  .tc-banner img { width: 34px; height: 34px; border-radius: 8px; flex: none; }
+  .tc-banner p { margin: 0; font-size: 0.8rem; line-height: 1.3; min-width: 0; }
+  .tc-banner b { display: block; font-weight: 600; }
+  .tc-banner span { color: rgba(255, 255, 255, 0.75); }
+  .tc-banner time { margin-left: auto; align-self: flex-start; font-size: 0.68rem; color: rgba(255, 255, 255, 0.5); }
+  .tc-caption {
+    text-align: center;
+    color: var(--faint);
+    font-size: 0.85rem;
+    margin: 1rem auto 0;
+    max-width: 340px;
+  }
+
   /* ---------- tail (contact + footer) ---------- */
   .tail { max-width: 640px; margin: 0 auto; padding: 1rem 1.25rem 8rem; }
   .tail h2 { margin-top: 3.5rem; }
@@ -874,6 +1090,7 @@
     /* the live demos are JS-drawn — without it they're empty shells */
     .pg-demo, .pf-frame, .gd-watch, .bb-demo { display: none; }
     .pt-peerwave { display: none; }
+    .tc-now, .tc-banner { display: none; }
   </style>
 </noscript>
 </head>
@@ -887,6 +1104,7 @@
   <div class="amb amb-bikespec"></div>
   <div class="amb amb-bananabomb"></div>
   <div class="amb amb-parlato"></div>
+  <div class="amb amb-thumbcontrol"></div>
 </div>
 
 <main>
@@ -1195,6 +1413,61 @@
     </div>
   </section>
 
+  <!-- ================= ThumbControl (TestFlight beta) =================
+       When ThumbControl reaches the App Store, swap the .beta-cta block for a
+       store-badge link like the other chapters and drop the beta tag. -->
+  <section class="chapter" id="thumbcontrol" data-chapter="thumbcontrol" data-app="thumbcontrol">
+    <div class="chapter-inner">
+      <div class="chapter-copy">
+        <p class="chapter-kicker reveal"><b>07</b> · iPhone · Public beta</p>
+        <img class="app-icon chapter-icon vt-thumbcontrol reveal" src="assets/icon-thumbcontrol.jpg" alt="ThumbControl app icon" width="124" height="124" loading="lazy" decoding="async" style="--reveal-delay:.08s">
+        <h2 class="wordmark wm-thumbcontrol reveal" style="--reveal-delay:.16s">ThumbControl <span class="beta-tag">Beta</span></h2>
+        <p class="chapter-desc reveal" style="--reveal-delay:.3s">One button that does the right thing. ThumbControl makes your iPhone's Action Button context-aware: press it and it checks the time, where you are, what's connected and what's on your calendar, then runs the rule that fits. Music in the car, the TV remote on the couch, the lights down at bedtime. Describe a rule in plain English and Apple Intelligence builds it, right on your phone.</p>
+        <p class="chapter-links reveal" style="--reveal-delay:.38s">
+          <a href="thumbcontrol/">About</a>
+          <a href="thumbcontrol/support.html">Support</a>
+          <a href="thumbcontrol/ThumbControlPrivacyPolicy.html">Privacy</a>
+        </p>
+        <div class="beta-cta reveal" style="--reveal-delay:.44s">
+          <a class="beta-join" href="https://testflight.apple.com/join/KvbUzRVB">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            Join the TestFlight beta
+          </a>
+          <span class="beta-get">New to TestFlight? <a href="https://apps.apple.com/app/testflight/id899247664">Get the app first</a></span>
+        </div>
+        <p class="beta-note reveal" style="--reveal-delay:.5s">ThumbControl is in public testing ahead of its App Store release. Install Apple's free TestFlight app, then tap Join to get the latest build.</p>
+      </div>
+      <div class="chapter-art">
+        <div data-parallax="0.04">
+          <div class="reveal tc-wrap">
+            <div class="tc-now" id="tc-now" aria-hidden="true"><span class="tc-now-label">RIGHT NOW</span><span class="tc-pill c-time">10:30 PM</span><span class="tc-pill c-place">Home</span></div>
+            <div class="tc-demo" id="tc-demo" aria-hidden="true">
+              <span class="tc-side"></span>
+              <span class="tc-glow"></span>
+              <div class="tc-banner"><img src="assets/icon-thumbcontrol.jpg" alt="" width="34" height="34" loading="lazy" decoding="async"><p><b>Daily Life</b><span id="tc-msg">Activated Goodnight</span></p><time>now</time></div>
+              <p class="tc-brand">THUMBCONTROL</p>
+              <p class="tc-title">Home</p>
+              <div class="tc-card">
+                <p class="tc-active">ACTIVE</p>
+                <p class="tc-tool">Daily Life</p>
+                <p class="tc-tooldesc">Everyday rules for work and home</p>
+                <div class="tc-div"></div>
+                <p class="tc-cap">WHAT THE BUTTON WILL DO</p>
+              <div class="tc-row is-top" data-rule="0"><span class="tc-n">1</span><span class="tc-ic" style="--c:#30d158"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 3v12.5a3.5 3.5 0 1 1-2-3.16V7.3l-9 2.2v8a3.5 3.5 0 1 1-2-3.16V6.4z"/></svg></span><div class="tc-what"><p class="tc-act">Play Music</p><div class="tc-pills"><span class="tc-pill c-audio">AirPods</span><span class="tc-pill c-audio">CarPlay</span></div></div></div>
+              <div class="tc-row" data-rule="1"><span class="tc-n">2</span><span class="tc-ic" style="--c:#ff9f0a"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.2 2.5 11h2.6v9.3h5.3v-6h3.2v6h5.3V11h2.6z"/></svg></span><div class="tc-what"><p class="tc-act">Run Goodnight</p><div class="tc-pills"><span class="tc-pill c-time">9:00 PM – 7:00 AM</span><span class="tc-pill c-place">Home</span></div></div></div>
+              <div class="tc-row" data-rule="2"><span class="tc-n">3</span><span class="tc-ic" style="--c:#0a84ff"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></span><div class="tc-what"><p class="tc-act">Open Apple TV Remote</p><div class="tc-pills"><span class="tc-pill c-place">Home</span></div></div></div>
+              <div class="tc-row" data-rule="3"><span class="tc-n">4</span><span class="tc-ic" style="--c:#30d158"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01" stroke-width="3.4"/></svg></span><div class="tc-what"><p class="tc-act">Open Groceries</p><div class="tc-pills"><span class="tc-pill c-place">Supermarket</span></div></div></div>
+              <p class="tc-fb">FALLBACK</p>
+              <div class="tc-row is-fallback" data-rule="fallback"><span class="tc-n"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/><path d="M12 8v4l3 2"/></svg></span><span class="tc-ic" style="--c:#ff9f0a"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 2h10v4l-2.5 4.5V21a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1V10.5L7 6zm4 11v3h2v-3z"/></svg></span><div class="tc-what"><p class="tc-act">Toggle Flashlight</p></div></div>
+              </div>
+            </div>
+            <p class="tc-caption">Each press runs the first rule that fits right now, top to bottom, and the fallback when none do.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= all apps ================= -->
   <section class="strip-section" data-chapter="home">
     <h2>All apps</h2>
@@ -1205,6 +1478,7 @@
       <a class="glass specular" href="bananabomb/" data-app="bananabomb"><img class="app-icon" src="assets/icon-bananabomb.jpg" alt="" width="64" height="64" loading="lazy" decoding="async">BananaBomb</a>
       <a class="glass specular" href="bikespec/" data-app="bikespec"><img class="app-icon" src="assets/icon-bikespec.jpg" alt="" width="64" height="64" loading="lazy" decoding="async">BikeSpec</a>
       <a class="glass specular" href="parlato/" data-app="parlato"><img class="app-icon" src="assets/icon-parlato.jpg" alt="" width="64" height="64" loading="lazy" decoding="async">Parlato</a>
+      <a class="glass specular" href="thumbcontrol/" data-app="thumbcontrol"><img class="app-icon" src="assets/icon-thumbcontrol.jpg" alt="" width="64" height="64" loading="lazy" decoding="async">ThumbControl</a>
     </div>
   </section>
 
@@ -1220,7 +1494,7 @@
 
 </main>
 
-<script src="dock.js?v=10" id="jza-dock-script"></script>
-<script src="main.js?v=12"></script>
+<script src="dock.js?v=11" id="jza-dock-script"></script>
+<script src="main.js?v=13"></script>
 </body>
 </html>

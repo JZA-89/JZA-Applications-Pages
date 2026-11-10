@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ThumbControl — Your button, your rules.</title>
+<meta name="description" content="ThumbControl makes your iPhone's Action Button context-aware: one press runs the right action for the time, place and moment. Now in public beta on TestFlight.">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="icon" type="image/png" href="../assets/icon-thumbcontrol.jpg">
+<link rel="stylesheet" href="../site.css?v=14">
+<style>
+  .muted { color: var(--muted); }
+  .beta-tag {
+    font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700;
+    letter-spacing: 0.18em; text-transform: uppercase; vertical-align: middle;
+    padding: 0.25rem 0.55rem; border-radius: 999px; margin-left: 0.5rem;
+    color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+  .beta-join {
+    display: inline-block; padding: 0.9rem 1.3rem; border-radius: 14px;
+    background: #fff; color: #111; font-weight: 700;
+  }
+  .beta-join:hover { text-decoration: none; opacity: 0.9; }
+  ul { margin: 0 0 1rem; padding-left: 1.25rem; color: var(--muted); }
+  li { margin-bottom: .35rem; }
+</style>
+</head>
+<body data-app="thumbcontrol">
+<main>
+  <header class="masthead">
+    <img class="app-icon vt-thumbcontrol" src="../assets/icon-thumbcontrol.jpg" alt="" width="76" height="76">
+    <div>
+      <h1 class="wordmark wm-thumbcontrol">ThumbControl<span class="beta-tag">Beta</span></h1>
+      <p class="tagline">Your button, your rules.</p>
+    </div>
+  </header>
+
+  <p>ThumbControl makes your iPhone's Action Button context-aware. Instead of doing one fixed thing, a press checks what's going on right now (the time, where you are, what's connected, what's on your calendar) and runs the action that fits.</p>
+  <p class="muted">Play music when your AirPods are in. Open the TV remote when you're home. Dim the house at bedtime. Open the shopping list at the supermarket. Same button, every time.</p>
+
+  <h2>How it works</h2>
+  <div class="card">
+    <h3>Rules, checked top to bottom</h3>
+    <p>A tool is a list of rules. Each rule pairs one or more conditions with one or more actions. When you press the button, ThumbControl checks the rules in order and runs the first one that fits. If none do, it runs your fallback.</p>
+  </div>
+  <div class="card">
+    <h3>Tools for different parts of life</h3>
+    <p>Keep separate tools, say Daily Life and Holiday, and switch between them with a tap. Only the active tool answers the button.</p>
+  </div>
+
+  <h2>Build rules in plain English</h2>
+  <div class="card">
+    <h3>Describe it, and it's built</h3>
+    <p>Type something like "play music when I'm driving" and ThumbControl turns it into a rule, ready to check and add. It runs on Apple Intelligence, on your phone, so nothing you type is sent anywhere. Prefer full control? Build any rule by hand.</p>
+  </div>
+
+  <h2>Conditions</h2>
+  <ul>
+    <li>Time of day</li>
+    <li>Location: near a place you choose, or your saved Home and Work</li>
+    <li>Calendar: during an event, outside one, or just before one</li>
+    <li>Activity: walking, running, driving or still</li>
+    <li>Audio: AirPods, CarPlay, Bluetooth, wired headphones or the speaker</li>
+    <li>How the phone is held: portrait, landscape, face up or face down</li>
+    <li>Battery level and charging</li>
+    <li>Network: Wi-Fi (or a particular network), cellular, or none</li>
+    <li>Whether music is playing</li>
+  </ul>
+  <p class="muted">Combine conditions so they all have to be true, offer alternatives, or add exceptions ("but not when…").</p>
+
+  <h2>Actions</h2>
+  <ul>
+    <li>Play an Apple Music playlist or station</li>
+    <li>Run a HomeKit scene</li>
+    <li>Run any Shortcut</li>
+    <li>Open an app, a Reminders list or a website</li>
+    <li>Jump straight to the camera, Wallet, Voice Memos, or Clock's timer and alarms</li>
+    <li>Navigate somewhere in Maps</li>
+    <li>Start a call or a message to a contact</li>
+    <li>Log water, weight or mindful minutes to Apple Health</li>
+    <li>Toggle the flashlight</li>
+  </ul>
+  <p class="muted">A rule can run several actions in a row.</p>
+
+  <h2>More than the Action Button</h2>
+  <div class="card">
+    <h3>Run it from anywhere</h3>
+    <p>Trigger your active tool from the Action Button, Back Tap, Siri ("Run ThumbControl"), the Shortcuts app or the Home Screen widget. A Test button shows exactly which rule would fire right now and why, and the History screen keeps a record of recent presses.</p>
+  </div>
+
+  <h2>Your data</h2>
+  <p class="muted">No account, no servers, no analytics. Your rules and history stay on your phone, and ThumbControl only checks your situation when you press the button. Read the <a href="ThumbControlPrivacyPolicy.html">privacy policy</a>.</p>
+
+  <h2>Requirements</h2>
+  <p class="muted">iPhone with iOS 26. The Action Button is on iPhone 15 Pro and later; on other iPhones, use Back Tap, Siri or the widget. Building rules in plain English needs an iPhone that supports Apple Intelligence.</p>
+
+  <h2>Join the beta</h2>
+  <p>ThumbControl is in public testing on TestFlight ahead of its App Store release. Install Apple's free <a href="https://apps.apple.com/app/testflight/id899247664">TestFlight app</a>, then tap the button below on your iPhone.</p>
+  <p><a class="beta-join" href="https://testflight.apple.com/join/KvbUzRVB">Join the TestFlight beta</a></p>
+  <p class="muted">Feedback makes the biggest difference: send it from TestFlight, or email <a href="mailto:jza.applications@gmail.com">jza.applications@gmail.com</a>.</p>
+
+  <footer>
+    <a href="support.html">Support</a>
+    <a href="ThumbControlPrivacyPolicy.html">Privacy Policy</a>
+    <a href="../">All apps</a>
+    <span>© 2026 JZA Applications</span>
+  </footer>
+</main>
+<script src="../dock.js?v=11" id="jza-dock-script"></script>
+</body>
+</html>

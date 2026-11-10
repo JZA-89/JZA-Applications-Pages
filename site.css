@@ -145,6 +145,27 @@
   --font-display: var(--font-rounded);
 }
 
+[data-app="thumbcontrol"] {
+  /* The app's palette (Utilities/Theme.swift in the ThumbControl repo):
+     near-black surfaces, one hot orange accent, semantic colours on the
+     condition pills and action icons. */
+  --bg: #0a0a0a;
+  --fg: #f0f0f0;
+  --muted: #a3a3a3; /* the app's #999, a hair lighter for body text on the web */
+  --faint: #8a8a8a;
+  --accent: #ff6b00;
+  --accent-contrast: #0a0a0a;
+  --rule: #2a2a2a;
+  --glass-fill: #141414;
+  --glass-fill-strong: #1c1c1c;
+  --glass-edge: #2a2a2a;
+  --glow-1: rgba(255, 107, 0, 0.16);
+  --glow-2: rgba(191, 90, 242, 0.07);
+  --radius-lg: 16px;
+  --radius-md: 14px;
+  --font-display: var(--font-body);
+}
+
 /* --------------------------------------------------------------------------
    Base
    -------------------------------------------------------------------------- */
@@ -372,6 +393,15 @@ main h2 {
   letter-spacing: -0.01em;
 }
 
+/* Black-weight caps in orange, tracked wide, as on the app's Home header */
+.wm-thumbcontrol {
+  font-family: var(--font-body);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #ff6b00;
+}
+
 /* --------------------------------------------------------------------------
    Footer
    -------------------------------------------------------------------------- */
@@ -569,14 +599,17 @@ footer a {
   transform: translateY(calc(var(--dock-lift, 0px) + 2px)) scale(var(--dock-scale, 1));
 }
 
+/* Phones: the icons share the screen width so all eight (JZA + 7 apps) fit
+   with a margin each side — 44px at most, ~36px on a 390px iPhone. When an
+   app is added, change the 8 here to the new number of dock items. */
 @media (max-width: 480px) {
   .jza-dock a {
-    width: 44px;
-    height: 44px;
+    width: min(44px, calc((100vw - 3.5rem) / 8 - 0.35rem));
+    height: min(44px, calc((100vw - 3.5rem) / 8 - 0.35rem));
   }
 
   .jza-dock {
-    gap: 0.45rem;
+    gap: 0.35rem;
     padding: 0.5rem 0.65rem;
   }
 }
@@ -697,6 +730,7 @@ body[data-app]::before {
 .vt-bikespec { view-transition-name: icon-bikespec; }
 .vt-bananabomb { view-transition-name: icon-bananabomb; }
 .vt-parlato { view-transition-name: icon-parlato; }
+.vt-thumbcontrol { view-transition-name: icon-thumbcontrol; }
 
 /* --------------------------------------------------------------------------
    Reduced motion — kill the show, keep the content

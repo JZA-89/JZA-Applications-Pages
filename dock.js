@@ -25,6 +25,7 @@
     { path: "bananabomb/", label: "BananaBomb", slug: "bananabomb" },
     { path: "bikespec/", label: "BikeSpec", slug: "bikespec" },
     { path: "parlato/", label: "Parlato (beta)", slug: "parlato" },
+    { path: "thumbcontrol/", label: "ThumbControl (beta)", slug: "thumbcontrol" },
   ];
 
   var dock = document.createElement("nav");
