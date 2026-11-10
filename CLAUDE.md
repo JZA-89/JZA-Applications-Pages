@@ -16,7 +16,7 @@ The portfolio site for JZA Applications, Jaisah's indie iOS/watchOS studio. Live
 - **Never set `overflow-x` on `html` or `body`.** It breaks the homepage scroll snapping. Clip overflow on the container instead (`.chapter` does this).
 - **Every animation must:** respect `prefers-reduced-motion` (show a still frame instead), pause when offscreen (IntersectionObserver), and stay light enough for an older iPhone.
 - **Privacy policies and App Store links matter legally and commercially.** Policy text must match what the app actually does: check the app's code. Don't remove or rename existing pages. App Store Connect links to their exact URLs (`<app>/support.html`, `<app>/<Name>PrivacyPolicy.html`); a renamed file breaks a live listing.
-- **Cache-busting:** CSS and JS are linked with `?v=N` (e.g. `site.css?v=14`, `dock.js?v=11`, `main.js?v=13`). When you change one of these files, bump its number **in every HTML file that links it**: the homepage and all `<app>/*.html` pages. Check with `grep -rho "site.css?v=[0-9]*\|dock.js?v=[0-9]*\|main.js?v=[0-9]*" --include=*.html . | sort | uniq -c`; each file should show a single version.
+- **Cache-busting:** CSS and JS are linked with `?v=N` (e.g. `site.css?v=14`, `dock.js?v=11`, `main.js?v=14`). When you change one of these files, bump its number **in every HTML file that links it**: the homepage and all `<app>/*.html` pages. Check with `grep -rho "site.css?v=[0-9]*\|dock.js?v=[0-9]*\|main.js?v=[0-9]*" --include=*.html . | sort | uniq -c`; each file should show a single version.
 
 ## Structure
 

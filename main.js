@@ -1210,10 +1210,11 @@
      11. ThumbControl — replica of the app's Home screen. The situation
          changes, the Action Button is pressed, the rules are checked top
          to bottom and the first one that fits lights up (the fallback
-         when none do). Background actions (music, home scenes) post the
-         app's confirmation banner, as the app does; actions that open
+         when none do). Background actions (music, home scenes, Health)
+         post the app's confirmation banner, as the app does; actions that open
          another app don't. Static frame for reduced motion; paused
-         offscreen.
+         offscreen. Only show actions that work from a press: the torch
+         is blocked in the background by iOS, so it's never shown here.
      ------------------------------------------------------------------ */
   var tcDemo = document.getElementById("tc-demo");
   if (tcDemo) {
@@ -1228,7 +1229,7 @@
       { now: [["t", "6:40 PM"], ["p", "Home"]], win: 2 },
       { now: [["t", "10:30 PM"], ["p", "Home"]], win: 1, msg: "Activated Goodnight" },
       { now: [["t", "5:15 PM"], ["p", "Supermarket"]], win: 3 },
-      { now: [["t", "11:20 PM"], ["m", "Walking"]], win: 4 }
+      { now: [["t", "2:30 PM"], ["p", "Work"]], win: 4, msg: "Logged Water Intake: 250ml" }
     ];
     var TC_SCENE = 4.6; /* seconds per scene */
     var tcShown = -1;
