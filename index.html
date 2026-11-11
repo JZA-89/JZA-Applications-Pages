@@ -17,7 +17,7 @@
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="site.css?v=15">
+<link rel="stylesheet" href="site.css?v=16">
 <style>
   /* ---------- index-only layout ---------- */
   main { max-width: none; padding: 0; }
@@ -921,81 +921,192 @@
     .bs-dev { font-size: 10.5px; }
   }
 
-  /* BananaBomb — card-feed replica: photo cards of Barry stack like the
-     app's review deck; the top card gets stamped PEEL or BOMB, flies
-     off, and the counters tick (main.js drives the cycle). Stack
-     geometry, stamps and palette match the app. */
-  .bb-demo { max-width: 330px; margin: 0 auto; }
-  .bb-pill {
+  /* BananaBomb — replica of the app's review screen on an iPhone (393 x
+     852 pt, sizes in points x --k). Header pill (Barry popping out of it,
+     "BananaBomb" in the yellow gradient, Banana Brain %, stacked keep and
+     bomb counters, library and storage pills, gear), the card stack of
+     the user's photos (front card pinned above the toolbar at its own
+     aspect ratio, back cards fanned up, scale 0.9/0.8 from the top, blur
+     2/4), PEEL / BOMB / SKIP stamps, and the four-button toolbar.
+     Colours are AppTheme. Barry's pose follows the photo's category, as
+     the app's fallback does. main.js §6 runs the session. */
+  .bb-demo {
+    --k: min(0.7px, calc((100vw - 32px) / 393), calc((100vh - 150px) / 852));
     position: relative;
-    z-index: 20;
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
-    width: max-content;
-    margin: 0 auto 1.1rem;
-    padding: 0.42rem 0.85rem;
-    border-radius: 999px;
-    background: rgba(53, 46, 37, 0.72);
-    -webkit-backdrop-filter: blur(16px) saturate(1.5);
-    backdrop-filter: blur(16px) saturate(1.5);
-    border: 1px solid rgba(255, 214, 10, 0.32);
+    width: calc(var(--k) * 393);
+    height: calc(var(--k) * 852);
+    margin: 0 auto;
+    border-radius: calc(var(--k) * 58);
+    background: #211e19;
+    box-shadow: 0 0 0 calc(var(--k) * 9) #141210, 0 0 0 calc(var(--k) * 10.5) #2e2a24,
+                0 calc(var(--k) * 30) calc(var(--k) * 70) rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    color: #fff;
   }
-  .bb-pill-title { font-size: 0.88rem; font-weight: 700; color: #ffd60a; }
+  .bb-island {
+    position: absolute; top: calc(var(--k) * 11); left: 50%; transform: translateX(-50%);
+    width: calc(var(--k) * 124); height: calc(var(--k) * 36); border-radius: 999px; background: #000; z-index: 9;
+  }
+  .bb-status {
+    position: absolute; top: calc(var(--k) * 19); left: calc(var(--k) * 46); right: calc(var(--k) * 34); z-index: 8;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: calc(var(--k) * 17); font-weight: 600;
+  }
+  .bb-status svg { height: calc(var(--k) * 13); width: auto; }
+  /* header pill: material capsule, yellow gradient edge */
+  .bb-pill {
+    position: absolute; top: calc(var(--k) * 66); left: calc(var(--k) * 12); right: calc(var(--k) * 12); z-index: 6;
+    display: flex; align-items: center; gap: calc(var(--k) * 10);
+    padding: calc(var(--k) * 10) calc(var(--k) * 14);
+    border-radius: 999px;
+    background: rgba(70, 62, 50, 0.55);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3); backdrop-filter: blur(16px) saturate(1.3);
+  }
+  .bb-pill::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+    background: linear-gradient(135deg, rgba(255, 214, 10, 0.5), rgba(255, 214, 10, 0.15), rgba(255, 214, 10, 0.05));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+  }
+  .bb-barry { position: relative; width: calc(var(--k) * 36); height: calc(var(--k) * 36); flex: none; }
+  .bb-barry img {
+    position: absolute; width: calc(var(--k) * 86); height: calc(var(--k) * 86);
+    left: calc(var(--k) * -19); top: calc(var(--k) * -39);
+    transition: opacity 0.2s ease, transform 0.25s ease;
+  }
+  .bb-barry img.is-swap { opacity: 0; transform: scale(0.85); }
+  .bb-titles { flex: 1; min-width: 0; }
+  .bb-pill-title {
+    display: block; font-size: calc(var(--k) * 15); font-weight: 700; line-height: 1.2;
+    background: linear-gradient(90deg, #ffd60a, rgba(255, 214, 10, 0.7));
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .bb-brain { display: block; font-size: calc(var(--k) * 11); color: #aeaeb2; margin-top: calc(var(--k) * 2); white-space: nowrap; }
+  .bb-counts { display: flex; flex-direction: column; align-items: flex-end; gap: calc(var(--k) * 4); }
   .bb-count {
-    font-size: 0.78rem;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    padding: 0.14rem 0.5rem;
-    border-radius: 999px;
-    transition: background 0.15s ease;
+    display: flex; align-items: center; gap: calc(var(--k) * 4);
+    padding: calc(var(--k) * 2) calc(var(--k) * 6); border-radius: 999px;
+    font-size: calc(var(--k) * 12); font-weight: 700; font-variant-numeric: tabular-nums;
+    transition: background-color 0.15s ease-out;
   }
-  .bb-count b { font-weight: 700; }
-  .bb-keep { color: #30d158; background: rgba(48, 209, 88, 0.14); }
-  .bb-bomb { color: #ff453a; background: rgba(255, 69, 58, 0.14); }
-  .bb-keep.flash { background: rgba(48, 209, 88, 0.38); }
-  .bb-bomb.flash { background: rgba(255, 69, 58, 0.38); }
-  .bb-stage { position: relative; height: min(400px, 88vw); }
+  .bb-count svg { width: calc(var(--k) * 12); height: calc(var(--k) * 12); }
+  .bb-keep { color: #30d158; }
+  .bb-bomb { color: #ff453a; }
+  .bb-keep.flash { background: rgba(48, 209, 88, 0.25); }
+  .bb-bomb.flash { background: rgba(255, 69, 58, 0.25); }
+  .bb-pills { display: flex; flex-direction: column; gap: calc(var(--k) * 3); }
+  .bb-mini {
+    display: flex; align-items: center; gap: calc(var(--k) * 4);
+    padding: calc(var(--k) * 3) calc(var(--k) * 6); border-radius: 999px;
+    font-size: calc(var(--k) * 11); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .bb-mini svg { width: calc(var(--k) * 10); height: calc(var(--k) * 10); }
+  .bb-lib { color: #ffd60a; background: rgba(255, 214, 10, 0.15); }
+  .bb-saved { color: #30d158; background: rgba(48, 209, 88, 0.15); }
+  .bb-gear {
+    width: calc(var(--k) * 32); height: calc(var(--k) * 32); border-radius: 50%; flex: none;
+    display: grid; place-items: center; background: rgba(255, 255, 255, 0.08); color: #aeaeb2;
+  }
+  .bb-gear svg { width: calc(var(--k) * 16); height: calc(var(--k) * 16); }
+  /* Barry's speech bubble: black 75%, bold 12pt. In the app it floats above
+     the header; here it hangs just below it, clear of the phone's island. */
+  .bb-quip {
+    position: absolute; z-index: 20; left: calc(var(--k) * 40); right: calc(var(--k) * 60); top: calc(var(--k) * 132);
+    padding: calc(var(--k) * 8) calc(var(--k) * 12) calc(var(--k) * 8) calc(var(--k) * 14);
+    border-radius: calc(var(--k) * 14);
+    background: rgba(0, 0, 0, 0.75);
+    font-size: calc(var(--k) * 12); font-weight: 700; line-height: 1.3;
+    opacity: 0; transform: scale(0.5); transform-origin: 0 0;
+    transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.3, 1.4, 0.5, 1);
+  }
+  .bb-quip::after {
+    content: ""; position: absolute; left: calc(var(--k) * 12); top: calc(var(--k) * -9);
+    width: calc(var(--k) * 14); height: calc(var(--k) * 10);
+    background: rgba(0, 0, 0, 0.75); clip-path: polygon(0 0, 100% 100%, 30% 100%);
+  }
+  .bb-quip.show { opacity: 1; transform: none; }
+  /* the card stage, between the header and the toolbar */
+  .bb-stage { position: absolute; left: 0; right: 0; top: calc(var(--k) * 132); height: calc(var(--k) * 578); overflow: hidden; }
   .bb-card {
-    position: absolute;
-    left: 50%;
-    bottom: 0;
-    width: 76%;
-    margin-left: -38%;
-    transform-origin: top center;
-    border-radius: 16px;
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
-    transition:
-      transform 0.5s cubic-bezier(0.25, 1.15, 0.4, 1),
-      filter 0.5s ease,
-      opacity 0.35s ease;
-  }
-  .bb-card img {
-    width: 100%;
-    height: auto;
-    display: block;
-    border-radius: 16px;
+    position: absolute; left: calc(var(--k) * 20); right: calc(var(--k) * 20); top: 0;
+    border-radius: calc(var(--k) * 16); overflow: hidden;
+    transform-origin: 50% 0;
+    transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.3, 1), filter 0.4s ease, opacity 0.3s ease;
+    box-shadow: 0 calc(var(--k) * 8) calc(var(--k) * 24) rgba(0, 0, 0, 0.35);
     background: #433a30;
   }
+  .bb-card svg.bb-photo { display: block; width: 100%; height: 100%; }
   .bb-stamp {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    opacity: 0;
-    transition: opacity 0.55s ease;
-    pointer-events: none;
-  }
-  .bb-stamp span {
-    font: 900 1.9rem/1 var(--font-body);
-    letter-spacing: 0.02em;
-    padding: 9px 13px;
-    border-radius: 8px;
-    border: 4px solid;
+    position: absolute; inset: 0; display: grid; place-items: center;
+    opacity: 0; transition: opacity 0.35s ease; pointer-events: none;
   }
   .bb-stamp.show { opacity: 1; }
+  .bb-stamp span {
+    font-size: calc(var(--k) * 36); font-weight: 900; letter-spacing: 0.02em;
+    padding: calc(var(--k) * 12); border: calc(var(--k) * 4) solid; border-radius: calc(var(--k) * 8);
+  }
   .bb-stamp.peel span { color: #ffd60a; border-color: #ffd60a; transform: rotate(-15deg); }
   .bb-stamp.bomb span { color: #e8600a; border-color: #e8600a; transform: rotate(15deg); }
+  .bb-stamp.skip span { color: #8e8e93; border: 0; display: flex; flex-direction: column; align-items: center; font-size: calc(var(--k) * 28); }
+  .bb-stamp.skip span svg { width: calc(var(--k) * 36); height: calc(var(--k) * 36); }
+  .bb-bunch {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    display: flex; align-items: center; gap: calc(var(--k) * 10);
+    padding: calc(var(--k) * 12) calc(var(--k) * 16);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.5) 60%, transparent);
+  }
+  .bb-bunch img { width: calc(var(--k) * 36); height: calc(var(--k) * 36); }
+  .bb-bunch b { display: block; font-size: calc(var(--k) * 15); }
+  .bb-bunch small { display: block; font-size: calc(var(--k) * 12); color: rgba(255, 255, 255, 0.7); }
+  .bb-bunch i { margin-left: auto; font-style: normal; font-weight: 700; color: rgba(255, 255, 255, 0.5); font-size: calc(var(--k) * 14); }
+  /* the toolbar: Bomb, Skip, Undo, Peel */
+  .bb-bar {
+    position: absolute; left: 0; right: 0; top: calc(var(--k) * 722);
+    display: flex; justify-content: space-evenly; align-items: center;
+  }
+  .bb-btn {
+    display: grid; place-items: center; border-radius: 50%;
+    width: calc(var(--k) * 48); height: calc(var(--k) * 48);
+    background: rgba(142, 142, 147, 0.15); color: #8e8e93;
+    transition: transform 0.15s ease, filter 0.15s ease;
+  }
+  .bb-btn svg { width: calc(var(--k) * 18); height: calc(var(--k) * 18); }
+  .bb-btn.big { width: calc(var(--k) * 64); height: calc(var(--k) * 64); }
+  .bb-btn.big img { width: calc(var(--k) * 48); height: calc(var(--k) * 48); }
+  .bb-btn.bomb { background: rgba(232, 96, 10, 0.3); }
+  .bb-btn.peel { background: rgba(255, 214, 10, 0.15); }
+  .bb-btn.is-press { transform: scale(0.88); filter: brightness(1.35); }
+  .bb-btn.off { opacity: 0.3; }
+  .bb-home {
+    position: absolute; bottom: calc(var(--k) * 8); left: 50%; transform: translateX(-50%);
+    width: calc(var(--k) * 140); height: calc(var(--k) * 5); border-radius: 999px; background: rgba(255, 255, 255, 0.6);
+  }
+  /* "Bomb this Bunch?" — the app's own themed confirmation */
+  .bb-confirm {
+    position: absolute; inset: 0; z-index: 10;
+    display: grid; place-items: center; padding: 0 calc(var(--k) * 40);
+    background: rgba(0, 0, 0, 0.6);
+    opacity: 0; transition: opacity 0.25s ease; pointer-events: none;
+  }
+  .bb-confirm.show { opacity: 1; }
+  .bb-confirm > div {
+    text-align: center; padding: calc(var(--k) * 24);
+    border-radius: calc(var(--k) * 20); background: #352e25; border: 1px solid rgba(255, 69, 58, 0.3);
+    transform: scale(0.92); transition: transform 0.25s ease;
+  }
+  .bb-confirm.show > div { transform: none; }
+  .bb-confirm svg.bb-ci { width: calc(var(--k) * 40); height: calc(var(--k) * 40); color: #ff453a; }
+  .bb-confirm b { display: block; margin-top: calc(var(--k) * 16); font-size: calc(var(--k) * 20); }
+  .bb-confirm p { margin: calc(var(--k) * 16) 0; font-size: calc(var(--k) * 15); color: #aeaeb2; line-height: 1.3; }
+  .bb-confirm span {
+    display: block; padding: calc(var(--k) * 12); border-radius: calc(var(--k) * 14);
+    font-size: calc(var(--k) * 15); font-weight: 700; transition: filter 0.15s ease, transform 0.15s ease;
+  }
+  .bb-confirm .go { background: #ff453a; color: #fff; }
+  .bb-confirm .go.is-press { filter: brightness(1.2); transform: scale(0.97); }
+  .bb-confirm .no { margin-top: calc(var(--k) * 10); background: rgba(255, 255, 255, 0.08); color: #aeaeb2; }
+  .bb-caption { text-align: center; color: var(--faint); font-size: 0.85rem; margin: 1.2rem auto 0; max-width: 24rem; }
 
   /* ---------- finale: "All apps" + contact, one full screen ---------- */
   /* Grouped so the last snap point fills the viewport like a chapter does,
@@ -1405,7 +1516,7 @@
   <style>
     .reveal { opacity: 1; transform: none; }
     /* the live demos are JS-drawn — without it they're empty shells */
-    .pg-demo, .pf-frame, .gd-art, .bb-demo { display: none; }
+    .pg-demo, .pf-frame, .gd-art, .bb-wrap { display: none; }
     .pt-peerwave { display: none; }
     .tc-now, .tc-banner { display: none; }
   </style>
@@ -1661,8 +1772,8 @@
       <div class="chapter-copy">
         <p class="chapter-kicker reveal"><b>04</b> · iPhone</p>
         <img class="app-icon chapter-icon vt-bananabomb reveal" src="assets/icon-bananabomb.jpg" alt="BananaBomb app icon" width="124" height="124" loading="lazy" decoding="async" style="--reveal-delay:.08s">
-        <h2 class="wordmark wm-bananabomb reveal" style="--reveal-delay:.16s">Banana<span style="color:#fff">Bomb</span></h2>
-        <p class="chapter-desc reveal" style="--reveal-delay:.3s">Swipe-based photo cleaning with on-device AI — peel the keepers, bomb the rest, reclaim your storage. Barry supervises.</p>
+        <h2 class="wordmark wm-bananabomb reveal" style="--reveal-delay:.16s">BananaBomb</h2>
+        <p class="chapter-desc reveal" style="--reveal-delay:.3s">Clear out your photo library one swipe at a time. BananaBomb shows your worst photos first: blurry shots, old screenshots and near-duplicate bunches. Peel the keepers, bomb the rest, and it learns your taste as you go, all on your iPhone. Barry supervises.</p>
         <p class="chapter-links reveal" style="--reveal-delay:.38s">
           <a href="bananabomb/">About</a>
           <a href="bananabomb/support.html">Support</a>
@@ -1672,18 +1783,40 @@
       </div>
       <div class="chapter-art">
         <div data-parallax="0.04">
-          <div class="bb-demo reveal" id="bb-demo" aria-hidden="true">
+          <div class="bb-wrap reveal">
+          <div class="bb-demo" id="bb-demo" aria-hidden="true">
+            <div class="bb-island"></div>
+            <div class="bb-status"><span>9:41</span><svg viewBox="0 0 66 13" fill="currentColor"><rect x="0" y="8" width="3" height="5" rx="1"/><rect x="5" y="5.5" width="3" height="7.5" rx="1"/><rect x="10" y="3" width="3" height="10" rx="1"/><rect x="15" y="0.5" width="3" height="12.5" rx="1"/><path d="M31 3.2a9 9 0 0 1 11 0l-1.3 1.5a7 7 0 0 0-8.4 0zM33.6 6.2a5 5 0 0 1 5.8 0l-1.3 1.5a3 3 0 0 0-3.2 0zM36.5 9.3l1.4 1.6-1.4 1.6-1.4-1.6z"/><rect x="45.5" y="1" width="18" height="11" rx="3.2" fill="none" stroke="currentColor" stroke-opacity=".45"/><rect x="47.5" y="3" width="11" height="7" rx="1.6"/><rect x="64.5" y="4.5" width="1.5" height="4" rx=".7" fill-opacity=".45"/></svg></div>
+            <div class="bb-quip" id="bb-quip"></div>
             <div class="bb-pill">
-              <span class="bb-pill-title">BananaBomb</span>
-              <span class="bb-count bb-keep">🍌 <b id="bb-kept">0</b></span>
-              <span class="bb-count bb-bomb">💣 <b id="bb-bombed">0</b></span>
+              <span class="bb-barry"><img id="bb-barry" src="assets/barry-screenshot.png" alt="" width="200" height="200" decoding="async"></span>
+              <span class="bb-titles"><span class="bb-pill-title">BananaBomb</span><span class="bb-brain">Banana Brain: 72%</span></span>
+              <span class="bb-counts">
+                <span class="bb-count bb-keep"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 3.5c.8 1 .9 3 .2 5.3C19.2 14 14 18.7 8 19.6c-2.4.4-4.3 0-5.3-.8 2.6.1 5.6-.7 8.3-2.6 3.6-2.6 6.2-6.7 6.9-10.6.2-.9.3-1.7.2-2.4.8-.1 1.6 0 2.4.3z"/></svg><b id="bb-kept">214</b></span>
+                <span class="bb-count bb-bomb"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="10" cy="14" r="7.5"/><path d="M14.5 7.5 16.6 5.4l2 2-2.1 2.1z"/><path d="M17.8 4.6c.6-1.4 1.8-2 3.2-1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><b id="bb-bombed">387</b></span>
+              </span>
+              <span class="bb-pills">
+                <span class="bb-mini bb-lib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M6 4h12"/></svg>38%</span>
+                <span class="bb-mini bb-saved"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="2" y="8" width="20" height="10" rx="2"/><path d="M8 4h8"/></svg>2.4 GB</span>
+              </span>
+              <span class="bb-gear"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.3 2h3.4l.5 2.6 1.6.7 2.2-1.5 2.4 2.4-1.5 2.2.7 1.6 2.6.5v3.4l-2.6.5-.7 1.6 1.5 2.2-2.4 2.4-2.2-1.5-1.6.7-.5 2.6h-3.4l-.5-2.6-1.6-.7-2.2 1.5-2.4-2.4 1.5-2.2-.7-1.6L2 13.7v-3.4l2.6-.5.7-1.6-1.5-2.2 2.4-2.4 2.2 1.5 1.6-.7zM12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"/></svg></span>
             </div>
-            <div class="bb-stage" id="bb-stage">
-              <div class="bb-card"><img src="assets/barry-lean.png" alt="" width="426" height="640" loading="lazy" decoding="async"><span class="bb-stamp"><span></span></span></div>
-              <div class="bb-card"><img src="assets/barry-flex.png" alt="" width="640" height="640" loading="lazy" decoding="async"><span class="bb-stamp"><span></span></span></div>
-              <div class="bb-card"><img src="assets/barry-cheer.png" alt="" width="640" height="640" loading="lazy" decoding="async"><span class="bb-stamp"><span></span></span></div>
-              <div class="bb-card"><img src="assets/barry-peel.png" alt="" width="640" height="640" loading="lazy" decoding="async"><span class="bb-stamp"><span></span></span></div>
+            <div class="bb-stage" id="bb-stage"></div>
+            <div class="bb-bar">
+              <span class="bb-btn big bomb" data-b="bomb"><img src="assets/bb-bomb.png" alt="" width="200" height="200" decoding="async"></span>
+              <span class="bb-btn" data-b="skip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M5 13l7 7 7-7"/></svg></span>
+              <span class="bb-btn" data-b="undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></span>
+              <span class="bb-btn big peel" data-b="peel"><img src="assets/bb-peel-btn.png" alt="" width="200" height="200" decoding="async"></span>
             </div>
+            <div class="bb-home"></div>
+            <div class="bb-confirm" id="bb-confirm"><div>
+              <svg class="bb-ci" viewBox="0 0 24 24" fill="currentColor"><circle cx="10" cy="14" r="7.5"/><path d="M14.5 7.5 16.6 5.4l2 2-2.1 2.1z"/><path d="M17.8 4.6c.6-1.4 1.8-2 3.2-1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              <b>Bomb this Bunch?</b>
+              <p>This will delete all 3 photos in this bunch. You can review them individually by tapping the card instead.</p>
+              <span class="go">Bomb All</span><span class="no">Cancel</span>
+            </div></div>
+          </div>
+          <p class="bb-caption">Worst photos first. Swipe right to peel, left to bomb, down to skip. Near-duplicates come as one bunch.</p>
           </div>
         </div>
       </div>
@@ -1895,6 +2028,6 @@
 </main>
 
 <script src="dock.js?v=11" id="jza-dock-script"></script>
-<script src="main.js?v=16"></script>
+<script src="main.js?v=17"></script>
 </body>
 </html>

@@ -395,8 +395,15 @@ main h2 {
   -webkit-text-fill-color: transparent;
 }
 
+/* As in the app's header: bold system face, yellow fading to 70%. */
 .wm-bananabomb {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  font-weight: 800;
   color: #ffd60a;
+  background: linear-gradient(90deg, #ffd60a, rgba(255, 214, 10, 0.7));
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* Bold rounded, white, as on the app's Home screen */

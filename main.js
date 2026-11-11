@@ -575,97 +575,177 @@
   }
 
   /* ------------------------------------------------------------------
-     6. BananaBomb card feed — replica of the app's review deck: three
-        stacked photo cards (scale 1/.9/.8 anchored top, blur 0/2/4),
-        the front card gets a PEEL or BOMB stamp fading in with the
-        drag, flies off fast with no rotation (like the app), and the
-        header counters tick with a 150ms tint flash.
+     6. BananaBomb — the app's review screen on an iPhone. Photo cards
+        (drawn here, standing in for the visitor's own library) are
+        served worst-first: a sunset, an old screenshot, a dark pocket
+        shot, a dinner, then a bunch of three near-duplicates. Each card
+        sits at its own aspect ratio, pinned above the toolbar with the
+        back cards fanned up (Cardstackview.cardOffsets: scale 0.9/0.8
+        from the top, blur 2/4). Barry's pose follows the photo's
+        category, as the app's fallback does; on Apple Intelligence
+        devices he also speaks (the bubble). Peel flies right, bomb left
+        (no rotation), skip down; a bunch is bombed from the toolbar
+        through "Bomb this Bunch?" and leaves rotated −20°, the app's
+        move. Counters tick with a 150ms tint flash. Reduced motion
+        shows the first card at rest; paused offscreen.
      ------------------------------------------------------------------ */
-  var bbStage = document.getElementById("bb-stage");
-  if (bbStage) {
-    var bbCards = Array.prototype.slice.call(bbStage.querySelectorAll(".bb-card"));
-    var bbKept = document.getElementById("bb-kept");
-    var bbBombed = document.getElementById("bb-bombed");
-    var bbKeepPill = document.querySelector(".bb-count.bb-keep");
-    var bbBombPill = document.querySelector(".bb-count.bb-bomb");
-    /* peel-heavy, like a real clean-out session */
-    var BB_SCRIPT = ["peel", "bomb", "peel", "peel", "bomb", "peel", "bomb", "bomb"];
+  var bbDemo = document.getElementById("bb-demo");
+  if (bbDemo) {
+    var bbStage = document.getElementById("bb-stage");
+    var bbBarry = document.getElementById("bb-barry");
+    var bbQuip = document.getElementById("bb-quip");
+    var bbConfirm = document.getElementById("bb-confirm");
+    var bbKeptEl = document.getElementById("bb-kept"), bbBombedEl = document.getElementById("bb-bombed");
+    var bbKeepPill = bbDemo.querySelector(".bb-keep"), bbBombPill = bbDemo.querySelector(".bb-bomb");
+    var bbBtn = {};
+    Array.prototype.forEach.call(bbDemo.querySelectorAll(".bb-btn"), function (b) { bbBtn[b.dataset.b] = b; });
+    var bbKept = 214, bbBombed = 387;
 
-    var bbQueue = bbCards.slice();
-    var bbAction = 0;
-    var bbKeptN = 0;
-    var bbBombedN = 0;
-    var bbTimer = null;
+    /* the photos: SVG scenes at their aspect ratio (width / height) */
+    var SCENES = {
+      screenshot: { ar: 0.62, barry: "screenshot", act: "bomb", quip: "A screenshot of a receipt from 2021. Bold.",
+        svg: '<rect width="300" height="484" fill="#f2f2f7"/><rect x="18" y="14" width="40" height="8" rx="4" fill="#1c1c1e"/><rect x="232" y="14" width="50" height="8" rx="4" fill="#1c1c1e"/>' +
+          '<rect x="18" y="52" width="170" height="20" rx="5" fill="#1c1c1e"/><rect x="18" y="82" width="110" height="10" rx="5" fill="#8e8e93"/>' +
+          '<rect x="14" y="112" width="272" height="200" rx="14" fill="#fff"/>' +
+          [0, 1, 2, 3, 4].map(function (i) { var y = 134 + i * 34; return '<rect x="30" y="' + y + '" width="' + (120 + (i * 37) % 60) + '" height="10" rx="5" fill="#3a3a3c"/><rect x="226" y="' + y + '" width="44" height="10" rx="5" fill="#3a3a3c"/>' + (i < 4 ? '<rect x="30" y="' + (y + 22) + '" width="240" height="1" fill="#e5e5ea"/>' : ""); }).join("") +
+          '<rect x="14" y="328" width="272" height="56" rx="14" fill="#fff"/><rect x="30" y="350" width="70" height="12" rx="6" fill="#1c1c1e"/><rect x="206" y="348" width="64" height="16" rx="6" fill="#1c1c1e"/>' +
+          '<rect x="60" y="414" width="180" height="40" rx="20" fill="#007aff"/><rect x="110" y="429" width="80" height="10" rx="5" fill="#fff"/>' },
+      sunset: { ar: 0.75, barry: "landscape", act: "peel",
+        svg: '<defs><linearGradient id="bbs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#241a46"/><stop offset=".4" stop-color="#b53f6a"/><stop offset=".62" stop-color="#ff8f3a"/><stop offset=".78" stop-color="#ffcf7a"/></linearGradient></defs>' +
+          '<rect width="300" height="400" fill="url(#bbs)"/><circle cx="190" cy="250" r="30" fill="#ffe7a8"/>' +
+          '<path d="M0 262 L50 214 L95 244 L150 186 L205 238 L250 204 L300 236 V400 H0Z" fill="#3a2342"/>' +
+          '<path d="M0 292 L70 256 L130 284 L190 250 L250 282 L300 264 V400 H0Z" fill="#241830"/>' +
+          '<rect y="312" width="300" height="88" fill="#1a1226"/><rect x="168" y="322" width="44" height="3" rx="1.5" fill="#ffd27a" opacity=".7"/><rect x="176" y="336" width="28" height="3" rx="1.5" fill="#ffd27a" opacity=".5"/><rect x="182" y="350" width="16" height="3" rx="1.5" fill="#ffd27a" opacity=".35"/>' },
+      dark: { ar: 0.75, barry: "lowlight", act: "bomb",
+        svg: '<defs><filter id="bbb"><feGaussianBlur stdDeviation="14"/></filter></defs><rect width="300" height="400" fill="#0d0b0a"/>' +
+          '<g filter="url(#bbb)"><circle cx="90" cy="120" r="38" fill="#7a4a1c" opacity=".7"/><circle cx="210" cy="170" r="26" fill="#a8622a" opacity=".6"/><circle cx="150" cy="290" r="60" fill="#2a1d14"/><rect x="30" y="230" width="120" height="40" fill="#3b2a1d" opacity=".6"/></g>' },
+      dinner: { ar: 0.75, barry: "food", act: "skip",
+        svg: '<rect width="300" height="400" fill="#6b4a33"/><path d="M0 0h300v400H0z" fill="url(#none)"/>' +
+          [0, 1, 2, 3, 4, 5].map(function (i) { return '<rect y="' + (i * 70) + '" width="300" height="2" fill="#5a3d29"/>'; }).join("") +
+          '<circle cx="150" cy="200" r="118" fill="#f4f1ea"/><circle cx="150" cy="200" r="92" fill="#e9e3d6"/>' +
+          '<circle cx="150" cy="200" r="78" fill="#d9822b"/><circle cx="150" cy="200" r="70" fill="#e8973a"/>' +
+          '<ellipse cx="125" cy="180" rx="22" ry="16" fill="#fff"/><circle cx="125" cy="180" r="9" fill="#f5b400"/>' +
+          '<path d="M160 160c20 10 30 30 26 50" stroke="#f6e3b0" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M150 220c18 8 34 4 44-8" stroke="#f6e3b0" stroke-width="7" fill="none" stroke-linecap="round"/>' +
+          '<circle cx="170" cy="235" r="5" fill="#4caf50"/><circle cx="182" cy="226" r="4" fill="#4caf50"/><circle cx="120" cy="230" r="5" fill="#4caf50"/>' +
+          '<rect x="262" y="70" width="10" height="260" rx="5" fill="#c9c4b8"/>' },
+      bunch: { ar: 0.75, barry: "confused", act: "bunch",
+        svg: '<defs><linearGradient id="bbk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5ab3e8"/><stop offset="1" stop-color="#bfe6fa"/></linearGradient></defs>' +
+          '<rect width="300" height="400" fill="url(#bbk)"/><rect y="200" width="300" height="70" fill="#1d7fb3"/><rect y="262" width="300" height="138" fill="#ecd6a4"/>' +
+          '<path d="M0 262c50-10 100 8 150 0s100-10 150 0v8H0z" fill="#f7f4ee" opacity=".8"/>' +
+          '<path d="M120 300 L120 220" stroke="#5a4636" stroke-width="4"/><path d="M60 225 Q120 175 180 225Z" fill="#ff5a5f"/>' +
+          '<circle cx="212" cy="286" r="9" fill="#5a3b2a"/><rect x="204" y="294" width="16" height="34" rx="7" fill="#ffd60a"/>' +
+          '<circle cx="240" cy="290" r="8" fill="#3b2a20"/><rect x="233" y="297" width="14" height="30" rx="6" fill="#30d158"/>' }
+    };
+    var ORDER = ["sunset", "screenshot", "dark", "dinner", "bunch"];
+    var BARRY = { screenshot: "assets/barry-screenshot.png", landscape: "assets/barry-landscape.png", lowlight: "assets/barry-lowlight.png", food: "assets/barry-food.png", confused: "assets/barry-confused.png" };
 
+    var makeCard = function (key) {
+      var sc = SCENES[key], el = document.createElement("div");
+      var w = sc.ar >= 1 ? 400 : 300, h = Math.round(w / sc.ar);
+      el.className = "bb-card";
+      el.dataset.key = key;
+      el.innerHTML = '<svg class="bb-photo" viewBox="0 0 ' + w + " " + h + '" preserveAspectRatio="xMidYMid slice">' + sc.svg + "</svg>" +
+        (key === "bunch" ? '<div class="bb-bunch"><img src="assets/bb-split.png" alt="" width="200" height="200"><span><b>3 Photo Bunch</b><small>Tap to split</small></span><i>&rsaquo;</i></div>' : "") +
+        '<span class="bb-stamp"><span></span></span>';
+      return el;
+    };
+    var bbDeck = ORDER.map(makeCard);
+    bbDeck.forEach(function (c) { bbStage.appendChild(c); });
+
+    /* Cardstackview.cardOffsets, in this stage's pixels */
     var bbLayout = function () {
-      bbQueue.forEach(function (card, i) {
+      var W = bbStage.clientWidth, H = bbStage.clientHeight, pt = W / 393;
+      var cw = W - 40 * pt, visible = Math.min(3, bbDeck.length);
+      var frontAR = SCENES[bbDeck[0].dataset.key].ar;
+      var fh = cw / frontAR;
+      var frontTop = Math.max(0, Math.min(H - fh - 16 * pt, H * 0.6));
+      var gap = Math.max(20 * pt, Math.max(0, frontTop - 20 * pt) / (visible - 1));
+      bbDeck.forEach(function (card, i) {
+        var ar = SCENES[card.dataset.key].ar;
+        card.style.height = cw / ar + "px";
         card.style.zIndex = String(10 - i);
-        if (i < 3) {
+        if (i < visible) {
+          var top = i === 0 ? frontTop : Math.max(0, frontTop - gap * i);
           card.style.opacity = "1";
-          card.style.transform = "translateY(" + -26 * i + "px) scale(" + (1 - 0.1 * i) + ")";
+          card.style.transform = "translateY(" + top + "px) scale(" + (1 - 0.1 * i) + ")";
           card.style.filter = i ? "blur(" + 2 * i + "px)" : "none";
         } else {
           card.style.opacity = "0";
-          card.style.transform = "translateY(-52px) scale(0.8)";
-          card.style.filter = "blur(4px)";
+          card.style.transform = "translateY(0) scale(0.7)";
+          card.style.filter = "blur(6px)";
         }
       });
+      var key = bbDeck[0].dataset.key, src = BARRY[SCENES[key].barry];
+      if (bbBarry.getAttribute("src") !== src) {
+        bbBarry.classList.add("is-swap");
+        setTimeout(function () { bbBarry.setAttribute("src", src); bbBarry.classList.remove("is-swap"); }, 180);
+      }
     };
 
-    var bbFlash = function (pill) {
-      pill.classList.add("flash");
-      setTimeout(function () {
-        pill.classList.remove("flash");
-      }, 150);
-    };
+    var flash = function (pill) { pill.classList.add("flash"); setTimeout(function () { pill.classList.remove("flash"); }, 150); };
+    var press = function (el, ms) { el.classList.add("is-press"); setTimeout(function () { el.classList.remove("is-press"); }, ms || 180); };
+    var bbTimer = null;
+    var later = function (fn, ms) { bbTimer = setTimeout(fn, ms); };
 
-    var bbCycle = function () {
-      var card = bbQueue[0];
-      /* heal a pause that landed mid-fly-off: restore the base transition
-         and stack styles before starting a fresh cycle */
-      card.style.transition = "";
+    /* one card: drag (or toolbar) → stamp → fly off → recycle → next */
+    var bbStep = function () {
       bbLayout();
-      var action = BB_SCRIPT[bbAction % BB_SCRIPT.length];
-      bbAction++;
-      var dir = action === "peel" ? 1 : -1;
-      var stamp = card.querySelector(".bb-stamp");
-      stamp.className = "bb-stamp " + action;
-      stamp.firstElementChild.textContent = action === "peel" ? "PEEL" : "BOMB";
-
-      /* drag toward the decision — stamp opacity rides the drag */
-      card.style.transform = "translate(" + dir * 46 + "px, 6px)";
-      stamp.classList.add("show");
-
-      bbTimer = setTimeout(function () {
-        /* commit: fast straight fly-off, no rotation — the app's move.
-           The card fades during flight so the recycle back into the
-           deck happens while it's already invisible (desktop viewports
-           are wide enough that the travel alone never leaves them). */
-        card.style.transition = "transform 0.45s cubic-bezier(0.3, 0, 0.8, 1), opacity 0.32s ease-in";
-        card.style.transform = "translate(" + dir * 560 + "px, 26px)";
+      var card = bbDeck[0], key = card.dataset.key, sc = SCENES[key];
+      var stamp = card.querySelector(".bb-stamp"), label = stamp.firstElementChild;
+      if (sc.quip) { bbQuip.textContent = sc.quip; bbQuip.classList.add("show"); }
+      var fly = function (transform, counter) {
+        card.style.transition = "transform 0.45s cubic-bezier(0.3, 0, 0.8, 1), opacity 0.35s ease-in";
+        card.style.transform = transform;
         card.style.opacity = "0";
-        if (action === "peel") {
-          bbKept.textContent = String(++bbKeptN);
-          bbFlash(bbKeepPill);
-        } else {
-          bbBombed.textContent = String(++bbBombedN);
-          bbFlash(bbBombPill);
-        }
-
-        bbTimer = setTimeout(function () {
-          /* recycle to the back of the deck without a visible hop */
-          stamp.classList.remove("show");
-          bbQueue.push(bbQueue.shift());
+        if (counter) counter();
+        later(function () {
+          stamp.className = "bb-stamp";
+          bbQuip.classList.remove("show");
+          bbDeck.push(bbDeck.shift());
           card.style.transition = "none";
+          card.style.transformOrigin = "";
           card.style.opacity = "0";
-          card.style.transform = "translateY(-52px) scale(0.8)";
-          card.style.filter = "blur(4px)";
-          void card.offsetWidth; /* flush so the reset isn't animated */
+          card.style.transform = "translateY(0) scale(0.7)";
+          void card.offsetWidth;
           card.style.transition = "";
           bbLayout();
-          bbTimer = setTimeout(bbCycle, 1500);
-        }, 480);
-      }, 900);
+          later(bbStep, 1500);
+        }, 500);
+      };
+      var base = card.style.transform;
+      later(function () {
+        if (sc.act === "bunch") {
+          /* bunches go from the toolbar, through the app's confirmation */
+          press(bbBtn.bomb, 220);
+          later(function () {
+            bbConfirm.classList.add("show");
+            later(function () {
+              press(bbConfirm.querySelector(".go"), 220);
+              later(function () {
+                bbConfirm.classList.remove("show");
+                card.style.transformOrigin = "100% 100%";
+                fly(base + " translateX(-700px) rotate(-20deg)", function () {
+                  bbBombed += 3; bbBombedEl.textContent = bbBombed; flash(bbBombPill);
+                });
+              }, 300);
+            }, 1700);
+          }, 300);
+          return;
+        }
+        var dir = sc.act === "peel" ? 1 : sc.act === "bomb" ? -1 : 0;
+        stamp.className = "bb-stamp " + sc.act;
+        label.innerHTML = sc.act === "skip"
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9.5"/><path d="M12 7v10M8 13l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>SKIP'
+          : sc.act.toUpperCase();
+        /* the drag toward the decision; the stamp fades in with it */
+        card.style.transform = base + (dir ? " translateX(" + dir * 40 + "px)" : " translateY(34px)");
+        stamp.classList.add("show");
+        later(function () {
+          if (sc.act === "peel") fly(base + " translateX(700px)", function () { bbKept++; bbKeptEl.textContent = bbKept; flash(bbKeepPill); });
+          else if (sc.act === "bomb") fly(base + " translateX(-700px)", function () { bbBombed++; bbBombedEl.textContent = bbBombed; flash(bbBombPill); });
+          else fly(base + " translateY(700px)", null);   /* skip: comes back later, no count */
+        }, 850);
+      }, sc.quip ? 1800 : 900);
     };
 
     bbLayout();
@@ -673,15 +753,21 @@
       var bbIO = new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
           if (entry.isIntersecting && !bbTimer) {
-            bbTimer = setTimeout(bbCycle, 900);
+            later(bbStep, 700);
           } else if (!entry.isIntersecting && bbTimer) {
             clearTimeout(bbTimer);
             bbTimer = null;
+            /* settle whatever was mid-flight so the next start is clean */
+            bbConfirm.classList.remove("show");
+            bbQuip.classList.remove("show");
+            bbDeck.forEach(function (c) { c.style.transition = ""; c.style.transformOrigin = ""; c.querySelector(".bb-stamp").className = "bb-stamp"; });
+            bbLayout();
           }
         });
       });
-      bbIO.observe(bbStage);
+      bbIO.observe(bbDemo);
     }
+    window.addEventListener("resize", function () { if (!bbTimer) bbLayout(); });
   }
 
   /* ------------------------------------------------------------------
