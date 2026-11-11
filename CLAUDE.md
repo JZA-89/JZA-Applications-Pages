@@ -16,7 +16,7 @@ The portfolio site for JZA Applications, Jaisah's indie iOS/watchOS studio. Live
 - **Never set `overflow-x` on `html` or `body`.** It breaks the homepage scroll snapping. Clip overflow on the container instead (`.chapter` does this).
 - **Every animation must:** respect `prefers-reduced-motion` (show a still frame instead), pause when offscreen (IntersectionObserver), and stay light enough for an older iPhone.
 - **Privacy policies and App Store links matter legally and commercially.** Policy text must match what the app actually does: check the app's code. Don't remove or rename existing pages. App Store Connect links to their exact URLs (`<app>/support.html`, `<app>/<Name>PrivacyPolicy.html`); a renamed file breaks a live listing.
-- **Cache-busting:** CSS and JS are linked with `?v=N` (e.g. `site.css?v=14`, `dock.js?v=11`, `main.js?v=14`). When you change one of these files, bump its number **in every HTML file that links it**: the homepage and all `<app>/*.html` pages. Check with `grep -rho "site.css?v=[0-9]*\|dock.js?v=[0-9]*\|main.js?v=[0-9]*" --include=*.html . | sort | uniq -c`; each file should show a single version.
+- **Cache-busting:** CSS and JS are linked with `?v=N` (e.g. `site.css?v=15`, `dock.js?v=11`, `main.js?v=15`). When you change one of these files, bump its number **in every HTML file that links it**: the homepage and all `<app>/*.html` pages. Check with `grep -rho "site.css?v=[0-9]*\|dock.js?v=[0-9]*\|main.js?v=[0-9]*" --include=*.html . | sort | uniq -c`; each file should show a single version.
 
 ## Structure
 
@@ -25,7 +25,7 @@ The portfolio site for JZA Applications, Jaisah's indie iOS/watchOS studio. Live
 | `index.html` | The homepage: hero (rotating taglines), then one full-screen "chapter" per app, an "All apps" strip, and contact/footer. Page-only CSS lives in its `<style>` block. |
 | `site.css` | Shared design system: base tokens, liquid-glass components, per-app themes (`[data-app="<slug>"]`), wordmarks (`.wm-<slug>`), dock, view-transition names (`.vt-<slug>`). |
 | `dock.js` | Floating dock, injected on every page. The app list is the `items` array. On the homepage it scrolls to chapters; on app pages it links back to them. |
-| `main.js` | Homepage choreography, in numbered sections: 1 chapter takeover (sets `html[data-view]` so the ambient light changes), 2 scroll reveals, 3 parallax, 4 glass highlight, 5 GhostDelta watch demo, 6 BananaBomb card feed, 7 PointFoundry point cloud, 8 PowerGlass dashboard, 9 hero tagline rotation, 10 Parlato chat demo, 11 ThumbControl rule demo. |
+| `main.js` | Homepage choreography, in numbered sections: 1 chapter takeover (sets `html[data-view]` so the ambient light changes), 2 scroll reveals, 3 parallax, 4 glass highlight, 5 GhostDelta watch demo, 6 BananaBomb card feed, 7 PointFoundry point cloud, 8 PowerGlass dashboard, 9 hero tagline rotation, 10 Parlato chat demo, 11 ThumbControl rule demo, 12 BikeSpec suspension card. |
 | `assets/` | `icon-<slug>.jpg` (512×512, made from each app's 1024px App Store icon) and Barry the Banana images. |
 | `<slug>/` | Per-app pages: `index.html` (About), `support.html`, `<AppName>PrivacyPolicy.html`. Each page sets `<body data-app="<slug>">` to pick up its theme. |
 

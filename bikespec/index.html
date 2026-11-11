@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BikeSpec — Every bike, every spec, every setup.</title>
-<meta name="description" content="BikeSpec keeps your bikes' specifications, setups, service records and photos in one place — scanned from spec sheets on device, synced through your own iCloud, never shared with anyone.">
-<meta name="theme-color" content="#0b0b0e">
+<meta name="description" content="BikeSpec remembers every setting on every mountain bike, shows how far each has drifted from your reference, and helps you tune, switch setups and keep up with servicing. On your iPhone and in your own iCloud, never shared.">
+<meta name="theme-color" content="#07080a">
 <link rel="icon" type="image/png" href="../assets/icon-bikespec.jpg">
-<link rel="stylesheet" href="../site.css?v=14">
+<link rel="stylesheet" href="../site.css?v=15">
 <style>
   .muted { color: var(--muted); }
 </style>
@@ -22,50 +22,70 @@
     </div>
   </header>
 
-  <p>BikeSpec keeps everything about your bikes in one place — the full specification, how each one is set up, what's been serviced, and the photos. It's the spec sheet and logbook you'll actually keep up to date, stored on your own device and synced through your private iCloud.</p>
-  <p class="muted">One bike or a whole stable — it's built to hold the detail that's otherwise scattered across manuals, receipts and memory.</p>
+  <p>BikeSpec is a garage for mountain bikers that remembers every setting on every bike. It shows how each bike is set up right now, how far that has drifted from your reference, and what to change. It also keeps up with servicing. Everything stays on your iPhone and in your private iCloud, and it works with no signal.</p>
+  <p class="muted">The numbers you check at the trailhead (pressures, sag, clicks) are front and centre. BikeSpec never invents a value you didn't enter.</p>
 
-  <h2>Specifications</h2>
+  <h2>Setup</h2>
+  <div class="card">
+    <h3>Nudge it, see it, save it</h3>
+    <p>Every pressure, click and sag figure has its own + and &minus; buttons, or tap the number to type it. Each one shows how far it sits from your reference, such as &ldquo;3 psi under ref&rdquo; or &ldquo;on ref&rdquo;. Changes wait until you save them, then go into the change log as one entry, and any of them can be undone later.</p>
+  </div>
+  <div class="card">
+    <h3>Named setups, with a checklist to switch</h3>
+    <p>Keep a setup for each kind of riding, along with the rider weight it was set for. When you switch setups, BikeSpec lists exactly what to change on the bike, and you tick each item off as you go.</p>
+  </div>
+
+  <h2>Tuning tools</h2>
+  <div class="card">
+    <h3>Setup Genie</h3>
+    <p>Tell it what the bike feels like, and it suggests fixes in order, based on fixed tuning rules for your fork, shock and the adjusters they actually have. Try one, ride, and say how it went. It moves to the next fix or takes the same fix a step further, and puts things back if a fix made it worse.</p>
+  </div>
+  <div class="card">
+    <h3>Sag Assistant</h3>
+    <p>Measure the o-ring gap, or type the percentage. BikeSpec compares it with your target sag and suggests a new pressure or spring rate. Set it, measure again.</p>
+  </div>
+  <div class="card">
+    <h3>Trailhead and Temp Check</h3>
+    <p>Trailhead shows your current numbers in large type, with a checklist, and keeps the screen awake. Temp Check tells you what to pump your tyres and air springs to at home, so they're right at the temperature you'll ride in.</p>
+  </div>
+
+  <h2>Service</h2>
+  <div class="card">
+    <h3>Know what's due</h3>
+    <p>Fork and shock services, brake bleeds and sealant are each tracked on their own interval, and rings fill as each one comes due. Chains, pads and bearings wear by distance rather than time, so you get regular reminders to check them instead. A reminder appears on the due day, and the Service tab lists everything due across your bikes. Log who did each job and what it cost, and see your spend for the year.</p>
+  </div>
+
+  <h2>Specs and geometry</h2>
   <div class="card">
     <h3>The whole bike, on record</h3>
-    <p>Make, model, size, components, geometry, tyres and suspension settings — plus any custom spec items you want to track. As much or as little detail as you like.</p>
+    <p>Frame, size, components, drivetrain, wheels, tyres, suspension and geometry, including flip-chip positions, plus any custom items you want to track. Add as much or as little detail as you like.</p>
+  </div>
+  <div class="card">
+    <h3>Scan a spec sheet or geometry chart</h3>
+    <p>Photograph a manufacturer's spec sheet or geometry chart and BikeSpec fills in the fields, reading it on your iPhone with Apple's Vision and Apple Intelligence. Geometry charts are read size by size, anything that doesn't look right is left out rather than guessed, and a scan never overwrites what you've already entered. The photo never leaves your iPhone.</p>
+  </div>
+  <div class="card">
+    <h3>Compare two bikes</h3>
+    <p>Lay two bikes, or two sizes, over each other as side-on outlines, static or sagged, with every geometry difference listed.</p>
   </div>
 
-  <h2>Spec scanning</h2>
+  <h2>E-bikes</h2>
   <div class="card">
-    <h3>Photograph a spec sheet, keep the numbers</h3>
-    <p>Point the camera at a manufacturer spec sheet or geometry chart and BikeSpec reads it with Apple's on-device Vision and Apple Intelligence, pulling the figures out for you. The photo and text never leave your device.</p>
+    <h3>Range and motor</h3>
+    <p>Plan a ride by typing in its distance and climbing, or by importing a GPX route. Log the battery each ride used, and BikeSpec learns how far a charge takes you. Motor Graph draws your motor's output from its own figures.</p>
   </div>
 
-  <h2>Setups &amp; service</h2>
+  <h2>Photos, reports and sync</h2>
   <div class="card">
-    <h3>Every adjustment and repair, logged</h3>
-    <p>Record setups and adjustments, keep a change log, and track service records so you always know what was done, and when.</p>
-  </div>
-
-  <h2>Photos &amp; bike images</h2>
-  <div class="card">
-    <h3>Add your own, or generate one</h3>
-    <p>Attach photos from your library, or create a bike image on device with Apple's Image Playground. Your prompts and reference photos stay on the device.</p>
-  </div>
-
-  <h2>Range estimation</h2>
-  <div class="card">
-    <h3>Import a route, size up the ride</h3>
-    <p>Bring in a GPX route and BikeSpec works out the distance and climbing on device, so you can gauge whether a bike — or a battery — is up to it. Route points are used only for the calculation, never stored as a tracked ride.</p>
-  </div>
-
-  <h2>iCloud sync</h2>
-  <div class="card">
-    <h3>The same garage on every device</h3>
-    <p>With iCloud enabled, your bikes sync through Apple's CloudKit to your private iCloud account, staying consistent across your devices — with no account to create and nothing held by us.</p>
+    <h3>Your bike, shared the way you choose</h3>
+    <p>Add photos from your library, or make a bike image on your iPhone with Apple's Image Playground. Export a PDF report with the spec, setup, geometry and service history, ready for a buyer, an insurer or a shop. With iCloud turned on, your garage syncs to your other devices through your private iCloud account.</p>
   </div>
 
   <h2>Your data</h2>
   <p class="muted">No account, no servers, no analytics. Your bikes live on your device and in your own private iCloud — we can't see any of it, and nothing is shared with third parties.</p>
 
   <h2>Pricing</h2>
-  <p class="muted">Free to use, with a one-time in-app purchase to unlock unlimited bikes. Purchases go through the App Store and are tied to your Apple Account, so they restore across your devices.</p>
+  <p class="muted">Free for up to two bikes, with a one-time in-app purchase to unlock unlimited bikes. Purchases go through the App Store and are tied to your Apple Account, so they restore across your devices.</p>
 
   <p>Available on the App Store for iPhone.</p>
   <p>

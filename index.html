@@ -17,7 +17,7 @@
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="site.css?v=14">
+<link rel="stylesheet" href="site.css?v=15">
 <style>
   /* ---------- index-only layout ---------- */
   main { max-width: none; padding: 0; }
@@ -558,71 +558,140 @@
     aspect-ratio: 1;
   }
 
-  /* BikeSpec — replica of the app's setup card with deviation signals */
-  .bs-card {
-    background: #16161b;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 22px;
-    padding: 1.3rem 1.4rem 1.1rem;
-    max-width: 380px;
+  /* BikeSpec — replica of the bike screen's Suspension card (v2 look:
+     lit panel over a topo-contour page, heavy expanded figures, live +/-
+     rows). main.js §12 nudges values back to reference: each changed
+     value turns orange with a dot and a "WAS n" note, the deviation
+     caption updates, the glass save bar rises with the change count, and
+     Save commits them. Colours are the app's Theme tokens. */
+  .bs-demo {
+    position: relative;
+    max-width: 384px;
     margin: 0 auto;
-    font-family: var(--font-rounded);
+    padding-bottom: 4.6rem; /* room for the save bar */
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    color: #f5f5f2;
   }
-  .bs-card-head {
-    display: flex;
-    align-items: center;
-    gap: 0.9rem;
-    margin-bottom: 1rem;
+  .bs-topo {
+    position: absolute;
+    inset: -14% -22% -6%;
+    width: 144%;
+    height: 120%;
+    pointer-events: none;
+    -webkit-mask-image: radial-gradient(60% 55% at 50% 42%, #000 35%, transparent 100%);
+            mask-image: radial-gradient(60% 55% at 50% 42%, #000 35%, transparent 100%);
   }
+  .bs-topo path { fill: none; stroke: #fff; stroke-opacity: 0.06; stroke-width: 0.8; }
+  .bs-topo path.ix { stroke-opacity: 0.11; stroke-width: 1.2; }
+  .bs-card {
+    position: relative;
+    border-radius: 22px;
+    padding: 16px 16px 12px;
+    background: linear-gradient(#1b1d23, #121419);
+    border: 0.75px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 24px 60px rgba(0, 0, 0, 0.45);
+  }
+  .bs-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
   .bs-tile {
-    width: 46px;
-    height: 46px;
-    border-radius: 13px;
-    display: grid;
-    place-items: center;
-    background: rgba(255, 138, 61, 0.18);
-    border: 1px solid rgba(255, 138, 61, 0.22);
-    color: #ff8a3d;
-    flex: none;
+    width: 30px; height: 30px; border-radius: 9px; flex: none;
+    display: grid; place-items: center;
+    color: #c4b1ff;
+    background: linear-gradient(135deg, rgba(155, 123, 255, 0.34), rgba(155, 123, 255, 0.1));
+    border: 0.75px solid rgba(155, 123, 255, 0.45);
+    filter: drop-shadow(0 0 4px rgba(155, 123, 255, 0.35));
   }
-  .bs-bike { margin: 0; font-weight: 700; font-size: 1.05rem; }
-  .bs-sub { margin: 0; font-size: 0.8rem; color: rgba(255, 255, 255, 0.42); }
-  .bs-badge {
-    margin-left: auto;
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    padding: 0.25rem 0.6rem;
+  .bs-title { font-size: 18px; font-weight: 700; flex: 1; }
+  .bs-round {
+    width: 30px; height: 30px; border-radius: 50%; flex: none;
+    display: grid; place-items: center; color: rgba(255, 255, 255, 0.8);
+    background: linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
+    border: 0.75px solid rgba(255, 255, 255, 0.12);
+  }
+  .bs-caps {
+    font-size: 10px; font-weight: 700; font-stretch: 125%;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4);
+  }
+  .bs-meta { margin: 6px 0 4px; display: flex; align-items: baseline; gap: 8px; font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, 0.62); }
+  .bs-rule { height: 0.5px; background: rgba(255, 255, 255, 0.07); margin: 10px 0 8px; }
+  .bs-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; }
+  .bs-name { flex: 1; min-width: 0; }
+  .bs-label { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600; }
+  .bs-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #ff8a3d; box-shadow: 0 0 6px #ff8a3d;
+    transform: scale(0); opacity: 0;
+    transition: transform 0.25s, opacity 0.25s;
+  }
+  .bs-dev { display: block; margin-top: 3px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .bs-dev.above { color: #5db2ff; }
+  .bs-dev.below { color: #ff8a5c; }
+  .bs-dev.on { color: #6ce39c; }
+  .bs-btn {
+    width: 38px; height: 38px; border-radius: 50%; flex: none;
+    display: grid; place-items: center;
+    font-size: 19px; font-weight: 800; line-height: 1;
+    background: linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
+    border: 0.75px solid rgba(255, 255, 255, 0.13);
+    transition: transform 0.15s, background 0.15s;
+  }
+  .bs-btn.is-press { transform: scale(0.92); background: linear-gradient(rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.06)); }
+  .bs-val { min-width: 64px; text-align: center; overflow: hidden; }
+  .bs-val b {
+    display: block; font-size: 21px; font-weight: 900; font-stretch: 125%;
+    font-variant-numeric: tabular-nums; line-height: 1.15;
+    transition: color 0.25s;
+  }
+  .bs-val b.roll { animation: bs-roll 0.22s ease-out; }
+  @keyframes bs-roll { from { transform: translateY(45%); opacity: 0; } }
+  .bs-val em { display: block; font-style: normal; font-size: 8px; }
+  .bs-hint { margin: -2px 0 2px; text-align: right; font-size: 11px; font-weight: 500; color: rgba(255, 255, 255, 0.4); }
+  .bs-row.is-pending .bs-dot { transform: scale(1); opacity: 1; }
+  .bs-row.is-pending .bs-val b { color: #ff8a3d; }
+  .bs-row.is-pending .bs-val em { color: rgba(255, 255, 255, 0.26); font-size: 7.5px; }
+  .bs-card.is-fresh .bs-val b,
+  .bs-card.is-fresh .bs-dev { animation: bs-fresh 0.5s ease-out; }
+  @keyframes bs-fresh { from { opacity: 0.2; } }
+  /* the floating glass save bar (SaveDiscardBar) */
+  .bs-bar {
+    position: absolute; left: 8px; right: 8px; bottom: 0.4rem;
+    display: flex; align-items: center; gap: 12px;
+    padding: 6px 6px 6px 18px;
     border-radius: 999px;
-    color: #6ce39c;
-    background: rgba(108, 227, 156, 0.14);
-    border: 1px solid rgba(108, 227, 156, 0.25);
+    background: rgba(28, 30, 36, 0.72);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+            backdrop-filter: blur(18px) saturate(1.4);
+    border: 0.75px solid rgba(255, 255, 255, 0.16);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 14px 34px rgba(0, 0, 0, 0.5);
+    opacity: 0; transform: translateY(70%);
+    transition: opacity 0.35s, transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.15);
   }
-  .bs-row {
-    display: flex;
-    align-items: baseline;
-    gap: 0.6rem;
-    padding: 0.55rem 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    font-size: 0.92rem;
+  .bs-demo.is-dirty .bs-bar { opacity: 1; transform: none; }
+  .bs-count { flex: 1; min-width: 0; }
+  .bs-count b { display: block; font-size: 15px; font-weight: 900; font-stretch: 125%; font-variant-numeric: tabular-nums; }
+  .bs-count .bs-caps { font-size: 9px; }
+  .bs-discard { font-size: 15px; font-weight: 600; color: rgba(255, 255, 255, 0.62); padding: 0 4px; }
+  .bs-save {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 18px; border-radius: 999px;
+    font-size: 16px; font-weight: 700; color: rgba(0, 0, 0, 0.88);
+    background: linear-gradient(135deg, #ff8a3d, #ff5e3a);
+    box-shadow: 0 0 18px rgba(255, 138, 61, 0.45);
+    transition: transform 0.15s, filter 0.15s;
   }
-  .bs-row span { color: rgba(255, 255, 255, 0.62); flex: 1; }
-  .bs-row b { font-weight: 700; font-variant-numeric: tabular-nums; }
-  .bs-row i {
-    font-style: normal;
-    font-size: 0.78rem;
-    font-weight: 700;
-    min-width: 3.4rem;
-    text-align: right;
-  }
-  .bs-row .up { color: #5db2ff; }
-  .bs-row .down { color: #ff8a5c; }
-  .bs-row .ok { color: #6ce39c; }
+  .bs-save.is-press { transform: scale(0.95); filter: brightness(1.12); }
   .bs-caption {
     text-align: center;
     color: var(--faint);
     font-size: 0.85rem;
-    margin-top: 1rem;
+    margin-top: 0.4rem;
+  }
+  @media (max-width: 420px) {
+    .bs-card { padding: 14px 12px 10px; }
+    .bs-btn { width: 34px; height: 34px; }
+    .bs-val { min-width: 56px; }
+    .bs-val b { font-size: 19px; }
+    .bs-dev { font-size: 10.5px; }
   }
 
   /* BananaBomb — card-feed replica: photo cards of Barry stack like the
@@ -1354,7 +1423,7 @@
         <p class="chapter-kicker reveal"><b>05</b> · iPhone</p>
         <img class="app-icon chapter-icon vt-bikespec reveal" src="assets/icon-bikespec.jpg" alt="BikeSpec app icon" width="124" height="124" loading="lazy" decoding="async" style="--reveal-delay:.08s">
         <h2 class="wordmark wm-bikespec reveal" style="--reveal-delay:.16s">Bike<span class="spec">Spec</span></h2>
-        <p class="chapter-desc reveal" style="--reveal-delay:.3s">Bike details, setups, service records and photos — kept on your device and in your own iCloud. Scan a spec sheet with the camera and every measurement lands in the right field.</p>
+        <p class="chapter-desc reveal" style="--reveal-delay:.3s">Your bike&rsquo;s setup, in numbers you can read at the trailhead. BikeSpec remembers every pressure, click and sag figure on every bike, shows how far each has drifted from your reference, and helps you put it right with the Setup Genie and Sag Assistant. Service reminders, geometry compare and spec scanning are built in, and it all stays on your iPhone and in your own iCloud.</p>
         <p class="chapter-links reveal" style="--reveal-delay:.38s">
           <a href="bikespec/">About</a>
           <a href="bikespec/support.html">Support</a>
@@ -1365,23 +1434,57 @@
       <div class="chapter-art">
         <div data-parallax="0.04">
           <div class="reveal">
-            <div class="bs-card" aria-hidden="true">
-              <div class="bs-card-head">
-                <span class="bs-tile">
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17" r="3.5"/><circle cx="18.5" cy="17" r="3.5"/><path d="M5.5 17 9 9h6l3.5 8"/><path d="M9 9 7.5 6h3"/><path d="M15 9l-1-3h1.5"/></svg>
-                </span>
-                <div>
-                  <p class="bs-bike">Enduro 29</p>
-                  <p class="bs-sub">Race day setup</p>
+            <div class="bs-demo" id="bs-demo" aria-hidden="true">
+              <svg class="bs-topo" viewBox="0 0 560 620" preserveAspectRatio="xMidYMid slice"></svg>
+              <div class="bs-card">
+                <div class="bs-head">
+                  <span class="bs-tile"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20V4M3 8l4-4 4 4M17 4v16M13 16l4 4 4-4"/></svg></span>
+                  <span class="bs-title">Suspension</span>
+                  <span class="bs-round"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 7v4M10 7v3M14 7v4M18 7v3"/></svg></span>
                 </div>
-                <span class="bs-badge">DIALLED</span>
+                <p class="bs-meta"><span class="bs-caps">Fork</span>Fox 38 Factory &middot; 170mm</p>
+                <div class="bs-row" data-k="fp">
+                  <div class="bs-name"><span class="bs-label">Pressure<i class="bs-dot"></i></span><small class="bs-dev"></small></div>
+                  <span class="bs-btn">&minus;</span>
+                  <span class="bs-val"><b>82</b><em class="bs-caps">psi</em></span>
+                  <span class="bs-btn">+</span>
+                </div>
+                <div class="bs-row" data-k="fs">
+                  <div class="bs-name"><span class="bs-label">Sag<i class="bs-dot"></i></span><small class="bs-dev"></small></div>
+                  <span class="bs-btn">&minus;</span>
+                  <span class="bs-val"><b>18</b><em class="bs-caps">%</em></span>
+                  <span class="bs-btn">+</span>
+                </div>
+                <p class="bs-hint">&#8627; 30.6 / 34.0 mm</p>
+                <div class="bs-row" data-k="fl">
+                  <div class="bs-name"><span class="bs-label">LSC<i class="bs-dot"></i></span><small class="bs-dev"></small></div>
+                  <span class="bs-btn">&minus;</span>
+                  <span class="bs-val"><b>8</b><em class="bs-caps">clk</em></span>
+                  <span class="bs-btn">+</span>
+                </div>
+                <div class="bs-rule"></div>
+                <p class="bs-meta"><span class="bs-caps">Shock</span>Fox X2 Factory &middot; 230&times;65 &middot; 170mm</p>
+                <div class="bs-row" data-k="sp">
+                  <div class="bs-name"><span class="bs-label">Pressure<i class="bs-dot"></i></span><small class="bs-dev"></small></div>
+                  <span class="bs-btn">&minus;</span>
+                  <span class="bs-val"><b>195</b><em class="bs-caps">psi</em></span>
+                  <span class="bs-btn">+</span>
+                </div>
+                <div class="bs-row" data-k="ss">
+                  <div class="bs-name"><span class="bs-label">Sag<i class="bs-dot"></i></span><small class="bs-dev"></small></div>
+                  <span class="bs-btn">&minus;</span>
+                  <span class="bs-val"><b>30</b><em class="bs-caps">%</em></span>
+                  <span class="bs-btn">+</span>
+                </div>
+                <p class="bs-hint">&#8627; 19.5 / 19.5 mm</p>
               </div>
-              <div class="bs-row"><span>Fork pressure</span><b>82 psi</b><i class="up">&#9650; 4</i></div>
-              <div class="bs-row"><span>Rear sag</span><b>29 %</b><i class="ok">&#9679; set</i></div>
-              <div class="bs-row"><span>Tyres F / R</span><b>22.5 / 25 psi</b><i class="down">&#9660; 1.5</i></div>
-              <div class="bs-row"><span>Last service</span><b>14 days</b><i class="ok">&#9679; ok</i></div>
+              <div class="bs-bar">
+                <div class="bs-count"><b>1 change</b><span class="bs-caps">to Default</span></div>
+                <span class="bs-discard">Discard</span>
+                <span class="bs-save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>Save</span>
+              </div>
             </div>
-            <p class="bs-caption">Setups tracked against your baseline — dialled, above, or below.</p>
+            <p class="bs-caption">Every nudge shows how far you are from your reference. Save, and it goes in the change log.</p>
           </div>
         </div>
       </div>
@@ -1518,6 +1621,6 @@
 </main>
 
 <script src="dock.js?v=11" id="jza-dock-script"></script>
-<script src="main.js?v=14"></script>
+<script src="main.js?v=15"></script>
 </body>
 </html>

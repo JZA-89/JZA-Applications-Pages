@@ -93,20 +93,20 @@
 }
 
 [data-app="bikespec"] {
-  --bg: #0b0b0e;
-  --fg: #ffffff;
+  --bg: #07080a;
+  --fg: #f5f5f2;
   --muted: rgba(255, 255, 255, 0.62);
   --faint: rgba(255, 255, 255, 0.55);
   --accent: #ff8a3d;
   --accent-contrast: #180c04;
-  --rule: rgba(255, 255, 255, 0.06);
-  --glass-fill: #16161b;
-  --glass-fill-strong: #1e1e25;
+  --rule: rgba(255, 255, 255, 0.07);
+  --glass-fill: #16181d;
+  --glass-fill-strong: #1b1d23;
   --glow-1: rgba(255, 138, 61, 0.12);
   --glow-2: rgba(93, 178, 255, 0.08);
   --radius-lg: 22px;
   --radius-md: 18px;
-  --font-display: var(--font-rounded);
+  --font-display: var(--font-body);
 }
 
 [data-app="bananabomb"] {
@@ -378,8 +378,21 @@ main h2 {
   color: #ffd60a;
 }
 
+/* As on the app's Home screen: black-weight SF Pro Expanded, slightly
+   tight, "Spec" in the brand gradient (orange → ember). */
+.wm-bikespec {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  font-weight: 900;
+  font-stretch: 125%;
+  letter-spacing: -0.015em;
+}
+
 .wm-bikespec .spec {
   color: #ff8a3d;
+  background: linear-gradient(135deg, #ff8a3d, #ff5e3a);
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .wm-bananabomb {

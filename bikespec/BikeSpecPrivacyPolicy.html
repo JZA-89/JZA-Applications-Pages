@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Privacy Policy — BikeSpec</title>
-<meta name="theme-color" content="#0b0b0e">
+<meta name="theme-color" content="#07080a">
 <link rel="icon" type="image/png" href="../assets/icon-bikespec.jpg">
-<link rel="stylesheet" href="../site.css?v=14">
+<link rel="stylesheet" href="../site.css?v=15">
 <style>
   .updated { font-family: var(--font-mono); color: var(--muted); font-size: 0.85rem; margin: 0.35rem 0 0; }
   ul { margin: 0 0 1rem; padding-left: 1.25rem; }
@@ -21,7 +21,7 @@
     <div>
       <h1 class="wordmark wm-bikespec"><a href="./">Bike<span class="spec">Spec</span></a></h1>
       <p class="tagline">Privacy Policy</p>
-      <p class="updated">Last updated: 20 June 2026</p>
+      <p class="updated">Last updated: 11 November 2026</p>
     </div>
   </header>
 
@@ -34,8 +34,10 @@
   <h2>The data BikeSpec works with</h2>
   <p>BikeSpec stores the information you enter about your bikes, including:</p>
   <ul>
-    <li>Bike details and specifications (make, model, size, components, geometry, tyres, suspension settings, and any custom spec items you add).</li>
-    <li>Setups, adjustments, change logs, and service records.</li>
+    <li>Bike details and specifications (make, model, size, serial number, purchase date, components, geometry, tyres, suspension settings, and any custom spec items you add).</li>
+    <li>Setups, adjustments and change logs, including the rider weight a setup was set for, if you enter it.</li>
+    <li>Service records, including who did the work and what it cost, if you enter them.</li>
+    <li>For e-bikes, rides you log for range estimates: the date, distance, climbing and battery used.</li>
     <li>Photos you add to a bike, whether chosen from your photo library or generated on device.</li>
     <li>Notes and other text you choose to enter.</li>
   </ul>
@@ -48,21 +50,24 @@
   <h2>On-device processing</h2>
   <p>Several BikeSpec features process data entirely on your device. This information is <strong>not</strong> sent to us or to any third-party server:</p>
   <ul>
-    <li><strong>Spec scanning.</strong> When you photograph a manufacturer spec sheet or geometry chart, the image is read using Apple's on-device Vision text recognition and Apple's on-device foundation models (Apple Intelligence). The photo and the extracted text are processed locally and are not transmitted off the device.</li>
+    <li><strong>Spec scanning.</strong> When you scan a manufacturer spec sheet or geometry chart with the camera, or choose a photo of one, the image is read using Apple's on-device Vision text recognition and Apple's on-device foundation models (Apple Intelligence). The photo and the extracted text are processed locally and are not transmitted off the device.</li>
     <li><strong>Bike image generation.</strong> Generated bike images are created on device using Apple's Image Playground. Your prompts and any reference photo stay on the device.</li>
+    <li><strong>PDF reports and shared text.</strong> A bike report or setup summary is created on device and leaves it only if you choose to share it, through the iOS share sheet, with the people or apps you pick.</li>
     <li><strong>Route (GPX) import.</strong> When you import a GPX file for range estimation, BikeSpec reads distance and elevation locally to perform calculations. Location points from the file are used only for that calculation and are not transmitted or stored as a tracked route.</li>
   </ul>
   <p>Apple's on-device intelligence features are subject to Apple's own privacy terms. See <a href="https://www.apple.com/legal/privacy/">Apple's Privacy Policy</a>.</p>
 
-  <h2>Photos</h2>
+  <h2>Photos and camera</h2>
   <p>If you add a photo to a bike, BikeSpec accesses only the specific image you select through the system photo picker. The app does not scan or upload your photo library. Selected and generated images are stored with your bike data (locally and, if enabled, in your private iCloud).</p>
+  <p>BikeSpec asks for camera access only to scan spec sheets and geometry charts. Scans are read on your device. The figures you choose to import are saved with your bike, and the scan images themselves are not kept.</p>
 
   <h2>Purchases</h2>
   <p>BikeSpec offers a one-time in-app purchase to unlock unlimited bikes. Purchases are processed entirely by <strong>Apple's App Store and StoreKit</strong>. We do not receive or store your name, payment card, or other payment details. Your purchase entitlement is read directly from the App Store and tied to your Apple ID, which is how it restores across your devices and reinstalls.</p>
   <p>Purchases are subject to <a href="https://www.apple.com/legal/privacy/">Apple's Privacy Policy</a>.</p>
 
   <h2>Notifications</h2>
-  <p>BikeSpec may use Apple Push Notification service to support iCloud syncing across your devices. We do not send marketing notifications and do not collect data through notifications.</p>
+  <p>If you allow notifications, BikeSpec reminds you when a service is due. These reminders are scheduled on your device by the app itself, from your own service records, and nothing is sent to us. You can turn them off in the app or in your device Settings.</p>
+  <p>BikeSpec may also use Apple Push Notification service to support iCloud syncing across your devices. We do not send marketing notifications and do not collect data through notifications.</p>
 
   <h2>Data we collect</h2>
   <p>We do <strong>not</strong> collect, transmit, sell, or share your personal data. Specifically, BikeSpec:</p>

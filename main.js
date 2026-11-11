@@ -1286,4 +1286,132 @@
       tcIO.observe(tcDemo);
     }
   }
+
+  /* ------------------------------------------------------------------
+     12. BikeSpec — replica of the bike screen's Suspension card, using
+         the Intense Tracer sample bike's values. The + button nudges
+         fork pressure, fork LSC and shock pressure back to their
+         reference: each changed figure rolls, turns orange with a dot
+         and a "WAS n" note, and its caption moves from "n under ref" to
+         "on ref". The glass save bar rises with the change count; Save
+         commits them (one change-log entry in the app) and the bar drops
+         away. Then the card resets for the next loop. Static frame for
+         reduced motion (changes pending, bar up); paused offscreen.
+         The topo contours are the app's TopoLines formula, drawn once.
+     ------------------------------------------------------------------ */
+  var bsDemo = document.getElementById("bs-demo");
+  if (bsDemo) {
+    /* topo contours: three "hills" of wobbling loops, every 5th heavier */
+    var bsTopo = bsDemo.querySelector(".bs-topo");
+    var W = 560, H = 620, topo = "";
+    [[0.82, 0.1, 14, 26], [0.05, 0.42, 11, 24], [0.7, 0.78, 12, 28]].forEach(function (hill, h) {
+      var cx = W * hill[0], cy = H * hill[1];
+      for (var k = 1; k <= hill[2]; k++) {
+        var r = k * hill[3], ph = 1.7 + h * 2.3 + k * 0.21, n = 48, pts = [];
+        for (var i = 0; i < n; i++) {
+          var a = (i / n) * 2 * Math.PI;
+          var w = 1 + 0.16 * Math.sin(2 * a + ph) + 0.08 * Math.sin(3 * a + ph * 1.7) + 0.04 * Math.sin(5 * a + ph * 0.6 + r * 0.01);
+          pts.push([cx + r * w * Math.cos(a), cy + r * w * Math.sin(a) * 0.78]);
+        }
+        var mid = function (p, q) { return ((p[0] + q[0]) / 2).toFixed(1) + " " + ((p[1] + q[1]) / 2).toFixed(1); };
+        var d = "M" + mid(pts[n - 1], pts[0]);
+        for (var j = 0; j < n; j++) d += "Q" + pts[j][0].toFixed(1) + " " + pts[j][1].toFixed(1) + " " + mid(pts[j], pts[(j + 1) % n]);
+        topo += '<path' + (k % 5 === 0 ? ' class="ix"' : "") + ' d="' + d + 'Z"/>';
+      }
+    });
+    bsTopo.innerHTML = topo;
+
+    /* each row: saved value, reference, unit, and when + is pressed */
+    var bsRows = {
+      fp: { v: 82, ref: 85, unit: "psi", steps: [0.8, 1.35, 1.9] },
+      fs: { v: 18, ref: 20, unit: "%", steps: [] },
+      fl: { v: 8, ref: 10, unit: "clk", steps: [3.0, 3.55] },
+      sp: { v: 195, ref: 200, unit: "psi", steps: [4.6, 4.95, 5.25, 5.5, 5.72] }
+    };
+    bsRows.ss = { v: 30, ref: 30, unit: "%", steps: [] };
+    var BS_SAVE = 7.4, BS_RESET = 10.4, BS_LOOP = 11.2;
+    var bsCard = bsDemo.querySelector(".bs-card");
+    var bsCount = bsDemo.querySelector(".bs-count b");
+    var bsSave = bsDemo.querySelector(".bs-save");
+    Object.keys(bsRows).forEach(function (k) {
+      var el = bsDemo.querySelector('.bs-row[data-k="' + k + '"]');
+      var row = bsRows[k];
+      row.el = el;
+      row.fig = el.querySelector(".bs-val b");
+      row.unitEl = el.querySelector(".bs-val em");
+      row.dev = el.querySelector(".bs-dev");
+      row.plus = el.querySelectorAll(".bs-btn")[1];
+      row.shown = null;
+    });
+    var bsShownCount = null, bsWasReset = false;
+
+    var bsRender = function (t) {
+      var u = t % BS_LOOP;
+      var pending = 0;
+      Object.keys(bsRows).forEach(function (k) {
+        var row = bsRows[k];
+        var n = 0, pressed = false;
+        row.steps.forEach(function (s) {
+          if (u >= s && u < BS_RESET) n++;
+          if (u >= s - 0.12 && u < s + 0.06) pressed = true;
+        });
+        var val = row.v + n;
+        var isPending = n > 0 && u < BS_SAVE;
+        if (isPending) pending++;
+        if (val !== row.shown) {
+          row.fig.textContent = val;
+          if (row.shown !== null && u < BS_RESET) {
+            row.fig.classList.remove("roll");
+            void row.fig.offsetWidth;
+            row.fig.classList.add("roll");
+          }
+          row.shown = val;
+          var d = val - row.ref;
+          row.dev.className = "bs-dev " + (d === 0 ? "on" : d > 0 ? "above" : "below");
+          row.dev.textContent = d === 0 ? "\u2713 on ref" : (d > 0 ? "\u2191 " : "\u2193 ") + Math.abs(d) + " " + row.unit + (d > 0 ? " over ref" : " under ref");
+        }
+        row.el.classList.toggle("is-pending", isPending);
+        row.unitEl.textContent = isPending ? "was " + row.v : row.unit;
+        row.plus.classList.toggle("is-press", pressed);
+      });
+      if (pending && pending !== bsShownCount) {
+        bsCount.textContent = pending + (pending === 1 ? " change" : " changes");
+        bsShownCount = pending;
+      }
+      bsDemo.classList.toggle("is-dirty", pending > 0);
+      bsSave.classList.toggle("is-press", u >= BS_SAVE - 0.2 && u < BS_SAVE);
+      /* a soft fade as the card returns to its starting values */
+      var reset = u >= BS_RESET;
+      if (reset && !bsWasReset) {
+        bsCard.classList.remove("is-fresh");
+        void bsCard.offsetWidth;
+        bsCard.classList.add("is-fresh");
+      }
+      bsWasReset = reset;
+    };
+
+    if (reducedMotion) {
+      bsRender(6.2); /* three changes pending, save bar up */
+    } else if ("IntersectionObserver" in window) {
+      var bsT = 0;
+      bsRender(bsT);
+      var bsTimer = null;
+      var bsIO = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting && !bsTimer) {
+            bsTimer = setInterval(function () {
+              bsT += 0.05;
+              bsRender(bsT);
+            }, 50);
+          } else if (!entry.isIntersecting && bsTimer) {
+            clearInterval(bsTimer);
+            bsTimer = null;
+          }
+        });
+      });
+      bsIO.observe(bsDemo);
+    } else {
+      bsRender(0);
+    }
+  }
 })();
