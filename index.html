@@ -351,17 +351,34 @@
   /* GhostDelta — a working replica of the Watch app (facelift design): the face cycles
      Stage timing → Navigation → Circuit laps, driven by main.js. Everything is sized in
      watch points (--u = one point) so the layout is the app's own, just scaled up. */
-  .gd-watch {
-    --u: min(1.7px, calc((100vw - 48px) / 205));
+  /* GhostDelta art: the iPhone's ride page with the Watch in front of it.
+     One scale, --k (px per iPhone point, a 393 x 852 pt screen), sizes both;
+     the Watch keeps its own unit --u, tied to --k. */
+  .gd-art {
+    --k: min(0.7px, calc((100vw - 32px) / 630), calc((100vh - 190px) / 852));
     --gd-yellow: #ffd60a;
     --gd-pb: #bf5af2;
     --gd-ahead: #30d158;
+    --gd-behind: #ff453a;
     --gd-text: #f5f5f2;
     --gd-dim: #8e9096;
+    --gd-faint: #4b4e55;
     --gd-sf: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
-    width: calc(var(--u) * 205);
-    margin: 0 auto;
     font-family: var(--gd-sf);
+  }
+  .gd-duo {
+    position: relative;
+    width: calc(var(--k) * 630);
+    height: calc(var(--k) * 882);
+    margin: 0 auto;
+  }
+  .gd-watch {
+    --u: calc(var(--k) * 1.22);
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: calc(var(--u) * 205);
+    z-index: 2;
   }
   .gd-face {
     position: relative;
@@ -429,13 +446,15 @@
   .gd-time, .gd-delta, .gd-num { font-variant-numeric: tabular-nums; }
   .gd-time {
     font-size: calc(var(--u) * 22);
-    font-weight: 800;
+    font-weight: 900;
+    font-stretch: 125%;
     color: var(--gd-yellow);
     letter-spacing: calc(var(--u) * -0.3);
   }
   .gd-delta {
     font-size: calc(var(--u) * 18);
-    font-weight: 700;
+    font-weight: 800;
+    font-stretch: 125%;
     color: #3a3c42;
   }
   .gd-pills { display: flex; gap: calc(var(--u) * 2); margin: calc(var(--u) * 5) 0 calc(var(--u) * 5); }
@@ -471,34 +490,54 @@
     border: 1px solid var(--gd-yellow);
     border-radius: calc(var(--u) * 1.5);
   }
-  .gd-chip-row { text-align: center; margin: calc(var(--u) * 8) 0 0; }
-  .gd-chip {
-    display: inline-flex;
+  /* The Stage page's slim windows (Nearby, Previous): 26pt capsule panels. */
+  .gd-win {
+    display: flex;
     align-items: center;
-    gap: calc(var(--u) * 4);
-    padding: calc(var(--u) * 4) calc(var(--u) * 10);
+    gap: calc(var(--u) * 5);
+    height: calc(var(--u) * 26);
+    margin: calc(var(--u) * 6) 0;
+    padding: 0 calc(var(--u) * 9);
     border-radius: 999px;
-    background: rgba(255, 214, 10, 0.16);
-    border: 1px solid rgba(255, 214, 10, 0.7);
-    font-size: calc(var(--u) * 10);
-    font-weight: 700;
-    font-stretch: 112%;
+    background: linear-gradient(#1b1d22, #111317);
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-top-color: rgba(255, 255, 255, 0.17);
+    font-size: calc(var(--u) * 11);
+    font-weight: 600;
     color: var(--gd-text);
+    white-space: nowrap;
+    overflow: hidden;
+    transition: border-color 0.3s ease;
   }
-  .gd-chip .dot { width: calc(var(--u) * 5); height: calc(var(--u) * 5); border-radius: 50%; background: var(--gd-yellow); }
+  .gd-win.is-ready { border-color: rgba(255, 214, 10, 0.55); }
+  .gd-win .gd-wn { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .gd-win .gd-dot { width: calc(var(--u) * 6); height: calc(var(--u) * 6); border-radius: 50%; background: var(--gd-yellow); flex: none; }
+  .gd-win .gd-pin { color: var(--gd-dim); flex: none; display: flex; }
+  .gd-win .gd-wf { font-stretch: 125%; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .gd-win .gd-wd { color: var(--gd-dim); }
+  .gd-win .gd-count {
+    flex: none; display: grid; place-items: center;
+    width: calc(var(--u) * 13); height: calc(var(--u) * 13); border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14);
+    font-size: calc(var(--u) * 8); font-weight: 700;
+  }
+  .gd-live.is-resting { --gd-edge: rgba(142, 144, 150, 0.4) !important; --gd-glow: transparent !important; }
+  .gd-live.is-resting .gd-name { color: var(--gd-dim); font-size: calc(var(--u) * 11); }
+  .gd-live.is-resting .gd-time { color: rgba(142, 144, 150, 0.45); }
+  .gd-live.is-resting .gd-pills, .gd-live.is-resting .gd-minis { opacity: 0.6; }
   /* Navigation */
   .gd-grid2 { display: grid; grid-template-columns: 1fr 1fr; }
   .gd-cell { text-align: center; padding: calc(var(--u) * 3) 0 calc(var(--u) * 2); }
   .gd-cell:nth-child(odd) { border-right: 1px solid rgba(255, 255, 255, 0.07); }
   .gd-cell:nth-child(-n+2) { border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
-  .gd-big { font-size: calc(var(--u) * 18); font-weight: 600; color: var(--gd-text); font-variant-numeric: tabular-nums; }
+  .gd-big { font-size: calc(var(--u) * 17); font-weight: 800; font-stretch: 125%; color: var(--gd-text); font-variant-numeric: tabular-nums; }
   .gd-big.is-yellow { color: var(--gd-yellow); }
   .gd-unit { font-size: calc(var(--u) * 11); color: var(--gd-dim); margin-left: 1px; }
   .gd-sub { font-size: calc(var(--u) * 9); color: var(--gd-dim); font-variant-numeric: tabular-nums; }
   .gd-profile { margin-top: calc(var(--u) * 4); overflow: hidden; }
   .gd-profile svg { display: block; width: 100%; height: calc(var(--u) * 30); }
   .gd-stats3 { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; padding: calc(var(--u) * 2) 0 calc(var(--u) * 4); }
-  .gd-mid { font-size: calc(var(--u) * 13); font-weight: 600; color: var(--gd-text); font-variant-numeric: tabular-nums; }
+  .gd-mid { font-size: calc(var(--u) * 12); font-weight: 800; font-stretch: 125%; color: var(--gd-text); font-variant-numeric: tabular-nums; }
   /* Lap complete */
   .gd-lapdone {
     position: absolute;
@@ -521,9 +560,9 @@
     margin: calc(var(--u) * 4) 0;
   }
   .gd-rule { width: 88%; height: 1px; background: rgba(255, 255, 255, 0.1); margin: calc(var(--u) * 6) 0; }
-  .gd-gap { font-size: calc(var(--u) * 30); font-weight: 700; color: var(--gd-ahead); font-variant-numeric: tabular-nums; }
+  .gd-gap { font-size: calc(var(--u) * 28); font-weight: 800; font-stretch: 125%; color: var(--gd-ahead); font-variant-numeric: tabular-nums; }
   /* Which view is showing — tap to jump. */
-  .gd-tabs { display: flex; justify-content: center; gap: 1.1rem; margin-top: 1.5rem; }
+  .gd-tabs { display: flex; justify-content: center; gap: 1.1rem; margin-top: 1rem; }
   .gd-tab {
     font: 700 0.68rem/1 var(--gd-sf);
     font-stretch: 112%;
@@ -536,6 +575,194 @@
     transition: color 0.3s ease, border-color 0.3s ease;
   }
   .gd-tab.is-active { color: var(--gd-yellow); border-bottom-color: var(--gd-yellow); }
+
+  /* The iPhone: Session detail (STYLE_GUIDE Part A) at 393 x 852 pt, every
+     size in points x --k. Map backdrop with the glowing route, the header
+     (date, title, Stages/PBs, hero figures), then the Stages panel: one
+     Stage open (time, gap to your previous best, ghost trace, sectors), the
+     rest compact. main.js §5 draws it in and opens each Stage in turn. */
+  .gd-phone {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: calc(var(--k) * 393);
+    height: calc(var(--k) * 852);
+    border-radius: calc(var(--k) * 58);
+    background: #000;
+    box-shadow: 0 0 0 calc(var(--k) * 9) #121316, 0 0 0 calc(var(--k) * 10.5) #2c2e33,
+                0 calc(var(--k) * 30) calc(var(--k) * 70) rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    color: var(--gd-text);
+    isolation: isolate;
+  }
+  .gp-bg {
+    position: absolute; inset: 0; z-index: -2;
+    background:
+      radial-gradient(calc(var(--k) * 420) calc(var(--k) * 420) at 50% 8%, rgba(255, 214, 10, 0.08), transparent 70%),
+      linear-gradient(#0e1013, #07080a);
+  }
+  /* A satellite map washed out and darkened, as FLMapBackdrop draws it. */
+  .gp-map {
+    position: absolute; left: 0; right: 0; top: 0; z-index: -1;
+    height: calc(var(--k) * 470);
+    background:
+      radial-gradient(40% 30% at 22% 30%, rgba(96, 104, 82, 0.55), transparent 70%),
+      radial-gradient(45% 35% at 78% 52%, rgba(88, 84, 70, 0.55), transparent 70%),
+      radial-gradient(30% 25% at 60% 18%, rgba(70, 82, 70, 0.5), transparent 70%),
+      radial-gradient(35% 30% at 35% 70%, rgba(80, 76, 64, 0.45), transparent 70%),
+      linear-gradient(160deg, #3a3e36, #2c2e2a 55%, #33322c);
+    -webkit-mask-image: linear-gradient(#000 0, #000 60%, transparent 92%);
+            mask-image: linear-gradient(#000 0, #000 60%, transparent 92%);
+  }
+  .gp-map::after { /* the strip under the status bar dims */
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: calc(var(--k) * 110);
+    background: linear-gradient(rgba(0, 0, 0, 0.55), transparent);
+  }
+  .gp-map svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .gp-terrain path { fill: none; stroke: rgba(255, 255, 255, 0.05); stroke-width: 1.2; }
+  .gp-route .glow { fill: none; stroke: #ffd60a; stroke-opacity: 0.45; stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; filter: url(#gp-blur); }
+  .gp-route .line { fill: none; stroke: #ffd60a; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  .gp-route .glow, .gp-route .line { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1.6s cubic-bezier(0.4, 0, 0.2, 1); }
+  .gd-phone.is-drawn .gp-route .glow, .gd-phone.is-drawn .gp-route .line { stroke-dashoffset: 0; }
+  .gp-route .start { fill: #ffd60a; stroke: #07080a; stroke-width: 2; }
+  .gp-island {
+    position: absolute; top: calc(var(--k) * 11); left: 50%; transform: translateX(-50%);
+    width: calc(var(--k) * 124); height: calc(var(--k) * 36); border-radius: 999px; background: #000;
+  }
+  .gp-status {
+    position: absolute; top: calc(var(--k) * 19); left: calc(var(--k) * 46); right: calc(var(--k) * 34);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: calc(var(--k) * 17); font-weight: 600;
+  }
+  .gp-status svg { height: calc(var(--k) * 13); width: auto; }
+  .gp-nav {
+    position: absolute; top: calc(var(--k) * 62); left: calc(var(--k) * 16); right: calc(var(--k) * 16);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .gp-btn {
+    width: calc(var(--k) * 44); height: calc(var(--k) * 44); border-radius: 50%;
+    display: grid; place-items: center; color: var(--gd-yellow);
+    background: rgba(40, 42, 46, 0.55);
+    border: 0.75px solid rgba(255, 255, 255, 0.14);
+  }
+  .gp-btn svg { width: calc(var(--k) * 20); height: calc(var(--k) * 20); }
+  .gp-tools { display: flex; gap: calc(var(--k) * 10); }
+  .gp-tools .gp-btn:last-child { color: var(--gd-text); }
+  .gp-flow { position: absolute; top: calc(var(--k) * 286); left: 0; right: 0; }
+  .gp-head { margin: 0 calc(var(--k) * 20); }
+  .gp-caps {
+    font-size: calc(var(--k) * 10); font-weight: 700; font-stretch: 112%;
+    letter-spacing: calc(var(--k) * 1.1); text-transform: uppercase; color: var(--gd-dim);
+  }
+  .gp-date { display: flex; align-items: center; gap: calc(var(--k) * 8); margin: 0 0 calc(var(--k) * 8); }
+  .gp-disc {
+    width: calc(var(--k) * 24); height: calc(var(--k) * 24); border-radius: 50%;
+    background: var(--gd-yellow); color: #07080a; display: grid; place-items: center; flex: none;
+  }
+  .gp-disc svg { width: calc(var(--k) * 15); height: calc(var(--k) * 15); }
+  .gp-title { margin: 0; font-size: calc(var(--k) * 32); font-weight: 800; line-height: 1.1; color: var(--gd-text); }
+  .gp-sub { margin: calc(var(--k) * 8) 0 0; font-size: calc(var(--k) * 13); font-weight: 600; color: var(--gd-dim); }
+  .gp-y { color: var(--gd-yellow); }
+  .gp-p { color: var(--gd-pb); }
+  .gp-hero { display: flex; gap: calc(var(--k) * 22); margin-top: calc(var(--k) * 16); }
+  .gp-hero b {
+    display: block; font-size: calc(var(--k) * 22); font-weight: 900; font-stretch: 125%;
+    font-variant-numeric: tabular-nums; white-space: nowrap; line-height: 1.15;
+  }
+  .gp-hero .gp-caps { font-size: calc(var(--k) * 9); }
+  .gp-section {
+    margin: calc(var(--k) * 24) calc(var(--k) * 20) 0;
+    display: flex; align-items: baseline; gap: calc(var(--k) * 8);
+  }
+  .gp-section .gp-caps { font-size: calc(var(--k) * 11); color: rgba(245, 245, 242, 0.75); }
+  .gp-section b { font-size: calc(var(--k) * 11); font-weight: 800; font-stretch: 125%; color: var(--gd-faint); }
+  .gp-panel {
+    margin: calc(var(--k) * 10) calc(var(--k) * 12) 0;
+    padding: calc(var(--k) * 18);
+    border-radius: calc(var(--k) * 26);
+    background: linear-gradient(#1b1d22, #111317);
+    border: 0.75px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .gp-st + .gp-st { border-top: 0.5px solid rgba(255, 255, 255, 0.07); }
+  .gp-st { padding: calc(var(--k) * 14) 0; }
+  .gp-st:first-child { padding-top: 0; }
+  .gp-st:last-child { padding-bottom: 0; }
+  .gp-st.is-open:not(:first-child) { padding-top: calc(var(--k) * 18); }
+  .gp-st.is-open:not(:last-child) { padding-bottom: calc(var(--k) * 18); }
+  .gp-row { display: flex; align-items: baseline; gap: calc(var(--k) * 8); }
+  .gp-name { font-size: calc(var(--k) * 16); font-weight: 600; white-space: nowrap; transition: font-size 0.35s ease; }
+  .gp-st.is-open .gp-name { font-size: calc(var(--k) * 20); font-weight: 700; }
+  .gp-pbb {
+    align-self: center;
+    font-size: calc(var(--k) * 10); font-weight: 900; font-stretch: 125%; color: #fff;
+    padding: 0 calc(var(--k) * 7); height: calc(var(--k) * 18); line-height: calc(var(--k) * 18);
+    border-radius: 999px; background: linear-gradient(#c97af5, #bf5af2);
+    box-shadow: 0 0 calc(var(--k) * 10) rgba(191, 90, 242, 0.6);
+  }
+  .gp-tr { margin-left: auto; text-align: right; }
+  .gp-time {
+    display: block; font-size: calc(var(--k) * 18); font-weight: 800; font-stretch: 125%;
+    font-variant-numeric: tabular-nums; transition: font-size 0.35s ease;
+  }
+  .gp-st.is-open .gp-time { font-size: calc(var(--k) * 26); font-weight: 900; }
+  .gp-dl { display: block; margin-top: calc(var(--k) * 3); font-size: calc(var(--k) * 11); font-weight: 800; font-stretch: 125%; font-variant-numeric: tabular-nums; }
+  .gp-st.is-open .gp-dl { display: none; }
+  .gp-c-pb { color: var(--gd-pb); }
+  .gp-c-dim { color: var(--gd-dim); }
+  /* compact sectors: each sector's colour over its three sub-sectors */
+  .gp-mini { display: flex; gap: calc(var(--k) * 4); width: calc(var(--k) * 102); margin-top: calc(var(--k) * 8); }
+  .gp-st.is-open .gp-mini { display: none; }
+  .gp-mini > span { flex: 1; display: flex; flex-direction: column; gap: calc(var(--k) * 3); }
+  .gp-mini i, .gp-cells i { display: block; border-radius: 999px; }
+  .gp-mini > span > i { height: calc(var(--k) * 3); }
+  .gp-mini em, .gp-cells em { display: flex; gap: calc(var(--k) * 2); }
+  .gp-mini em i { flex: 1; height: calc(var(--k) * 3); }
+  /* the open Stage's details */
+  .gp-det { display: none; }
+  .gp-st.is-open .gp-det { display: block; animation: gp-in 0.3s ease-out 0.1s both; }
+  @keyframes gp-in { from { opacity: 0; } }
+  .gp-gaprow { display: flex; justify-content: space-between; align-items: baseline; margin-top: calc(var(--k) * 14); font-size: calc(var(--k) * 11); font-weight: 500; color: var(--gd-dim); }
+  .gp-gaprow b { font-size: calc(var(--k) * 13); font-weight: 800; font-stretch: 125%; font-variant-numeric: tabular-nums; }
+  .gp-trace { position: relative; height: calc(var(--k) * 76); margin-top: calc(var(--k) * 14); }
+  .gp-trace svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .gp-reveal { clip-path: inset(-6px 100% -6px -6px); }
+  .gp-reveal.is-on { clip-path: inset(-6px -6px -6px -6px); transition: clip-path 1.1s ease-in-out 0.2s; }
+  .gp-ax { font-size: 9px; font-weight: 500; fill: var(--gd-faint); font-variant-numeric: tabular-nums; }
+  .gp-cells { display: flex; gap: calc(var(--k) * 6); margin-top: calc(var(--k) * 14); }
+  .gp-cells > span { flex: 1; display: flex; flex-direction: column; gap: calc(var(--k) * 5); }
+  .gp-cells b {
+    display: grid; place-items: center; height: calc(var(--k) * 30); border-radius: calc(var(--k) * 8);
+    font-size: calc(var(--k) * 12); font-weight: 800; font-stretch: 125%; font-variant-numeric: tabular-nums;
+    border: 0.75px solid;
+  }
+  .gp-cells em i { flex: 1; height: calc(var(--k) * 4); }
+  /* the system tab bar, floating glass */
+  .gp-tabbar {
+    position: absolute; left: calc(var(--k) * 21); right: calc(var(--k) * 21); bottom: calc(var(--k) * 24);
+    height: calc(var(--k) * 62); border-radius: 999px;
+    display: flex; justify-content: space-around; align-items: center; padding: 0 calc(var(--k) * 4);
+    background: rgba(30, 32, 36, 0.7);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5); backdrop-filter: blur(14px) saturate(1.5);
+    border: 0.75px solid rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 calc(var(--k) * 8) calc(var(--k) * 24) rgba(0, 0, 0, 0.5);
+  }
+  .gp-tabbar span {
+    display: flex; flex-direction: column; align-items: center; gap: calc(var(--k) * 3);
+    font-size: calc(var(--k) * 10); font-weight: 600; color: rgba(245, 245, 242, 0.85);
+    padding: calc(var(--k) * 6) calc(var(--k) * 8); border-radius: 999px; white-space: nowrap;
+  }
+  .gp-tabbar span.is-on { color: var(--gd-yellow); background: rgba(255, 255, 255, 0.1); }
+  .gp-tabbar svg { width: calc(var(--k) * 22); height: calc(var(--k) * 20); }
+  .gp-fade { /* page content fades out across the bar's top edge */
+    position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--k) * 150);
+    background: linear-gradient(transparent, #07080a 62%);
+    pointer-events: none;
+  }
+  /* entrance: header and panel fade up once the route has drawn */
+  .gd-phone .gp-head, .gd-phone .gp-section, .gd-phone .gp-panel { opacity: 0; transform: translateY(calc(var(--k) * 14)); transition: opacity 0.5s ease, transform 0.5s ease; }
+  .gd-phone.is-drawn .gp-head { opacity: 1; transform: none; transition-delay: 0.35s; }
+  .gd-phone.is-drawn .gp-section, .gd-phone.is-drawn .gp-panel { opacity: 1; transform: none; transition-delay: 0.6s; }
 
   /* PointFoundry — scanner frame with a live fake LiDAR point cloud
      (drawn by main.js on the canvas: a scanned room, slowly orbiting) */
@@ -1178,7 +1405,7 @@
   <style>
     .reveal { opacity: 1; transform: none; }
     /* the live demos are JS-drawn — without it they're empty shells */
-    .pg-demo, .pf-frame, .gd-watch, .bb-demo { display: none; }
+    .pg-demo, .pf-frame, .gd-art, .bb-demo { display: none; }
     .pt-peerwave { display: none; }
     .tc-now, .tc-banner { display: none; }
   </style>
@@ -1291,7 +1518,7 @@
         <p class="chapter-kicker reveal"><b>03</b> · Apple Watch · iPhone</p>
         <img class="app-icon chapter-icon vt-ghostdelta reveal" src="assets/icon-ghostdelta.jpg" alt="GhostDelta app icon" width="124" height="124" loading="lazy" decoding="async" style="--reveal-delay:.08s">
         <h2 class="wordmark wm-ghostdelta reveal" style="--reveal-delay:.16s">GHOST<span class="delta">DELTA</span></h2>
-        <p class="chapter-desc reveal" style="--reveal-delay:.3s">A precision GPS tracker for outdoor sport — mountain biking, skiing, hiking, motorcycling, karting, boating and more. Record on Apple Watch, analyse on iPhone. Define a Stage on any trail and GhostDelta times every run against your best — live, sector by sector, with the delta on your wrist while you're still moving.</p>
+        <p class="chapter-desc reveal" style="--reveal-delay:.3s">A precision Apple Watch GPS recorder for mountain biking, hiking, running, walking, motorsports and more. Race your own best: every run on your favourite stretch is timed live, sector by sector, with the gap on your wrist while you&rsquo;re still moving. Follow an imported GPX route to any waypoint you choose, then relive every ride on your iPhone.</p>
         <p class="chapter-links reveal" style="--reveal-delay:.38s">
           <a href="ghostdelta/">About</a>
           <a href="ghostdelta/support.html">Support</a>
@@ -1301,76 +1528,123 @@
       </div>
       <div class="chapter-art">
         <div data-parallax="0.04">
-          <div class="gd-watch reveal" id="gd-watch" aria-hidden="true">
-            <div class="gd-face">
-              <div class="gd-clock">10:09</div>
-
-              <!-- Stage timing -->
-              <div class="gd-scene is-active" data-scene="stage">
-                <div class="gd-header gd-caps"><span>Stages</span><span>Delta</span></div>
-                <div class="gd-panel gd-live" id="gd-card">
-                  <p class="gd-name">Ridgeline DH</p>
-                  <div class="gd-row">
-                    <span class="gd-time" id="gd-time">00:00</span>
-                    <span class="gd-delta" id="gd-delta">—</span>
-                  </div>
-                  <div class="gd-pills"><span class="gd-pill">--</span><span class="gd-pill">--</span><span class="gd-pill">--</span></div>
-                  <div class="gd-minis">
-                    <span class="gd-mini-group"><span></span><span></span><span></span></span>
-                    <span class="gd-mini-group"><span></span><span></span><span></span></span>
-                    <span class="gd-mini-group"><span></span><span></span><span></span></span>
-                  </div>
-                </div>
-                <p class="gd-chip-row"><span class="gd-chip"><span class="dot"></span>3 stages · 1 PB</span></p>
+          <div class="gd-art reveal">
+            <div class="gd-duo" aria-hidden="true">
+            <div class="gd-phone" id="gd-phone">
+              <div class="gp-bg"></div>
+              <div class="gp-map">
+                <svg class="gp-terrain" viewBox="0 0 393 470" preserveAspectRatio="none"><path d="M-10 120 C 60 90 120 150 200 120 S 330 70 410 110"/><path d="M-10 190 C 70 160 150 230 230 190 S 350 150 410 180"/><path d="M-10 260 C 90 240 140 300 240 270 S 340 230 410 260"/><path d="M40 -10 C 70 80 30 160 90 260 S 120 380 80 470"/><path d="M300 -10 C 280 90 340 170 300 260 S 330 400 360 470"/></svg>
+                <svg class="gp-route" viewBox="0 0 393 470"><defs><filter id="gp-blur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4"/></filter></defs>
+                  <path class="glow" pathLength="1" d="M92 238 C 80 205 104 182 132 176 C 160 170 170 140 196 128 C 224 115 250 132 262 118 C 276 101 300 104 312 124 C 324 146 300 160 306 180 C 312 202 296 226 270 230 C 242 234 236 252 210 256 C 184 260 172 238 150 246 C 128 254 112 262 92 238 Z"/>
+                  <path class="line" pathLength="1" d="M92 238 C 80 205 104 182 132 176 C 160 170 170 140 196 128 C 224 115 250 132 262 118 C 276 101 300 104 312 124 C 324 146 300 160 306 180 C 312 202 296 226 270 230 C 242 234 236 252 210 256 C 184 260 172 238 150 246 C 128 254 112 262 92 238 Z"/>
+                  <circle class="start" cx="92" cy="238" r="5"/>
+                </svg>
               </div>
-
-              <!-- Navigation -->
-              <div class="gd-scene" data-scene="nav">
-                <div class="gd-header gd-caps"><span>Mountain Trail<span class="gd-acc">→ Fwd</span></span></div>
-                <div class="gd-panel gd-grid2">
-                  <div class="gd-cell"><div class="gd-caps">Travelled</div><span class="gd-big" id="gd-nav-done">1.16</span><span class="gd-unit">km</span></div>
-                  <div class="gd-cell"><div class="gd-caps">Remaining</div><span class="gd-big is-yellow" id="gd-nav-left">1.74</span><span class="gd-unit">km</span></div>
-                  <div class="gd-cell"><div class="gd-caps">↑ Ascent</div><span class="gd-big" id="gd-nav-up">56</span><span class="gd-unit">m</span><div class="gd-sub">of 85m</div></div>
-                  <div class="gd-cell"><div class="gd-caps">↓ Descent</div><span class="gd-big" id="gd-nav-down">13</span><span class="gd-unit">m</span><div class="gd-sub">of 28m</div></div>
-                </div>
-                <div class="gd-panel gd-profile">
-                  <svg id="gd-nav-svg" viewBox="0 0 200 46" preserveAspectRatio="none"></svg>
-                  <div class="gd-stats3">
-                    <div><div class="gd-caps">▲ Next</div><span class="gd-mid" id="gd-nav-next">340</span><span class="gd-unit">m</span></div>
-                    <div><div class="gd-caps">Gain</div><span class="gd-mid">56</span><span class="gd-unit">m</span></div>
-                    <div><div class="gd-caps">Gradient</div><span class="gd-mid">6</span><span class="gd-unit">%</span></div>
-                  </div>
+              <div class="gp-island"></div>
+              <div class="gp-status"><span>9:41</span><svg viewBox="0 0 66 13" fill="currentColor"><rect x="0" y="8" width="3" height="5" rx="1"/><rect x="5" y="5.5" width="3" height="7.5" rx="1"/><rect x="10" y="3" width="3" height="10" rx="1"/><rect x="15" y="0.5" width="3" height="12.5" rx="1"/><path d="M31 3.2a9 9 0 0 1 11 0l-1.3 1.5a7 7 0 0 0-8.4 0zM33.6 6.2a5 5 0 0 1 5.8 0l-1.3 1.5a3 3 0 0 0-3.2 0zM36.5 9.3l1.4 1.6-1.4 1.6-1.4-1.6z"/><rect x="45.5" y="1" width="18" height="11" rx="3.2" fill="none" stroke="currentColor" stroke-opacity=".45"/><rect x="47.5" y="3" width="11" height="7" rx="1.6"/><rect x="64.5" y="4.5" width="1.5" height="4" rx=".7" fill-opacity=".45"/></svg></div>
+              <div class="gp-nav">
+                <span class="gp-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></span>
+                <span class="gp-tools">
+                  <span class="gp-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4M6 11v9h12v-9"/></svg></span>
+                  <span class="gp-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="8" cy="12" r=".6" fill="currentColor"/><circle cx="12" cy="12" r=".6" fill="currentColor"/><circle cx="16" cy="12" r=".6" fill="currentColor"/></svg></span>
+                </span>
+              </div>
+              <div class="gp-flow">
+              <div class="gp-head">
+                <p class="gp-date"><span class="gp-disc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="16.5" r="3.5"/><circle cx="18.5" cy="16.5" r="3.5"/><path d="M5.5 16.5 9 9h6l3.5 7.5M9 9l3 7.5L15 9M8 6h2.5"/></svg></span><span class="gp-caps">Sat 8 Nov 2026, 9:14 AM</span></p>
+                <h3 class="gp-title">Mountain Biking</h3>
+                <p class="gp-sub"><span class="gp-y">3 Stages</span>&nbsp; &middot; &nbsp;<span class="gp-p">1 PB</span></p>
+                <div class="gp-hero">
+                  <div><b class="gp-y" data-count="6512" data-fmt="dur">1:48:32</b><span class="gp-caps">Duration</span></div>
+                  <div><b data-count="24.62" data-fmt="km">24.62 km</b><span class="gp-caps">Distance</span></div>
+                  <div><b data-count="812" data-fmt="int">812</b><span class="gp-caps">M ascent</span></div>
                 </div>
               </div>
-
-              <!-- Circuit laps -->
-              <div class="gd-scene" data-scene="laps">
-                <div class="gd-header gd-caps"><span>Laps</span><span>Delta</span></div>
-                <div class="gd-panel gd-live" id="gd-lapcard">
-                  <p class="gd-name" id="gd-lapname">Lap 4</p>
-                  <div class="gd-row">
-                    <span class="gd-time" id="gd-laptime">0:00.0</span>
-                    <span class="gd-delta" id="gd-lapdelta">—</span>
-                  </div>
-                  <div class="gd-pills"><span class="gd-pill">--</span><span class="gd-pill">--</span><span class="gd-pill">--</span></div>
-                  <div class="gd-minis">
-                    <span class="gd-mini-group"><span></span><span></span><span></span></span>
-                    <span class="gd-mini-group"><span></span><span></span><span></span></span>
-                    <span class="gd-mini-group"><span></span><span></span><span></span></span>
-                  </div>
-                </div>
-                <p class="gd-chip-row"><span class="gd-chip"><span class="dot"></span><span id="gd-lapchip">3 laps · best 1:38.4</span></span></p>
+              <div class="gp-section"><span class="gp-caps">Stages</span><b>3</b></div>
+              <div class="gp-panel" id="gp-stages"></div>
               </div>
-
-              <div class="gd-lapdone" id="gd-lapdone">
-                <span class="gd-caps" id="gd-ld-lap">Lap 4</span>
-                <span class="gd-figure" id="gd-ld-time">1:37.9</span>
-                <span class="gd-rule"></span>
-                <span class="gd-caps" style="color: var(--gd-ahead)">Best lap</span>
-                <span class="gd-gap" id="gd-ld-gap">−0.5 s</span>
+              <div class="gp-fade"></div>
+              <div class="gp-tabbar">
+                <span class="is-on"><svg viewBox="0 0 24 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 10 12 3l9 7v10h-6v-6H9v6H3z"/></svg>Home</span>
+                <span><svg viewBox="0 0 24 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 5h13M8 11h13M8 17h13"/><circle cx="3.5" cy="5" r="1" fill="currentColor"/><circle cx="3.5" cy="11" r="1" fill="currentColor"/><circle cx="3.5" cy="17" r="1" fill="currentColor"/></svg>Sessions</span>
+                <span><svg viewBox="0 0 24 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="4" cy="4" r="2.2"/><circle cx="20" cy="18" r="2.2"/><path d="M6 5c9 1 3 11 12 12" stroke-dasharray="2.5 2.5"/></svg>Stage Book</span>
+                <span><svg viewBox="0 0 24 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 21V3"/><path d="M5 3h14v10H5"/><path d="M5 8h14M10 3v10M15 3v10" stroke-opacity=".6"/></svg>Circuits</span>
+                <span><svg viewBox="0 0 24 22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="11" r="3"/><path d="M12 2v3M12 17v3M3 11h3M18 11h3M5.6 4.6l2.1 2.1M16.3 15.3l2.1 2.1M5.6 17.4l2.1-2.1M16.3 6.7l2.1-2.1"/></svg>Settings</span>
               </div>
             </div>
-            <div class="gd-tabs">
+            <div class="gd-watch" id="gd-watch">
+              <div class="gd-face">
+                <div class="gd-clock">10:09</div>
+
+                <!-- Stage page: Nearby, the run underway, Previous -->
+                <div class="gd-scene is-active" data-scene="stage">
+                  <div class="gd-header gd-caps"><span>Stages</span></div>
+                  <div class="gd-win" id="gd-near"></div>
+                  <div class="gd-panel gd-live" id="gd-card">
+                    <p class="gd-name" id="gd-name">Ridgeline DH</p>
+                    <div class="gd-row">
+                      <span class="gd-time" id="gd-time">0:00</span>
+                      <span class="gd-delta" id="gd-delta">&mdash;</span>
+                    </div>
+                    <div class="gd-pills"><span class="gd-pill">--</span><span class="gd-pill">--</span><span class="gd-pill">--</span></div>
+                    <div class="gd-minis">
+                      <span class="gd-mini-group"><span></span><span></span><span></span></span>
+                      <span class="gd-mini-group"><span></span><span></span><span></span></span>
+                      <span class="gd-mini-group"><span></span><span></span><span></span></span>
+                    </div>
+                  </div>
+                  <div class="gd-win"><span class="gd-count">2</span><span class="gd-wn">Quarry Line</span><span class="gd-wf">2:38</span><span class="gd-wf" style="color:var(--gd-behind)">+0.9</span></div>
+                </div>
+
+                <!-- Navigation -->
+                <div class="gd-scene" data-scene="nav">
+                  <div class="gd-header gd-caps"><span>Mountain Trail<span class="gd-acc">→ Fwd</span></span></div>
+                  <div class="gd-panel gd-grid2">
+                    <div class="gd-cell"><div class="gd-caps">Travelled</div><span class="gd-big" id="gd-nav-done">1.16</span><span class="gd-unit">km</span></div>
+                    <div class="gd-cell"><div class="gd-caps">Remaining</div><span class="gd-big is-yellow" id="gd-nav-left">1.74</span><span class="gd-unit">km</span></div>
+                    <div class="gd-cell"><div class="gd-caps">↑ Ascent</div><span class="gd-big" id="gd-nav-up">56</span><span class="gd-unit">m</span><div class="gd-sub">of 85m</div></div>
+                    <div class="gd-cell"><div class="gd-caps">↓ Descent</div><span class="gd-big" id="gd-nav-down">13</span><span class="gd-unit">m</span><div class="gd-sub">of 28m</div></div>
+                  </div>
+                  <div class="gd-panel gd-profile">
+                    <svg id="gd-nav-svg" viewBox="0 0 200 46" preserveAspectRatio="none"></svg>
+                    <div class="gd-stats3">
+                      <div><div class="gd-caps">▲ Next</div><span class="gd-mid" id="gd-nav-next">340</span><span class="gd-unit">m</span></div>
+                      <div><div class="gd-caps">Gain</div><span class="gd-mid">56</span><span class="gd-unit">m</span></div>
+                      <div><div class="gd-caps">Gradient</div><span class="gd-mid">6</span><span class="gd-unit">%</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Circuit laps -->
+                <div class="gd-scene" data-scene="laps">
+                  <div class="gd-header gd-caps"><span>Laps</span><span>Delta</span></div>
+                  <div class="gd-panel gd-live" id="gd-lapcard">
+                    <p class="gd-name" id="gd-lapname">Lap 4</p>
+                    <div class="gd-row">
+                      <span class="gd-time" id="gd-laptime">0:00.0</span>
+                      <span class="gd-delta" id="gd-lapdelta">—</span>
+                    </div>
+                    <div class="gd-pills"><span class="gd-pill">--</span><span class="gd-pill">--</span><span class="gd-pill">--</span></div>
+                    <div class="gd-minis">
+                      <span class="gd-mini-group"><span></span><span></span><span></span></span>
+                      <span class="gd-mini-group"><span></span><span></span><span></span></span>
+                      <span class="gd-mini-group"><span></span><span></span><span></span></span>
+                    </div>
+                  </div>
+                  <div class="gd-win"><span class="gd-count">3</span><span class="gd-wn">Lap 3</span><span class="gd-wf">1:38.4</span></div>
+                </div>
+
+                <div class="gd-lapdone" id="gd-lapdone">
+                  <span class="gd-caps" id="gd-ld-lap">Lap 4</span>
+                  <span class="gd-figure" id="gd-ld-time">1:37.9</span>
+                  <span class="gd-rule"></span>
+                  <span class="gd-caps" style="color: var(--gd-ahead)">Best lap</span>
+                  <span class="gd-gap" id="gd-ld-gap">−0.5 s</span>
+                </div>
+              </div>
+            </div>
+            </div>
+            <div class="gd-tabs" id="gd-tabs">
               <span class="gd-tab is-active" data-go="stage">Stage timing</span>
               <span class="gd-tab" data-go="nav">Navigation</span>
               <span class="gd-tab" data-go="laps">Circuit laps</span>
@@ -1621,6 +1895,6 @@
 </main>
 
 <script src="dock.js?v=11" id="jza-dock-script"></script>
-<script src="main.js?v=15"></script>
+<script src="main.js?v=16"></script>
 </body>
 </html>

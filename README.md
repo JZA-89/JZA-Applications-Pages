@@ -9,7 +9,7 @@ Hand-written HTML/CSS/JS — no frameworks, no build step, no trackers.
 - `index.html` — the showcase: full-viewport hero, then one "takeover chapter" per app where the page's ambient light and typography morph into that app's design language.
 - `site.css` — shared design system. Dark-only (`color-scheme: dark`), liquid-glass components, and per-app brand themes keyed off `body[data-app="…"]` / `section[data-app="…"]`.
 - `dock.js` — floating glass dock nav (macOS-style magnification on fine pointers). Injected on every page; resolves the site root from its own script src, so it works at any folder depth.
-- `main.js` — index-only choreography: chapter takeover observer, scroll reveals, parallax, specular glass highlights, and a live demo per app — the GhostDelta stage ticker, the BananaBomb card feed, the PointFoundry room point cloud, the PowerGlass dashboard simulation, the BikeSpec suspension card, the Parlato chat, and the ThumbControl rule card. All gated behind `prefers-reduced-motion` and paused offscreen.
+- `main.js` — index-only choreography: chapter takeover observer, scroll reveals, parallax, specular glass highlights, and a live demo per app — the GhostDelta iPhone ride page with the live Watch in front, the BananaBomb card feed, the PointFoundry room point cloud, the PowerGlass dashboard simulation, the BikeSpec suspension card, the Parlato chat, and the ThumbControl rule card. All gated behind `prefers-reduced-motion` and paused offscreen.
 - `assets/` — app icons (512px JPEG, `icon-<slug>.jpg`) and Barry the Banana poses. Sourced from the app projects in `~/Documents/<AppName>`.
 - `<app>/index.html`, `support.html`, `*PrivacyPolicy.html` — per-app pages on the shared system, each in its own brand palette.
 

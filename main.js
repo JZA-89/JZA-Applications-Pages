@@ -103,15 +103,26 @@
   }
 
   /* ------------------------------------------------------------------
-     5. GhostDelta — a working replica of the Watch app (facelift design).
-        The face cycles three views, as a rider would see them:
-        · Stage timing: the run clock ticks in whole seconds; the gap stays
+     5. GhostDelta — the iPhone's ride page with a working Watch in front.
+        iPhone (Session detail, STYLE_GUIDE Part A): the route draws in on
+        the map backdrop, the header figures count up, then the Stages
+        panel opens one Stage at a time, as a tap does in the app — its
+        ghost trace revealed left to right (red behind, green ahead of the
+        dashed ghost line), sectors and sub-sectors in their computed
+        colours (purple = best ever, never red).
+        Watch: the face cycles three views, as a rider would see them:
+        · Stage page — three windows under "Stages": Nearby (READY with a
+          yellow edge at the start, then the nearest other Stage), the
+          run underway, and Previous (the ride's last run, with a count).
+          The run clock ticks M:SS in whole seconds; the gap stays
           an em-dash until the first sub-sector crossing, then updates at
           each crossing; the sub-sector being ridden is a hollow yellow
           outline and takes its colour once complete (purple = beat both
           references, else green→yellow by how close — never red); a
           running sector pill shows whole seconds, tenths once complete;
-          on finish the panel edge turns purple (PB) or grey.
+          on finish the panel edge turns purple (PB) or grey. Gap colours
+          follow StageGap: riding green ahead / red behind; finished
+          purple for a PB, red slower.
         · Navigation: travelled / remaining / climb, the elevation profile
           ahead coloured by gradient, "you" moving along it.
         · Circuit laps: the lap clock keeps its tenths, live gap to the best
@@ -123,7 +134,7 @@
     var YELLOW = "#FFD60A", PB = "#BF5AF2", PB_TEXT = "#C084FC", GREY = "#8E9096", IDLE = "#3A3C42";
     var scenes = {};
     Array.prototype.forEach.call(gdStage.querySelectorAll(".gd-scene"), function (el) { scenes[el.dataset.scene] = el; });
-    var tabs = gdStage.querySelectorAll(".gd-tab");
+    var tabs = document.getElementById("gd-tabs").querySelectorAll(".gd-tab");
     var lapDone = document.getElementById("gd-lapdone");
 
     var rgba = function (hex, a) {
@@ -147,7 +158,7 @@
     };
     var fmtClock = function (s) {
       var m = Math.floor(s / 60), ss = Math.floor(s % 60);
-      return (m < 10 ? "0" : "") + m + ":" + (ss < 10 ? "0" : "") + ss;
+      return m + ":" + (ss < 10 ? "0" : "") + ss;   /* M:SS, as GhostFormatters.duration */
     };
     var fmtLap = function (s) {
       var m = Math.floor(s / 60), r = s - m * 60;
@@ -174,7 +185,7 @@
         gap: function (d, colour) {
           if (d === null) { deltaEl.textContent = "—"; deltaEl.style.color = IDLE; return; }
           deltaEl.textContent = fmtGap(d);
-          deltaEl.style.color = colour || (d <= 0 ? sectorColour(0) : GREY);
+          deltaEl.style.color = colour || (d <= 0 ? "#30D158" : "#FF453A");   /* riding: green ahead, red behind */
         },
         mini: function (i, colour) {
           minis[i].className = "";
@@ -209,13 +220,39 @@
     var stagePanel = makePanel(document.getElementById("gd-card"), document.getElementById("gd-time"), document.getElementById("gd-delta"));
     var STAGE_SECTORS = [82.5, 85.1, 84.9], TICKS_PER_MINI = 14;
     var stage = {};
+    var gdCard = document.getElementById("gd-card"), gdName = document.getElementById("gd-name"), gdNear = document.getElementById("gd-near");
+    var PIN = '<span class="gd-pin"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10.5" r="2.5"/></svg></span>';
+    var nearby = function (ready) {
+      gdNear.classList.toggle("is-ready", ready);
+      gdNear.innerHTML = ready
+        ? '<span class="gd-dot"></span><span class="gd-wn">Ridgeline DH</span><span class="gd-caps" style="color:var(--gd-yellow)">Ready</span>'
+        : PIN + '<span class="gd-wn">Pine Chute</span><span class="gd-wf gd-wd">1.4 km</span>';
+    };
+    /* At the start: READY, and the resting card (grey, 0:00, empty bar). */
+    var resting = function (on) {
+      gdCard.classList.toggle("is-resting", on);
+      gdName.textContent = on ? "Enter a Stage to Start Timing" : "Ridgeline DH";
+      nearby(on);
+    };
     var stageStart = function () {
-      stage = { mini: 0, tick: 0, total: 0, sec: 0, gap: 0, secGap: 0, dur: STAGE_SECTORS[0] + (Math.random() - 0.45) * 5, hold: 0 };
+      stage = { mini: 0, tick: 0, total: 0, sec: 0, gap: 0, secGap: 0, dur: STAGE_SECTORS[0] + (Math.random() - 0.45) * 5, hold: 0, rest: 14 };
       stagePanel.reset();
-      stagePanel.time("00:00");
+      stagePanel.time("0:00");
+      resting(true);
+      Array.prototype.forEach.call(gdCard.querySelectorAll(".gd-pill"), function (p) { p.textContent = "0.0"; });
+      gdCard.querySelector(".is-current").className = "";
     };
     /* returns true when this view has finished its turn */
     var stageTick = function () {
+      if (stage.rest > 0) {
+        if (--stage.rest === 0) {
+          resting(false);
+          Array.prototype.forEach.call(gdCard.querySelectorAll(".gd-pill"), function (p) { p.textContent = "--"; });
+          gdCard.querySelector(".gd-mini-group span").className = "is-current";
+          stagePanel.edge(YELLOW, true);
+        }
+        return false;
+      }
       if (stage.hold > 0) return --stage.hold === 0;
       var step = stage.dur / (3 * TICKS_PER_MINI);
       stage.sec += step;
@@ -240,7 +277,7 @@
       if (stage.mini === 9) {
         var isPB = stage.gap <= 0;
         stagePanel.edge(isPB ? PB : GREY, isPB);
-        stagePanel.gap(stage.gap, isPB ? PB : GREY);
+        stagePanel.gap(stage.gap, isPB ? PB : "#FF453A");   /* finished: purple PB, red slower */
         stage.hold = 30;
       }
       return false;
@@ -353,6 +390,7 @@
     var current = "stage";
     var show = function (name) {
       current = name;
+      lapDone.classList.remove("is-active");   /* a tab tap can leave the lap screen mid-hold */
       ORDER.forEach(function (n) { scenes[n].classList.toggle("is-active", n === name); });
       Array.prototype.forEach.call(tabs, function (t) { t.classList.toggle("is-active", t.dataset.go === name); });
       views[name].start();
@@ -364,7 +402,8 @@
     if (reducedMotion || !("IntersectionObserver" in window)) {
       /* Still frames: a finished PB run; tabs switch between the three views. */
       stageStart();
-      stagePanel.time("04:11");
+      resting(false);
+      stagePanel.time("4:11");
       [[null, "1:21.9"], [0.1, "1:24.8"], [0.1, "1:24.3"]].forEach(function (p, i) { stagePanel.pillDone(i, sectorColour(p[0]), p[1]); });
       for (var k = 0; k < 9; k++) stagePanel.mini(k, sectorColour(k % 4 === 1 ? null : k % 3 === 2 ? 0.5 : 0.1));
       stagePanel.edge(PB, true);
@@ -389,6 +428,149 @@
         });
       });
       gdIO.observe(gdStage);
+    }
+  }
+
+  /* GhostDelta iPhone (see §5's header). The three Stages of one ride:
+     time, gap to your previous best (null = First Run), the trace of that
+     gap along the Stage (signed as the headline reads it: − ahead), and
+     each sector's time and colour position (null = purple, best ever;
+     0 → 1 = green → yellow) with its three sub-sectors. */
+  var gpPhone = document.getElementById("gd-phone");
+  if (gpPhone) {
+    var GP_STAGES = [
+      { name: "Ridgeline DH", time: "4:12.5", gap: -1.8, pb: true, km: 2.1,
+        trace: [0, 0.4, 0.7, 0.2, -0.5, -0.9, -0.6, -1.3, -1.8],
+        sectors: [["1:22.1", 0.15, [0.1, 0.4, 0.05]], ["1:25.0", null, [null, 0.05, null]], ["1:25.4", null, [0.2, null, null]]] },
+      { name: "Quarry Line", time: "2:38.1", gap: 0.9, pb: false, km: 1.3,
+        trace: [0, -0.3, -0.2, 0.4, 0.6, 0.3, 0.9],
+        sectors: [["52.4", 0.1, [0.05, 0.2, 0.1]], ["54.9", 0.8, [0.6, 0.9, 0.7]], ["50.8", 0.4, [0.3, 0.5, 0.35]]] },
+      { name: "Lower Bench", time: "1:46.3", gap: null, pb: false, km: 0.8, trace: null,
+        sectors: [["35.2", null, [null, null, null]], ["36.4", null, [null, null, null]], ["34.7", null, [null, null, null]]] }
+    ];
+    var gpColour = function (pos) {   /* the app's sector colour: purple best ever, else HSB 140° → 50° */
+      if (pos === null) return "#BF5AF2";
+      var c = Math.min(Math.max(pos, 0), 1), h = (140 - 90 * c) / 60, sat = 0.75, v = 0.85;
+      var i = Math.floor(h), f = h - i, q = v * (1 - sat * f), t = v * (1 - sat * (1 - f)), pp = v * (1 - sat);
+      var rgb = [[v, t, pp], [q, v, pp], [pp, v, t]][i % 3];
+      return "#" + rgb.map(function (x) { var hx = Math.round(x * 255).toString(16); return hx.length < 2 ? "0" + hx : hx; }).join("");
+    };
+    var gpGap = function (d) {   /* FL.deltaText: true minus, " s" */
+      return (d < 0 ? "−" : "+") + Math.abs(d).toFixed(1) + " s";
+    };
+    var gpAlpha = function (hex, a) {
+      return "rgba(" + parseInt(hex.slice(1, 3), 16) + "," + parseInt(hex.slice(3, 5), 16) + "," + parseInt(hex.slice(5, 7), 16) + "," + a + ")";
+    };
+    /* FLGhostTrace: dashed ghost at zero, the run's own extremes as marks,
+       fill red above zero / green below, white line, end dot. */
+    var gpTrace = function (st) {
+      var W = 333, H = 76, R = 34, pts = st.trace, n = pts.length - 1;
+      var top = Math.max(0, Math.max.apply(null, pts)), bot = Math.min(0, Math.min.apply(null, pts));
+      var pad = Math.max(0.5, (top - bot) * 0.12), y0 = top + pad, y1 = bot - pad;
+      var X = function (i) { return (i / n) * (W - R); };
+      var Y = function (g) { return ((y0 - g) / (y0 - y1)) * (H - 12); };
+      /* smooth with a light cardinal spline through the points */
+      var d = "M" + X(0) + "," + Y(pts[0]).toFixed(1);
+      for (var i = 0; i < n; i++) {
+        var p0 = pts[Math.max(i - 1, 0)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(i + 2, n)];
+        var c1 = p1 + (p2 - p0) / 6, c2 = p2 - (p3 - p1) / 6;
+        d += " C" + (X(i) + (X(i + 1) - X(i)) / 3).toFixed(1) + "," + Y(c1).toFixed(1) + " " + (X(i + 1) - (X(i + 1) - X(i)) / 3).toFixed(1) + "," + Y(c2).toFixed(1) + " " + X(i + 1).toFixed(1) + "," + Y(p2).toFixed(1);
+      }
+      var zy = Y(0).toFixed(1), last = pts[n], end = last <= 0 ? "#30D158" : "#FF453A";
+      var area = d + " L" + X(n) + "," + zy + " L0," + zy + " Z";
+      var gid = "gp-g" + st.name.length;
+      var zf = (Y(0) / (H - 12)).toFixed(3);
+      var marks = [0];
+      if (top > 0) marks.push(top);
+      if (bot < 0) marks.push(bot);
+      var axis = marks.map(function (m) {
+        return '<text class="gp-ax" x="' + (W - R + 6) + '" y="' + (Y(m) + 3).toFixed(1) + '">' + (m === 0 ? "0" : gpGap(m).replace(" s", "")) + "</text>";
+      }).join("");
+      var half = (st.km / 2).toFixed(1);
+      var xs = '<text class="gp-ax" x="0" y="' + H + '">0</text><text class="gp-ax" x="' + ((W - R) / 2 - 14) + '" y="' + H + '">' + half + ' km</text>' +
+        '<line x1="' + (W - R) / 2 + '" y1="0" x2="' + (W - R) / 2 + '" y2="' + (H - 12) + '" stroke="rgba(255,255,255,.05)"/>';
+      return '<svg viewBox="0 0 ' + W + " " + H + '">' +
+        '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0" stop-color="#FF453A" stop-opacity=".55"/><stop offset="' + zf + '" stop-color="#FF453A" stop-opacity=".2"/>' +
+        '<stop offset="' + zf + '" stop-color="#30D158" stop-opacity=".2"/><stop offset="1" stop-color="#30D158" stop-opacity=".55"/></linearGradient></defs>' +
+        xs + axis +
+        '<g class="gp-reveal"><path d="' + area + '" fill="url(#' + gid + ')"/>' +
+        '<line x1="0" y1="' + zy + '" x2="' + (W - R) + '" y2="' + zy + '" stroke="rgba(255,255,255,.35)" stroke-dasharray="3 4"/>' +
+        '<path d="' + d + '" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>' +
+        '<circle cx="' + X(n) + '" cy="' + Y(last).toFixed(1) + '" r="4" fill="' + end + '" stroke="#111317" stroke-width="1.5"/></g></svg>';
+    };
+    var gpRows = GP_STAGES.map(function (st, i) {
+      var dcol = st.gap === null ? "" : st.gap < 0 ? (st.pb ? "gp-c-pb" : "") : "gp-c-dim";
+      var minis = function (ms) { return ms.map(function (m) { return '<i style="background:' + gpColour(m) + '"></i>'; }).join(""); };
+      var compact = st.sectors.map(function (sec) { return '<span><i style="background:' + gpColour(sec[1]) + '"></i><em>' + minis(sec[2]) + "</em></span>"; }).join("");
+      var cells = st.sectors.map(function (sec) {
+        var c = gpColour(sec[1]), text = sec[1] === null ? "#D9A6F7" : c;
+        return '<span><b style="color:' + text + ";background:" + gpAlpha(c, 0.14) + ";border-color:" + gpAlpha(c, 0.35) + '">' + sec[0] + "</b><em>" + minis(sec[2]) + "</em></span>";
+      }).join("");
+      var gapRow = st.gap === null
+        ? '<div class="gp-gaprow">First Run</div>'
+        : '<div class="gp-gaprow"><span>Gap to your previous best</span><b class="' + dcol + '">' + gpGap(st.gap) + "</b></div>";
+      return '<div class="gp-st' + (i === 0 ? " is-open" : "") + '">' +
+        '<div class="gp-row"><span class="gp-name">' + st.name + "</span>" + (st.pb ? '<span class="gp-pbb">PB</span>' : "") +
+        '<span class="gp-tr"><span class="gp-time">' + st.time + "</span>" +
+        (st.gap === null ? "" : '<span class="gp-dl ' + dcol + '">' + gpGap(st.gap) + "</span>") + "</span></div>" +
+        '<div class="gp-mini">' + compact + "</div>" +
+        '<div class="gp-det">' + gapRow + (st.trace ? '<div class="gp-trace">' + gpTrace(st) + "</div>" : "") +
+        '<div class="gp-cells">' + cells + "</div></div></div>";
+    }).join("");
+    var gpPanel = document.getElementById("gp-stages");
+    gpPanel.innerHTML = gpRows;
+    var gpCells = gpPanel.querySelectorAll(".gp-st");
+    var gpOpen = 0;
+    var gpShow = function (i, animate) {
+      gpOpen = i;
+      Array.prototype.forEach.call(gpCells, function (c, j) { c.classList.toggle("is-open", j === i); });
+      var rv = gpCells[i].querySelector(".gp-reveal");
+      if (!rv) return;
+      rv.classList.remove("is-on");
+      if (animate) { void rv.getBoundingClientRect(); requestAnimationFrame(function () { rv.classList.add("is-on"); }); }
+      else rv.classList.add("is-on");
+    };
+    /* the header's figures count up as the page arrives */
+    var gpCount = function () {
+      var els = gpPhone.querySelectorAll("[data-count]"), t0 = performance.now();
+      var fmt = function (el, v) {
+        var f = el.dataset.fmt;
+        if (f === "dur") { var h = Math.floor(v / 3600), m = Math.floor(v / 60) % 60, sec = Math.floor(v % 60); return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec; }
+        if (f === "km") return v.toFixed(2) + " km";
+        return String(Math.round(v));
+      };
+      var step = function (now) {
+        var k = Math.min((now - t0) / 900, 1), e = 1 - Math.pow(1 - k, 3);
+        Array.prototype.forEach.call(els, function (el) { el.textContent = fmt(el, parseFloat(el.dataset.count) * e); });
+        if (k < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    };
+
+    if (reducedMotion || !("IntersectionObserver" in window)) {
+      gpPhone.classList.add("is-drawn");
+      gpShow(0, false);
+    } else {
+      var gpTimer = null, gpArrived = false;
+      var gpIO = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            if (!gpArrived) {
+              gpArrived = true;
+              gpPhone.classList.add("is-drawn");
+              gpCount();
+              setTimeout(function () { gpShow(0, true); }, 900);
+            }
+            /* every 7 s the next Stage opens, as a tap on its row does */
+            if (!gpTimer) gpTimer = setInterval(function () { gpShow((gpOpen + 1) % gpCells.length, true); }, 7000);
+          } else if (gpTimer) {
+            clearInterval(gpTimer);
+            gpTimer = null;
+          }
+        });
+      }, { threshold: 0.35 });
+      gpIO.observe(gpPhone);
     }
   }
 
