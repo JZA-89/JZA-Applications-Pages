@@ -65,7 +65,7 @@ Parlato and ThumbControl are shown before their App Store release. Each chapter 
 
 MORPHOS is Jaisah's HTML game, not an App Store app, so it has **no About, Support or Privacy pages**. Its chapter (08) has a "Play MORPHOS" button in place of the links and store badge, and the button opens the game in the same tab.
 
-- The game is one self-contained file: `morphos.html` at the site root (jza.app/morphos.html), a copy of the latest `~/Documents/MORPHOS/MORPHOSv<N>.html`. To ship a new version, copy the newest file over `morphos.html` (keep that name, so the URL stays the same). Don't edit the game's code here; changes belong in Jaisah's MORPHOS file.
+- The game is one self-contained file: `morphos.html` at the site root (jza.app/morphos.html), a copy of `~/Documents/MORPHOS/MORPHOS.html` (that project has its own CLAUDE.md; its version number is in the page title). To ship a new version, copy the newest file over `morphos.html` (keep that name, so the URL stays the same). Don't edit the game's code here; changes belong in Jaisah's MORPHOS file.
 - It doesn't link `site.css`, `dock.js` or `main.js`, and gets no dock: it's a full-screen game with its own controls. The game saves progress in the browser (`localStorage`), so keep the URL stable or players lose their saved life.
 - The homepage demo (main.js §13) is a light canvas pond drawn in the game's colours, not the game itself. The icon `assets/icon-morphos.jpg` is the game's own cell logo.
 - The game makes no network requests. If it ever adds any (analytics, leaderboards), it needs a privacy page.
