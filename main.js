@@ -1684,385 +1684,578 @@
   }
 
   /* ------------------------------------------------------------------
-     13. MORPHOS pond — a drop of water drawn in the game's style
-         (its creature colours, smooth wobbling membranes, cilia, glow).
-         A single cell swims to the nearest nutrient and eats it; each
-         one fills the division track, and at 8 it divides into a
-         two-cell colony, as in the game. A hunter drifts through, and
-         the cell darts away when it comes close (the game's fast swim).
-         After a while as a colony the drop fades and a new life begins.
-         Static frame for reduced motion; paused offscreen. World units
-         are 0–1000 across the drop, scaled to the canvas.
+     13. MORPHOS pond — one short life, drawn the way the game draws it.
+         The drawing routines (membrane blob, cell body, cilia, tails,
+         jaws, leaves, food sprite, Pulse arc, division rings, the YOU
+         marker, danger and edible cues) are ported from the game's
+         renderer in morphos.html, with its colours and proportions, at
+         the game's real sizes (player r 22 → 28 at the first division,
+         prey ~12, hunter ~38, Pulse reach r + 110, half-angle 60°).
+         The script follows the game's rules: the cell feeds on algae,
+         kills a prey with a Pulse, then a hunter winds up (jaws open,
+         chevrons above), the cell fast-swims aside, the lunge misses
+         and the cell strikes during the hunter's recovery before
+         escaping. At 80 growth it divides as the game shows it: two
+         cells inside one shared membrane, with division rings, and its
+         first organ (Grazer I: leaves) grows. The camera follows the
+         cell like the game's does. Reduced motion draws one frame
+         mid-fight; offscreen it pauses. Units are the game's world units.
      ------------------------------------------------------------------ */
+  /* its own scope: these short names must not clash with earlier sections */
+  (function () {
   var moDrop = document.getElementById("mo-drop");
   var moCanvas = document.getElementById("mo-pond");
   if (moDrop && moCanvas && moCanvas.getContext) {
-    var moCtx = moCanvas.getContext("2d");
-    var TAU = Math.PI * 2;
-    var MO_GOAL = 8, MO_COLONY_TIME = 16;
-    var moCellsEl = document.getElementById("mo-cells");
-    var moPluralEl = document.getElementById("mo-plural");
-    var moFillEl = document.getElementById("mo-fill");
-    var moLabelEl = document.getElementById("mo-label");
-    var moRgba = function (c, a) { return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + a + ")"; };
-    var LIME = [214, 237, 162], TEAL = [117, 213, 184], GRAZER = [139, 211, 119], HUNTER = [237, 110, 103], GOLD = [227, 182, 98];
+    var c = moCanvas.getContext("2d");
+    var TAU = Math.PI * 2, VIEW = 350; /* world units across the drop */
+    var clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
+    var rgba = function (a, o) { return "rgba(" + (a[0] | 0) + "," + (a[1] | 0) + "," + (a[2] | 0) + "," + o + ")"; };
+    var mix = function (a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; };
+    var rnd = function (n) { var x = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
+    var ease = function (u) { u = clamp(u, 0, 1); return u * u * (3 - 2 * u); };
+    var PAL = { deep: [5, 24, 29], light: [15, 57, 55], fluid: [87, 161, 130] };
+    var PREY = [98, 194, 218], HUNTER = [237, 110, 103], UNFORMED = [133, 235, 211], GRAZER = [157, 224, 135];
+    var z = 1; /* camera zoom in canvas px per world unit (game's this.camera.zoom) */
 
-    /* soft glow sprites, drawn once and stamped (cheap on older phones) */
-    var moGlow = function (c, size) {
-      var g = document.createElement("canvas");
-      g.width = g.height = size;
-      var x = g.getContext("2d"), r = size / 2;
-      var grad = x.createRadialGradient(r, r, 0, r, r, r);
-      grad.addColorStop(0, moRgba(c, 0.55));
-      grad.addColorStop(0.35, moRgba(c, 0.2));
-      grad.addColorStop(1, moRgba(c, 0));
-      x.fillStyle = grad;
-      x.fillRect(0, 0, size, size);
-      return g;
-    };
-    var glowTeal = moGlow(TEAL, 128), glowGreen = moGlow(GRAZER, 64), glowGold = moGlow(GOLD, 32), glowRed = moGlow(HUNTER, 128);
-
-    /* seeded random, so every loop starts the same */
-    var moSeed = 7;
-    var rand = function () { moSeed = (moSeed * 16807) % 2147483647; return (moSeed - 1) / 2147483646; };
-    var inDrop = function (margin) {
-      var a = rand() * TAU, d = Math.sqrt(rand()) * (500 - margin);
-      return { x: 500 + Math.cos(a) * d, y: 500 + Math.sin(a) * d };
-    };
-
-    var moState;
-    var moReset = function () {
-      moSeed = 7;
-      var food = [];
-      for (var i = 0; i < 11; i++) {
-        var f = inDrop(110);
-        food.push({ x: f.x, y: f.y, ph: rand() * TAU, r: 12 + rand() * 6, eaten: 0, back: 0 });
-      }
-      var motes = [];
-      for (var m = 0; m < 26; m++) {
-        var q = inDrop(20);
-        motes.push({ x: q.x, y: q.y, ph: rand() * TAU, s: 0.6 + rand() * 1.1 });
-      }
-      moState = {
-        t: 0, grown: 0, cells: 1, split: 0, colonyT: 0, fade: 0, fadeIn: 1,
-        p: { x: 470, y: 560, vx: 0, vy: 0, a: -1.2, r: 64 },
-        h: { x: -140, y: 260, vx: 0, vy: 0, a: 0, r: 52, wander: 0.4, pass: 0 },
-        food: food, motes: motes, bursts: []
-      };
-      moHud();
-    };
-
-    var moShown = "";
-    var moHud = function () {
-      var s = moState;
-      var key = s.cells + "|" + s.grown;
-      if (key === moShown) return;
-      moShown = key;
-      moCellsEl.textContent = s.cells;
-      moPluralEl.textContent = s.cells === 1 ? "cell" : "cells";
-      if (s.cells === 1) {
-        moFillEl.style.width = (s.grown / MO_GOAL) * 100 + "%";
-        moLabelEl.textContent = "Next division: " + s.grown + " / " + MO_GOAL + " growth";
-      } else {
-        moFillEl.style.width = "100%";
-        moLabelEl.textContent = "Divided. A colony of two.";
-      }
-    };
-
-    /* the game's smoothBlob: a wobbling closed curve through 16 points */
-    var blob = function (c, r, t, phase, stretch, rough, lobes) {
-      var n = 16, pts = [];
-      for (var i = 0; i < n; i++) {
-        var a = (i / n) * TAU;
-        var k = 1 + rough * Math.sin(a * lobes + t * 1.1 + phase) + rough * 0.6 * Math.sin(a * (lobes + 2) - t * 0.73 + phase * 1.8);
+    /* ---- the game's drawing, ported ---- */
+    var smoothBlob = function (r, t, phase, stretch, rough, points, lobes) {
+      points = points || 16; lobes = lobes || 3;
+      var pts = [];
+      for (var i = 0; i < points; i++) {
+        var a = (i / points) * TAU, k = 1 + rough * Math.sin(a * lobes + t * 1.1 + phase) + rough * 0.6 * Math.sin(a * (lobes + 2) - t * 0.73 + phase * 1.8);
         pts.push([Math.cos(a) * r * k * stretch, Math.sin(a) * r * k]);
       }
       c.beginPath();
-      c.moveTo((pts[0][0] + pts[n - 1][0]) / 2, (pts[0][1] + pts[n - 1][1]) / 2);
-      for (var j = 0; j < n; j++) {
-        var p = pts[j], q = pts[(j + 1) % n];
-        c.quadraticCurveTo(p[0], p[1], (p[0] + q[0]) / 2, (p[1] + q[1]) / 2);
+      c.moveTo((pts[0][0] + pts[points - 1][0]) * 0.5, (pts[0][1] + pts[points - 1][1]) * 0.5);
+      for (var j = 0; j < points; j++) {
+        var p = pts[j], q = pts[(j + 1) % points];
+        c.quadraticCurveTo(p[0], p[1], (p[0] + q[0]) * 0.5, (p[1] + q[1]) * 0.5);
       }
       c.closePath();
     };
-
-    var drawCell = function (c, x, y, a, r, t, phase, sprint) {
-      c.save();
-      c.translate(x, y);
-      c.rotate(a);
-      c.drawImage(glowTeal, -r * 2.2, -r * 2.2, r * 4.4, r * 4.4);
-      /* cilia, beating faster on a fast swim */
-      c.strokeStyle = moRgba(LIME, 0.42);
-      c.lineWidth = 1.8;
-      c.beginPath();
-      for (var i = 0; i < 22; i++) {
-        var ca = (i / 22) * TAU, len = r * (sprint ? 0.12 : 0.2), wig = Math.sin(t * (sprint ? 16 : 7) + i * 1.3) * 0.35;
-        var bx = Math.cos(ca) * r * 0.98, by = Math.sin(ca) * r * 0.98;
-        c.moveTo(bx, by);
-        c.lineTo(bx + Math.cos(ca + wig) * len, by + Math.sin(ca + wig) * len);
-      }
-      c.stroke();
-      blob(c, r, t, phase, 1.08, 0.05, 3);
-      c.fillStyle = moRgba(TEAL, 0.14);
-      c.fill();
-      c.strokeStyle = moRgba(LIME, 0.78);
-      c.lineWidth = 2.4;
-      c.stroke();
-      /* nucleus, nucleolus and a few organelles */
-      c.beginPath();
-      c.ellipse(-r * 0.12, r * 0.02, r * 0.34, r * 0.25, 0.5, 0, TAU);
-      c.fillStyle = moRgba(TEAL, 0.18);
-      c.fill();
-      c.strokeStyle = moRgba(LIME, 0.55);
-      c.lineWidth = 1.6;
-      c.stroke();
-      c.beginPath();
-      c.arc(-r * 0.12, r * 0.02, r * 0.09, 0, TAU);
-      c.fillStyle = moRgba(LIME, 0.5);
-      c.fill();
-      for (var k = 0; k < 4; k++) {
-        var oa = k * 1.7 + phase + Math.sin(t * 0.6 + k) * 0.2;
-        c.beginPath();
-        c.ellipse(Math.cos(oa) * r * 0.6, Math.sin(oa) * r * 0.55, r * 0.09, r * 0.05, oa, 0, TAU);
-        c.fillStyle = moRgba(GRAZER, 0.55);
-        c.fill();
-      }
-      c.restore();
+    var ellipse = function (x, y, rx, ry, a) { c.beginPath(); c.ellipse(x, y, Math.max(0.01, rx), Math.max(0.01, ry), a || 0, 0, TAU); };
+    var glows = {};
+    var glow = function (co) {
+      var key = co.map(function (x) { return Math.round(x / 4) * 4; }).join(",");
+      if (glows[key]) return glows[key];
+      var cv = document.createElement("canvas"); cv.width = cv.height = 128;
+      var g2 = cv.getContext("2d"), g = g2.createRadialGradient(64, 64, 0, 64, 64, 64);
+      g.addColorStop(0, rgba(co, 0.45)); g.addColorStop(0.2, rgba(co, 0.19)); g.addColorStop(0.55, rgba(co, 0.055)); g.addColorStop(1, rgba(co, 0));
+      g2.fillStyle = g; g2.fillRect(0, 0, 128, 128);
+      return (glows[key] = cv);
     };
+    var algae = (function () {
+      var cv = document.createElement("canvas"); cv.width = cv.height = 64;
+      var x = cv.getContext("2d"), co = [130, 241, 154];
+      var g = x.createRadialGradient(32, 32, 1, 32, 32, 31);
+      g.addColorStop(0, rgba(co, 0.36)); g.addColorStop(0.35, rgba(co, 0.13)); g.addColorStop(1, rgba(co, 0));
+      x.fillStyle = g; x.fillRect(0, 0, 64, 64); x.translate(32, 32);
+      x.beginPath(); x.ellipse(0, 0, 10, 8, 0.3, 0, TAU);
+      var gg = x.createRadialGradient(-3, -4, 1, 0, 0, 11);
+      gg.addColorStop(0, rgba(mix(co, [255, 255, 230], 0.55), 0.86)); gg.addColorStop(0.5, rgba(co, 0.58)); gg.addColorStop(1, rgba(co, 0.13));
+      x.fillStyle = gg; x.fill(); x.strokeStyle = rgba(co, 0.75); x.lineWidth = 0.8; x.stroke();
+      x.strokeStyle = rgba([5, 36, 35], 0.55); x.lineWidth = 1.2;
+      for (var i = -1; i < 2; i++) { x.beginPath(); x.moveTo(-5, i * 3); x.quadraticCurveTo(0, i * 3 - 2, 5, i * 3); x.stroke(); }
+      return cv;
+    })();
 
-    var drawHunter = function (c, h, t) {
-      var r = h.r;
-      c.save();
-      c.translate(h.x, h.y);
-      c.rotate(h.a);
-      c.drawImage(glowRed, -r * 2, -r * 2, r * 4, r * 4);
-      /* trailing tails */
-      c.strokeStyle = moRgba(HUNTER, 0.5);
-      c.lineWidth = 1.2;
-      for (var i = -1; i <= 1; i++) {
-        c.beginPath();
-        c.moveTo(-r * 0.8, i * r * 0.25);
-        for (var s = 1; s <= 8; s++) {
-          c.lineTo(-r * 0.8 - s * r * 0.17, i * r * 0.25 + Math.sin(t * 6 - s * 0.8 + i) * r * 0.06 * s * 0.4);
-        }
-        c.stroke();
-      }
-      blob(c, r, t, 2.1, 1.25, 0.07, 2);
-      c.fillStyle = moRgba(HUNTER, 0.12);
-      c.fill();
-      c.strokeStyle = moRgba(HUNTER, 0.75);
-      c.lineWidth = 2.2;
-      c.stroke();
-      /* jaws at the front */
-      c.beginPath();
-      c.moveTo(r * 1.05, -r * 0.3);
-      c.quadraticCurveTo(r * 1.45, -r * 0.15, r * 1.3, 0);
-      c.moveTo(r * 1.05, r * 0.3);
-      c.quadraticCurveTo(r * 1.45, r * 0.15, r * 1.3, 0);
-      c.stroke();
-      c.beginPath();
-      c.arc(r * 0.15, 0, r * 0.22, 0, TAU);
-      c.fillStyle = moRgba(HUNTER, 0.35);
-      c.fill();
-      c.restore();
-    };
-
-    /* a faint drifting plankton flower, as in the game's backdrop */
-    var drawFlower = function (c, t) {
-      c.save();
-      c.translate(820, 170);
-      c.rotate(t * 0.03);
-      c.strokeStyle = moRgba(TEAL, 0.13);
-      c.fillStyle = moRgba(TEAL, 0.025);
-      c.lineWidth = 1.2;
-      for (var i = 0; i < 6; i++) {
-        c.save();
-        c.rotate((i / 6) * TAU);
-        c.beginPath();
-        c.ellipse(105, 0, 92, 58, 0, 0, TAU);
-        c.fill();
-        c.stroke();
+    var cellBody = function (r, t, phase, co, detail, stretch, rough, lobes, clarity) {
+      smoothBlob(r, t, phase, stretch, rough, 18, lobes);
+      var g = c.createRadialGradient(-r * 0.28, -r * 0.3, r * 0.02, 0, 0, r * 1.15);
+      g.addColorStop(0, rgba(mix(co, [237, 255, 244], 0.5), 0.25 + clarity * 0.08)); g.addColorStop(0.35, rgba(co, 0.16 + clarity * 0.04));
+      g.addColorStop(0.7, rgba(co, 0.09 + clarity * 0.03)); g.addColorStop(0.91, rgba(co, 0.21 + clarity * 0.05)); g.addColorStop(1, rgba(co, 0.045));
+      c.fillStyle = g; c.fill();
+      c.strokeStyle = rgba(mix(co, [232, 255, 244], 0.55), 0.66 + clarity * 0.14); c.lineWidth = Math.max(0.65 / z, r * 0.023, (clarity * 0.85) / z); c.stroke();
+      smoothBlob(r * 0.934, t, phase + 0.1, stretch, rough * 0.95, 18, lobes); c.strokeStyle = rgba(co, 0.26); c.lineWidth = Math.max(0.4 / z, r * 0.012); c.stroke();
+      var nr = r * 0.26, nx = -r * 0.1 + Math.sin(t * 0.4 + phase) * r * 0.027, ny = r * 0.07;
+      ellipse(nx, ny, nr, nr * 0.9, phase * 0.1);
+      var ng = c.createRadialGradient(nx - nr * 0.3, ny - nr * 0.3, 0, nx, ny, nr);
+      ng.addColorStop(0, "rgba(118,122,180,.43)"); ng.addColorStop(0.6, "rgba(63,76,128,.44)"); ng.addColorStop(1, rgba(co, 0.2));
+      c.fillStyle = ng; c.fill(); c.strokeStyle = rgba(mix(co, [171, 168, 220], 0.6), 0.68); c.lineWidth = Math.max(0.55 / z, r * 0.016); c.stroke();
+      ellipse(nx + nr * 0.22, ny - nr * 0.12, nr * 0.27, nr * 0.23); c.fillStyle = "rgba(216,210,237,.45)"; c.fill();
+      var count = (detail > 1 ? 9 : detail > 0 ? 5 : 3) + (Math.floor(phase * 7) % 3);
+      for (var i = 0; i < count; i++) {
+        var a = i * 2.399 + phase * 0.7 + Math.sin(t * 0.2 + i) * 0.08, rr = r * (0.43 + rnd(i + Math.floor(phase * 41)) * 0.23);
+        var size = r * (0.052 + rnd(i * 13 + 91) * 0.034);
+        c.save(); c.translate(Math.cos(a) * rr * stretch, Math.sin(a) * rr); c.rotate(a + 0.5); ellipse(0, 0, size * 1.6, size);
+        c.fillStyle = i % 3 === 0 ? "rgba(221,184,108,.25)" : rgba(co, 0.22); c.fill();
+        c.strokeStyle = i % 3 === 0 ? "rgba(243,211,137,.45)" : rgba(mix(co, [209, 250, 203], 0.3), 0.4); c.lineWidth = Math.max(0.4 / z, r * 0.009); c.stroke();
         c.restore();
       }
-      c.beginPath();
-      c.arc(0, 0, 34, 0, TAU);
-      c.stroke();
-      c.restore();
+      if (detail > 0) {
+        c.save(); c.translate(r * 0.31, -r * 0.14); c.rotate(0.45); c.strokeStyle = rgba(co, 0.42); c.lineWidth = Math.max(0.55 / z, r * 0.015);
+        for (var j = 0; j < 4; j++) { c.beginPath(); c.ellipse(0, 0, r * (0.15 + j * 0.033), r * (0.08 + j * 0.026), 0, -1.2, 1.2); c.stroke(); }
+        c.restore();
+      }
+      c.beginPath(); c.ellipse(-r * 0.04, -r * 0.04, r * 0.86 * stretch, r * 0.86, 0, 3.65, 4.95);
+      c.strokeStyle = "rgba(224,255,242,.28)"; c.lineWidth = Math.max(0.7 / z, r * 0.032); c.stroke();
+    };
+    var cilia = function (r, t, phase, co, count, length) {
+      c.strokeStyle = rgba(co, 0.38); c.lineWidth = 0.65 / z * 1.4;
+      for (var i = 0; i < count; i++) {
+        var a = (i / count) * TAU + phase * 0.1, ca = Math.cos(a), sa = Math.sin(a), w = Math.sin(t * 4 + phase + i * 0.9), x = ca * r, y = sa * r;
+        c.beginPath(); c.moveTo(x, y);
+        c.quadraticCurveTo(x + ca * length * 0.5 - sa * w * length * 0.26, y + sa * length * 0.5 + ca * w * length * 0.26, x + ca * length - sa * w * length * 0.35, y + sa * length + ca * w * length * 0.35);
+        c.stroke();
+      }
+    };
+    var tails = function (r, t, co, count, strength) {
+      for (var j = 0; j < count; j++) {
+        var off = (j - (count - 1) / 2) * r * 0.24, len = r * (1.5 + strength * 0.5);
+        c.beginPath(); c.moveTo(-r * 0.78, off);
+        for (var k = 1; k <= 12; k++) { var u = k / 12; c.lineTo(-r * 0.78 - u * len, off + Math.sin(u * 8 - t * 6 + j) * r * 0.15 * (0.3 + u)); }
+        c.strokeStyle = rgba(co, 0.15); c.lineWidth = 3.2 / z; c.stroke();
+        c.strokeStyle = rgba(mix(co, [245, 255, 247], 0.4), 0.55); c.lineWidth = 1 / z; c.stroke();
+      }
+    };
+    var jaws = function (r, t, co, level, openness) {
+      var gap = openness !== undefined ? clamp(openness, 0.06, 0.65) : 0.23 + 0.035 * Math.sin(t * 2.5), len = r * (0.32 + level * 0.075);
+      c.strokeStyle = rgba(mix(co, [255, 223, 190], 0.3), 0.8); c.fillStyle = rgba(co, 0.17); c.lineWidth = 1.3 / z;
+      [-1, 1].forEach(function (s) {
+        c.beginPath(); c.moveTo(r * 0.62, s * r * 0.5); c.quadraticCurveTo(r * 1.06, s * r * 0.65, r + len, s * r * gap);
+        c.lineTo(r * 1.01, s * r * 0.29); c.lineTo(r * 0.84, s * r * 0.45); c.closePath(); c.fill(); c.stroke();
+      });
+    };
+    var leaves = function (r, t, co, level, fold) {
+      var count = 5 + level * 2;
+      for (var i = 0; i < count; i++) {
+        var a = (i / count) * TAU + 0.1 * Math.sin(t * 0.6 + i), len = r * (0.27 + level * 0.045) * fold;
+        c.save(); c.rotate(a); c.beginPath(); c.moveTo(r * 0.85, -r * 0.07 * fold);
+        c.quadraticCurveTo(r + len * 0.7, -len * 0.55, r + len, 0); c.quadraticCurveTo(r + len * 0.7, len * 0.55, r * 0.85, r * 0.07 * fold); c.closePath();
+        c.fillStyle = rgba(co, 0.14); c.fill(); c.strokeStyle = rgba(mix(co, [180, 244, 132], 0.5), 0.55); c.lineWidth = 0.8 / z; c.stroke();
+        c.beginPath(); c.moveTo(r * 0.94, 0); c.lineTo(r + len * 0.87, 0); c.strokeStyle = rgba(co, 0.35); c.stroke();
+        c.restore();
+      }
     };
 
+    /* ---- one scripted life ---- */
+    var seed = 11;
+    var rand = function () { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+    var S;
+    var reset = function () {
+      seed = 11;
+      S = {
+        t: 0, fade: 0, fadeIn: 1, beat: "feed", beatT: 0,
+        cam: { x: 0, y: 0 },
+        p: { x: 0, y: 0, vx: 0, vy: 0, a: -0.6, r: 22, cells: 1, split: 1, grazer: 0, leaf: 0, evo: 0, sprint: false, cd: 0, growth: 0, aim: null },
+        foods: [], prey: null, hunter: null, effects: [], parts: [], divT: -1
+      };
+      for (var i = 0; i < 12; i++) addFood(0, 0, -0.6, 70, 260, 2.6);
+      hud();
+    };
+    var addFood = function (x, y, dir, near, far, spread) {
+      var a = dir + (rand() - 0.5) * spread, d = near + rand() * (far - near);
+      S.foods.push({ x: x + Math.cos(a) * d, y: y + Math.sin(a) * d, ph: rand() * TAU, rot: rand() * TAU });
+    };
+    var effect = function (x, y, kind, maxR, colour, life, extra) {
+      var e = { x: x, y: y, kind: kind, maxR: maxR, colour: colour, life: life, maxLife: life };
+      for (var k in extra) e[k] = extra[k];
+      S.effects.push(e);
+    };
+    var particles = function (x, y, colour, n, speed) {
+      for (var i = 0; i < n; i++) {
+        var a = rand() * TAU, v = speed * (0.3 + rand() * 0.7), life = 0.35 + rand() * 0.5;
+        S.parts.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: life, maxLife: life, r: 1.4 + rand() * 2.4, colour: colour });
+      }
+    };
+    var reach = function () { return S.p.r + 110 + (S.p.cells > 1 ? 8 : 0); };
     var steer = function (o, tx, ty, speed, turn, dt) {
       var dx = tx - o.x, dy = ty - o.y, d = Math.hypot(dx, dy) || 1;
       o.vx += ((dx / d) * speed - o.vx) * Math.min(1, turn * dt);
       o.vy += ((dy / d) * speed - o.vy) * Math.min(1, turn * dt);
     };
-
-    var moStep = function (dt) {
-      var s = moState, p = s.p, h = s.h;
-      s.t += dt;
-      s.fadeIn = Math.max(0, s.fadeIn - dt * 0.8);
-
-      /* the hunter crosses the drop now and then, on a lazy wander */
-      h.pass += dt;
-      if (h.pass > 13) {
-        h.pass = 0;
-        var side = rand() * TAU;
-        h.x = 500 + Math.cos(side) * 700;
-        h.y = 500 + Math.sin(side) * 700;
-        h.wander = side + Math.PI + (rand() - 0.5) * 0.8;
-      }
-      h.wander += Math.sin(s.t * 0.7) * 0.25 * dt;
-      steer(h, h.x + Math.cos(h.wander) * 100, h.y + Math.sin(h.wander) * 100, 90, 1.5, dt);
-      h.x += h.vx * dt;
-      h.y += h.vy * dt;
-      h.a = Math.atan2(h.vy, h.vx);
-
-      /* the cell: flee when the hunter is close, otherwise feed */
-      var hd = Math.hypot(h.x - p.x, h.y - p.y);
-      p.sprint = hd < 300;
-      if (p.sprint) {
-        steer(p, p.x + (p.x - h.x), p.y + (p.y - h.y), 260, 4, dt);
-      } else {
-        var best = null, bd = 1e9;
-        s.food.forEach(function (f) {
-          if (f.eaten) return;
-          var d = Math.hypot(f.x - p.x, f.y - p.y);
-          if (d < bd) { bd = d; best = f; }
-        });
-        if (best) steer(p, best.x, best.y, 120, 2.2, dt);
-      }
-      /* the drop's edge pushes back */
-      var cx = p.x - 500, cy = p.y - 500, cd = Math.hypot(cx, cy), lim = 500 - p.r * 2.4;
-      if (cd > lim) {
-        p.vx -= (cx / cd) * (cd - lim) * 6 * dt;
-        p.vy -= (cy / cd) * (cd - lim) * 6 * dt;
-      }
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      var want = Math.atan2(p.vy, p.vx), da = Math.atan2(Math.sin(want - p.a), Math.cos(want - p.a));
-      p.a += da * Math.min(1, 5 * dt);
-
-      /* eating: a nutrient vanishes in a little burst, and regrows later */
-      var reach = p.r * (s.cells > 1 ? 1.9 : 1.05);
-      s.food.forEach(function (f) {
-        if (f.eaten) {
-          f.back -= dt;
-          if (f.back <= 0) {
-            var n = inDrop(110);
-            f.x = n.x; f.y = n.y; f.eaten = 0;
-          }
-          return;
-        }
-        if (Math.hypot(f.x - p.x, f.y - p.y) < reach) {
-          f.eaten = 1;
-          f.back = 4 + rand() * 4;
-          s.bursts.push({ x: f.x, y: f.y, t: 0 });
-          if (s.cells === 1) {
-            s.grown = Math.min(MO_GOAL, s.grown + 1);
-            if (s.grown === MO_GOAL) s.cells = 2;
-          }
-        }
-      });
-      s.bursts = s.bursts.filter(function (b) { b.t += dt; return b.t < 0.6; });
-
-      /* division: the two daughter cells ease apart, then stay together */
-      if (s.cells > 1) {
-        s.split = Math.min(1, s.split + dt * 0.9);
-        s.colonyT += dt;
-        if (s.colonyT > MO_COLONY_TIME) {
-          s.fade += dt * 0.9;
-          if (s.fade >= 1) moReset();
+    var faceTo = function (o, want, rate, dt) {
+      var da = Math.atan2(Math.sin(want - o.a), Math.cos(want - o.a));
+      o.a += da * Math.min(1, rate * dt);
+    };
+    var pulse = function (target) {
+      var p = S.p, ang = Math.atan2(target.y - p.y, target.x - p.x);
+      p.aim = ang; p.cd = 0.55;
+      effect(p.x, p.y, "pulse", reach(), "#b5f6e5", 0.32, { angle: ang, half: Math.PI / 3 });
+      target.flash = 0.65;
+      target.hp -= 11;
+    };
+    var grow = function (v) {
+      var p = S.p;
+      if (p.cells > 1) { p.growth += v; return; }
+      p.growth = Math.min(S.beat === "feed2" ? 80 : 76, p.growth + v);
+    };
+    var eatNearby = function () {
+      var p = S.p;
+      for (var i = S.foods.length - 1; i >= 0; i--) {
+        var f = S.foods[i];
+        if (Math.hypot(f.x - p.x, f.y - p.y) < p.r + 8) {
+          S.foods.splice(i, 1);
+          effect(f.x, f.y, "eat", 16, "#c2ffd7", 0.35);
+          particles(f.x, f.y, "#b7ef91", 5, 45);
+          grow(4);
         }
       }
-      moHud();
+      var ahead = 0;
+      S.foods.forEach(function (f) { if (Math.hypot(f.x - p.x, f.y - p.y) < 300) ahead++; });
+      if (ahead < 9) addFood(p.x, p.y, p.a, 170, 300, 2.2);
+      S.foods = S.foods.filter(function (f) { return Math.hypot(f.x - p.x, f.y - p.y) < 700; });
+    };
+    var nearestFood = function () {
+      var p = S.p, best = null, bd = 1e9;
+      S.foods.forEach(function (f) { var d = Math.hypot(f.x - p.x, f.y - p.y); if (d < bd) { bd = d; best = f; } });
+      return best;
     };
 
-    var moSize = 0, moDpr = 1;
-    var moResize = function () {
-      var size = moDrop.clientWidth;
-      var dpr = Math.min(window.devicePixelRatio || 1, 2);
-      if (size === moSize && dpr === moDpr) return;
-      moSize = size;
-      moDpr = dpr;
-      moCanvas.width = Math.round(size * dpr);
-      moCanvas.height = Math.round(size * dpr);
+    var step = function (dt) {
+      var p = S.p, h = S.hunter, q = S.prey;
+      S.t += dt; S.beatT += dt;
+      S.fadeIn = Math.max(0, S.fadeIn - dt * 1.2);
+      p.cd = Math.max(0, p.cd - dt);
+      p.evo = Math.max(0, p.evo - dt * 0.7);
+      p.sprint = false;
+      var speed = 120, target = null;
+
+      if (S.beat === "feed") {
+        target = nearestFood();
+        if (S.t > 3.6) {
+          var a = p.a + 0.5;
+          S.prey = { x: p.x + Math.cos(a) * 230, y: p.y + Math.sin(a) * 230, vx: 0, vy: 0, a: rand() * TAU, r: 12, hp: 9, maxHp: 9, flash: 0, ph: 1.3 };
+          S.beat = "prey"; S.beatT = 0;
+        }
+      } else if (S.beat === "prey") {
+        var d = Math.hypot(q.x - p.x, q.y - p.y);
+        target = q;
+        p.aim = Math.atan2(q.y - p.y, q.x - p.x);
+        if (d < reach() * 0.72 && p.cd <= 0 && q.hp > 0 && S.beatT > 1.2) pulse(q);
+        if (q.hp <= 0 && !q.dead) {
+          q.dead = true;
+          particles(q.x, q.y, "#c9eeca", 18, 95);
+          effect(q.x, q.y, "eat", q.r * 1.6, "#c2ffd7", 0.35);
+          grow(9);
+          S.beat = "lull"; S.beatT = 0;
+        }
+      } else if (S.beat === "lull") {
+        target = nearestFood();
+        if (S.beatT > 1.8) {
+          var ha = p.a - 1.1;
+          S.hunter = h = { x: p.x + Math.cos(ha) * 290, y: p.y + Math.sin(ha) * 290, vx: 0, vy: 0, a: ha + Math.PI, r: 38, hp: 48, maxHp: 48, flash: 0, ph: 0.4,
+            mode: "approach", windup: 0, lunge: 0, recover: 0, attackAngle: 0, give: 0 };
+          S.beat = "hunter"; S.beatT = 0;
+        }
+      } else if (S.beat === "hunter") {
+        var hd = Math.hypot(h.x - p.x, h.y - p.y), away = Math.atan2(p.y - h.y, p.x - h.x);
+        if (h.mode === "approach") {
+          target = nearestFood();
+          steer(h, p.x, p.y, 125, 2, dt);
+          if (hd < 165) { h.mode = "windup"; h.windup = 0.9; h.attackAngle = Math.atan2(p.y - h.y, p.x - h.x); }
+        } else if (h.mode === "windup") {
+          h.vx *= 0.85; h.vy *= 0.85; h.windup -= dt;
+          /* the wind-up is the warning: fast swim out of its line */
+          if (h.windup < 0.4) {
+            var side = away + 1.35;
+            target = { x: p.x + Math.cos(side) * 200, y: p.y + Math.sin(side) * 200 };
+            p.sprint = true; speed = 200;
+          } else { target = null; p.aim = Math.atan2(h.y - p.y, h.x - p.x); }
+          if (h.windup <= 0) { h.mode = "lunge"; h.lunge = 0.3; }
+        } else if (h.mode === "lunge") {
+          h.lunge -= dt;
+          h.vx = Math.cos(h.attackAngle) * 420; h.vy = Math.sin(h.attackAngle) * 420;
+          var side2 = away + 1.25;
+          target = { x: p.x + Math.cos(side2) * 200, y: p.y + Math.sin(side2) * 200 };
+          p.sprint = true; speed = 200;
+          if (h.lunge <= 0) { h.mode = "recover"; h.recover = 1.5; h.vx *= 0.1; h.vy *= 0.1; }
+        } else if (h.mode === "recover") {
+          h.vx *= 0.9; h.vy *= 0.9; h.recover -= dt;
+          /* it's open: turn and Pulse it */
+          target = hd > reach() * 0.8 ? h : null;
+          p.aim = Math.atan2(h.y - p.y, h.x - p.x);
+          if (hd < reach() * 0.9 && p.cd <= 0 && h.hp > 30) pulse(h);
+          if (h.recover <= 0) { h.mode = "chase"; }
+        } else if (h.mode === "chase") {
+          /* escape: fast swim away until it loses interest */
+          steer(h, p.x, p.y, 120, 1.5, dt);
+          target = { x: p.x + Math.cos(away) * 200, y: p.y + Math.sin(away) * 200 };
+          p.sprint = true; speed = 240;
+          h.give += dt;
+          if (h.give > 1.6) { h.mode = "leave"; }
+        } else if (h.mode === "leave") {
+          var off = Math.atan2(h.y - p.y, h.x - p.x);
+          steer(h, h.x + Math.cos(off) * 100, h.y + Math.sin(off) * 100, 110, 1.5, dt);
+          target = nearestFood();
+          if (hd > 430) { S.hunter = null; S.beat = "feed2"; S.beatT = 0; }
+        }
+        if (h) { h.x += h.vx * dt; h.y += h.vy * dt; if (h.mode !== "windup" && h.mode !== "lunge" && Math.hypot(h.vx, h.vy) > 5) faceTo(h, Math.atan2(h.vy, h.vx), 5, dt); else if (h.mode === "windup") faceTo(h, h.attackAngle, 10, dt); }
+      } else if (S.beat === "feed2") {
+        /* the game pauses at a division, so the cell holds still for it */
+        target = S.divT > 0 && S.t - S.divT < 1.4 ? null : nearestFood();
+        if (p.cells === 1 && p.growth >= 80) {
+          /* division: the game's rings and burst, then two cells in one membrane */
+          S.divT = S.t; p.cells = 2; p.split = 0; p.grazer = 1; p.evo = 1.6;
+          effect(p.x, p.y, "division", p.r * 4, "#b0ffdb", 1.5);
+          particles(p.x, p.y, "#b0ffdb", 28, 140);
+        }
+        if (S.divT > 0 && S.t - S.divT > 8.5) {
+          S.fade += dt * 1.1;
+          if (S.fade >= 1) { reset(); return; }
+        }
+      }
+
+      if (S.divT > 0) {
+        var u = (S.t - S.divT) / 0.9;
+        p.split = ease(u); p.r = 22 + 6 * ease(u); p.leaf = ease((S.t - S.divT - 0.5) / 1.2);
+      }
+      if (target) steer(p, target.x, target.y, speed, p.sprint ? 5 : 3, dt);
+      else { p.vx *= 0.86; p.vy *= 0.86; }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      var aiming = S.beat === "prey" || (h && (h.mode === "recover" || (h.mode === "windup" && h.windup >= 0.4)));
+      var want = p.aim !== null && aiming ? p.aim : Math.atan2(p.vy, p.vx);
+      if (Math.hypot(p.vx, p.vy) > 4 || p.aim !== null) faceTo(p, want, 6, dt);
+      if (!aiming) p.aim = null;
+
+      if (q && !q.dead) {
+        q.ph += dt;
+        steer(q, q.x + Math.cos(q.ph * 0.7) * 50, q.y + Math.sin(q.ph * 0.5) * 50, 35, 1, dt);
+        q.x += q.vx * dt; q.y += q.vy * dt; faceTo(q, Math.atan2(q.vy, q.vx), 3, dt);
+        q.flash = Math.max(0, q.flash - dt * 2);
+      }
+      if (h) h.flash = Math.max(0, h.flash - dt * 2);
+      eatNearby();
+      S.effects = S.effects.filter(function (e) { e.life -= dt; return e.life > 0; });
+      S.parts = S.parts.filter(function (pt) { pt.life -= dt; pt.x += pt.vx * dt; pt.y += pt.vy * dt; pt.vx *= 0.94; pt.vy *= 0.94; return pt.life > 0; });
+      /* the view follows the cell, and frames a nearby threat too */
+      var fx = p.x, fy = p.y;
+      if (S.hunter && Math.hypot(S.hunter.x - p.x, S.hunter.y - p.y) < 320) { fx = p.x * 0.6 + S.hunter.x * 0.4; fy = p.y * 0.6 + S.hunter.y * 0.4; }
+      S.cam.x += (fx - S.cam.x) * Math.min(1, 2.5 * dt);
+      S.cam.y += (fy - S.cam.y) * Math.min(1, 2.5 * dt);
+      hud();
     };
 
-    var moDraw = function () {
-      var s = moState, c = moCtx, t = s.t, p = s.p;
-      c.setTransform(1, 0, 0, 1, 0, 0);
-      c.clearRect(0, 0, moCanvas.width, moCanvas.height);
-      var k = (moSize * moDpr) / 1000;
-      c.setTransform(k, 0, 0, k, 0, 0);
-      c.globalAlpha = 1 - Math.max(s.fade, s.fadeIn);
-      drawFlower(c, t);
-      s.motes.forEach(function (m) {
-        var x = m.x + Math.sin(t * 0.3 * m.s + m.ph) * 14, y = m.y + Math.cos(t * 0.25 * m.s + m.ph) * 10;
-        c.drawImage(glowGold, x - 7 * m.s, y - 7 * m.s, 14 * m.s, 14 * m.s);
-      });
-      s.food.forEach(function (f) {
-        if (f.eaten) return;
-        var bob = Math.sin(t * 1.4 + f.ph) * 4;
-        c.drawImage(glowGreen, f.x - f.r * 3, f.y - f.r * 3 + bob, f.r * 6, f.r * 6);
-        c.beginPath();
-        c.arc(f.x, f.y + bob, f.r * 0.55, 0, TAU);
-        c.fillStyle = moRgba([186, 222, 134], 0.85);
-        c.fill();
-      });
-      s.bursts.forEach(function (b) {
-        var u = b.t / 0.6;
-        c.beginPath();
-        c.arc(b.x, b.y, 12 + u * 34, 0, TAU);
-        c.strokeStyle = moRgba(LIME, 0.6 * (1 - u));
-        c.lineWidth = 1.5;
-        c.stroke();
-      });
-      drawHunter(c, s.h, t);
-      if (s.cells === 1) {
-        drawCell(c, p.x, p.y, p.a, p.r, t, 0.7, p.sprint);
-      } else {
-        /* the colony: two daughters side by side across the heading */
-        var off = p.r * 0.95 * s.split, nx = -Math.sin(p.a), ny = Math.cos(p.a);
-        var dr = p.r * (1 - 0.12 * s.split);
-        drawCell(c, p.x + nx * off, p.y + ny * off, p.a, dr, t, 0.7, p.sprint);
-        drawCell(c, p.x - nx * off, p.y - ny * off, p.a, dr, t + 1.3, 2.4, p.sprint);
+    /* the panel under the drop, in the game's words */
+    var elCells = document.getElementById("mo-cells"), elPlural = document.getElementById("mo-plural");
+    var elId = document.getElementById("mo-id"), elFill = document.getElementById("mo-fill"), elLabel = document.getElementById("mo-label");
+    var shown = "";
+    var hud = function () {
+      var p = S.p, g = Math.round(p.growth), key = p.cells + "|" + g;
+      if (key === shown) return;
+      shown = key;
+      elCells.textContent = p.cells;
+      elPlural.textContent = p.cells === 1 ? "cell" : "cells";
+      elId.textContent = p.cells === 1 ? "Unformed cell" : "Grazer I";
+      var goal = p.cells === 1 ? 80 : 190;
+      elFill.style.width = (Math.min(g, goal) / goal) * 100 + "%";
+      elLabel.textContent = "Next division: " + Math.min(g, goal) + " / " + goal + " growth";
+    };
+
+    /* ---- drawing ---- */
+    var size = 0, dpr = 1;
+    var resize = function () {
+      var s = moDrop.clientWidth, d = Math.min(window.devicePixelRatio || 1, 2);
+      if (s === size && d === dpr) return;
+      size = s; dpr = d;
+      moCanvas.width = Math.round(s * d); moCanvas.height = Math.round(s * d);
+    };
+
+    var drawPlayer = function (t) {
+      var p = S.p, r = p.r, co = mix(UNFORMED, GRAZER, p.leaf), phase = 0.7;
+      c.save(); c.translate(p.x, p.y); c.rotate(p.a);
+      var gl = glow(co); c.drawImage(gl, -r * 2, -r * 2, r * 4, r * 4);
+      cilia(r * 0.93, t, phase, co, 18 + p.grazer * 5, r * (0.11 + p.grazer * 0.025) * (p.sprint ? 0.5 : 1));
+      if (p.leaf > 0) leaves(r, t, co, 1, (p.sprint ? 0.45 : 1) * p.leaf);
+      var nodes;
+      if (p.cells > 1) {
+        c.globalAlpha = p.split;
+        smoothBlob(r * 0.98, t, phase, 1, 0.07); c.fillStyle = rgba(co, 0.085); c.fill();
+        c.strokeStyle = rgba(co, 0.35); c.lineWidth = 1.1 / z; c.stroke();
+        c.globalAlpha = 1;
+        var off = r * 0.36 * p.split, nr = r * (0.9 - 0.26 * p.split);
+        nodes = [{ x: -off, y: 0, r: nr }, { x: off, y: 0, r: nr }];
+      } else nodes = [{ x: 0, y: 0, r: r * 0.9 }];
+      nodes.forEach(function (q, i) { c.save(); c.translate(q.x, q.y); cellBody(q.r, t, phase + i * 0.64, co, 1, 1, 0.035, 3, 0.65); c.restore(); });
+      if (p.evo > 0) {
+        c.strokeStyle = rgba([220, 255, 216], clamp(p.evo * 0.4, 0, 0.6)); c.lineWidth = 2 / z;
+        c.beginPath(); c.arc(0, 0, r * (1.1 + (0.5 - Math.sin(t * 3) * 0.5) * 0.3), 0, TAU); c.stroke();
       }
+      c.restore();
+      /* the game's YOU marker: four arcs and a heading arrow */
+      var ring = r * 1.42, span = clamp(5 / (ring * z), 0.22, 0.52), ca = Math.cos(p.a), sa = Math.sin(p.a);
+      c.save(); c.translate(p.x, p.y); c.beginPath();
+      for (var i = 0; i < 4; i++) { var a = (i * TAU) / 4 + 0.48; c.moveTo(Math.cos(a) * ring, Math.sin(a) * ring); c.arc(0, 0, ring, a, a + span); }
+      var base = ring + 1 / z, tip = ring + 6 / z, sd = 3 / z;
+      c.moveTo(ca * base - sa * sd, sa * base + ca * sd); c.lineTo(ca * tip, sa * tip); c.lineTo(ca * base + sa * sd, sa * base - ca * sd);
+      c.lineCap = "round"; c.strokeStyle = "rgba(3,15,21,.8)"; c.lineWidth = 3 / z; c.stroke();
+      c.strokeStyle = "rgba(224,248,194,.82)"; c.lineWidth = 1.2 / z; c.stroke();
+      if (S.t < 10) { c.fillStyle = "rgba(231,249,198,.88)"; c.font = 10 / z + 'px "Helvetica Neue",Arial,sans-serif'; c.textAlign = "center"; c.fillText("YOU", 0, ring + 15 / z); }
+      c.restore();
+    };
+
+    var drawCombatGuide = function () {
+      var p = S.p, h = S.hunter, q = S.prey, near = false;
+      [h, q].forEach(function (o) { if (o && !o.dead && Math.hypot(o.x - p.x, o.y - p.y) < reach() + o.r + 120) near = true; });
+      if (!near) return;
+      var r = reach(), ang = p.aim !== null ? p.aim : p.a, half = Math.PI / 3, ready = p.cd <= 0, co = ready ? [172, 233, 206] : [157, 174, 171];
+      c.save(); c.translate(p.x, p.y);
+      c.beginPath(); c.arc(0, 0, r, ang - half, ang + half); c.strokeStyle = rgba(co, ready ? 0.24 : 0.12); c.lineWidth = 0.9 / z; c.stroke();
+      c.beginPath();
+      [-1, 1].forEach(function (s) { var a = ang + s * half; c.moveTo(Math.cos(a) * (r - 5 / z), Math.sin(a) * (r - 5 / z)); c.lineTo(Math.cos(a) * (r + 2 / z), Math.sin(a) * (r + 2 / z)); });
+      c.stroke();
+      c.rotate(ang); c.beginPath(); c.moveTo(r - 5 / z, -3 / z); c.lineTo(r, 0); c.lineTo(r - 5 / z, 3 / z); c.stroke();
+      c.restore();
+    };
+
+    var drawHpBar = function (o, co) {
+      if (o.hp >= o.maxHp || o.hp <= 0) return;
+      var w = Math.max(18 / z, o.r * 1.2), hh = 2 / z, y = o.y - o.r - 7 / z;
+      c.fillStyle = "rgba(1,9,13,.82)"; c.fillRect(o.x - w * 0.5 - 1 / z, y - 1 / z, w + 2 / z, hh + 2 / z);
+      c.fillStyle = rgba(co, 0.88); c.fillRect(o.x - w * 0.5, y, w * clamp(o.hp / o.maxHp, 0, 1), hh);
+    };
+
+    var drawPrey = function (q, t) {
+      if (!q || q.dead) return;
+      var r = q.r, co = mix(PREY, [196, 225, 196], 0.06);
+      c.save(); c.translate(q.x, q.y); c.rotate(q.a);
+      tails(r, t, co, 2, 0.3);
+      c.save(); c.scale(1, 0.86); cellBody(r, t, q.ph, co, 0.6, 1.08, 0.035, 3, 0); c.restore();
+      if (q.flash > 0) { smoothBlob(r, t, q.ph, 1, 0.04); c.fillStyle = "rgba(255,240,215," + clamp(q.flash, 0, 0.65) + ")"; c.fill(); }
+      c.restore();
+      var p = S.p;
+      if (Math.hypot(q.x - p.x, q.y - p.y) < 230) {
+        c.strokeStyle = "rgba(174,234,178,.52)"; c.lineWidth = 1 / z;
+        for (var i = 0; i < 4; i++) { c.beginPath(); c.arc(q.x, q.y, r + 7, (i * TAU) / 4 + 0.18, (i * TAU) / 4 + 0.8); c.stroke(); }
+      }
+      drawHpBar(q, co);
+    };
+
+    var drawHunter = function (h, t) {
+      if (!h) return;
+      var r = h.r, v = 0.4, v2 = 0.5, rec = h.mode === "recover";
+      var base = mix(HUNTER, [196, 225, 196], v2 * 0.13), co = rec ? mix(base, [170, 211, 199], 0.28) : base;
+      var progress = h.mode === "windup" ? 1 - clamp(h.windup / 0.9, 0, 1) : 0;
+      var gap = h.mode === "windup" ? 0.3 + progress * 0.25 : h.mode === "lunge" ? 0.07 : rec ? 0.42 : undefined;
+      c.save(); c.translate(h.x, h.y); c.rotate(h.a);
+      c.drawImage(glow(base), -r * 1.6, -r * 1.6, r * 3.2, r * 3.2);
+      tails(r * 0.8, t, co, 1, 0.6);
+      c.save(); c.scale(1.03 + v * 0.15, 0.76 + v2 * 0.2); cellBody(r, t, h.ph, co, 1, 1, 0.07, 2, 0); c.restore();
+      jaws(r * 0.9, t, co, 1, gap);
+      c.strokeStyle = rgba(co, 0.55); c.lineWidth = 1 / z;
+      [-1, 1].forEach(function (s) { for (var i = 0; i < 3; i++) { var x = -r * 0.55 + i * r * 0.4; c.beginPath(); c.moveTo(x, s * r * 0.76); c.lineTo(x - r * 0.12, s * r * (1.12 - i * 0.05)); c.stroke(); } });
+      if (h.flash > 0) { smoothBlob(r, t, h.ph, 1, 0.04); c.fillStyle = "rgba(255,240,215," + clamp(h.flash, 0, 0.65) + ")"; c.fill(); }
+      if (h.mode === "lunge") {
+        c.strokeStyle = rgba(co, 0.35); c.lineWidth = 1.3 / z;
+        [-1, 1].forEach(function (s) { c.beginPath(); c.moveTo(-r * 0.8, s * r * 0.5); c.quadraticCurveTo(-r * 1.6, s * r * 0.6, -r * 2.3, s * r * 0.9); c.stroke(); });
+      }
+      c.restore();
+      /* danger chevrons: two, because it is bigger than you */
+      var p = S.p;
+      if (Math.hypot(h.x - p.x, h.y - p.y) < 430) {
+        c.save(); c.translate(h.x, h.y - r - 13 / z); c.scale(1 / z, 1 / z); c.strokeStyle = rgba(co, 0.86); c.lineWidth = 1.2;
+        for (var j = 0; j < 2; j++) { c.beginPath(); c.moveTo(-4, 4 - j * 5); c.lineTo(0, -j * 5); c.lineTo(4, 4 - j * 5); c.stroke(); }
+        c.restore();
+      }
+      drawHpBar(h, co);
+    };
+
+    var drawEffects = function () {
+      S.effects.forEach(function (e) {
+        var alpha = clamp(e.life / e.maxLife, 0, 1), r = Math.max(1, e.maxR * (1 - Math.pow(alpha, 2.2)));
+        c.save(); c.translate(e.x, e.y); c.strokeStyle = e.colour; c.globalAlpha = alpha;
+        if (e.kind === "pulse") {
+          r = Math.max(1, e.maxR * (1 - Math.pow(alpha, 3)));
+          var a = e.angle, half = e.half, inner = Math.max(0.1, r * 0.76);
+          c.beginPath(); c.arc(0, 0, r, a - half, a + half); c.arc(0, 0, inner, a + half, a - half, true); c.closePath();
+          c.fillStyle = e.colour; c.globalAlpha = alpha * 0.08; c.fill();
+          c.globalAlpha = alpha; c.beginPath(); c.arc(0, 0, r, a - half, a + half); c.lineWidth = 1.5 / z; c.stroke();
+          c.globalAlpha = alpha * 0.2; c.lineWidth = 5 / z; c.stroke();
+          c.globalAlpha = alpha * 0.6; c.beginPath();
+          [-1, 1].forEach(function (s) { var an = a + s * half; c.moveTo(Math.cos(an) * inner, Math.sin(an) * inner); c.lineTo(Math.cos(an) * r, Math.sin(an) * r); });
+          c.lineWidth = 0.8 / z; c.stroke();
+        } else if (e.kind === "division") {
+          for (var j = 0; j < 3; j++) { c.beginPath(); c.arc(0, 0, r * (1 - j * 0.16), 0, TAU); c.lineWidth = (1.3 - j * 0.3) / z; c.stroke(); }
+        } else {
+          c.beginPath(); c.arc(0, 0, r, 0, TAU); c.lineWidth = 1.2 / z; c.stroke();
+        }
+        c.restore();
+      });
+      S.parts.forEach(function (pt) {
+        c.globalAlpha = clamp(pt.life / pt.maxLife, 0, 1); c.fillStyle = pt.colour;
+        ellipse(pt.x, pt.y, pt.r, pt.r * 0.7, pt.vx * 0.02); c.fill();
+      });
       c.globalAlpha = 1;
     };
 
-    moReset();
-    moResize();
-    window.addEventListener("resize", function () { moResize(); moDraw(); });
+    var drawBackground = function (t) {
+      var w = size * dpr;
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      var g = c.createLinearGradient(0, 0, w * 0.7, w);
+      g.addColorStop(0, rgba(PAL.light, 1)); g.addColorStop(0.5, rgba(PAL.deep, 1)); g.addColorStop(1, rgba(mix(PAL.deep, PAL.light, 0.24), 1));
+      c.fillStyle = g; c.fillRect(0, 0, w, w);
+      c.setTransform(z, 0, 0, z, w / 2 - S.cam.x * z, w / 2 - S.cam.y * z);
+      /* pools of light and drifting motes, fixed to the world so swimming reads as movement */
+      var tile = 260, half = VIEW / 2 + tile;
+      var gx0 = Math.floor((S.cam.x - half) / tile), gy0 = Math.floor((S.cam.y - half) / tile);
+      for (var ix = 0; ix < 5; ix++) for (var iy = 0; iy < 5; iy++) {
+        var gx = gx0 + ix, gy = gy0 + iy, key = gx * 7.31 + gy * 3.17;
+        var x = (gx + 0.2 + rnd(key + 4.1) * 0.6) * tile, y = (gy + 0.2 + rnd(key + 1.7) * 0.6) * tile, rr = tile * (0.45 + rnd(key + 2.9) * 0.3);
+        var cl = c.createRadialGradient(x, y, 0, x, y, rr);
+        cl.addColorStop(0, rgba(PAL.fluid, 0.07)); cl.addColorStop(0.5, rgba(PAL.fluid, 0.022)); cl.addColorStop(1, rgba(PAL.fluid, 0));
+        c.fillStyle = cl; c.fillRect(x - rr, y - rr, rr * 2, rr * 2);
+        for (var m = 0; m < 5; m++) {
+          var mx = (gx + rnd(key + m * 1.3)) * tile + Math.sin(t * 0.3 + m + key) * 6, my = (gy + rnd(key + m * 2.1 + 0.5)) * tile + Math.cos(t * 0.25 + m) * 5;
+          c.fillStyle = m % 2 ? "rgba(214,237,162,.22)" : "rgba(181,220,194,.14)";
+          ellipse(mx, my, 1.1 + rnd(key + m) * 1.2, 1.1 + rnd(key + m) * 1.2); c.fill();
+        }
+      }
+    };
+
+    var draw = function () {
+      var t = S.t;
+      z = (size * dpr) / VIEW;
+      drawBackground(t);
+      c.globalAlpha = 1;
+      S.foods.forEach(function (f) {
+        var bob = Math.sin(t * 1.4 + f.ph) * 2;
+        c.save(); c.translate(f.x, f.y + bob); c.rotate(f.rot + t * 0.2); c.drawImage(algae, -16, -16, 32, 32); c.restore();
+      });
+      drawPrey(S.prey, t);
+      drawHunter(S.hunter, t);
+      drawCombatGuide();
+      drawPlayer(t);
+      drawEffects();
+      var veil = Math.max(S.fade, S.fadeIn);
+      if (veil > 0) {
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        c.fillStyle = "rgba(5,24,29," + veil + ")";
+        c.fillRect(0, 0, size * dpr, size * dpr);
+      }
+    };
+
+    reset();
+    resize();
+    window.addEventListener("resize", function () { resize(); draw(); });
 
     if (reducedMotion) {
-      /* a still frame: a few nutrients in, mid-feed */
-      moState.fadeIn = 0;
-      for (var mi = 0; mi < 200; mi++) moStep(1 / 30);
-      moDraw();
+      /* a still frame: the hunter has lunged and missed, and the cell strikes back */
+      for (var guard = 0; guard < 2400; guard++) {
+        step(1 / 60);
+        if (S.hunter && S.hunter.mode === "recover" && S.effects.some(function (e) { return e.kind === "pulse" && e.life < 0.2; })) break;
+      }
+      S.fadeIn = 0;
+      draw();
     } else if ("IntersectionObserver" in window) {
-      var moRaf = null, moLast = 0;
-      var moFrame = function (now) {
-        var dt = Math.min(0.05, (now - moLast) / 1000 || 0);
-        moLast = now;
-        moStep(dt);
-        moDraw();
-        moRaf = requestAnimationFrame(moFrame);
+      var raf = null, last = 0, acc = 0;
+      var frame = function (now) {
+        acc += Math.min(0.1, (now - last) / 1000 || 0);
+        last = now;
+        while (acc >= 1 / 60) { step(1 / 60); acc -= 1 / 60; }
+        draw();
+        raf = requestAnimationFrame(frame);
       };
-      moDraw();
-      var moIO = new IntersectionObserver(function (entries) {
+      draw();
+      new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
-          if (entry.isIntersecting && !moRaf) {
-            moLast = performance.now();
-            moRaf = requestAnimationFrame(moFrame);
-          } else if (!entry.isIntersecting && moRaf) {
-            cancelAnimationFrame(moRaf);
-            moRaf = null;
-          }
+          if (entry.isIntersecting && !raf) { last = performance.now(); raf = requestAnimationFrame(frame); }
+          else if (!entry.isIntersecting && raf) { cancelAnimationFrame(raf); raf = null; }
         });
-      });
-      moIO.observe(moDrop);
+      }).observe(moDrop);
     } else {
-      moState.fadeIn = 0;
-      moDraw();
+      S.fadeIn = 0;
+      draw();
     }
   }
+  })();
 })();

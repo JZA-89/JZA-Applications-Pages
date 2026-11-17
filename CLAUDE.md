@@ -67,7 +67,7 @@ MORPHOS is Jaisah's HTML game, not an App Store app, so it has **no About, Suppo
 
 - The game is one self-contained file: `morphos.html` at the site root (jza.app/morphos.html), a copy of `~/Documents/MORPHOS/MORPHOS.html` (that project has its own CLAUDE.md; its version number is in the page title). To ship a new version, copy the newest file over `morphos.html` (keep that name, so the URL stays the same). Don't edit the game's code here; changes belong in Jaisah's MORPHOS file.
 - It doesn't link `site.css`, `dock.js` or `main.js`, and gets no dock: it's a full-screen game with its own controls. The game saves progress in the browser (`localStorage`), so keep the URL stable or players lose their saved life.
-- The homepage demo (main.js §13) is a light canvas pond drawn in the game's colours, not the game itself. The icon `assets/icon-morphos.jpg` is the game's own cell logo.
+- The homepage demo (main.js §13) is a scripted short life, not the game itself: its drawing routines are ported from the game's renderer (cell body, cilia, jaws, leaves, Pulse arc, division rings, YOU marker) at the game's real sizes, and the script follows the game's rules (Pulse reach r + 110, hunter wind-up → lunge → recovery, division into two cells inside one membrane at 80 growth, first organ by habit). If the game's look or rules change, update §13 to match. The icon `assets/icon-morphos.jpg` is the game's own cell logo.
 - The game makes no network requests. If it ever adds any (analytics, leaderboards), it needs a privacy page.
 
 ## Checking your work

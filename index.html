@@ -1570,19 +1570,20 @@
     background: radial-gradient(40% 26% at 32% 16%, rgba(241, 242, 220, 0.09), transparent 70%);
     box-shadow: inset 0 0 40px rgba(2, 16, 19, 0.7);
   }
-  /* the game's growth panel, under the drop */
+  /* the game's growth panel, under the drop: cell count and identity line
+     on the left (R16 in the game's CLAUDE.md), division track on the right */
   .mo-hud {
     display: grid;
     grid-template-columns: auto 1fr;
     align-items: center;
-    gap: 0.2rem 0.9rem;
-    width: min(260px, 80%);
+    gap: 0 1rem;
+    width: min(300px, 86%);
     margin: 1.4rem auto 0;
     color: #b0c7ba;
     font-family: "Avenir Next", var(--font-body);
   }
   .mo-hud p { margin: 0; }
-  .mo-count { grid-row: span 2; display: flex; align-items: baseline; gap: 0.35rem; }
+  .mo-count { display: flex; align-items: baseline; gap: 0.35rem; }
   .mo-count b {
     font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
     font-weight: 400;
@@ -1591,9 +1592,12 @@
     color: #f1f2dc;
   }
   .mo-count span { font-size: 0.62rem; letter-spacing: 0.22em; text-transform: uppercase; }
+  .mo-id { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: #d6eda2; margin-top: 0.3rem !important; }
+  .mo-grow { display: grid; gap: 0.45rem; }
   .mo-track { height: 3px; border-radius: 3px; background: rgba(181, 220, 194, 0.16); overflow: hidden; }
   .mo-track i { display: block; height: 100%; width: 0; background: #d6eda2; border-radius: inherit; transition: width 0.4s ease; }
   .mo-label { font-size: 0.68rem; letter-spacing: 0.04em; }
+  .mo-caption { text-align: center; color: var(--faint); font-size: 0.85rem; margin: 1.1rem auto 0; max-width: 24rem; }
 
   /* ---------- tail (contact + footer) ---------- */
   .tail { width: 100%; max-width: 640px; margin: 0 auto; padding: 0 1.25rem; }
@@ -2111,10 +2115,16 @@
           <div class="reveal mo-wrap" aria-hidden="true">
             <div class="mo-drop" id="mo-drop"><canvas id="mo-pond"></canvas></div>
             <div class="mo-hud">
-              <p class="mo-count"><b id="mo-cells">1</b><span id="mo-plural">cell</span></p>
-              <div class="mo-track"><i id="mo-fill"></i></div>
-              <p class="mo-label" id="mo-label">Next division: 0 / 8 growth</p>
+              <div>
+                <p class="mo-count"><b id="mo-cells">1</b><span id="mo-plural">cell</span></p>
+                <p class="mo-id" id="mo-id">Unformed cell</p>
+              </div>
+              <div class="mo-grow">
+                <div class="mo-track"><i id="mo-fill"></i></div>
+                <p class="mo-label" id="mo-label">Next division: 0 / 80 growth</p>
+              </div>
             </div>
+            <p class="mo-caption">Feed, strike, escape, divide. Whatever you do most decides what your body grows next.</p>
           </div>
         </div>
       </div>
@@ -2151,6 +2161,6 @@
 </main>
 
 <script src="dock.js?v=12" id="jza-dock-script"></script>
-<script src="main.js?v=18"></script>
+<script src="main.js?v=19"></script>
 </body>
 </html>
