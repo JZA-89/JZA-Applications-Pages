@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#071b1c"><meta name="description" content="A tiny survival game in a living drop of water. Eat, adapt and grow a creature shaped by how you play."><title>MORPHOS | Living Waters · v6.4</title>
+<html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#071b1c"><meta name="description" content="A tiny survival game in a living drop of water. Eat, adapt and grow a creature shaped by how you play."><title>MORPHOS | Living Waters · v6.6</title>
 <style>
 :root{color-scheme:dark;--ink:#f1f2dc;--muted:#b0c7ba;--dim:#77978d;--lime:#d6eda2;--teal:#75d5b8;--line:#b5dcc228;--panel:#071d20ec;--grazer:#bade86;--hunter:#f3aa84;--swimmer:#84d9e8;--guardian:#c5aceb;font-family:"Avenir Next","Segoe UI",Arial,sans-serif}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061b1e;color:var(--ink);overscroll-behavior:none}button,input,select{font:inherit}button{color:inherit;cursor:pointer;touch-action:manipulation}button:focus-visible,input:focus-visible{outline:2px solid var(--lime);outline-offset:4px}button svg,button span{pointer-events:none}svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}canvas#pond{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}.scrim{position:fixed;inset:0;pointer-events:none;background:linear-gradient(180deg,#02101388,transparent 26%,transparent 65%,#02101388);z-index:1}.menu-scrim{position:fixed;inset:0;pointer-events:none;background:linear-gradient(90deg,#04191eed 0%,#04191eb8 33%,transparent 65%);z-index:2;transition:opacity .55s}body:not([data-mode=menu]) .menu-scrim{opacity:0}.topbar{position:fixed;left:30px;right:26px;top:max(22px,env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;z-index:5;pointer-events:none}.brand{display:flex;align-items:center;gap:11px;pointer-events:auto;user-select:none}.brand svg{width:31px;height:31px;color:var(--lime);stroke-width:1.2}.brand strong{font-size:13px;letter-spacing:.3em;font-weight:500}.brand small{display:block;font-size:8px;letter-spacing:.2em;color:#a7c4b6;margin-top:5px}.tools{display:flex;gap:5px;align-items:center;pointer-events:auto}.tool{border:1px solid transparent;border-radius:6px;background:#051a1b66;height:38px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 10px;font-size:10px;color:#d5e2cf;transition:background .2s,border-color .2s}.tool:hover{background:#2c4a3b66;border-color:var(--line)}.tool.icon{width:36px;padding:0}.tool.on{color:var(--lime);background:#b9de9920}.sound-icon{display:flex;align-items:center;gap:2px;width:14px;height:15px}.sound-icon i{height:3px;width:2px;border-radius:2px;background:currentColor}.on .sound-icon i{animation:notes .9s ease-in-out infinite alternate}.on .sound-icon i:nth-child(2){animation-delay:-.4s}.on .sound-icon i:nth-child(3){animation-delay:-.7s}.on .sound-icon i:nth-child(4){animation-delay:-.1s}@keyframes notes{to{height:14px}}[hidden]{display:none!important}.home{position:fixed;inset:0;z-index:3;pointer-events:none}.intro{position:absolute;left:7.1%;top:48%;transform:translateY(-50%);width:440px;max-width:44%;pointer-events:auto}.eyebrow{font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--lime);display:flex;align-items:center;gap:12px}.eyebrow:before{content:"";height:1px;width:25px;background:currentColor;opacity:.65}.intro h1{font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;font-weight:400;font-size:clamp(58px,7.5vw,108px);line-height:.98;letter-spacing:-.055em;margin:26px 0 23px}.intro h1 em{color:var(--lime);font-weight:400}.intro .lede{font-size:14px;line-height:1.85;max-width:350px;color:#c1d2c3;margin:0 0 29px}.intro .lede strong{color:#eef1dc;font-weight:500}.start-row{display:flex;align-items:center;gap:12px}.btn{border:1px solid #b5d7b547;border-radius:7px;padding:13px 20px;min-height:46px;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:10px;background:#6b8f7721;letter-spacing:.025em;transition:transform .2s,background .2s}.btn:hover{background:#6b8f7739;transform:translateY(-1px)}.btn.primary{background:var(--lime);border-color:var(--lime);color:#173025;box-shadow:0 6px 32px #b1d38318;font-weight:600}.btn.primary:hover{background:#e6f6be}.btn.subtle{border-color:transparent;background:transparent;color:#b1c6b8;padding-left:8px;padding-right:8px}.seed-row{display:flex;align-items:center;margin-top:24px;gap:9px;max-width:310px}.seed-row label{font-size:9px;color:#86a295;letter-spacing:.15em;text-transform:uppercase}.seed-row input{min-width:0;width:175px;border:0;border-bottom:1px solid #8fc1a938;background:none;color:#c4dbbc;font-size:11px;padding:8px 2px}.seed-row button{padding:0;width:28px;height:28px;border:0;background:none;color:#9cbaad}.seed-row button:hover{color:var(--lime)}.intro .micro{font-size:10px;color:#94b0a1;margin-top:19px;letter-spacing:.025em;line-height:1.6}.home-footer{position:absolute;left:7.1%;right:7.1%;bottom:29px;display:flex;align-items:center;justify-content:space-between;font-size:9px;letter-spacing:.12em;color:#93b1a1}.specimen-label{position:absolute;left:67%;top:74%;color:#b4d1b8;font-size:9px;line-height:1.9;letter-spacing:.19em;text-align:center}.specimen-label strong{font-weight:400;color:#e3edc9}.game-ui{position:fixed;inset:0;z-index:4;pointer-events:none;transition:opacity .3s}.vitals{position:absolute;left:30px;top:89px;width:191px}.meter-label{display:flex;align-items:center;justify-content:space-between;font-size:9px;letter-spacing:.13em;text-transform:uppercase;margin-bottom:7px;color:#ccdbca}.meter-label b{font-weight:400;letter-spacing:0;font-variant-numeric:tabular-nums;font-size:10px}.bar{height:4px;background:#aac5b21c;border-radius:2px;overflow:hidden}.bar i{height:100%;width:100%;display:block;background:var(--lime);border-radius:2px;transition:width .14s linear}.bar.energy i{background:#85d1c8}.vitals .energy-label{margin-top:13px}.vitals.low .bar.health i{background:#efa091}.vitals.low .health-label{color:#ffc3b7}.stage-panel{position:absolute;top:24px;left:50%;transform:translateX(-50%);width:260px;text-align:center}.cell-heading{display:flex;gap:9px;align-items:baseline;justify-content:center;margin-bottom:10px}.cell-heading strong{font-family:Georgia,serif;font-weight:400;font-size:31px;line-height:1;color:#e3edca}.cell-heading span{font-size:9px;letter-spacing:.23em;text-transform:uppercase;color:#b9d0b9}.division-track{height:3px;background:#abc7b624;border-radius:3px;overflow:hidden;margin-bottom:7px}.division-track i{display:block;height:100%;width:0;background:var(--lime);transition:width .22s linear}.division-label{font-size:9px;color:#b4c8b5;letter-spacing:.05em}.stage-dots{display:flex;justify-content:center;gap:24px;margin-top:12px;font-size:9px;color:#718f82}.stage-dots .reached{color:var(--lime)}.score-panel{position:absolute;right:30px;top:89px;text-align:right}.score-panel .score-label{font-size:8px;letter-spacing:.2em;color:#a2baab}.score-panel strong{font-size:24px;line-height:1.5;font-weight:300;font-variant-numeric:tabular-nums;letter-spacing:.04em;display:block}.habitat{font-size:10px;color:#b6d0b7;margin-top:8px}.clock{font-size:9px;font-variant-numeric:tabular-nums;color:#89a797;margin-top:7px;letter-spacing:.09em}.trait-panel{position:absolute;left:30px;bottom:29px;width:188px;transition:opacity .3s}.panel-label{font-size:8px;letter-spacing:.21em;color:#9abb9f;text-transform:uppercase;margin-bottom:12px}.trait-row{display:grid;grid-template-columns:14px 69px 1fr 21px;gap:7px;align-items:center;margin-top:9px;font-size:9px;letter-spacing:.025em;color:#abc2b0}.trait-dot{width:6px;height:6px;border-radius:2px;background:var(--trait);transform:rotate(45deg);opacity:.8}.trait-row .bar{height:2px}.trait-row .bar i{width:0;background:var(--trait)}.trait-rank{text-align:right;color:var(--trait);font-size:9px}.trait-panel p{font-size:8px;color:#7b9b88;line-height:1.7;margin:13px 0 0}.ability-bar{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);display:flex;gap:7px;pointer-events:auto}.ability{position:relative;overflow:hidden;display:flex;gap:11px;align-items:center;border:1px solid #adcba236;border-radius:9px;background:#092126bb;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:11px 17px;min-width:123px;color:#d4e3cb;text-align:left}.ability:before{content:"";position:absolute;inset:auto 0 0;height:2px;background:#bfdeb6;transform-origin:left;transform:scaleX(var(--ready,1));transition:transform .1s linear}.ability:hover{background:#284738b3}.ability.unready{opacity:.52}.ability .key{display:inline-grid;place-items:center;height:25px;min-width:29px;border:1px solid #a0c3b534;border-radius:5px;font-size:8px;letter-spacing:.08em;color:#c2ddc3}.ability .name{font-size:11px;font-weight:500;display:block;margin-bottom:3px}.ability small{font-size:8px;color:#8bb29d;display:block}.journey-note{position:absolute;right:30px;bottom:30px;width:205px;text-align:right;color:#abc4b0;font-size:10px;line-height:1.7}.journey-note small{font-size:8px;color:#7f9f8e;display:block;margin-top:7px;letter-spacing:.06em}.tip{position:fixed;left:50%;top:157px;transform:translateX(-50%);font-size:11px;line-height:1.5;letter-spacing:.035em;max-width:calc(100% - 50px);text-align:center;color:#d6e6c9;background:#061e226e;border:1px solid #abd29c1f;backdrop-filter:blur(10px);padding:10px 16px;border-radius:6px;z-index:6;pointer-events:none;opacity:0;transition:opacity .4s}.tip.show{opacity:1}.evolution{position:fixed;left:50%;top:29%;transform:translate(-50%,10px);text-align:center;z-index:7;pointer-events:none;opacity:0;transition:opacity .45s,transform .45s;width:min(410px,calc(100% - 40px));padding:24px 28px;background:radial-gradient(ellipse,#112e2cf2,#0b2426d9);border:1px solid #c7e7b044;border-radius:15px;box-shadow:0 20px 80px #06151266;backdrop-filter:blur(12px)}.evolution.show{opacity:1;transform:translate(-50%,0)}.evolution .kicker{font-size:9px;letter-spacing:.25em;color:var(--lime);text-transform:uppercase}.evolution h2{font:400 34px/1.1 Georgia,serif;letter-spacing:-.025em;margin:12px 0;color:#eef2d9}.evolution p{font-size:12px;line-height:1.7;color:#b8d0b8;margin:0}.evolution .cells{font-size:9px;letter-spacing:.16em;color:#d3e7ad;margin-top:15px}.end-screen{position:fixed;inset:0;z-index:9;background:#021518ad;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:grid;place-items:center;padding:24px;overflow:auto}.end-card{width:min(600px,100%);border:1px solid #9ec19a40;border-radius:16px;background:#0c2426ef;padding:35px 40px;box-shadow:0 25px 100px #00100f80}.end-card .eyebrow{font-size:8px}.end-card h2{font:400 clamp(35px,4.7vw,49px)/1.1 Georgia,serif;letter-spacing:-.035em;margin:18px 0 12px}.end-card .desc{font-size:12px;line-height:1.8;color:#b3cbb5;margin:0 0 25px}.end-stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:17px 0;margin-bottom:23px}.end-stats strong{font-size:25px;font-weight:300;font-variant-numeric:tabular-nums;display:block}.end-stats span{font-size:8px;text-transform:uppercase;letter-spacing:.16em;color:#8dab96;display:block;margin-top:7px}.lineage{padding:0;margin:0 0 24px;list-style:none}.lineage li{display:flex;align-items:center;gap:13px;margin:12px 0;font-size:11px;color:#bad0b7}.lineage .cell-count{width:25px;height:25px;border:1px solid #8ab98a44;border-radius:50%;display:grid;place-items:center;font-size:10px;color:var(--lime);flex-shrink:0}.lineage .reason{display:block;font-size:9px;color:#86a38f;margin-top:4px;line-height:1.5}.end-actions{display:flex;gap:9px;flex-wrap:wrap}.end-foot{font-size:9px;line-height:1.5;color:#7f9c88;margin-top:17px;overflow-wrap:anywhere}dialog{color:var(--ink);background:#0b2529f5;border:1px solid #5d826e;border-radius:14px;padding:31px;width:min(540px,calc(100% - 34px));max-height:calc(100% - 42px);box-shadow:0 24px 120px #0008;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}dialog::backdrop{background:#021515b8;backdrop-filter:blur(6px)}dialog h2{font:400 32px/1.15 Georgia,serif;letter-spacing:-.025em;margin:14px 0 17px}dialog p{font-size:12px;color:#bdd0ba;line-height:1.8;margin:0 0 18px}dialog .kicker{font-size:8px;letter-spacing:.23em;color:var(--lime);text-transform:uppercase}.close{position:absolute;right:14px;top:13px;width:31px;height:31px;display:grid;place-items:center;border:0;background:none;color:#aac8b6;border-radius:4px}.close:hover{background:#c3e2b110}.help-controls{display:grid;grid-template-columns:115px 1fr;gap:12px;font-size:11px;line-height:1.55;margin:20px 0 23px}.help-controls dt{color:#dce6c8}.help-controls dd{margin:0;color:#97b6a2}.adaptation-guide{display:grid;grid-template-columns:1fr 1fr;gap:15px;border-top:1px solid #a2c7a528;padding-top:19px;margin-top:19px}.adaptation-guide strong{font-size:11px;font-weight:500;color:var(--trait)}.adaptation-guide p{font-size:10px;line-height:1.65;color:#9fbca6;margin:6px 0 0}.small-print{font-size:9px!important;color:#789f8a!important;line-height:1.7!important;margin:20px 0 0!important}.pause-actions{display:grid;gap:9px;margin-top:25px}.pause-actions .btn{width:100%}.touch-pad{display:none;position:absolute;left:24px;bottom:23px;width:102px;height:102px;border:1px solid #b7d7ad33;border-radius:50%;background:#0a26297a;pointer-events:auto;touch-action:none;align-items:center;justify-content:center}.touch-pad .stick{width:36px;height:36px;border-radius:50%;background:#bde3ad24;border:1px solid #c6e2b441;pointer-events:none;transform:translate(var(--jx,0px),var(--jy,0px))}.touch-pad:before{content:"SWIM";position:absolute;top:16px;left:0;right:0;text-align:center;font-size:7px;letter-spacing:.12em;color:#8db59c;pointer-events:none}.error{position:fixed;inset:0;z-index:30;background:#081b1dec;display:grid;place-items:center;padding:30px}.error div{max-width:470px}.error h2{font:400 30px Georgia,serif}.error p{font-size:13px;line-height:1.7;color:#bbd0bb}.error pre{font-size:11px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;color:#d6ad9c}.loading{position:fixed;inset:0;z-index:25;background:#071c1f;display:grid;place-items:center;font-size:10px;letter-spacing:.25em;color:#bad6ab;transition:opacity .5s}.loading.ready{opacity:0;pointer-events:none}.sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:1000px){.intro{left:6%;max-width:46%;width:400px}.intro h1{font-size:75px}.stage-panel{width:210px}.journey-note{width:170px;font-size:9px}.trait-panel{width:170px}.trait-row{grid-template-columns:10px 59px 1fr 17px;font-size:8px;gap:6px}.specimen-label{left:65%;top:72%}}
@@ -149,10 +149,12 @@ nav.control-cluster .ability svg.cooldown-ring{
  position:absolute;inset:0;width:100%;height:100%;overflow:visible;fill:none;stroke:none;
  transform:rotate(-90deg);transform-origin:50% 50%;pointer-events:none;
 }
-nav.control-cluster .cooldown-ring circle{fill:none;vector-effect:non-scaling-stroke;stroke-linecap:round}
+/* Dash lengths use the real circumference (2π·22 ≈ 138.23 viewBox units). Safari ignores pathLength under
+   vector-effect:non-scaling-stroke, which left touch rings permanently part-filled, so neither is relied on. */
+nav.control-cluster .cooldown-ring circle{fill:none;stroke-linecap:round}
 nav.control-cluster .cooldown-ring .ring-track{stroke:#c3e1cd25;stroke-width:2}
 nav.control-cluster .cooldown-ring .ring-progress{
- stroke:var(--organ);stroke-width:2.35;stroke-dasharray:100;stroke-dashoffset:calc(100 - var(--ready,1)*100);
+ stroke:var(--organ);stroke-width:2.35;stroke-dasharray:138.23;stroke-dashoffset:calc(138.23 - var(--ready,1)*138.23);
  opacity:.95;transition:stroke-dashoffset .12s linear,opacity .14s;
 }
 nav.control-cluster .ability svg.ability-glyph{
@@ -928,7 +930,7 @@ dialog:is(#journalDialog,#helpDialog,#navigationDialog) .small-print{margin:12px
 #skillsDialog .evolution-choice small{font-size:8px;letter-spacing:.1em;color:#afcca6}
 #skillsDialog .evolution-choice strong{font-size:13px;color:#f0f5d8}
 #skillsDialog .evolution-choice span{font-size:11px;line-height:1.4;color:#c0d5bd}
-#skillsDialog[data-choosing=true] #skillsBack,#skillsDialog[data-choosing=true] #lineageToStats{opacity:.45;pointer-events:none}
+
 #skillsDialog[data-choosing=true] .growth-summary-ability{display:none}
 #skillsDialog[data-choosing=true] .evolution-summary{grid-template-columns:minmax(0,1fr)}
 #skillsDialog #evolutionElder{color:#e7d6a0}
@@ -1010,10 +1012,65 @@ body[data-input=touch] .journey-note{display:none!important}
  body[data-input=touch] .stick-base{width:104px;height:104px;bottom:calc(52px + env(safe-area-inset-bottom))}
  body[data-input=touch] .touch-pad{height:80vh!important}
 }
+</style><style>
+/* UI TIDY (v6.6). Appended last so it wins over the older layered rules.
+   Principle: each fact appears once. The HUD shows only what you act on mid-swim; everything else lives on the body screen. */
+/* Unspent points and waiting decisions glow (same red dot language as the Mutations tab). */
+#skillsDialog .skill-balance.has-points{border-color:#ff7a6a;box-shadow:0 0 0 1px #ff7a6a55,0 0 18px #ff6a5a33}
+#skillsDialog .skill-balance.has-points strong{color:#ffe0c8}
+.tool.upgrade-tool.available .point-badge,.tool.upgrade-tool.choice-waiting .point-badge{background:#ff6a5a;color:#fff;animation:badgePulse 1.6s ease-in-out infinite}
+@keyframes badgePulse{50%{box-shadow:0 0 0 5px #ff6a5a33}}
+@media (prefers-reduced-motion:reduce){.tool.upgrade-tool .point-badge{animation:none!important}}
+.next-adaptation.urgent{color:#20160f!important;background:#ffb48a!important;border-radius:12px;padding:3px 10px!important;opacity:1!important;display:inline-block!important}
+#pauseSound{display:none}
+/* Everywhere: the elder chips (Field guide has them), the habit forecast (body screen rail) and the checkpoint line (pause
+   screen footer) are not repeated on the HUD. The forecast returns only as the orange "Choose your path" call when a choice waits. */
+.game-ui .stage-panel .journey-steps,.game-ui .stage-panel .next-adaptation:not(.urgent),.game-ui .score-panel .autosave-indicator{display:none!important}
+body[data-input=mouse] .tip{top:150px}
+/* Phone / touch HUD: stats left, cell centre, two tools + score right. */
+body[data-input=touch]:not([data-mode=menu]) .topbar{left:auto!important;right:calc(10px + env(safe-area-inset-right))!important;top:calc(10px + env(safe-area-inset-top))!important;width:auto!important;padding:0!important;background:none!important;border:0!important}
+body[data-input=touch]:not([data-mode=menu]) .topbar .brand,
+body[data-input=touch]:not([data-mode=menu]) .topbar #sound,
+body[data-input=touch]:not([data-mode=menu]) .topbar #fullscreen,
+body[data-input=touch]:not([data-mode=menu]) .topbar #journal,
+body[data-input=touch]:not([data-mode=menu]) .topbar #help{display:none!important}
+body[data-input=touch]:not([data-mode=menu]) .topbar .tools{gap:6px!important}
+body[data-input=touch]:not([data-mode=menu]) .topbar .tool{width:38px!important;height:38px!important;min-width:0!important}
+body[data-input=touch] #pauseSound{display:inline-flex}
+body[data-input=touch]:not([data-mode=menu]) .topbar #pause{border-color:#cfe4a840!important;background:#0a2528cc!important}
+body[data-input=touch] .vitals{position:fixed!important;left:calc(14px + env(safe-area-inset-left))!important;top:calc(12px + env(safe-area-inset-top))!important;width:108px!important;right:auto!important;bottom:auto!important;transform:none!important;margin:0!important;padding:0!important}
+body[data-input=touch] .vitals .meter-label{margin:0 0 3px!important;font-size:8.5px!important;letter-spacing:.12em!important;line-height:1.2!important;display:flex!important;justify-content:space-between!important}
+body[data-input=touch] .vitals .meter-label b{font-weight:500!important;opacity:.75}
+body[data-input=touch] .vitals .bar{height:3px!important;margin:0 0 8px!important}
+body[data-input=touch] .vitals .stamina-state,body[data-input=touch] .vitals .stealth-status{display:none!important}
+body[data-input=touch] .stage-panel{position:fixed!important;left:50%!important;right:auto!important;top:calc(10px + env(safe-area-inset-top))!important;bottom:auto!important;transform:translateX(-50%)!important;width:min(150px,calc(100vw - 260px))!important;margin:0!important;padding:0!important;text-align:center!important}
+body[data-input=touch] .stage-panel .cell-heading{justify-content:center!important;margin:0!important}
+body[data-input=touch] .stage-panel .cell-heading strong{font-size:26px!important;line-height:1!important}
+body[data-input=touch] .stage-panel .identity-line{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;font-size:8px!important;line-height:1.35!important;margin:4px 0 5px!important;max-width:none!important}
+body[data-input=touch] .stage-panel .division-track{margin:0 auto!important;width:100%!important}
+body[data-input=touch] .stage-panel .division-label,
+body[data-input=touch] .stage-panel .next-adaptation:not(.urgent),
+body[data-input=touch] .stage-panel .journey-steps{display:none!important}
+body[data-input=touch] .stage-panel:has(.division-track i.gated) .division-label{display:block!important;font-size:9px!important;margin-top:4px!important}
+body[data-input=touch] .stage-panel .next-adaptation.urgent{margin-top:6px!important;font-size:10px!important}
+body[data-input=touch] .score-panel{position:fixed!important;right:calc(14px + env(safe-area-inset-right))!important;left:auto!important;top:calc(56px + env(safe-area-inset-top))!important;bottom:auto!important;transform:none!important;width:auto!important;margin:0!important;padding:0!important;text-align:right!important;background:none!important;border:0!important}
+body[data-input=touch] .score-panel>*:not(#score){display:none!important}
+body[data-input=touch] .score-panel{display:block!important}
+body[data-input=touch] .score-panel #score{display:block!important}
+body[data-input=touch] .score-panel #score{font-size:15px!important;letter-spacing:.06em!important;line-height:1!important;opacity:.8}
+body[data-input=touch] .tip{top:calc(120px + env(safe-area-inset-top))!important;max-width:min(320px,calc(100vw - 32px))!important;font-size:11px!important}
+body[data-input=touch] .boss-hud{top:calc(118px + env(safe-area-inset-top))!important}
+body[data-input=touch][data-boss=active] .tip{top:calc(190px + env(safe-area-inset-top))!important}
+@media (max-height:480px){
+ body[data-input=touch] .vitals .bar{margin-bottom:5px!important}
+ body[data-input=touch] .stage-panel .cell-heading strong{font-size:20px!important}
+ body[data-input=touch] .tip{top:calc(80px + env(safe-area-inset-top))!important}
+ body[data-input=touch] .boss-hud{top:calc(70px + env(safe-area-inset-top))!important}
+}
 </style></head><body data-mode="menu">
 <canvas id="pond" tabindex="-1" aria-label="A living pond ecosystem. Steer your cell, eat nutrients, avoid predators and evolve."></canvas><div class="scrim" aria-hidden="true"></div><div class="menu-scrim" aria-hidden="true"></div><div class="loading" id="loading">A LITTLE LIFE IS FORMING</div>
 <header class="topbar"><div class="brand"><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M30 10c5 8-1 20-10 22C10 34 2 26 3 17 4 6 14 1 23 4c3 1 5 3 7 6Z"/><ellipse cx="17" cy="18" rx="6" ry="8" transform="rotate(30 17 18)"/><circle cx="24" cy="11" r="1.8"/><path d="m8 23 3 1m13 1 2-3"/></svg><div><strong>MORPHOS</strong><small>LIFE IN A DROP OF WATER</small></div></div><div class="tools"><button class="tool on" id="sound" aria-pressed="true" aria-label="Disable sound" title="Sound (M)"><span class="sound-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="sound-label">Sound on</span></button><button class="tool icon" id="pause" hidden aria-label="Pause game" title="Pause (P / Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14m8-14v14"/></svg></button><button class="tool icon" id="fullscreen" aria-label="Enter fullscreen" title="Fullscreen (F)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button><button class="tool icon upgrade-tool" id="skillsTool" hidden aria-label="Body and mutations" title="Body &amp; mutations (U)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3c0 8 10 10 10 18M17 3c0 8-10 10-10 18M8 6h8M9 10h6M9 14h6M8 18h8"/></svg><span class="point-badge" id="pointBadge"></span></button><button class="tool icon" id="journal" aria-label="Field guide" title="Field guide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5C9 3 5 3 2 4v15c3-1 7-1 10 1 3-2 7-2 10-1V4c-3-1-7-1-10 1Zm0 0v15"/></svg></button><button class="tool icon" id="help" aria-label="How to play" title="How to play (?)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 4m0 3v.1"/></svg></button></div></header>
-<main class="home" id="home"><section class="intro"><div class="eyebrow">An experiment in becoming</div><h1>Eat. Adapt.<br><em>Become.</em></h1><p class="lede">Begin as a single cell in a living drop of water.<br>What you eat, how you move, what you survive.<br><strong>Your body remembers.</strong></p><div class="start-row"><button class="btn primary" id="start">Begin a life <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-5-5 5 5-5 5"/></svg></button><button class="btn subtle" id="homeHelp">How to play</button><button class="btn subtle" id="homeControls">Controls</button><button class="btn subtle home-load" id="homeLoad">Load a life</button></div><p class="file-status" data-file-status aria-live="polite"></p><button class="checkpoint-card" id="homeResume" hidden><span><strong>Continue your life</strong><small id="checkpointSummary"></small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></button><p class="home-goal">Grow your own lineage. Overcome the three elders.</p><div class="seed-row"><label for="seedInput">World</label><input id="seedInput" value="First light" maxlength="48" autocomplete="off" aria-label="World seed"><button id="shuffleSeed" aria-label="Choose a new world" title="A new world"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h3c4 0 8 10 12 10h3m-4-4 4 4-4 4M3 17h3c2 0 4-3 6-5m3-4 3-1h3m-4-4 4 4-4 4"/></svg></button></div><div class="micro"><span class="desktop">Mouse to swim · Left click to strike · Right click to swim fast · Q to block · Shift to hold position · Space to sneak</span><span id="touchMenuHint" hidden>Use the swim pad and ability buttons</span></div></section><div class="specimen-label"><strong>SPECIMEN 001</strong><br>A BEGINNING, NOT A DESTINY</div><footer class="home-footer"><span>V6.4 · AN ENDLESS POND. AN UNWRITTEN FUTURE.</span><button class="journal-link" id="homeJournal"><span id="homeBest">0 / 20 ADAPTATIONS DISCOVERED</span><span aria-hidden="true"> ↗</span></button></footer></main>
+<main class="home" id="home"><section class="intro"><div class="eyebrow">An experiment in becoming</div><h1>Eat. Adapt.<br><em>Become.</em></h1><p class="lede">Begin as a single cell in a living drop of water.<br>What you eat, how you move, what you survive.<br><strong>Your body remembers.</strong></p><div class="start-row"><button class="btn primary" id="start">Begin a life <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-5-5 5 5-5 5"/></svg></button><button class="btn subtle" id="homeHelp">How to play</button><button class="btn subtle" id="homeControls">Controls</button><button class="btn subtle home-load" id="homeLoad">Load a life</button></div><p class="file-status" data-file-status aria-live="polite"></p><button class="checkpoint-card" id="homeResume" hidden><span><strong>Continue your life</strong><small id="checkpointSummary"></small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></button><p class="home-goal">Grow your own lineage. Overcome the three elders.</p><div class="seed-row"><label for="seedInput">World</label><input id="seedInput" value="First light" maxlength="48" autocomplete="off" aria-label="World seed"><button id="shuffleSeed" aria-label="Choose a new world" title="A new world"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h3c4 0 8 10 12 10h3m-4-4 4 4-4 4M3 17h3c2 0 4-3 6-5m3-4 3-1h3m-4-4 4 4-4 4"/></svg></button></div><div class="micro"><span class="desktop">Mouse to swim · Left click to strike · Right click to swim fast · Q to block · Shift to hold position · Space to sneak</span><span id="touchMenuHint" hidden>Use the swim pad and ability buttons</span></div></section><div class="specimen-label"><strong>SPECIMEN 001</strong><br>A BEGINNING, NOT A DESTINY</div><footer class="home-footer"><span>V6.6 · AN ENDLESS POND. AN UNWRITTEN FUTURE.</span><button class="journal-link" id="homeJournal"><span id="homeBest">0 / 20 ADAPTATIONS DISCOVERED</span><span aria-hidden="true"> ↗</span></button></footer></main>
 <div class="game-ui" id="gameUI" hidden><section class="vitals" id="vitals" aria-label="Cell health, stamina and nutrition"><div class="meter-label health-label"><span id="healthLabel">Membrane</span><b id="healthText">100 / 100</b></div><div class="bar health" role="progressbar" id="healthBar" aria-label="Health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="healthFill"></i></div><div class="meter-label energy-label"><span id="energyLabel">Stamina</span><b id="energyText">100 / 100</b></div><div class="bar energy" role="progressbar" id="energyBar" aria-label="Stamina" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="energyFill"></i></div><div class="stamina-state" id="staminaState" role="status" aria-live="polite"></div><div class="meter-label nutrition-label"><span>Nutrition</span><b id="nutritionText">100%</b></div><div class="bar nutrition" role="progressbar" id="nutritionBar" aria-label="Nutrition" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="nutritionFill"></i></div><div id="stealthStatus" class="stealth-status"></div></section><section class="stage-panel" aria-label="Cell growth"><div class="cell-heading"><strong id="cellCount">1</strong><span id="cellPlural">cell</span></div><div class="identity-line" id="identityLine">Unformed cell</div><div class="division-track"><i id="divisionFill"></i></div><div class="division-label" id="divisionLabel">Next division: 0 / 80 growth</div><button class="next-adaptation" id="nextAdaptation" title="See how your habits shape your body (U)">Your habits shape your body</button><nav class="journey-steps" id="journeySteps" aria-label="Elder journey"><button type="button" data-elder="brood" title="The Broodmother"><i aria-hidden="true">◌</i><span>Brood</span></button><button type="button" data-elder="glass" title="The Glass Regent"><i aria-hidden="true">◇</i><span>Glass</span></button><button type="button" data-elder="undertow" title="The Undertow"><i aria-hidden="true">≋</i><span>Deep</span></button></nav><button class="genome-status" id="genomeStatus" hidden><i class="compass-arrow" id="elderArrow" aria-hidden="true">↑</i><span id="genomeStatusText">Elder signal</span></button></section><section class="score-panel" aria-label="Progress"><span class="score-label">LIFE SCORE</span><strong id="score">00000</strong><div class="habitat" id="habitat">Nutrient shallows</div><div class="clock" id="clock">00:00</div><div class="autosave-indicator" id="autosaveIndicator" role="status" aria-live="polite">Unlock a location to save</div><button type="button" id="researchShortcut" class="research-shortcut" title="Field research (R)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3M8 14h8"/><path d="M10 17h.01M14 18h.01"/></svg><span id="researchShortcutText">Research</span><kbd>R</kbd></button></section><section class="boss-hud" id="bossHUD" hidden aria-label="Elder encounter"><div class="boss-heading"><span id="bossPhase">ELDER ORGANISM</span><small id="bossHealthText"></small></div><h2 id="bossName">An elder awakens</h2><div class="boss-health" id="bossHealthBar" role="progressbar" aria-label="Elder health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="bossHealthFill"></i></div><p id="bossHint">Read its attacks. Keep stamina in reserve.</p><p id="bossShortHint">Read its attacks. Keep stamina in reserve.</p></section><nav class="control-cluster" aria-label="Cell controls">
   <div class="basic-actions" role="group" aria-label="Basic actions">
     <button type="button" class="ability basic-action" id="pulseButton" style="--organ:var(--lime)" title="Aim with the cursor. Left click or Q attacks a forward arc. Tap C to block separately.">
@@ -1082,11 +1139,11 @@ body[data-input=touch] .journey-note{display:none!important}
 <aside class="trait-panel"><div class="panel-label">Your body is learning</div><div class="trait-row" data-trait="grazer" style="--trait:var(--grazer)"><span class="trait-dot"></span><span>Grazer</span><div class="bar"><i></i></div><span class="trait-rank">·</span></div><div class="trait-row" data-trait="hunter" style="--trait:var(--hunter)"><span class="trait-dot"></span><span>Hunter</span><div class="bar"><i></i></div><span class="trait-rank">·</span></div><div class="trait-row" data-trait="swimmer" style="--trait:var(--swimmer)"><span class="trait-dot"></span><span>Swimmer</span><div class="bar"><i></i></div><span class="trait-rank">·</span></div><div class="trait-row" data-trait="guardian" style="--trait:var(--guardian)"><span class="trait-dot"></span><span>Guardian</span><div class="bar"><i></i></div><span class="trait-rank">·</span></div><div class="trait-row" data-trait="stalker" style="--trait:var(--stalker)"><span class="trait-dot"></span><span>Stalker</span><div class="bar"><i></i></div><span class="trait-rank">·</span></div><p id="traitForecast">Every action leaves a trace.</p><button class="mutation-loadout" id="mutationLoadout" title="View your mutations (U)">First mutation slot at 4 cells</button></aside>
 </aside>
 <div class="build-content">
-<section role="tabpanel" id="evolutionPanel" aria-labelledby="buildEvolutionTab" tabindex="0" hidden><section id="evolutionSummary" class="evolution-summary" hidden aria-labelledby="evolutionTitle"><div class="growth-summary-copy"><div class="kicker" id="evolutionKicker"></div><h3 id="evolutionTitle"></h3><strong id="evolutionCells"></strong><p id="evolutionReason"></p><p id="evolutionLevel"></p></div><div class="growth-summary-ability"><small id="evolutionAbilityKicker"></small><strong id="evolutionAbility"></strong><p id="evolutionAbilityDescription"></p></div><div id="evolutionChoices" class="evolution-choices" role="group" aria-label="Choose your evolution" hidden></div><p id="evolutionPoints"></p><p id="evolutionElder" hidden></p></section><div class="lineage-panel"><div class="lineage-head"><h3 id="lineageTitle">Your lineage</h3><button type="button" class="btn subtle" id="lineageToStats">Spend stat points <span aria-hidden="true">→</span></button></div><p class="lineage-empty" id="lineageEmpty">Your first division will begin your lineage.</p><ol class="lineage-log" id="lineageLog"></ol></div></section>
+<section role="tabpanel" id="evolutionPanel" aria-labelledby="buildEvolutionTab" tabindex="0" hidden><section id="evolutionSummary" class="evolution-summary" hidden aria-labelledby="evolutionTitle"><div class="growth-summary-copy"><div class="kicker" id="evolutionKicker"></div><h3 id="evolutionTitle"></h3><strong id="evolutionCells"></strong><p id="evolutionReason"></p><p id="evolutionLevel"></p></div><div class="growth-summary-ability"><small id="evolutionAbilityKicker"></small><strong id="evolutionAbility"></strong><p id="evolutionAbilityDescription"></p></div><div id="evolutionChoices" class="evolution-choices" role="group" aria-label="Choose your evolution" hidden></div><p id="evolutionPoints"></p><p id="evolutionElder" hidden></p></section><div class="lineage-panel"><div class="lineage-head"><h3 id="lineageTitle">Your lineage</h3><button type="button" class="btn subtle" id="lineageToStats" hidden>Spend stat points <span aria-hidden="true">→</span></button></div><p class="lineage-empty" id="lineageEmpty">Your first division will begin your lineage.</p><ol class="lineage-log" id="lineageLog"></ol></div></section>
 <section role="tabpanel" id="statsPanel" aria-labelledby="buildStatsTab" tabindex="0"><p class="attribute-cap" id="attributeCap"></p><div class="skills-grid" id="skillsGrid"></div><div class="body-overview" id="bodyOverview"></div><div class="respec-row"><span id="respecHint">Recover fully to rebuild your core stats between encounters.</span><button class="btn subtle" id="respecStats">Rebuild core stats</button></div></section>
 <section role="tabpanel" id="mutationsPanel" aria-labelledby="buildMutationsTab" tabindex="0" hidden><div class="mutation-intro"><p>Select a mutation to inspect its effect and appearance.</p><strong id="mutationSlotCount">0 / 0 EQUIPPED</strong></div><p class="mutation-combat-note" id="mutationCombatNote" hidden>Equipped mutations stay fixed during this elder encounter.</p><div class="mutation-slots" id="mutationSlots" aria-label="Equipped mutation slots"></div><div class="mutation-workspace"><div class="mutations-grid" id="mutationsGrid" role="group" aria-label="Select a mutation"></div><article id="mutationDetail" class="mutation-detail" aria-labelledby="mutationName"><div class="mutation-detail-heading"><span id="mutationIcon" class="mutation-symbol" aria-hidden="true"></span><div><h3 id="mutationName"></h3><span id="mutationStatus"></span></div></div><p id="mutationDescription"></p><p id="mutationAppearance" class="appearance-note"></p><p id="mutationRequirementSummary"></p><div id="mutationRequirements" class="mutation-requirements"></div><div id="previewReplacementRow" hidden><label for="previewReplacement">Preview in place of</label><select id="previewReplacement"></select></div><button type="button" id="mutationAction" class="btn primary"></button><p id="mutationActionHint"></p></article></div></section>
 <section role="tabpanel" id="researchPanel" aria-labelledby="buildResearchTab" tabindex="0" hidden><div class="research-current"><div class="section-eyebrow">CURRENT FIELD STUDY</div><h3 id="researchTitle">A life in motion</h3><p id="researchDescription"></p><div class="research-count-row"><strong id="researchCount"></strong><span class="research-reward">+100 score</span></div><div class="research-bar" id="researchProgressBar" role="progressbar" aria-label="Current field study" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="researchFill"></i></div><div class="research-meta" id="researchCompleted"></div></div><div class="research-layout"><section class="research-cycle-panel"><h3>Five ways to explore</h3><ol id="researchCycle" class="research-cycle"></ol></section><section class="research-discoveries"><h3>Mutation leads</h3><p id="researchLeadsHint">Actions that could reveal a new part of your body.</p><div id="researchDiscoveries"></div><button type="button" id="researchGuide" class="btn subtle">Open the field guide <span aria-hidden="true">↗</span></button></section></div><p class="research-explainer">Field studies award score. Your actions also build towards adaptations and mutations. Stat points come from evolution and dangerous encounters.</p></section>
-</div></div><footer class="skills-footer"><div class="pause-tools" id="pauseTools"><div class="pause-buttons"><button class="btn" id="saveLife">Save life</button><button class="btn" id="loadLife">Load life</button><button class="btn" id="pauseJournal">Field guide</button><button class="btn" id="pauseHelp">How to play</button><button class="btn" id="pauseControls">Controls</button><button class="btn subtle" id="restart">Restart world</button><button class="btn subtle" id="pauseMenu">Main menu</button></div><p class="checkpoint-status" id="checkpointStatus"></p><p class="file-status" data-file-status aria-live="polite"></p></div><button class="btn primary" id="skillsBack">Keep swimming</button></footer></dialog><input type="file" id="loadInput" accept=".json,application/json" hidden>
+</div></div><footer class="skills-footer"><div class="pause-tools" id="pauseTools"><div class="pause-buttons"><button class="btn" id="saveLife">Save life</button><button class="btn" id="loadLife">Load life</button><button class="btn" id="pauseJournal">Field guide</button><button class="btn" id="pauseHelp">How to play</button><button class="btn" id="pauseControls">Controls</button><button class="btn" id="pauseSound" type="button">Sound on</button><button class="btn subtle" id="restart">Restart world</button><button class="btn subtle" id="pauseMenu">Main menu</button></div><p class="checkpoint-status" id="checkpointStatus"></p><p class="file-status" data-file-status aria-live="polite"></p></div><button class="btn primary" id="skillsBack">Keep swimming</button></footer></dialog><input type="file" id="loadInput" accept=".json,application/json" hidden>
 <section class="error" id="error" hidden><div><h2>This little life needs a hand.</h2><p id="errorMessage">The game could not start. Try opening the file in a desktop browser.</p><pre id="errorDetails"></pre><button class="btn primary" id="reload">Reload</button></div></section><noscript><section class="error"><div><h2>Life needs JavaScript.</h2><p>Enable JavaScript in your browser, then reopen this file.</p></div></section></noscript>
 <script>
 /* MORPHOS: a deterministic little ecology, with no browser dependencies. */
@@ -1832,10 +1889,11 @@ body[data-input=touch] .journey-note{display:none!important}
       const s=this.state,p=s.player;if(p.sprintSessionDistance>100&&p.sprintDanger&&p.escapeCooldown<=0&&!s.organisms.some(o=>!o.dead&&isHostile(o)&&o.kind!=='jelly'&&distance(o,p)<240)){p.evidence.swimmer+=5;s.stats.escapes++;p.escapeCooldown=15;}p.sprintSessionDistance=0;p.sprintDanger=false;
     }
     update(dt,input={}){
-      if(this.state.status!=='playing'||this.state.paused||this.state.pendingEvolution||this.state.pendingChoice||!Number.isFinite(dt)||dt<=0)return;
-      if(this.state.biomass>=this.state.nextDivision&&this._growthAllowed()){this._divide();return;}
+      // A pending path choice no longer stops the pond: play continues and the division waits until the player picks (R1).
+      if(this.state.status!=='playing'||this.state.paused||this.state.pendingEvolution||!Number.isFinite(dt)||dt<=0)return;
+      if(!this.state.pendingChoice&&this.state.biomass>=this.state.nextDivision&&this._growthAllowed()){this._divide();return;}
       let remaining=Math.min(dt,.15),first=true;
-      while(remaining>1e-6&&this.state.status==='playing'&&!this.state.pendingEvolution&&!this.state.pendingChoice){const step=Math.min(remaining,1/60);this._step(step,first?input:{...input,pulse:false,pulsePressed:false,blockPressed:false,ability:undefined});remaining-=step;first=false;}
+      while(remaining>1e-6&&this.state.status==='playing'&&!this.state.pendingEvolution){const step=Math.min(remaining,1/60);this._step(step,first?input:{...input,pulse:false,pulsePressed:false,blockPressed:false,ability:undefined});remaining-=step;first=false;}
     }
     _step(dt,input){
       const s=this.state,p=s.player;s.time+=dt;s.biomeTransition=Math.min(1,s.biomeTransition+dt/2.5);
@@ -2696,22 +2754,38 @@ body[data-input=touch] .journey-note{display:none!important}
    }finally{this.camera=camera;this.biome=biome;c.restore();}
    return{mutations:[...mutations],scale,bounds};
   }
+  // Division morph: when the player's stage rises, the body grows from the old shape to the new one over the first
+  // ~1.8 s of the sim's evolution timer (p.evolution, 3.2 s at division; it only runs while the pond runs).
+  _morph(p){
+   const cur={stage:p.stage||0,traits:{...(p.traits||{})},r:p.r,cellCount:p.cellCount||1,cellExponent:p.cellExponent},snap=this._playerSnap;this._playerSnap=cur;
+   if(!snap||cur.stage<snap.stage){this._morphFrom=null;return null;}
+   if(cur.stage>snap.stage)this._morphFrom=(p.evolution||0)>0?(this._morphFrom||snap):null;
+   if(!this._morphFrom)return null;
+   const k=clamp((3.2-(p.evolution||0))/1.8,0,1);if(k>=1||(p.evolution||0)<=0){this._morphFrom=null;return null;}
+   return{k:k*k*(3-2*k),from:this._morphFrom};
+  }
   drawPlayer(p,time,menu=false,specimen=false){
-   const c=this.ctx,r=p.r,t=p.traits||{},base=this.playerColour(p),stealth=clamp(p.stealth||0,0,1),fatigue=p.exhausted?.48:0,co=mix(mix(base,palettes[this.biome||0].fluid,stealth*.35),[143,158,154],fatigue),phase=.7;c.save();c.translate(p.x,p.y);c.rotate(p.angle||0);
+   const m=!menu&&!specimen?this._morph(p):null,k=m?m.k:1,r=m?m.from.r+(p.r-m.from.r)*k:p.r;
+   const c=this.ctx,t=p.traits||{},base=this.playerColour(p),stealth=clamp(p.stealth||0,0,1),fatigue=p.exhausted?.48:0,co=mix(mix(base,palettes[this.biome||0].fluid,stealth*.35),[143,158,154],fatigue),phase=.7;c.save();c.translate(p.x,p.y);c.rotate(p.angle||0);
    const inv=(p.invulnerable||0)>0?(.64+.36*Math.cos(time*20)):1;c.globalAlpha=inv*(1-stealth*.61);
    c.drawImage(this.glow(base),-r*2,-r*2,r*4,r*4);
    this.cilia(c,r*.93,time,phase,co,18+(t.grazer||0)*5,r*(.11+(t.grazer||0)*.025)*(p.sprinting?.5:1));
-   if(t.swimmer)this.tails(c,r,time,co,Math.min(3,Math.ceil(t.swimmer/1.4)),.6+t.swimmer*.6+(p.sprinting?.8:0));
-   if(t.grazer)this.leaves(c,r,time,co,t.grazer,p.sprinting?.45:1);
-   if(t.stalker)this.veil(c,r,time,co,t.stalker);
+   // A family that ranked up fades its old organs out while the new ones grow outward from inside the membrane.
+   const organ=(fam,fn)=>{const now=t[fam]||0,was=m?(m.from.traits[fam]||0):now;if(!m||was===now){if(now)fn(now);return;}
+     if(was){c.save();c.globalAlpha*=1-k;fn(was);c.restore();}if(now){c.save();c.globalAlpha*=k;const s=.45+.55*k;c.scale(s,s);fn(now);c.restore();}};
+   organ('swimmer',n=>this.tails(c,r,time,co,Math.min(3,Math.ceil(n/1.4)),.6+n*.6+(p.sprinting?.8:0)));
+   organ('grazer',n=>this.leaves(c,r,time,co,n,p.sprinting?.45:1));
+   organ('stalker',n=>this.veil(c,r,time,co,n));
    if((p.cellCount||1)>1){smoothBlob(c,r*.98,time,phase,1,.07);c.fillStyle=rgba(co,.085);c.fill();c.strokeStyle=rgba(co,.35);c.lineWidth=Math.max(1.1,.85/this.camera.zoom);c.stroke();}
-   const nodes=this.playerNodes(p);
+   let nodes=this.playerNodes(m?{...p,r}:p);
+   // Each new cell buds from the nearest cell of the old body, so a division reads as the body splitting apart.
+   if(m){const old=this.playerNodes({...p,r,cellCount:m.from.cellCount,cellExponent:m.from.cellExponent,traits:m.from.traits});nodes=nodes.map(q=>{let o=old[0],bd=Infinity;for(const e of old){const d=(e.x-q.x)**2+(e.y-q.y)**2;if(d<bd){bd=d;o=e;}}return{x:o.x+(q.x-o.x)*k,y:o.y+(q.y-o.y)*k,r:o.r+(q.r-o.r)*k};});}
    const compound=(p.cellCount||1)>16,exponent=Number.isFinite(p.cellExponent)?p.cellExponent:Math.log2(Math.max(1,p.cellCount||1)),represented=Math.pow(2,clamp(Math.floor(exponent)-5,0,2)),maturity=clamp((exponent-7)*.12,0,1);
    if(compound){c.strokeStyle=rgba(co,.1);c.lineWidth=.7;for(let i=0;i<nodes.length;i+=2){const q=nodes[i];c.beginPath();c.moveTo(0,0);c.quadraticCurveTo(q.x*.4-q.y*.12,q.y*.4+q.x*.12,q.x,q.y);c.stroke();}}
    for(let i=0;i<nodes.length;i++){const q=nodes[i];c.save();c.translate(q.x,q.y);if(compound)this.compoundCell(c,q.r,time,phase+i*.64,co,represented,maturity);else this.cellBody(c,q.r,time,phase+i*.64,co,menu?2:p.cellCount>4?0:1,1,.035,3,menu?0:.65);c.restore();}
    this.mutationOrgans(c,p,time);
-   if(t.hunter)this.jaws(c,r,time,co,t.hunter);
-   if(t.guardian)this.armour(c,r,co,t.guardian);
+   organ('hunter',n=>this.jaws(c,r,time,co,n));
+   organ('guardian',n=>this.armour(c,r,co,n));
    if((p.hurt||0)>0){smoothBlob(c,r,time,phase,1,.05);c.fillStyle=`rgba(255,103,112,${Math.min(.45,p.hurt*.5)})`;c.fill();}
    if((p.evolution||0)>0){c.strokeStyle=rgba([220,255,216],clamp(p.evolution*.4,0,.6));c.lineWidth=2;c.beginPath();c.arc(0,0,r*(1.1+(.5-Math.sin(time*3)*.5)*.3),0,TAU);c.stroke();}
    c.restore();
@@ -3274,7 +3348,7 @@ window.MorphosAudio=MorphosAudio;
  const touch={active:false,id:null,x:0,y:0};
  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
  let game,renderer,audio,mode='menu',soundOn=true,soundAttempt=0,failed=false;
- let pendingPulse=false,pendingBlock=false,blockButtonHeld=false,sprintPointer=false,sprintButtonHeld=false,sneakToggle=false,buildTab='stats',compassMode='auto',assistedAim=null;
+ let lastGrowth=null,growthUnseen=false,pendingPulse=false,pendingBlock=false,blockButtonHeld=false,sprintPointer=false,sprintButtonHeld=false,sneakToggle=false,sneakPress=null,lastConceal=0,tapAim=null,buildTab='stats',compassMode='auto',assistedAim=null;
  let selectedMutation=null,previewMode='current',previewReplacement=0,specimenRenderer=null,specimenSize='',journalTab='adaptations',helpTab='controls',selectedElder='brood';
  const pendingAbilities=[];
  let time=0,last=performance.now(),accumulator=0,uiTimer=0,audioTimer=0,renderAverage=16.7,qualityTimer=0,pixelScale=1;
@@ -3313,7 +3387,7 @@ window.MorphosAudio=MorphosAudio;
    $('pause').hidden=value==='menu'||value==='end';$('skillsTool').hidden=value==='menu'||value==='end';
    $('endScreen').hidden=value!=='end';if(game)game.state.paused=value!=='playing';if(value==='playing')canvas.focus({preventScroll:true});
  }
- function clearInput(){const pointerId=pointer.id;pointer.id=null;if(pointerId!==null&&canvas.hasPointerCapture(pointerId))canvas.releasePointerCapture(pointerId);keys.clear();pointer.held=false;pointer.active=false;pointer.aimed=false;assistedAim=null;pendingPulse=pendingBlock=blockButtonHeld=sprintPointer=sprintButtonHeld=false;pendingAbilities.length=0;touch.active=false;touch.x=touch.y=0;touch.id=null;sneakToggle=false;$('touchPad').style.setProperty('--jx','0px');$('touchPad').style.setProperty('--jy','0px');padRelease();}
+ function clearInput(){const pointerId=pointer.id;pointer.id=null;if(pointerId!==null&&canvas.hasPointerCapture(pointerId))canvas.releasePointerCapture(pointerId);keys.clear();pointer.held=false;pointer.active=false;pointer.aimed=false;assistedAim=null;pendingPulse=pendingBlock=blockButtonHeld=sprintPointer=sprintButtonHeld=false;pendingAbilities.length=0;touch.active=false;touch.x=touch.y=0;touch.id=null;sneakToggle=false;sneakPress=null;tapAim=null;$('touchPad').style.setProperty('--jx','0px');$('touchPad').style.setProperty('--jy','0px');padRelease();}
  function refreshRecords(){const n=discovered();$('homeBest').textContent=(best?'BEST '+best.toLocaleString('en-GB')+' · ':'')+n+' / 20 ADAPTATIONS DISCOVERED';}
  function chooseSeed(){const a=['Quiet','Verdant','Silver','Hidden','Golden','Glass','Velvet','Ancient','Emerald','Tender','Amber','Rainlit'],b=['Spring','Water','Garden','Bloom','Current','Lagoon','Reed','Tide','Marsh','Dawn','Mirage','Ripple'];const n=new Uint32Array(3);crypto.getRandomValues(n);return a[n[0]%a.length]+' '+b[n[1]%b.length]+' '+(100+n[2]%900);}
  function safeSeed(){return $('seedInput').value.trim().normalize('NFC').slice(0,48)||'First light';}
@@ -3357,7 +3431,6 @@ window.MorphosAudio=MorphosAudio;
    if(mode!=='playing')return;if(buildTab==='evolution')buildTab='stats';showSkills();updateCheckpointUI();
  }
  function resumeGame(){
-   if(game.state.pendingChoice){showChoice();return;}
    if(game.state.pendingEvolution){showGrowth(game.state.pendingEvolution);return;}
    closeAllDialogs();clearInput();accumulator=0;setMode('playing');last=performance.now();
  }
@@ -3387,8 +3460,9 @@ window.MorphosAudio=MorphosAudio;
  function showHelp(){setTabGroup(helpTabs,helpTab);showPanel('helpDialog');$(helpTabs[helpTab][0]).focus({preventScroll:true});}
  function showJournal(){renderJournal();setTabGroup(guideTabs,journalTab);showPanel('journalDialog');$(guideTabs[journalTab][0]).focus({preventScroll:true});}
  function showSkills(tab){
-   if(!game||game.state.status!=='playing')return;if(typeof tab==='string'&&buildTabs[tab])buildTab=tab;
-   $('evolutionSummary').hidden=mode!=='evolving';$('skillsDialog').dataset.evolving=String(mode==='evolving');if(mode!=='evolving'&&buildTab==='evolution'&&typeof tab!=='string')buildTab='stats';
+   if(!game||game.state.status!=='playing')return;if(game.state.pendingChoice&&mode==='playing'&&typeof tab!=='string'){showChoice();return;}if(typeof tab==='string'&&buildTabs[tab])buildTab=tab;
+   $('skillsDialog').dataset.evolving=String(mode==='evolving');if(mode!=='evolving'&&buildTab==='evolution'&&typeof tab!=='string')buildTab='stats';
+   if(mode!=='evolving'){$('evolutionChoices').hidden=true;$('skillsDialog').dataset.choosing='false';if(lastGrowth)fillGrowth(lastGrowth.e,lastGrowth.fresh);$('evolutionSummary').hidden=!lastGrowth;}
    renderSkills();showPanel('skillsDialog');if(buildTab==='mutations')markMutationsSeen();
    // Closing the body screen outside a division always returns to the pond.
    if(mode!=='evolving')dialogReturns.set('skillsDialog','playing');
@@ -3468,11 +3542,11 @@ window.MorphosAudio=MorphosAudio;
    const gate=typeof game.growthGate==='function'?game.growthGate():null;
    $('divisionLabel').textContent=gate?.blocked?(s.biomass>=s.nextDivision?'Growth banked · Elder genome required':Math.floor(grown)+' / '+Math.round(growthNeeded)+' growth · Genome required'):('Next division: '+Math.floor(grown).toLocaleString('en-GB')+' / '+Math.round(growthNeeded).toLocaleString('en-GB')+' growth');$('divisionFill').classList.toggle('gated',!!gate?.blocked);
    for(const step of $('journeySteps').children){const key=step.dataset.elder,def=MorphosGame.BOSSES[key],done=p.genomes.includes(key),awake=p.stage>=def.unlockStage;step.classList.toggle('defeated',done);step.classList.toggle('awake',!done&&awake);step.querySelector('i').textContent=done?'✓':({brood:'◌',glass:'◇',undertow:'≋'})[key];step.title=def.name+': '+(done?'genome acquired':awake?'awake':'awakens at '+2**def.unlockStage+' cells');step.setAttribute('aria-label',step.title);}
-   $('score').textContent=Math.floor(s.score).toString().padStart(5,'0');$('habitat').textContent=s.biomeName;$('clock').textContent=clock(s.time)+' · COLONY '+(p.colonyLevel||p.stage+1);
+   $('score').textContent=Math.floor(s.score).toString().padStart(5,'0');$('habitat').textContent=s.biomeName;$('clock').textContent=clock(s.time);
    const evidence=p.evolutionScores||p.evidence,maxEvidence=Math.max(8,...families.map(t=>evidence[t]||0)),ranked=families.slice().sort((a,b)=>(evidence[b]||0)-(evidence[a]||0)),leading=(evidence[ranked[0]]||0)>0?ranked[0]:'';
    for(const row of document.querySelectorAll('[data-trait]')){const t=row.dataset.trait;row.querySelector('.bar i').style.width=clamp((evidence[t]||0)/maxEvidence*100,0,100)+'%';row.querySelector('.trait-rank').textContent=romans[Math.min(4,p.traits[t]||0)]+(p.mastery?.[t]?'⁺':'');row.classList.toggle('leading',leading===t);row.title=familyDescriptions[t]+' Current influence: '+Math.round(evidence[t]||0);}
    const openPaths=MorphosGame.evolutionOptions(evidence);$('traitForecast').textContent=openPaths.length>1?'Open paths: '+openPaths.map(k=>familyNames[k]).join(', ')+'. You choose at your next division.':leading?'Next adaptation: '+familyNames[leading]+' '+Math.round(evidence[leading]||0)+' influence. '+familyNames[ranked[1]]+' follows at '+Math.round(evidence[ranked[1]]||0)+'.':'Every action leaves a trace.';
-   $('nextAdaptation').textContent=leading?'Learning: '+familyNames[leading]:'Your habits shape your body';$('nextAdaptation').title=leading?familyDescriptions[leading]+' See all influences on the body screen.':'Feed, explore and survive to shape your body. See all influences on the body screen.';
+   $('nextAdaptation').textContent=game.state.pendingChoice?'Choose your path ›':leading?'Learning: '+familyNames[leading]:'Your habits shape your body';$('nextAdaptation').title=leading?familyDescriptions[leading]+' See all influences on the body screen.':'Feed, explore and survive to shape your body. See all influences on the body screen.';
    const pulseCost=p.pulseCost||18,pulseLow=!p.exhausted&&p.energy<pulseCost;
    $('pulseCost').textContent=p.exhausted?'Recovering':pulseLow?'Need stamina':Math.round(pulseCost)+' stamina';
    const who=identityText(p);if($('identityLine').textContent!==who)$('identityLine').textContent=who;
@@ -3487,10 +3561,10 @@ window.MorphosAudio=MorphosAudio;
    $('dashButton').setAttribute('aria-pressed',String(!!p.sprinting));$('dashButton').setAttribute('aria-label','Fast swim, hold right mouse, '+(p.exhausted?'recovering until stamina is full':p.sprinting?'swimming fast':'ready')+', '+Math.floor(p.energy)+' of '+Math.round(p.maxEnergy)+' stamina');
    const concealLock=p.concealCooldown||0,sneakLow=!p.exhausted&&p.energy<=(p.sneaking ? .01 : 2),sneakState=p.exhausted?'Recovering':concealLock>0?'Revealed':p.sprinting?'Release fast swim':sneakLow?'Need stamina':p.stealth>.65?'Concealed':p.sneaking?'Moving quietly':'Hold '+(keyLabel('sneak')||'to sneak');
    setControlState($('sneakButton'),{ready:p.exhausted?p.energy/p.maxEnergy:concealLock>0?0:p.sneaking?p.stealth:staminaReadiness(p,2),remaining:concealLock,active:!!p.sneaking,exhausted:!!p.exhausted,lowStamina:sneakLow||!!p.sprinting});
-   $('sneakButton').setAttribute('aria-pressed',String(sneakToggle||held('sneak')));$('sneakButton').setAttribute('aria-label','Sneak, hold '+(keyLabel('sneak')||'the sneak key')+' or tap to toggle, '+sneakState.toLowerCase());$('sneakState').textContent=sneakState;
+   $('sneakButton').setAttribute('aria-pressed',String(sneakToggle||!!sneakPress||held('sneak')));$('sneakButton').setAttribute('aria-label','Sneak, hold '+(keyLabel('sneak')||'the sneak key')+' or tap to toggle, '+sneakState.toLowerCase());$('sneakState').textContent=sneakState;
    updateAbilities();
-   const points=p.skillPoints||0,newMutations=(p.unlockedMutations||[]).filter(k=>!seenMutations.has(k));$('pointBadge').textContent=points?String(points):newMutations.length?'•':'';$('skillsTool').classList.toggle('available',points>0);$('skillsTool').classList.toggle('has-discovery',newMutations.length>0);$('buildMutationsTab').classList.toggle('has-discovery',newMutations.length>0);$('buildMutationsTab').setAttribute('aria-label','Mutations'+(newMutations.length?', '+newMutations.length+' new unlocks to inspect':''));$('skillsTool').setAttribute('aria-label','Body and mutations'+(points?', '+points+' stat '+(points===1?'point':'points')+' available':'')+(newMutations.length?', new mutations to view':''));
-   const equipped=p.mutations||[];$('mutationLoadout').textContent=newMutations.length?newMutations.length+' new '+(newMutations.length===1?'mutation':'mutations')+' · U':equipped.length?equipped.map(k=>MorphosGame.MUTATIONS?.[k]?.name||k).join(' · '):p.mutationSlots?'Develop a mutation · U':'First mutation slot at '+2**mutationSlotStages[0]+' cells';$('mutationLoadout').classList.toggle('has-discovery',newMutations.length>0);
+   const points=p.skillPoints||0,newMutations=(p.unlockedMutations||[]).filter(k=>!seenMutations.has(k));$('pointBadge').textContent=game.state.pendingChoice?'!':points?String(points):newMutations.length?'•':'';$('skillsTool').classList.toggle('available',points>0);$('skillsTool').classList.toggle('has-discovery',newMutations.length>0);$('buildMutationsTab').classList.toggle('has-discovery',newMutations.length>0);$('buildStatsTab').classList.toggle('has-discovery',points>0);$('buildEvolutionTab').classList.toggle('has-discovery',(growthUnseen&&buildTab!=='evolution')||!!game.state.pendingChoice);$('skillPoints').parentElement.classList.toggle('has-points',points>0);$('skillsTool').classList.toggle('choice-waiting',!!game.state.pendingChoice);$('nextAdaptation').classList.toggle('urgent',!!game.state.pendingChoice);$('buildMutationsTab').setAttribute('aria-label','Mutations'+(newMutations.length?', '+newMutations.length+' new unlocks to inspect':''));$('skillsTool').setAttribute('aria-label','Body and mutations'+(points?', '+points+' stat '+(points===1?'point':'points')+' available':'')+(newMutations.length?', new mutations to view':''));
+   const equipped=p.mutations||[];$('mutationLoadout').textContent=equipped.length?equipped.map(k=>MorphosGame.MUTATIONS?.[k]?.name||k).join(' · '):p.mutationSlots?'No mutation equipped':'First mutation slot at '+2**mutationSlotStages[0]+' cells';
    updateJourney();
    if(force||uiTimer<.2){$('objective').textContent=s.bossEncounter?'Read the attack. Find your opening.':$('journeyTitle').textContent;$('objectiveDetail').textContent=p.exhausted?'Keep moving while stamina fully recharges.':points?points+' stat '+(points===1?'point':'points')+' available'+(bindings.body?' · '+keyLabel('body'):''):s.bossEncounter?'Aim and tap '+(keyLabel('block')||'Block')+' just before impact to block.':p.genomes.length+' / 3 elder genomes · Keep your lineage growing.';}
    updateExpedition();updateBossHUD();updateCheckpointIndicator();
@@ -3545,7 +3619,7 @@ window.MorphosAudio=MorphosAudio;
  }
  function selectBuildTab(tab){
    buildTab=Object.hasOwn(buildTabs,tab)?tab:'stats';setTabGroup(buildTabs,buildTab);$('skillsDialog').dataset.tab=buildTab;
-   if(buildTab==='mutations'&&activeDialog==='skillsDialog')markMutationsSeen();syncSpecimen();
+   if(buildTab==='mutations'&&activeDialog==='skillsDialog')markMutationsSeen();if(buildTab==='evolution'&&activeDialog==='skillsDialog')growthUnseen=false;syncSpecimen();
  }
  function resetSpecimen(){selectedMutation=null;previewMode='current';previewReplacement=0;}
  function previewLoadout(p){
@@ -3613,7 +3687,7 @@ window.MorphosAudio=MorphosAudio;
    }
    $('bodyOverview').textContent=Math.round((p.resistance||0)*100)+'% damage resistance · '+Math.round((p.critChance||0)*100)+'% critical chance · '+Math.round(p.maxEnergy/Math.max(1,p.sprintDrain||25)*10)/10+' s full-stamina fast swim · '+(p.genomes?.length||0)+'/3 elder genomes';
    const allocated=Object.values(p.attributes||{}).reduce((a,b)=>a+b,0),rested=p.hp>=p.maxHp-1e-6&&p.energy>=p.maxEnergy-1e-6&&!p.exhausted;$('respecStats').disabled=!allocated||!!game.state.bossEncounter||!rested;$('respecHint').textContent=game.state.bossEncounter?'Finish or retreat from this encounter before rebuilding.':!rested?'Recover full health and stamina before rebuilding your stats.':allocated?'Refund all '+allocated+' allocated points and try a different build.':'Core stat points can be refunded here once you have spent them.';
-   if(mode==='evolving'&&game.state.pendingChoice)$('evolutionPoints').textContent='Choose a path. Your new stat point arrives with the division.';else if(mode==='evolving')$('evolutionPoints').textContent=(p.skillPoints||0)+' stat points available. Spend them under Core stats, or continue.';
+   if(mode==='evolving'&&game.state.pendingChoice)$('evolutionPoints').textContent='Choose a path. Your new stat point arrives with the division.';
    renderMutations();renderResearch();renderLineage();selectBuildTab(buildTab);
  }
  function selectMutation(key,tryOn=true){
@@ -3700,11 +3774,11 @@ window.MorphosAudio=MorphosAudio;
      name.textContent=e.title;detail.textContent=(e.cellCountText||e.cells)+' cells · '+familyNames[e.trait]+' '+(e.mastery?'mastery':romans[Math.min(4,e.rank||1)])+(e.chosen?' · chosen':'');li.title=e.reason||'';li.append(name,detail);log.append(li);
    }
    if(entries.length>24){const li=document.createElement('li');li.style.setProperty('--trait','#6d8f80');const t=document.createElement('strong');t.textContent=(entries.length-24)+' earlier divisions';const d=document.createElement('small');d.textContent='The oldest of this lineage';li.append(t,d);log.append(li);}
-   const points=p.skillPoints||0;$('lineageToStats').hidden=!points;$('lineageToStats').firstChild.textContent=points===1?'Spend your stat point ':'Spend '+points+' stat points ';
+   const points=p.skillPoints||0;$('lineageToStats').hidden=true;$('lineageToStats').firstChild.textContent=points===1?'Spend your stat point ':'Spend '+points+' stat points ';
  }
  function showChoice(){
    const c=game.state.pendingChoice;if(!c)return;rewardContext=null;const p=game.state.player,next=p.stage+1,nextCells=next<=20?String(2**next):'2^'+next;
-   clearInput();accumulator=0;setMode('evolving');$('tip').classList.remove('show');
+   clearInput();accumulator=0;setMode('evolving');$('tip').classList.remove('show');$('evolutionPoints').hidden=false;
    $('evolutionKicker').textContent='A DIVISION AWAITS · COLONY LEVEL '+(p.stage+2);$('evolutionTitle').textContent='Your habits point more than one way.';
    $('evolutionCells').textContent=(p.cellCountText||p.cellCount)+' → '+nextCells+' cells';
    $('evolutionReason').textContent='You have worked towards more than one path. Choose which this division follows. Paths you have neglected stay closed.';
@@ -3718,13 +3792,17 @@ window.MorphosAudio=MorphosAudio;
      detail.textContent=rank===0?'New ability: '+ability.name+' ('+ability.key+').':mastery?'Deepens your '+familyNames[k].toLowerCase()+' mastery.':'Strengthens '+ability.name+'.';
      b.append(kicker,name,detail);b.addEventListener('click',()=>{if(performance.now()-growthShownAt<300||!game.state.pendingChoice)return;if(game.chooseEvolution(k))consumeEvents();});box.append(b);
    }
-   box.hidden=false;$('skillsDialog').dataset.choosing='true';buildTab='evolution';growthShownAt=performance.now();openGrowthWorkbench();$('skillsBack').textContent='Choose a path';box.querySelector('button')?.focus({preventScroll:true});
+   box.hidden=false;$('skillsDialog').dataset.choosing='true';buildTab='evolution';growthShownAt=performance.now();openGrowthWorkbench();$('skillsBack').textContent='Choose later';box.querySelector('button')?.focus({preventScroll:true});
  }
  function showGrowth(e,isNew=false){
    if(!e)return;rewardContext=null;$('evolutionChoices').hidden=true;$('skillsDialog').dataset.choosing='false';const p=game.state.player,rank=Math.min(4,e.rank||p.traits[e.trait]||1),ability=(MorphosGame.ABILITIES||{})[e.trait];
-   clearInput();accumulator=0;setMode('evolving');$('tip').classList.remove('show');
-   const divisions=e.divisions||1,previousStage=p.stage-divisions;
-   $('evolutionKicker').textContent='YOU EVOLVED · COLONY LEVEL '+(e.colonyLevel||p.colonyLevel||p.stage+1);$('evolutionTitle').textContent=(e.fromCellsText||(previousStage<=20?String(2**previousStage):'2^'+previousStage))+' → '+(e.cellCountText||p.cellCountText||e.cells)+' cells';$('evolutionReason').textContent=(divisions>1?divisions+' divisions grew from the habits that earned your stored biomass. ':'')+e.reason;
+   clearInput();accumulator=0;setMode('evolving');$('tip').classList.remove('show');fillGrowth(e,isNew);growthUnseen=false;
+   buildTab='evolution';growthShownAt=performance.now();openGrowthWorkbench();
+ }
+ function fillGrowth(e,isNew=false){
+   const p=game.state.player,rank=Math.min(4,e.rank||p.traits[e.trait]||1),ability=(MorphosGame.ABILITIES||{})[e.trait];
+   const divisions=e.divisions||1,previousStage=(e.stage??p.stage)-divisions;$('evolutionChoices').hidden=true;
+   $('evolutionKicker').textContent=(mode==='evolving'?'YOU EVOLVED':'LATEST DIVISION')+' · COLONY LEVEL '+(e.colonyLevel||p.colonyLevel||p.stage+1);$('evolutionTitle').textContent=(e.fromCellsText||(previousStage<=20?String(2**previousStage):'2^'+previousStage))+' → '+(e.cellCountText||p.cellCountText||e.cells)+' cells';$('evolutionReason').textContent=(divisions>1?divisions+' divisions grew from the habits that earned your stored biomass. ':'')+e.reason;
    $('evolutionCells').textContent=e.title+' · '+familyNames[e.trait]+' '+romans[rank]+(e.mastery?' · Mastery '+e.mastery:'');
    const gainedSlot=mutationSlotStages.some(stage=>stage>previousStage&&stage<=p.stage);
    const strikeChanged=e.strikeTo&&e.strikeFrom!==e.strikeTo,strikeDef=strikeChanged&&MorphosGame.STRIKES[e.strikeTo];
@@ -3732,13 +3810,12 @@ window.MorphosAudio=MorphosAudio;
    const newOrgans=(e.newAbilities||[]).map(key=>MorphosGame.ABILITIES[key]).filter(Boolean),primaryAbility=newOrgans[0]||ability;
    $('evolutionAbilityKicker').textContent=newOrgans.length>1?'NEW ACTIVE ABILITIES':(e.newAbility||rank===1&&!e.mastery?'NEW ACTIVE ABILITY · ':'EVOLVED ABILITY · ')+(primaryAbility?.key||'').toUpperCase();$('evolutionAbility').textContent=newOrgans.length>1?newOrgans.map(def=>def.name+' ('+def.key+')').join(' · '):primaryAbility?.name||'An adapted body';$('evolutionAbilityDescription').textContent=newOrgans.length>1?newOrgans.map(def=>def.description).join(' '):primaryAbility?.description||'';
    const newlyAwake=Object.entries(MorphosGame.BOSSES).filter(([key,def])=>def.unlockStage>previousStage&&def.unlockStage<=p.stage&&!p.genomes.includes(key));$('evolutionElder').hidden=!newlyAwake.length;if(newlyAwake.length)$('evolutionElder').textContent=newlyAwake.map(([,def])=>def.name).join(' and ')+' '+(newlyAwake.length>1?'are':'is')+' awake. Follow the elder signal when your body is ready.';
-   const points=p.skillPoints||0;$('evolutionPoints').textContent='Earned '+pointText(e.points||0)+' from '+(divisions>1?'these divisions':'this division')+'. '+points+' unspent. Spend them under Core stats, or continue.';
-
-   buildTab='evolution';growthShownAt=performance.now();openGrowthWorkbench();
+   const points=p.skillPoints||0;$('evolutionPoints').textContent='Earned '+pointText(e.points||0)+' from '+(divisions>1?'these divisions':'this division')+'.';$('evolutionPoints').hidden=!points&&!e.points;
  }
  function showElderReward(e){
    rewardContext=e;const p=game.state.player,def=MorphosGame.BOSSES?.[e.bossType]||{},mutation=MorphosGame.MUTATIONS?.[e.mutationKey||def.mutationKey],count=p.genomes?.length||1,growth=game.state.pendingEvolution;
    clearInput();accumulator=0;setMode('evolving');$('tip').classList.remove('show');
+   $('evolutionPoints').hidden=false;$('evolutionSummary').hidden=false;
    $('evolutionKicker').textContent=count===3?'THE ELDER LINEAGE':'ELDER DEFEATED';$('evolutionTitle').textContent=e.name||def.name||'An elder falls.';
    $('evolutionReason').textContent='An elder genome is now part of your lineage. '+(count===3?'You have overcome all three elders. The pond still has room for you to grow.':'Your body can become something it could not before.');
    $('evolutionCells').textContent=count+' OF 3 ELDER GENOMES';$('evolutionLevel').textContent=growth?(p.cellCountText||p.cellCount)+' cells · '+growth.title+'.':(p.cellCountText||p.cellCount)+' cells · '+(e.genomeName||def.genomeName||'Genome acquired')+'.';
@@ -3747,7 +3824,20 @@ window.MorphosAudio=MorphosAudio;
    const nextSlot=mutationSlotStages.find(stage=>stage>p.stage);$('evolutionElder').hidden=false;$('evolutionElder').textContent='Growth beyond '+({1:16,2:128,3:1024}[Math.min(3,count)])+' cells is unlocked. '+(nextSlot!==undefined?'Your next mutation slot opens at '+2**nextSlot+' cells.':'Choose mutations that work with your evolved organs.');
    buildTab='mutations';growthShownAt=performance.now();openGrowthWorkbench();
  }
- function evolutionaryEvent(e){const fresh=rememberEvolution(e);updateAbilities();showGrowth(e,fresh);}
+ // Divisions never interrupt play (R4): the body morphs on screen, a notice says what changed, and the details
+ // wait on the Evolution tab (marked with a dot until seen). Inside a menu (a choice just made) the summary shows there.
+ function evolutionaryEvent(e){const fresh=rememberEvolution(e);updateAbilities();lastGrowth={e,fresh};growthUnseen=true;
+   if(mode!=='playing'){showGrowth(e,fresh);return;}
+   game.acknowledgeEvolution();noticeQueue=noticeQueue.filter(n=>!n.text.startsWith('Divided'));if(activeNotice?.text.startsWith('Divided'))activeNotice=null;notify(growthNotice(e),6,3);
+   const p=game.state.player,previousStage=p.stage-(e.divisions||1);
+   for(const [,def] of Object.entries(MorphosGame.BOSSES))if(def.unlockStage>previousStage&&def.unlockStage<=p.stage&&!p.genomes.includes(def.key||''))notify(def.name+' is awake. Follow the elder signal when your body is ready.',5,2);
+   if(p.stage===1){const ability=MorphosGame.ABILITIES[e.trait];if(ability)notify(touchUI()?'Try your new organ: '+ability.name+' has its own button near your thumb.':'Try your new organ: '+(keyLabel(e.trait)||'its button')+' for '+ability.name+'.',5,2);}
+ }
+ function growthNotice(e){
+   const p=game.state.player,rank=Math.min(4,e.rank||p.traits[e.trait]||1),newOrgans=(e.newAbilities||[]).map(k=>MorphosGame.ABILITIES[k]?.name).filter(Boolean),strike=e.strikeTo&&e.strikeFrom!==e.strikeTo&&MorphosGame.STRIKES[e.strikeTo];
+   const pts=p.skillPoints||0;
+   return 'Divided · '+(e.cellCountText||p.cellCountText||e.cells)+' cells · '+familyNames[e.trait]+' '+romans[rank]+(e.mastery?' mastery':'')+'.'+(newOrgans.length?' New organ: '+newOrgans.join(', ')+'.':'')+(strike?' Strike: '+strike.name+'.':'')+(pts?' '+pts+' stat '+(pts===1?'point':'points')+' to spend'+(touchUI()?' (DNA icon).':' ('+(keyLabel('body')||'U')+').'):'');
+ }
  function openGrowthWorkbench(){
    $('evolutionSummary').hidden=false;$('skillsDialog').dataset.evolving='true';
    renderSkills();activateDialog('skillsDialog','evolution');$('skillsBack').textContent='Continue';
@@ -3755,7 +3845,8 @@ window.MorphosAudio=MorphosAudio;
  }
  function continueEvolution(){
    if(mode!=='evolving'||activeDialog!=='skillsDialog'||performance.now()-growthShownAt<300)return;
-   if(game.state.pendingChoice){if(rewardContext||$('evolutionChoices').hidden)showChoice();else $('evolutionChoices').querySelector('button')?.focus({preventScroll:true});return;}
+   if(game.state.pendingChoice){if(rewardContext||$('evolutionChoices').hidden){showChoice();return;}
+     rewardContext=null;$('skillsDialog').dataset.choosing='false';$('evolutionChoices').hidden=true;closeAllDialogs();clearInput();accumulator=0;setMode('playing');last=performance.now();updateUI(true);return;}
    rewardContext=null;$('evolutionSummary').hidden=true;$('skillsDialog').dataset.evolving='false';if(typeof game.acknowledgeEvolution==='function')game.acknowledgeEvolution();
    closeAllDialogs();clearInput();accumulator=0;setMode('playing');last=performance.now();updateUI(true);
    if(game.state.player.stage===1){const trait=game.state.evolutionLog.at(-1)?.trait,ability=trait&&MorphosGame.ABILITIES[trait];notify(touchUI()?(ability?'Try your new organ: '+ability.name+' has its own button near your thumb.':'Tap the DNA icon to refine your body.'):ability?'Try your new organ: '+(keyLabel(trait)||'its button')+' for '+ability.name+'. '+pressKey('body')+' to refine your build.':pressKey('body')+' to refine your body and equip mutations.',5,2);}
@@ -3779,7 +3870,7 @@ window.MorphosAudio=MorphosAudio;
  function consumeEvents(){let victory=null,journeyWon=false;for(const e of game.drainEvents()){
    if(audio&&soundOn)audio.event(e);
    if(e.type==='evolve')evolutionaryEvent(e);
-   else if(e.type==='evolutionChoice'){if(!rewardContext)showChoice();}
+   else if(e.type==='evolutionChoice'){if(!rewardContext&&mode!=='playing')showChoice();else notify('Your habits point more than one way. '+(touchUI()?'Tap the DNA icon':pressKey('body'))+' to choose your path.',6,3);}
    else if(e.type==='warning')notify(e.message,5,3);
    else if(e.type==='biome')notify('New habitat: '+e.name,4);
    else if(e.type==='discovery')notify('Discovered: '+e.name+(e.reward?' · +'+e.reward+' stat '+(e.reward===1?'point':'points'):''),4.5);
@@ -3881,7 +3972,7 @@ window.MorphosAudio=MorphosAudio;
    }catch(error){fileMessage('Could not load that save. '+(error instanceof SyntaxError?'The file is not valid JSON.':String(error.message||error)).slice(0,250),true);}
    finally{loadBusy=false;$('loadInput').value='';}
  }
- function setSound(on){soundOn=on;$('sound').classList.toggle('on',on);$('sound').setAttribute('aria-pressed',String(on));$('sound').setAttribute('aria-label',on?'Disable sound':'Enable sound');$('sound').querySelector('.sound-label').textContent=on?'Sound on':'Sound off';}
+ function setSound(on){soundOn=on;$('sound').classList.toggle('on',on);$('sound').setAttribute('aria-pressed',String(on));$('sound').setAttribute('aria-label',on?'Disable sound':'Enable sound');$('sound').querySelector('.sound-label').textContent=on?'Sound on':'Sound off';$('pauseSound').textContent=on?'Sound on':'Sound off';}
  async function startSound(autoplay=false){
    if(!soundOn||failed)return;const attempt=++soundAttempt;
    try{
@@ -3935,7 +4026,7 @@ window.MorphosAudio=MorphosAudio;
    if(pointer.id!==e.pointerId)return;pointer.id=null;pointer.held=sprintPointer=false;
    if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);
  }
- canvas.addEventListener('pointerdown',e=>{if(mode==='playing'&&(e.button===0||e.button===2))beginPointer(e);});
+ canvas.addEventListener('pointerdown',e=>{if(mode!=='playing')return;if(e.pointerType==='touch'){e.preventDefault();const r=canvas.getBoundingClientRect();tapAim=renderer.screenToWorld(e.clientX-r.left,e.clientY-r.top);pendingPulse=true;return;}if(e.button===0||e.button===2)beginPointer(e);});
  canvas.addEventListener('pointermove',e=>{if(mode==='playing'&&e.pointerType!=='touch'&&pointer.id!==e.pointerId)pointerAt(e);});
  // Reserve the secondary mouse button over every live game control, including the HUD.
  document.addEventListener('pointerdown',e=>{if(mode==='playing'&&e.pointerType!=='touch'&&e.button===2&&!readingForm(e.target)){beginPointer(e);e.stopPropagation();}},{capture:true});
@@ -3962,10 +4053,10 @@ window.MorphosAudio=MorphosAudio;
  // A floating thumbstick: the stick base jumps to where the thumb lands, and the drag from there steers.
  function padMove(e){if(e.pointerId!==touch.id)return;const radius=touch.radius||42,x=(e.clientX-touch.ox)/radius,y=(e.clientY-touch.oy)/radius,m=Math.max(1,Math.hypot(x,y));touch.x=Math.abs(x)+Math.abs(y)<.12?0:x/m;touch.y=Math.abs(x)+Math.abs(y)<.12?0:y/m;pad.style.setProperty('--jx',(touch.x*radius)+'px');pad.style.setProperty('--jy',(touch.y*radius)+'px');}
  function padRelease(){const base=$('stickBase');base.style.left=base.style.top='';base.classList.remove('held');}
- pad.addEventListener('pointerdown',e=>{if(mode!=='playing'||touch.id!==null)return;e.preventDefault();touch.active=true;touch.id=e.pointerId;pointer.active=false;try{pad.setPointerCapture(e.pointerId);}catch{}
+ pad.addEventListener('pointerdown',e=>{if(mode!=='playing')return;if(touch.id!==null&&!pad.hasPointerCapture(touch.id))touch.id=null;if(touch.id!==null)return;e.preventDefault();touch.active=true;touch.id=e.pointerId;pointer.active=false;try{pad.setPointerCapture(e.pointerId);}catch{}
    const base=$('stickBase');if(document.body.dataset.input==='touch'){const r=pad.getBoundingClientRect(),size=base.offsetWidth||120;base.style.left=(e.clientX-r.left-size/2)+'px';base.style.top=(e.clientY-r.top-size/2)+'px';base.classList.add('held');touch.ox=e.clientX;touch.oy=e.clientY;touch.radius=size*.38;}else{const r=pad.getBoundingClientRect();touch.ox=r.left+r.width/2;touch.oy=r.top+r.height/2;touch.radius=r.width*.38;}padMove(e);});
  pad.addEventListener('pointermove',padMove);
- for(const name of ['pointerup','pointercancel'])pad.addEventListener(name,e=>{if(e.pointerId!==touch.id)return;touch.active=false;touch.x=touch.y=0;touch.id=null;pad.style.setProperty('--jx','0px');pad.style.setProperty('--jy','0px');padRelease();if(pad.hasPointerCapture(e.pointerId))pad.releasePointerCapture(e.pointerId);});
+ for(const name of ['pointerup','pointercancel','lostpointercapture'])pad.addEventListener(name,e=>{if(e.pointerId!==touch.id)return;touch.active=false;touch.x=touch.y=0;touch.id=null;pad.style.setProperty('--jx','0px');pad.style.setProperty('--jy','0px');padRelease();if(pad.hasPointerCapture(e.pointerId))pad.releasePointerCapture(e.pointerId);});
  function readingForm(target){return target instanceof HTMLElement&&(target.isContentEditable||['INPUT','TEXTAREA','SELECT'].includes(target.tagName));}
  document.addEventListener('keydown',e=>{
    if(e.ctrlKey||e.metaKey||e.altKey||readingForm(e.target))return;const key=e.key.toLowerCase();
@@ -3997,32 +4088,36 @@ window.MorphosAudio=MorphosAudio;
  $('homeResume').addEventListener('click',restoreCheckpoint);$('retryCheckpoint').addEventListener('click',restoreCheckpoint);$('continue').addEventListener('click',continueExploring);
  $('respecStats').addEventListener('click',()=>{if(typeof game.refundAttributes==='function'&&game.refundAttributes()){consumeEvents();renderSkills();updateUI(true);($('skillsGrid').querySelector('button:not(:disabled)')||$('statsPanel')).focus({preventScroll:true});notify('Core stat points refunded. Choose a new direction for this body.',4,2);}});
  for(const button of $('journeySteps').children)button.addEventListener('click',()=>{journalTab='elders';selectedElder=button.dataset.elder;showJournal();});
- $('sound').addEventListener('click',toggleSound);$('fullscreen').addEventListener('click',fullScreen);$('pause').addEventListener('click',pauseGame);
+ $('sound').addEventListener('click',toggleSound);$('pauseSound').addEventListener('click',toggleSound);$('fullscreen').addEventListener('click',fullScreen);$('pause').addEventListener('click',pauseGame);
  $('help').addEventListener('click',showHelp);$('homeHelp').addEventListener('click',showHelp);$('pauseHelp').addEventListener('click',showHelp);
  $('journal').addEventListener('click',showJournal);$('homeJournal').addEventListener('click',showJournal);$('pauseJournal').addEventListener('click',showJournal);
  $('skillsTool').addEventListener('click',showSkills);
- $('nextAdaptation').addEventListener('click',()=>showSkills('stats'));$('quickNavigation').addEventListener('click',()=>{updateExpedition();showPanel('navigationDialog');});
+ $('nextAdaptation').addEventListener('click',()=>game.state.pendingChoice?showSkills():showSkills('stats'));$('quickNavigation').addEventListener('click',()=>{updateExpedition();showPanel('navigationDialog');});
  for(const [id,target] of [['navExplore','explore'],['navSanctuary','sanctuary'],['navElder','elder']])$(id).addEventListener('click',()=>{compassMode=target;updateExpedition();$('navigationDialog').close();});
  $('restart').addEventListener('click',()=>startLife(game.state.seed));$('pauseMenu').addEventListener('click',returnHome);
  $('again').addEventListener('click',()=>startLife(chooseSeed()));$('endMenu').addEventListener('click',returnHome);
  $('skillsBack').addEventListener('click',()=>{if(mode==='evolving')continueEvolution();else $('skillsDialog').close();});
  $('skillsDialog').addEventListener('cancel',e=>{if(mode==='evolving'){e.preventDefault();continueEvolution();}});
  $('saveLife').addEventListener('click',downloadLife);$('loadLife').addEventListener('click',chooseLoad);$('homeLoad').addEventListener('click',chooseLoad);$('loadInput').addEventListener('change',e=>loadLifeFile(e.target.files?.[0]));
- $('blockButton').addEventListener('pointerdown',e=>{if(mode==='playing'&&e.button===0){e.preventDefault();blockButtonHeld=true;pendingBlock=true;$('blockButton').setPointerCapture(e.pointerId);}});
+ $('blockButton').addEventListener('pointerdown',e=>{if(mode==='playing'&&e.button===0){e.preventDefault();blockButtonHeld=true;pendingBlock=true;try{$('blockButton').setPointerCapture(e.pointerId);}catch{}}});
  for(const ev of ['pointerup','pointercancel','lostpointercapture','blur'])$('blockButton').addEventListener(ev,()=>{blockButtonHeld=false;});
  $('blockButton').addEventListener('keydown',e=>{if(mode==='playing'&&e.key==='Enter'){e.preventDefault();e.stopPropagation();blockButtonHeld=true;if(!e.repeat)pendingBlock=true;}});
  $('blockButton').addEventListener('keyup',e=>{if(e.key==='Enter'){e.preventDefault();blockButtonHeld=false;}});
  $('blockButton').addEventListener('click',e=>{if(mode==='playing'&&e.detail===0)pendingBlock=true;});
- $('pulseButton').addEventListener('pointerdown',e=>{if(mode==='playing'&&e.button===0){e.preventDefault();pendingPulse=true;keys.add('abilityPulse');$('pulseButton').setPointerCapture(e.pointerId);}});
+ $('pulseButton').addEventListener('pointerdown',e=>{if(mode==='playing'&&e.button===0){e.preventDefault();pendingPulse=true;keys.add('abilityPulse');try{$('pulseButton').setPointerCapture(e.pointerId);}catch{}}});
  for(const ev of ['pointerup','pointercancel','lostpointercapture'])$('pulseButton').addEventListener(ev,()=>keys.delete('abilityPulse'));
  $('pulseButton').addEventListener('keydown',e=>{if(mode==='playing'&&e.key==='Enter'){e.preventDefault();e.stopPropagation();keys.add('abilityPulse');if(!e.repeat)pendingPulse=true;}});
  $('pulseButton').addEventListener('keyup',e=>{if(e.key==='Enter'){e.preventDefault();keys.delete('abilityPulse');}});$('pulseButton').addEventListener('blur',()=>keys.delete('abilityPulse'));
  $('pulseButton').addEventListener('click',e=>{if(mode==='playing'&&e.detail===0)pendingPulse=true;});
- $('dashButton').addEventListener('pointerdown',e=>{if(mode!=='playing'||e.button!==0)return;e.preventDefault();sprintButtonHeld=true;$('dashButton').setPointerCapture(e.pointerId);});
+ $('dashButton').addEventListener('pointerdown',e=>{if(mode!=='playing'||e.button!==0)return;e.preventDefault();sprintButtonHeld=true;try{$('dashButton').setPointerCapture(e.pointerId);}catch{}});
  for(const ev of ['pointerup','pointercancel','lostpointercapture'])$('dashButton').addEventListener(ev,()=>{sprintButtonHeld=false;});
  $('dashButton').addEventListener('keydown',e=>{if(mode==='playing'&&e.key==='Enter'){e.preventDefault();sprintButtonHeld=true;}});$('dashButton').addEventListener('keyup',e=>{if(e.key==='Enter'){e.preventDefault();sprintButtonHeld=false;}});$('dashButton').addEventListener('blur',()=>{sprintButtonHeld=false;});
- $('sneakButton').addEventListener('click',()=>{if(mode==='playing')sneakToggle=!sneakToggle;});
- for(const trait of families)$('ability-'+trait).addEventListener('click',()=>queueAbility(trait));
+ // Sneak button: hold = sneak while held; a quick tap (<0.25 s) latches it on; any press while latched releases it.
+ // Uses pointer events, not click: iOS Safari drops click while another finger is on the stick.
+ $('sneakButton').addEventListener('pointerdown',e=>{if(mode!=='playing'||e.button!==0)return;e.preventDefault();if(sneakToggle){sneakToggle=false;sneakPress=null;return;}sneakPress={id:e.pointerId,at:performance.now()};try{$('sneakButton').setPointerCapture(e.pointerId);}catch{}});
+ for(const ev of ['pointerup','pointercancel','lostpointercapture'])$('sneakButton').addEventListener(ev,e=>{if(!sneakPress||sneakPress.id!==e.pointerId)return;if(ev==='pointerup'&&performance.now()-sneakPress.at<250&&mode==='playing')sneakToggle=true;sneakPress=null;});
+ $('sneakButton').addEventListener('click',e=>{if(mode==='playing'&&e.detail===0)sneakToggle=!sneakToggle;});
+ for(const trait of families){const b=$('ability-'+trait);b.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();queueAbility(trait);});b.addEventListener('click',e=>{if(e.detail===0)queueAbility(trait);});}
  $('homeControls').addEventListener('click',showControls);$('pauseControls').addEventListener('click',showControls);$('helpControlsEdit').addEventListener('click',showControls);
  $('controlsReset').addEventListener('click',()=>{bindings={...DEFAULT_BINDINGS};capturing='';saveBindings();applyBindingLabels();renderControls();$('controlsStatus').textContent='Controls reset to the defaults.';});
  // While a control is waiting for a key, the next key press is the new binding (swapping with any control that already had it).
@@ -4057,19 +4152,22 @@ window.MorphosAudio=MorphosAudio;
  window.addEventListener('pagehide',()=>{if(audio)audio.disable();});
  function getInput(){
    const p=game.state.player;let x=0,y=0,aim={x:p.x+Math.cos(p.angle)*180,y:p.y+Math.sin(p.angle)*180};
-   if(pointer.aimed)aim=renderer.screenToWorld(pointer.x,pointer.y);
+   if(pointer.aimed&&!touchUI())aim=renderer.screenToWorld(pointer.x,pointer.y);
    if(touch.active){x=touch.x;y=touch.y;aim={x:p.x+x*250,y:p.y+y*250};}
    else{const kx=(held('right')?1:0)-(held('left')?1:0),ky=(held('down')?1:0)-(held('up')?1:0);if(kx||ky){const m=Math.hypot(kx,ky);x=kx/m;y=ky/m;if(!pointer.aimed)aim={x:p.x+x*200,y:p.y+y*200};}else if(pointer.active){const dx=aim.x-p.x,dy=aim.y-p.y,d=Math.hypot(dx,dy),speed=clamp((d-12)/65,0,1);if(d>1){x=dx/d*speed;y=dy/d*speed;}}}
    // Hold position: keep aiming with the mouse but stop swimming towards it.
    if(held('hold')&&!touch.active){x=0;y=0;}
    const ability=pendingAbilities.shift()||'',pulse=pendingPulse||pointer.held||held('strike')||keys.has('abilityPulse');assistedAim=null;
-   if(touch.active&&(pulse||ability==='hunter'||pendingBlock)){
+   // A latched sneak ends when stealth is truly broken (attack, fast swim, being hit) or on exhaustion; Needle only halves it, so it stays latched.
+   if(sneakToggle&&(p.exhausted||(p.concealCooldown>lastConceal+1e-6&&p.stealth===0)))sneakToggle=false;lastConceal=p.concealCooldown||0;
+   if(tapAim){aim=tapAim;assistedAim=aim;tapAim=null;}
+   else if(touchUI()&&(pulse||ability==='hunter'||pendingBlock)){
      const state=game.state,near=(a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y);
      const shot=pendingBlock&&state.projectiles.filter(o=>o.owner==='enemy'&&Math.hypot(o.x-p.x,o.y-p.y)<p.r+100).sort(near)[0];
      const target=shot||(state.bossEncounter&&Math.hypot(state.bossEncounter.x-p.x,state.bossEncounter.y-p.y)<600?state.bossEncounter:state.organisms.filter(o=>!o.dead&&Math.hypot(o.x-p.x,o.y-p.y)<550).sort(near)[0]);
      if(target){aim={x:target.x,y:target.y};assistedAim=aim;}
    }
-   const result={moveX:x,moveY:y,aimX:aim.x,aimY:aim.y,pulse,pulsePressed:pendingPulse,block:held('block')||blockButtonHeld,blockPressed:pendingBlock,sprint:sprintPointer||sprintButtonHeld||held('fastSwim'),sneak:held('sneak')||sneakToggle,ability};
+   const result={moveX:x,moveY:y,aimX:aim.x,aimY:aim.y,pulse,pulsePressed:pendingPulse,block:held('block')||blockButtonHeld,blockPressed:pendingBlock,sprint:sprintPointer||sprintButtonHeld||held('fastSwim'),sneak:held('sneak')||sneakToggle||!!sneakPress,ability};
    pendingPulse=pendingBlock=false;return result;
  }
  function fail(e){failed=true;$('error').hidden=false;$('errorDetails').textContent=String(e&&e.message||e);$('loading').hidden=true;if(audio)audio.disable();setSound(false);}
@@ -4088,8 +4186,7 @@ window.MorphosAudio=MorphosAudio;
        accumulator+=dt;let steps=0;
        while(accumulator>=1/60&&steps<7&&mode==='playing'){game.update(1/60,getInput());consumeEvents();accumulator-=1/60;steps++;}
        if(steps>=7)accumulator=0;
-       if(mode==='playing'&&game.state.pendingChoice)showChoice();
-       if(mode==='playing')tutorialTick();
+              if(mode==='playing')tutorialTick();
      }else accumulator=0;
      updateNotices(dt);
      const aim=assistedAim||(pointer.aimed?renderer.screenToWorld(pointer.x,pointer.y):{x:game.state.player.x+Math.cos(game.state.player.angle)*180,y:game.state.player.y+Math.sin(game.state.player.angle)*180});

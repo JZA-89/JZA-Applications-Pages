@@ -1695,9 +1695,10 @@
          kills a prey with a Pulse, then a hunter winds up (jaws open,
          chevrons above), the cell fast-swims aside, the lunge misses
          and the cell strikes during the hunter's recovery before
-         escaping. At 80 growth it divides as the game shows it: two
-         cells inside one shared membrane, with division rings, and its
-         first organ (Grazer I: leaves) grows. The camera follows the
+         escaping. At 80 growth it divides as the game (v6.6) shows it,
+         without stopping: division rings, then over 1.8 s two cells bud
+         apart inside one shared membrane while its first organ (Grazer I:
+         leaves) fades in and grows outward. The camera follows the
          cell like the game's does. Reduced motion draws one frame
          mid-fight; offscreen it pauses. Units are the game's world units.
      ------------------------------------------------------------------ */
@@ -1907,7 +1908,7 @@
       S.t += dt; S.beatT += dt;
       S.fadeIn = Math.max(0, S.fadeIn - dt * 1.2);
       p.cd = Math.max(0, p.cd - dt);
-      p.evo = Math.max(0, p.evo - dt * 0.7);
+      p.evo = Math.max(0, p.evo - dt);
       p.sprint = false;
       var speed = 120, target = null;
 
@@ -1982,11 +1983,11 @@
         }
         if (h) { h.x += h.vx * dt; h.y += h.vy * dt; if (h.mode !== "windup" && h.mode !== "lunge" && Math.hypot(h.vx, h.vy) > 5) faceTo(h, Math.atan2(h.vy, h.vx), 5, dt); else if (h.mode === "windup") faceTo(h, h.attackAngle, 10, dt); }
       } else if (S.beat === "feed2") {
-        /* the game pauses at a division, so the cell holds still for it */
-        target = S.divT > 0 && S.t - S.divT < 1.4 ? null : nearestFood();
+        /* divisions never interrupt play (the game's R4): it keeps swimming */
+        target = nearestFood();
         if (p.cells === 1 && p.growth >= 80) {
           /* division: the game's rings and burst, then two cells in one membrane */
-          S.divT = S.t; p.cells = 2; p.split = 0; p.grazer = 1; p.evo = 1.6;
+          S.divT = S.t; p.cells = 2; p.split = 0; p.grazer = 1; p.evo = 3.2;
           effect(p.x, p.y, "division", p.r * 4, "#b0ffdb", 1.5);
           particles(p.x, p.y, "#b0ffdb", 28, 140);
         }
@@ -1997,8 +1998,9 @@
       }
 
       if (S.divT > 0) {
-        var u = (S.t - S.divT) / 0.9;
-        p.split = ease(u); p.r = 22 + 6 * ease(u); p.leaf = ease((S.t - S.divT - 0.5) / 1.2);
+        /* the game's morph: 1.8 s, smoothstep, old body → new body */
+        var k = ease((S.t - S.divT) / 1.8);
+        p.split = k; p.r = 22 + 6 * k; p.leaf = k;
       }
       if (target) steer(p, target.x, target.y, speed, p.sprint ? 5 : 3, dt);
       else { p.vx *= 0.86; p.vy *= 0.86; }
@@ -2052,17 +2054,16 @@
     };
 
     var drawPlayer = function (t) {
-      var p = S.p, r = p.r, co = mix(UNFORMED, GRAZER, p.leaf), phase = 0.7;
+      var p = S.p, r = p.r, co = p.grazer ? GRAZER : UNFORMED, phase = 0.7;
       c.save(); c.translate(p.x, p.y); c.rotate(p.a);
       var gl = glow(co); c.drawImage(gl, -r * 2, -r * 2, r * 4, r * 4);
       cilia(r * 0.93, t, phase, co, 18 + p.grazer * 5, r * (0.11 + p.grazer * 0.025) * (p.sprint ? 0.5 : 1));
-      if (p.leaf > 0) leaves(r, t, co, 1, (p.sprint ? 0.45 : 1) * p.leaf);
+      /* a new organ fades in and grows outward from inside the membrane */
+      if (p.leaf > 0) { c.save(); c.globalAlpha *= p.leaf; var ls = 0.45 + 0.55 * p.leaf; c.scale(ls, ls); leaves(r, t, co, 1, p.sprint ? 0.45 : 1); c.restore(); }
       var nodes;
       if (p.cells > 1) {
-        c.globalAlpha = p.split;
         smoothBlob(r * 0.98, t, phase, 1, 0.07); c.fillStyle = rgba(co, 0.085); c.fill();
         c.strokeStyle = rgba(co, 0.35); c.lineWidth = 1.1 / z; c.stroke();
-        c.globalAlpha = 1;
         var off = r * 0.36 * p.split, nr = r * (0.9 - 0.26 * p.split);
         nodes = [{ x: -off, y: 0, r: nr }, { x: off, y: 0, r: nr }];
       } else nodes = [{ x: 0, y: 0, r: r * 0.9 }];
