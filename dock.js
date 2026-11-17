@@ -26,6 +26,7 @@
     { path: "bikespec/", label: "BikeSpec", slug: "bikespec" },
     { path: "parlato/", label: "Parlato (beta)", slug: "parlato" },
     { path: "thumbcontrol/", label: "ThumbControl (beta)", slug: "thumbcontrol" },
+    { path: "morphos.html", label: "MORPHOS (game)", slug: "morphos" },
   ];
 
   var dock = document.createElement("nav");

@@ -6,7 +6,7 @@ The portfolio site for JZA Applications, Jaisah's indie iOS/watchOS studio. Live
 
 - Jaisah is a structural engineer and a solo indie developer. He is **new to coding** but has strong product and design judgement. Explain what you changed and why in plain language, with no analogies. Keep it direct.
 - He cares about detail and polish. Fit in with the existing look rather than "improving" the design system unless he asks.
-- Each app has its own project in `~/Documents/<AppName>` (PowerGlass, PointFoundry, GhostDelta, BananaBomb, BikeSpec, Parlato, ThumbControl). These usually include their own `CLAUDE.md` and `STYLE_GUIDE.md`. **They are the source of truth** for an app's features, colours and wording. Read them before writing copy or a demo, and never claim a feature you haven't confirmed in that app's code or docs.
+- Each app has its own project in `~/Documents/<AppName>` (PowerGlass, PointFoundry, GhostDelta, BananaBomb, BikeSpec, Parlato, ThumbControl, MORPHOS). These usually include their own `CLAUDE.md` and `STYLE_GUIDE.md`. **They are the source of truth** for an app's features, colours and wording. Read them before writing copy or a demo, and never claim a feature you haven't confirmed in that app's code or docs.
 
 ## Hard rules
 
@@ -16,7 +16,7 @@ The portfolio site for JZA Applications, Jaisah's indie iOS/watchOS studio. Live
 - **Never set `overflow-x` on `html` or `body`.** It breaks the homepage scroll snapping. Clip overflow on the container instead (`.chapter` does this).
 - **Every animation must:** respect `prefers-reduced-motion` (show a still frame instead), pause when offscreen (IntersectionObserver), and stay light enough for an older iPhone.
 - **Privacy policies and App Store links matter legally and commercially.** Policy text must match what the app actually does: check the app's code. Don't remove or rename existing pages. App Store Connect links to their exact URLs (`<app>/support.html`, `<app>/<Name>PrivacyPolicy.html`); a renamed file breaks a live listing.
-- **Cache-busting:** CSS and JS are linked with `?v=N` (e.g. `site.css?v=16`, `dock.js?v=11`, `main.js?v=17`). When you change one of these files, bump its number **in every HTML file that links it**: the homepage and all `<app>/*.html` pages. Check with `grep -rho "site.css?v=[0-9]*\|dock.js?v=[0-9]*\|main.js?v=[0-9]*" --include=*.html . | sort | uniq -c`; each file should show a single version.
+- **Cache-busting:** CSS and JS are linked with `?v=N` (e.g. `site.css?v=17`, `dock.js?v=12`, `main.js?v=18`). When you change one of these files, bump its number **in every HTML file that links it**: the homepage and all `<app>/*.html` pages. Check with `grep -rho "site.css?v=[0-9]*\|dock.js?v=[0-9]*\|main.js?v=[0-9]*" --include=*.html . | sort | uniq -c`; each file should show a single version.
 
 ## Structure
 
@@ -25,11 +25,11 @@ The portfolio site for JZA Applications, Jaisah's indie iOS/watchOS studio. Live
 | `index.html` | The homepage: hero (rotating taglines), then one full-screen "chapter" per app, an "All apps" strip, and contact/footer. Page-only CSS lives in its `<style>` block. |
 | `site.css` | Shared design system: base tokens, liquid-glass components, per-app themes (`[data-app="<slug>"]`), wordmarks (`.wm-<slug>`), dock, view-transition names (`.vt-<slug>`). |
 | `dock.js` | Floating dock, injected on every page. The app list is the `items` array. On the homepage it scrolls to chapters; on app pages it links back to them. |
-| `main.js` | Homepage choreography, in numbered sections: 1 chapter takeover (sets `html[data-view]` so the ambient light changes), 2 scroll reveals, 3 parallax, 4 glass highlight, 5 GhostDelta iPhone ride page + Watch demo, 6 BananaBomb review screen (iPhone), 7 PointFoundry point cloud, 8 PowerGlass dashboard, 9 hero tagline rotation, 10 Parlato chat demo, 11 ThumbControl rule demo, 12 BikeSpec suspension card. |
+| `main.js` | Homepage choreography, in numbered sections: 1 chapter takeover (sets `html[data-view]` so the ambient light changes), 2 scroll reveals, 3 parallax, 4 glass highlight, 5 GhostDelta iPhone ride page + Watch demo, 6 BananaBomb review screen (iPhone), 7 PointFoundry point cloud, 8 PowerGlass dashboard, 9 hero tagline rotation, 10 Parlato chat demo, 11 ThumbControl rule demo, 12 BikeSpec suspension card, 13 MORPHOS pond (canvas). |
 | `assets/` | `icon-<slug>.jpg` (512×512, made from each app's 1024px App Store icon) and Barry the Banana images. |
 | `<slug>/` | Per-app pages: `index.html` (About), `support.html`, `<AppName>PrivacyPolicy.html`. Each page sets `<body data-app="<slug>">` to pick up its theme. |
 
-Slugs: `powerglass`, `pointfoundry`, `ghostdelta`, `bananabomb`, `bikespec`, `parlato`, `thumbcontrol`.
+Slugs: `powerglass`, `pointfoundry`, `ghostdelta`, `bananabomb`, `bikespec`, `parlato`, `thumbcontrol`, `morphos`.
 
 ## Homepage chapter pattern
 
@@ -60,6 +60,15 @@ Parlato and ThumbControl are shown before their App Store release. Each chapter 
 **Parlato wording:** every line about Parlato follows R26 in Parlato's own CLAUDE.md: lead with the motorcycle rider and passenger; other examples only where people stay within a few metres (tandem, sidecar, loud workshop, kitchen, job site, concert); state the range as "about 10 metres, the length of a bus"; never "walkie-talkie", hiking, trails, skiing or group rides; "private" never means encrypted.
 
 **ThumbControl trap:** the app's Settings has a "Privacy Policy" row whose link is still a placeholder in the app's code. It should open `https://jza.app/thumbcontrol/ThumbControlPrivacyPolicy.html`, which is also the URL to give App Store Connect.
+
+### MORPHOS (browser game)
+
+MORPHOS is Jaisah's HTML game, not an App Store app, so it has **no About, Support or Privacy pages**. Its chapter (08) has a "Play MORPHOS" button in place of the links and store badge, and the button opens the game in the same tab.
+
+- The game is one self-contained file: `morphos.html` at the site root (jza.app/morphos.html), a copy of the latest `~/Documents/MORPHOS/MORPHOSv<N>.html`. To ship a new version, copy the newest file over `morphos.html` (keep that name, so the URL stays the same). Don't edit the game's code here; changes belong in Jaisah's MORPHOS file.
+- It doesn't link `site.css`, `dock.js` or `main.js`, and gets no dock: it's a full-screen game with its own controls. The game saves progress in the browser (`localStorage`), so keep the URL stable or players lose their saved life.
+- The homepage demo (main.js §13) is a light canvas pond drawn in the game's colours, not the game itself. The icon `assets/icon-morphos.jpg` is the game's own cell logo.
+- The game makes no network requests. If it ever adds any (analytics, leaderboards), it needs a privacy page.
 
 ## Checking your work
 

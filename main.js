@@ -1682,4 +1682,387 @@
       bsRender(0);
     }
   }
+
+  /* ------------------------------------------------------------------
+     13. MORPHOS pond — a drop of water drawn in the game's style
+         (its creature colours, smooth wobbling membranes, cilia, glow).
+         A single cell swims to the nearest nutrient and eats it; each
+         one fills the division track, and at 8 it divides into a
+         two-cell colony, as in the game. A hunter drifts through, and
+         the cell darts away when it comes close (the game's fast swim).
+         After a while as a colony the drop fades and a new life begins.
+         Static frame for reduced motion; paused offscreen. World units
+         are 0–1000 across the drop, scaled to the canvas.
+     ------------------------------------------------------------------ */
+  var moDrop = document.getElementById("mo-drop");
+  var moCanvas = document.getElementById("mo-pond");
+  if (moDrop && moCanvas && moCanvas.getContext) {
+    var moCtx = moCanvas.getContext("2d");
+    var TAU = Math.PI * 2;
+    var MO_GOAL = 8, MO_COLONY_TIME = 16;
+    var moCellsEl = document.getElementById("mo-cells");
+    var moPluralEl = document.getElementById("mo-plural");
+    var moFillEl = document.getElementById("mo-fill");
+    var moLabelEl = document.getElementById("mo-label");
+    var moRgba = function (c, a) { return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + a + ")"; };
+    var LIME = [214, 237, 162], TEAL = [117, 213, 184], GRAZER = [139, 211, 119], HUNTER = [237, 110, 103], GOLD = [227, 182, 98];
+
+    /* soft glow sprites, drawn once and stamped (cheap on older phones) */
+    var moGlow = function (c, size) {
+      var g = document.createElement("canvas");
+      g.width = g.height = size;
+      var x = g.getContext("2d"), r = size / 2;
+      var grad = x.createRadialGradient(r, r, 0, r, r, r);
+      grad.addColorStop(0, moRgba(c, 0.55));
+      grad.addColorStop(0.35, moRgba(c, 0.2));
+      grad.addColorStop(1, moRgba(c, 0));
+      x.fillStyle = grad;
+      x.fillRect(0, 0, size, size);
+      return g;
+    };
+    var glowTeal = moGlow(TEAL, 128), glowGreen = moGlow(GRAZER, 64), glowGold = moGlow(GOLD, 32), glowRed = moGlow(HUNTER, 128);
+
+    /* seeded random, so every loop starts the same */
+    var moSeed = 7;
+    var rand = function () { moSeed = (moSeed * 16807) % 2147483647; return (moSeed - 1) / 2147483646; };
+    var inDrop = function (margin) {
+      var a = rand() * TAU, d = Math.sqrt(rand()) * (500 - margin);
+      return { x: 500 + Math.cos(a) * d, y: 500 + Math.sin(a) * d };
+    };
+
+    var moState;
+    var moReset = function () {
+      moSeed = 7;
+      var food = [];
+      for (var i = 0; i < 11; i++) {
+        var f = inDrop(110);
+        food.push({ x: f.x, y: f.y, ph: rand() * TAU, r: 12 + rand() * 6, eaten: 0, back: 0 });
+      }
+      var motes = [];
+      for (var m = 0; m < 26; m++) {
+        var q = inDrop(20);
+        motes.push({ x: q.x, y: q.y, ph: rand() * TAU, s: 0.6 + rand() * 1.1 });
+      }
+      moState = {
+        t: 0, grown: 0, cells: 1, split: 0, colonyT: 0, fade: 0, fadeIn: 1,
+        p: { x: 470, y: 560, vx: 0, vy: 0, a: -1.2, r: 64 },
+        h: { x: -140, y: 260, vx: 0, vy: 0, a: 0, r: 52, wander: 0.4, pass: 0 },
+        food: food, motes: motes, bursts: []
+      };
+      moHud();
+    };
+
+    var moShown = "";
+    var moHud = function () {
+      var s = moState;
+      var key = s.cells + "|" + s.grown;
+      if (key === moShown) return;
+      moShown = key;
+      moCellsEl.textContent = s.cells;
+      moPluralEl.textContent = s.cells === 1 ? "cell" : "cells";
+      if (s.cells === 1) {
+        moFillEl.style.width = (s.grown / MO_GOAL) * 100 + "%";
+        moLabelEl.textContent = "Next division: " + s.grown + " / " + MO_GOAL + " growth";
+      } else {
+        moFillEl.style.width = "100%";
+        moLabelEl.textContent = "Divided. A colony of two.";
+      }
+    };
+
+    /* the game's smoothBlob: a wobbling closed curve through 16 points */
+    var blob = function (c, r, t, phase, stretch, rough, lobes) {
+      var n = 16, pts = [];
+      for (var i = 0; i < n; i++) {
+        var a = (i / n) * TAU;
+        var k = 1 + rough * Math.sin(a * lobes + t * 1.1 + phase) + rough * 0.6 * Math.sin(a * (lobes + 2) - t * 0.73 + phase * 1.8);
+        pts.push([Math.cos(a) * r * k * stretch, Math.sin(a) * r * k]);
+      }
+      c.beginPath();
+      c.moveTo((pts[0][0] + pts[n - 1][0]) / 2, (pts[0][1] + pts[n - 1][1]) / 2);
+      for (var j = 0; j < n; j++) {
+        var p = pts[j], q = pts[(j + 1) % n];
+        c.quadraticCurveTo(p[0], p[1], (p[0] + q[0]) / 2, (p[1] + q[1]) / 2);
+      }
+      c.closePath();
+    };
+
+    var drawCell = function (c, x, y, a, r, t, phase, sprint) {
+      c.save();
+      c.translate(x, y);
+      c.rotate(a);
+      c.drawImage(glowTeal, -r * 2.2, -r * 2.2, r * 4.4, r * 4.4);
+      /* cilia, beating faster on a fast swim */
+      c.strokeStyle = moRgba(LIME, 0.42);
+      c.lineWidth = 1.8;
+      c.beginPath();
+      for (var i = 0; i < 22; i++) {
+        var ca = (i / 22) * TAU, len = r * (sprint ? 0.12 : 0.2), wig = Math.sin(t * (sprint ? 16 : 7) + i * 1.3) * 0.35;
+        var bx = Math.cos(ca) * r * 0.98, by = Math.sin(ca) * r * 0.98;
+        c.moveTo(bx, by);
+        c.lineTo(bx + Math.cos(ca + wig) * len, by + Math.sin(ca + wig) * len);
+      }
+      c.stroke();
+      blob(c, r, t, phase, 1.08, 0.05, 3);
+      c.fillStyle = moRgba(TEAL, 0.14);
+      c.fill();
+      c.strokeStyle = moRgba(LIME, 0.78);
+      c.lineWidth = 2.4;
+      c.stroke();
+      /* nucleus, nucleolus and a few organelles */
+      c.beginPath();
+      c.ellipse(-r * 0.12, r * 0.02, r * 0.34, r * 0.25, 0.5, 0, TAU);
+      c.fillStyle = moRgba(TEAL, 0.18);
+      c.fill();
+      c.strokeStyle = moRgba(LIME, 0.55);
+      c.lineWidth = 1.6;
+      c.stroke();
+      c.beginPath();
+      c.arc(-r * 0.12, r * 0.02, r * 0.09, 0, TAU);
+      c.fillStyle = moRgba(LIME, 0.5);
+      c.fill();
+      for (var k = 0; k < 4; k++) {
+        var oa = k * 1.7 + phase + Math.sin(t * 0.6 + k) * 0.2;
+        c.beginPath();
+        c.ellipse(Math.cos(oa) * r * 0.6, Math.sin(oa) * r * 0.55, r * 0.09, r * 0.05, oa, 0, TAU);
+        c.fillStyle = moRgba(GRAZER, 0.55);
+        c.fill();
+      }
+      c.restore();
+    };
+
+    var drawHunter = function (c, h, t) {
+      var r = h.r;
+      c.save();
+      c.translate(h.x, h.y);
+      c.rotate(h.a);
+      c.drawImage(glowRed, -r * 2, -r * 2, r * 4, r * 4);
+      /* trailing tails */
+      c.strokeStyle = moRgba(HUNTER, 0.5);
+      c.lineWidth = 1.2;
+      for (var i = -1; i <= 1; i++) {
+        c.beginPath();
+        c.moveTo(-r * 0.8, i * r * 0.25);
+        for (var s = 1; s <= 8; s++) {
+          c.lineTo(-r * 0.8 - s * r * 0.17, i * r * 0.25 + Math.sin(t * 6 - s * 0.8 + i) * r * 0.06 * s * 0.4);
+        }
+        c.stroke();
+      }
+      blob(c, r, t, 2.1, 1.25, 0.07, 2);
+      c.fillStyle = moRgba(HUNTER, 0.12);
+      c.fill();
+      c.strokeStyle = moRgba(HUNTER, 0.75);
+      c.lineWidth = 2.2;
+      c.stroke();
+      /* jaws at the front */
+      c.beginPath();
+      c.moveTo(r * 1.05, -r * 0.3);
+      c.quadraticCurveTo(r * 1.45, -r * 0.15, r * 1.3, 0);
+      c.moveTo(r * 1.05, r * 0.3);
+      c.quadraticCurveTo(r * 1.45, r * 0.15, r * 1.3, 0);
+      c.stroke();
+      c.beginPath();
+      c.arc(r * 0.15, 0, r * 0.22, 0, TAU);
+      c.fillStyle = moRgba(HUNTER, 0.35);
+      c.fill();
+      c.restore();
+    };
+
+    /* a faint drifting plankton flower, as in the game's backdrop */
+    var drawFlower = function (c, t) {
+      c.save();
+      c.translate(820, 170);
+      c.rotate(t * 0.03);
+      c.strokeStyle = moRgba(TEAL, 0.13);
+      c.fillStyle = moRgba(TEAL, 0.025);
+      c.lineWidth = 1.2;
+      for (var i = 0; i < 6; i++) {
+        c.save();
+        c.rotate((i / 6) * TAU);
+        c.beginPath();
+        c.ellipse(105, 0, 92, 58, 0, 0, TAU);
+        c.fill();
+        c.stroke();
+        c.restore();
+      }
+      c.beginPath();
+      c.arc(0, 0, 34, 0, TAU);
+      c.stroke();
+      c.restore();
+    };
+
+    var steer = function (o, tx, ty, speed, turn, dt) {
+      var dx = tx - o.x, dy = ty - o.y, d = Math.hypot(dx, dy) || 1;
+      o.vx += ((dx / d) * speed - o.vx) * Math.min(1, turn * dt);
+      o.vy += ((dy / d) * speed - o.vy) * Math.min(1, turn * dt);
+    };
+
+    var moStep = function (dt) {
+      var s = moState, p = s.p, h = s.h;
+      s.t += dt;
+      s.fadeIn = Math.max(0, s.fadeIn - dt * 0.8);
+
+      /* the hunter crosses the drop now and then, on a lazy wander */
+      h.pass += dt;
+      if (h.pass > 13) {
+        h.pass = 0;
+        var side = rand() * TAU;
+        h.x = 500 + Math.cos(side) * 700;
+        h.y = 500 + Math.sin(side) * 700;
+        h.wander = side + Math.PI + (rand() - 0.5) * 0.8;
+      }
+      h.wander += Math.sin(s.t * 0.7) * 0.25 * dt;
+      steer(h, h.x + Math.cos(h.wander) * 100, h.y + Math.sin(h.wander) * 100, 90, 1.5, dt);
+      h.x += h.vx * dt;
+      h.y += h.vy * dt;
+      h.a = Math.atan2(h.vy, h.vx);
+
+      /* the cell: flee when the hunter is close, otherwise feed */
+      var hd = Math.hypot(h.x - p.x, h.y - p.y);
+      p.sprint = hd < 300;
+      if (p.sprint) {
+        steer(p, p.x + (p.x - h.x), p.y + (p.y - h.y), 260, 4, dt);
+      } else {
+        var best = null, bd = 1e9;
+        s.food.forEach(function (f) {
+          if (f.eaten) return;
+          var d = Math.hypot(f.x - p.x, f.y - p.y);
+          if (d < bd) { bd = d; best = f; }
+        });
+        if (best) steer(p, best.x, best.y, 120, 2.2, dt);
+      }
+      /* the drop's edge pushes back */
+      var cx = p.x - 500, cy = p.y - 500, cd = Math.hypot(cx, cy), lim = 500 - p.r * 2.4;
+      if (cd > lim) {
+        p.vx -= (cx / cd) * (cd - lim) * 6 * dt;
+        p.vy -= (cy / cd) * (cd - lim) * 6 * dt;
+      }
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      var want = Math.atan2(p.vy, p.vx), da = Math.atan2(Math.sin(want - p.a), Math.cos(want - p.a));
+      p.a += da * Math.min(1, 5 * dt);
+
+      /* eating: a nutrient vanishes in a little burst, and regrows later */
+      var reach = p.r * (s.cells > 1 ? 1.9 : 1.05);
+      s.food.forEach(function (f) {
+        if (f.eaten) {
+          f.back -= dt;
+          if (f.back <= 0) {
+            var n = inDrop(110);
+            f.x = n.x; f.y = n.y; f.eaten = 0;
+          }
+          return;
+        }
+        if (Math.hypot(f.x - p.x, f.y - p.y) < reach) {
+          f.eaten = 1;
+          f.back = 4 + rand() * 4;
+          s.bursts.push({ x: f.x, y: f.y, t: 0 });
+          if (s.cells === 1) {
+            s.grown = Math.min(MO_GOAL, s.grown + 1);
+            if (s.grown === MO_GOAL) s.cells = 2;
+          }
+        }
+      });
+      s.bursts = s.bursts.filter(function (b) { b.t += dt; return b.t < 0.6; });
+
+      /* division: the two daughter cells ease apart, then stay together */
+      if (s.cells > 1) {
+        s.split = Math.min(1, s.split + dt * 0.9);
+        s.colonyT += dt;
+        if (s.colonyT > MO_COLONY_TIME) {
+          s.fade += dt * 0.9;
+          if (s.fade >= 1) moReset();
+        }
+      }
+      moHud();
+    };
+
+    var moSize = 0, moDpr = 1;
+    var moResize = function () {
+      var size = moDrop.clientWidth;
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (size === moSize && dpr === moDpr) return;
+      moSize = size;
+      moDpr = dpr;
+      moCanvas.width = Math.round(size * dpr);
+      moCanvas.height = Math.round(size * dpr);
+    };
+
+    var moDraw = function () {
+      var s = moState, c = moCtx, t = s.t, p = s.p;
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.clearRect(0, 0, moCanvas.width, moCanvas.height);
+      var k = (moSize * moDpr) / 1000;
+      c.setTransform(k, 0, 0, k, 0, 0);
+      c.globalAlpha = 1 - Math.max(s.fade, s.fadeIn);
+      drawFlower(c, t);
+      s.motes.forEach(function (m) {
+        var x = m.x + Math.sin(t * 0.3 * m.s + m.ph) * 14, y = m.y + Math.cos(t * 0.25 * m.s + m.ph) * 10;
+        c.drawImage(glowGold, x - 7 * m.s, y - 7 * m.s, 14 * m.s, 14 * m.s);
+      });
+      s.food.forEach(function (f) {
+        if (f.eaten) return;
+        var bob = Math.sin(t * 1.4 + f.ph) * 4;
+        c.drawImage(glowGreen, f.x - f.r * 3, f.y - f.r * 3 + bob, f.r * 6, f.r * 6);
+        c.beginPath();
+        c.arc(f.x, f.y + bob, f.r * 0.55, 0, TAU);
+        c.fillStyle = moRgba([186, 222, 134], 0.85);
+        c.fill();
+      });
+      s.bursts.forEach(function (b) {
+        var u = b.t / 0.6;
+        c.beginPath();
+        c.arc(b.x, b.y, 12 + u * 34, 0, TAU);
+        c.strokeStyle = moRgba(LIME, 0.6 * (1 - u));
+        c.lineWidth = 1.5;
+        c.stroke();
+      });
+      drawHunter(c, s.h, t);
+      if (s.cells === 1) {
+        drawCell(c, p.x, p.y, p.a, p.r, t, 0.7, p.sprint);
+      } else {
+        /* the colony: two daughters side by side across the heading */
+        var off = p.r * 0.95 * s.split, nx = -Math.sin(p.a), ny = Math.cos(p.a);
+        var dr = p.r * (1 - 0.12 * s.split);
+        drawCell(c, p.x + nx * off, p.y + ny * off, p.a, dr, t, 0.7, p.sprint);
+        drawCell(c, p.x - nx * off, p.y - ny * off, p.a, dr, t + 1.3, 2.4, p.sprint);
+      }
+      c.globalAlpha = 1;
+    };
+
+    moReset();
+    moResize();
+    window.addEventListener("resize", function () { moResize(); moDraw(); });
+
+    if (reducedMotion) {
+      /* a still frame: a few nutrients in, mid-feed */
+      moState.fadeIn = 0;
+      for (var mi = 0; mi < 200; mi++) moStep(1 / 30);
+      moDraw();
+    } else if ("IntersectionObserver" in window) {
+      var moRaf = null, moLast = 0;
+      var moFrame = function (now) {
+        var dt = Math.min(0.05, (now - moLast) / 1000 || 0);
+        moLast = now;
+        moStep(dt);
+        moDraw();
+        moRaf = requestAnimationFrame(moFrame);
+      };
+      moDraw();
+      var moIO = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting && !moRaf) {
+            moLast = performance.now();
+            moRaf = requestAnimationFrame(moFrame);
+          } else if (!entry.isIntersecting && moRaf) {
+            cancelAnimationFrame(moRaf);
+            moRaf = null;
+          }
+        });
+      });
+      moIO.observe(moDrop);
+    } else {
+      moState.fadeIn = 0;
+      moDraw();
+    }
+  }
 })();

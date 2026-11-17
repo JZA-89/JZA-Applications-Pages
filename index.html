@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JZA Applications — Sharp tools for sharp people</title>
-<meta name="description" content="Sharp tools for sharp people. PowerGlass, PointFoundry, GhostDelta, BananaBomb, BikeSpec, Parlato and ThumbControl — every app with its own design language, made by JZA Applications.">
+<meta name="description" content="Sharp tools for sharp people. PowerGlass, PointFoundry, GhostDelta, BananaBomb, BikeSpec, Parlato, ThumbControl and the game MORPHOS — every app with its own design language, made by JZA Applications.">
 <meta name="theme-color" content="#08080a">
 <link rel="canonical" href="https://jza.app/">
 <meta property="og:title" content="JZA Applications">
@@ -17,7 +17,7 @@
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="site.css?v=16">
+<link rel="stylesheet" href="site.css?v=17">
 <style>
   /* ---------- index-only layout ---------- */
   main { max-width: none; padding: 0; }
@@ -51,6 +51,7 @@
   html[data-view="bananabomb"] .amb-bananabomb { opacity: 1; animation-play-state: running; }
   html[data-view="parlato"] .amb-parlato { opacity: 1; animation-play-state: running; }
   html[data-view="thumbcontrol"] .amb-thumbcontrol { opacity: 1; animation-play-state: running; }
+  html[data-view="morphos"] .amb-morphos { opacity: 1; animation-play-state: running; }
 
   .amb-home {
     background:
@@ -91,6 +92,12 @@
     background:
       radial-gradient(55% 45% at 82% 14%, rgba(255, 107, 0, 0.16), transparent 70%),
       radial-gradient(50% 42% at 14% 88%, rgba(191, 90, 242, 0.09), transparent 70%);
+  }
+
+  .amb-morphos {
+    background:
+      radial-gradient(60% 50% at 78% 40%, rgba(117, 213, 184, 0.16), transparent 70%),
+      radial-gradient(50% 45% at 12% 90%, rgba(214, 237, 162, 0.08), transparent 70%);
   }
 
   /* ---------- hero ---------- */
@@ -1507,6 +1514,87 @@
     max-width: 340px;
   }
 
+  /* ---------- MORPHOS (a browser game, not an App Store app) ---------- */
+  /* No About/Support/Privacy pages: the chapter's one action is Play, which
+     opens the game itself (morphos.html, the game's single file). */
+  .chapter .wm-morphos { letter-spacing: 0.24em; font-size: clamp(2rem, 4.6vw, 3.1rem); }
+  .mo-tag {
+    font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    font-size: clamp(1.6rem, 3vw, 2.1rem);
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin: 0.2rem 0 1rem;
+    color: var(--fg);
+  }
+  .mo-tag em { color: var(--accent); }
+  .mo-play {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-top: 1.5rem;
+    padding: 0.95rem 1.6rem;
+    border-radius: 14px;
+    background: var(--accent);
+    color: var(--accent-contrast);
+    font-weight: 700;
+    font-size: 1.05rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .mo-play:hover { text-decoration: none; transform: translateY(-2px); box-shadow: 0 10px 34px rgba(117, 213, 184, 0.28); }
+  .mo-play svg { flex: none; }
+  .mo-note { color: var(--faint); font-size: 0.85rem; margin: 0.9rem 0 0; max-width: 30rem; }
+
+  /* The live pond: a round drop of water, drawn on a canvas by main.js §13
+     in the game's own style (membrane, cilia, nutrients, a hunter). */
+  .mo-wrap { width: min(440px, calc(100vw - 48px)); margin: 0 auto; }
+  .mo-drop {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle at 44% 40%, #0f3533, #071d20 62%, #041417);
+    box-shadow:
+      0 0 0 1px rgba(181, 220, 194, 0.16),
+      0 0 0 10px rgba(117, 213, 184, 0.035),
+      0 30px 80px rgba(0, 0, 0, 0.55),
+      0 0 90px rgba(117, 213, 184, 0.12);
+    overflow: hidden;
+  }
+  .mo-drop canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  /* a lens highlight, so it reads as a drop, not a disc */
+  .mo-drop::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(40% 26% at 32% 16%, rgba(241, 242, 220, 0.09), transparent 70%);
+    box-shadow: inset 0 0 40px rgba(2, 16, 19, 0.7);
+  }
+  /* the game's growth panel, under the drop */
+  .mo-hud {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0.2rem 0.9rem;
+    width: min(260px, 80%);
+    margin: 1.4rem auto 0;
+    color: #b0c7ba;
+    font-family: "Avenir Next", var(--font-body);
+  }
+  .mo-hud p { margin: 0; }
+  .mo-count { grid-row: span 2; display: flex; align-items: baseline; gap: 0.35rem; }
+  .mo-count b {
+    font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    font-weight: 400;
+    font-size: 2rem;
+    line-height: 1;
+    color: #f1f2dc;
+  }
+  .mo-count span { font-size: 0.62rem; letter-spacing: 0.22em; text-transform: uppercase; }
+  .mo-track { height: 3px; border-radius: 3px; background: rgba(181, 220, 194, 0.16); overflow: hidden; }
+  .mo-track i { display: block; height: 100%; width: 0; background: #d6eda2; border-radius: inherit; transition: width 0.4s ease; }
+  .mo-label { font-size: 0.68rem; letter-spacing: 0.04em; }
+
   /* ---------- tail (contact + footer) ---------- */
   .tail { width: 100%; max-width: 640px; margin: 0 auto; padding: 0 1.25rem; }
   .tail h2 { margin-top: 2.75rem; }
@@ -1516,7 +1604,7 @@
   <style>
     .reveal { opacity: 1; transform: none; }
     /* the live demos are JS-drawn — without it they're empty shells */
-    .pg-demo, .pf-frame, .gd-art, .bb-wrap { display: none; }
+    .pg-demo, .pf-frame, .gd-art, .bb-wrap, .mo-wrap { display: none; }
     .pt-peerwave { display: none; }
     .tc-now, .tc-banner { display: none; }
   </style>
@@ -1533,6 +1621,7 @@
   <div class="amb amb-bananabomb"></div>
   <div class="amb amb-parlato"></div>
   <div class="amb amb-thumbcontrol"></div>
+  <div class="amb amb-morphos"></div>
 </div>
 
 <main>
@@ -1999,6 +2088,39 @@
     </div>
   </section>
 
+  <!-- ================= MORPHOS (browser game) =================
+       Not on the App Store, so no About/Support/Privacy pages: Play opens
+       the game, which is the single file morphos.html (copied from
+       ~/Documents/MORPHOS). To update the game, replace that file. -->
+  <section class="chapter alt" id="morphos" data-chapter="morphos" data-app="morphos">
+    <div class="chapter-inner">
+      <div class="chapter-copy">
+        <p class="chapter-kicker reveal"><b>08</b> · Game · Plays in your browser</p>
+        <img class="app-icon chapter-icon vt-morphos reveal" src="assets/icon-morphos.jpg" alt="MORPHOS icon" width="124" height="124" loading="lazy" decoding="async" style="--reveal-delay:.08s">
+        <h2 class="wordmark wm-morphos reveal" style="--reveal-delay:.16s">MORPHOS</h2>
+        <p class="mo-tag reveal" style="--reveal-delay:.22s">Eat. Adapt. <em>Become.</em></p>
+        <p class="chapter-desc reveal" style="--reveal-delay:.3s">A tiny survival game in a living drop of water. You begin as a single cell. What you eat, how you move and what you survive shape the body you become. Grow your own lineage and overcome the three elders.</p>
+        <a class="mo-play reveal" href="morphos.html" style="--reveal-delay:.38s">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.4-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z"/></svg>
+          Play MORPHOS
+        </a>
+        <p class="mo-note reveal" style="--reveal-delay:.44s">Free, right here in your browser: no download, no account. Play with a mouse and keyboard, or touch on a phone or tablet. Your life is saved in your browser, so you can pick it up later.</p>
+      </div>
+      <div class="chapter-art">
+        <div data-parallax="0.04">
+          <div class="reveal mo-wrap" aria-hidden="true">
+            <div class="mo-drop" id="mo-drop"><canvas id="mo-pond"></canvas></div>
+            <div class="mo-hud">
+              <p class="mo-count"><b id="mo-cells">1</b><span id="mo-plural">cell</span></p>
+              <div class="mo-track"><i id="mo-fill"></i></div>
+              <p class="mo-label" id="mo-label">Next division: 0 / 8 growth</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= finale: all apps + contact ================= -->
   <div class="finale">
   <section class="strip-section" data-chapter="home">
@@ -2011,6 +2133,7 @@
       <a class="glass specular" href="bikespec/" data-app="bikespec"><img class="app-icon" src="assets/icon-bikespec.jpg" alt="" width="64" height="64" loading="lazy" decoding="async">BikeSpec</a>
       <a class="glass specular" href="parlato/" data-app="parlato"><img class="app-icon" src="assets/icon-parlato.jpg" alt="" width="64" height="64" loading="lazy" decoding="async">Parlato</a>
       <a class="glass specular" href="thumbcontrol/" data-app="thumbcontrol"><img class="app-icon" src="assets/icon-thumbcontrol.jpg" alt="" width="64" height="64" loading="lazy" decoding="async">ThumbControl</a>
+      <a class="glass specular" href="morphos.html" data-app="morphos"><img class="app-icon" src="assets/icon-morphos.jpg" alt="" width="64" height="64" loading="lazy" decoding="async">MORPHOS</a>
     </div>
   </section>
 
@@ -2027,7 +2150,7 @@
 
 </main>
 
-<script src="dock.js?v=11" id="jza-dock-script"></script>
-<script src="main.js?v=17"></script>
+<script src="dock.js?v=12" id="jza-dock-script"></script>
+<script src="main.js?v=18"></script>
 </body>
 </html>
