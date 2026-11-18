@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — MORPHOS</title>
+<meta name="theme-color" content="#061b1e">
+<link rel="icon" type="image/png" href="../assets/icon-morphos.jpg">
+<link rel="stylesheet" href="../site.css?v=17">
+<style>
+  .updated { font-family: var(--font-mono); color: var(--muted); font-size: 0.85rem; margin: 0.35rem 0 0; }
+  ul { margin: 0 0 1rem; padding-left: 1.25rem; }
+  li { margin-bottom: .35rem; }
+  .card p { margin: 0; }
+</style>
+</head>
+<body data-app="morphos">
+<main>
+
+  <header class="masthead">
+    <img class="app-icon vt-morphos" src="../assets/icon-morphos.jpg" alt="" width="76" height="76">
+    <div>
+      <h1 class="wordmark wm-morphos"><a href="../morphos.html">MORPHOS</a></h1>
+      <p class="tagline">Privacy Policy</p>
+      <p class="updated">Last updated: 18 November 2026</p>
+    </div>
+  </header>
+
+  <p>This Privacy Policy describes how MORPHOS ("the game", "we", "us") handles your information. MORPHOS is a browser game developed by JZA Applications, played at jza.app/morphos.html.</p>
+
+  <div class="card">
+    <p><strong>In short:</strong> MORPHOS runs in your browser and keeps your progress on your own device. There are no accounts, no analytics and no advertising. Playing alone sends nothing about you anywhere. Playing together connects your device directly to your friends' devices, which means sharing your internet address with them and, briefly, with the services that help the connection start.</p>
+  </div>
+
+  <h2>Playing alone</h2>
+  <ul>
+    <li><strong>Your progress stays on your device.</strong> Your saved life, settings, key bindings and records are kept in your browser's local storage. They are never sent to us.</li>
+    <li><strong>Version check.</strong> The game occasionally re-downloads its own page from jza.app to see whether a newer version exists. Nothing about you or your game is sent with that request.</li>
+    <li><strong>Save files.</strong> If you choose to save a life to a file, that file is created on your device. What you do with it is up to you.</li>
+  </ul>
+
+  <h2>Playing together</h2>
+  <p>"Play together" connects up to four players' browsers directly to each other. Game data (where each player and creature is, and what happens to them) travels straight between the players' devices and does not pass through our servers. Starting those connections involves the following.</p>
+  <ul>
+    <li><strong>The connection helper (coop.jza.app).</strong> To connect, two browsers must first swap a block of technical connection details, which includes your device's internet (IP) addresses. When you host or join with a pond code, each browser leaves those details with a small helper service we run on Cloudflare, and the other browser collects them. The helper deletes them as soon as they are collected, or after two minutes if they are not. It stores nothing else: no names, no game data and no history. Like any web service, it necessarily sees the internet address a request comes from, and Cloudflare, which runs it, handles that under <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's Privacy Policy</a>.</li>
+    <li><strong>Address lookup (STUN).</strong> To find out how your device can be reached from the internet, your browser asks public address-lookup servers run by Cloudflare and Google. They see your internet address and nothing about the game. They are governed by <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's</a> and <a href="https://policies.google.com/privacy">Google's</a> privacy policies.</li>
+    <li><strong>The other players.</strong> A direct connection means the players you connect to can see your internet address, as with any direct connection between devices. They also receive the name you typed and your play in the shared pond. Only play together with people you are comfortable sharing that with.</li>
+    <li><strong>Copy and paste.</strong> If you connect by copying an invite and a reply instead of using a pond code, the connection helper is not used. The text you copy contains the same connection details, including your internet addresses, so send it only to the person you mean to play with.</li>
+  </ul>
+  <p>Your co-op pond is saved in your own browser's local storage, like a solo life. The name you type is also kept there so you do not have to type it again.</p>
+
+  <h2>Data we collect</h2>
+  <p>We do not collect, sell or share your personal data. Specifically, MORPHOS:</p>
+  <ul>
+    <li>Does not use analytics, advertising or tracking.</li>
+    <li>Does not create accounts or ask for an email address or password.</li>
+    <li>Does not send your saved game, your name or your play to us.</li>
+    <li>Does not keep a record of who played together, or when.</li>
+  </ul>
+
+  <h2>Children's privacy</h2>
+  <p>MORPHOS does not knowingly collect personal information from anyone, including children under 13. Playing together shares an internet address with the other players, so children should only play together with people a parent or guardian has agreed to.</p>
+
+  <h2>Your control over your data</h2>
+  <p>Everything the game keeps is in your browser. Clearing this site's data in your browser settings removes your saved lives, your co-op pond, your name and your settings. Nothing needs to be deleted on our side, because nothing is kept there.</p>
+
+  <h2>Changes to this policy</h2>
+  <p>If this policy changes, the updated version will be posted on this page with a new date at the top.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about this policy or about MORPHOS: <a href="mailto:jza.applications@gmail.com">jza.applications@gmail.com</a></p>
+
+  <footer>
+    <a href="../morphos.html">Play MORPHOS</a>
+    <a href="../">All apps</a>
+    <span>© 2026 JZA Applications</span>
+  </footer>
+
+</main>
+<script src="../dock.js?v=12" id="jza-dock-script"></script>
+</body>
+</html>
