@@ -1605,11 +1605,27 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
 #skillsDialog .perk-line{margin:0;padding:7px 10px;border-radius:9px;font-size:12px;line-height:1.4;color:#8fa99b;background:#03131659;box-shadow:inset 0 0 0 1px #b9dcc21a}
 #skillsDialog .perk-line.on{color:#f1f2dc;background:color-mix(in srgb,var(--tier) 12%,#0a2427);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tier) 55%,transparent)}
 #skillsDialog .perk-line.on::before{content:'+ ';color:var(--tier);font-weight:700}
+/* Co-op: the Play together dialog */
+dialog#coopDialog{width:min(460px,calc(100vw - 24px));max-width:none}.coop-body{padding:4px 22px 20px;font-size:13px;line-height:1.55;color:var(--muted)}.coop-body section[hidden]{display:none}.coop-body p{margin:10px 0}
+.coop-field{display:grid;gap:6px;margin:6px 0 14px}.coop-field span,.coop-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:0}
+.coop-field input,.coop-body textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#04161a;color:var(--ink);font:inherit;font-size:16px}
+.coop-body textarea{font-size:11px;font-family:ui-monospace,Menlo,monospace;resize:none;margin:8px 0;color:var(--dim)}
+.coop-code-input{letter-spacing:.3em;text-transform:uppercase;text-align:center;font-weight:600}
+.coop-code{font-size:38px;font-weight:600;letter-spacing:.22em;color:var(--lime);text-align:center;padding:6px 0 2px;user-select:all;-webkit-user-select:all}
+.coop-big{font-size:20px;color:var(--lime);margin:4px 0}.coop-choice,.coop-row{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 4px}.coop-row{margin:0}
+.coop-roster{list-style:none;margin:12px 0;padding:0;display:grid;gap:6px;color:var(--ink)}.coop-roster li{display:flex;align-items:center;gap:9px}.coop-roster small{color:var(--dim)}
+.coop-dot{width:10px;height:10px;border-radius:50%;background:var(--c);flex:none}
+.coop-steps{margin:4px 0;padding-left:20px;display:grid;gap:16px}.coop-steps strong{color:var(--ink)}
+.coop-link{border:0;background:none;padding:0;color:var(--teal);text-decoration:underline;font:inherit}
+.coop-banner{position:fixed;left:50%;top:calc(96px + env(safe-area-inset-top));transform:translateX(-50%);z-index:8;max-width:min(430px,calc(100vw - 32px));padding:10px 18px;border:1px solid #ff8b9199;border-radius:999px;background:#2a1216e6;color:#ffd9d6;font-size:12.5px;line-height:1.35;text-align:center;pointer-events:none}.coop-banner[hidden]{display:none}
+@media(max-height:500px){.coop-banner{top:calc(58px + env(safe-area-inset-top))}}
+.coop-resume{display:block;width:100%;margin:0 0 14px;text-align:left}.coop-resume small{display:block;color:var(--dim);font-size:11px;margin-top:2px}
+.coop-status{min-height:1.5em;margin:10px 0 0;color:var(--teal)}.coop-status.error-note{color:#f3aa84}
 </style></head><body data-mode="menu">
 <canvas id="pond" tabindex="-1" aria-label="A living pond ecosystem. Steer your cell, eat nutrients, avoid predators and evolve."></canvas><div class="scrim" aria-hidden="true"></div><div class="menu-scrim" aria-hidden="true"></div><div class="loading" id="loading">A LITTLE LIFE IS FORMING</div>
 <header class="topbar"><div class="brand"><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M30 10c5 8-1 20-10 22C10 34 2 26 3 17 4 6 14 1 23 4c3 1 5 3 7 6Z"/><ellipse cx="17" cy="18" rx="6" ry="8" transform="rotate(30 17 18)"/><circle cx="24" cy="11" r="1.8"/><path d="m8 23 3 1m13 1 2-3"/></svg><div><strong>MORPHOS</strong><small>LIFE IN A DROP OF WATER</small></div></div><div class="tools"><button class="tool on" id="sound" aria-pressed="true" aria-label="Disable sound" title="Sound (M)"><span class="sound-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="sound-label">Sound on</span></button><button class="tool icon" id="pause" hidden aria-label="Pause game" title="Pause (P / Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14m8-14v14"/></svg></button><button class="tool icon" id="fullscreen" aria-label="Enter fullscreen" title="Fullscreen (F)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button><button class="tool icon upgrade-tool" id="skillsTool" hidden aria-label="Body and mutations" title="Body &amp; mutations (U)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3c0 8 10 10 10 18M17 3c0 8-10 10-10 18M8 6h8M9 10h6M9 14h6M8 18h8"/></svg><span class="point-badge" id="pointBadge"></span></button><button class="tool icon" id="journal" aria-label="Field guide" title="Field guide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5C9 3 5 3 2 4v15c3-1 7-1 10 1 3-2 7-2 10-1V4c-3-1-7-1-10 1Zm0 0v15"/></svg></button><button class="tool icon" id="help" aria-label="How to play" title="How to play (?)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 4m0 3v.1"/></svg></button></div></header>
-<main class="home" id="home"><section class="intro"><div class="eyebrow">An experiment in becoming</div><h1>Eat. Adapt.<br><em>Become.</em></h1><p class="lede">Begin as a single cell in a living drop of water.<br>What you eat, how you move, what you survive.<br><strong>Your body remembers.</strong></p><div class="start-row"><button class="btn primary" id="start">Begin a life <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-5-5 5 5-5 5"/></svg></button><button class="btn subtle" id="homeHelp">How to play</button><button class="btn subtle" id="homeControls">Controls</button><button class="btn subtle home-load" id="homeLoad">Load a life</button></div><p class="file-status" data-file-status aria-live="polite"></p><button class="checkpoint-card" id="homeResume" hidden><span><strong>Continue your life</strong><small id="checkpointSummary"></small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></button><p class="home-goal">Grow your own lineage. Survive the five apex predators.</p><div class="seed-row"><label for="seedInput">World</label><input id="seedInput" value="First light" maxlength="48" autocomplete="off" aria-label="World seed"><button id="shuffleSeed" aria-label="Choose a new world" title="A new world"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h3c4 0 8 10 12 10h3m-4-4 4 4-4 4M3 17h3c2 0 4-3 6-5m3-4 3-1h3m-4-4 4 4-4 4"/></svg></button></div><div class="micro"><span class="desktop">Mouse to swim · Left click to strike · Right click to swim fast · Q to block · Shift to hold position · Space to sneak</span><span id="touchMenuHint" hidden>Use the swim pad and ability buttons</span></div></section><div class="specimen-label"><strong>SPECIMEN 001</strong><br>A BEGINNING, NOT A DESTINY</div><footer class="home-footer"><span>V14.3 · AN ENDLESS POND. AN UNWRITTEN FUTURE.</span><a class="home-copy" href="https://jza.app" target="_blank" rel="noopener">© 2026 jza.app</a><button class="journal-link" id="homeJournal"><span id="homeBest">0 / 20 ADAPTATIONS DISCOVERED</span><span aria-hidden="true"> ↗</span></button></footer></main>
-<div class="game-ui" id="gameUI" hidden><section class="vitals" id="vitals" aria-label="Cells, health, stamina and nutrition"><div class="vital-gem" id="vitalGem"><strong id="cellCount">1</strong><span id="cellPlural">cell</span></div><div class="vital-bars"><div class="vital-row health"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.6-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.4-7 10-7 10z"/></svg><div class="bar health" role="progressbar" id="healthBar" aria-label="Health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="healthFill"></i></div><b id="healthText">100</b></div><div class="vital-row energy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3 5 13h6l-1 8 8-10h-6z"/></svg><div class="bar energy" role="progressbar" id="energyBar" aria-label="Stamina" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="energyFill"></i></div><b id="energyText">100</b></div><div class="vital-row nutrition"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14zM5 19l8-8"/></svg><div class="bar nutrition" role="progressbar" id="nutritionBar" aria-label="Nutrition" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="nutritionFill"></i></div><b id="nutritionText">100%</b></div></div><div class="vital-foot"><span class="identity-line" id="identityLine">Unformed cell</span><span class="stamina-state" id="staminaState" role="status" aria-live="polite"></span><span id="stealthStatus" class="stealth-status"></span></div><div hidden><span id="healthLabel"></span><span id="energyLabel"></span></div></section><section class="stage-panel" aria-label="Alerts"><button class="next-adaptation" id="nextAdaptation">Choose your path</button><button class="genome-status" id="genomeStatus" hidden><i class="compass-arrow" id="elderArrow" aria-hidden="true">↑</i><span id="genomeStatusText">Hunted</span></button><div hidden><div class="division-track"><i id="divisionFill"></i></div><div class="division-label" id="divisionLabel"></div><nav class="journey-steps" id="journeySteps" aria-label="Apex predators"><button type="button" data-elder="gulper" title="The Gulper"><i aria-hidden="true">◌</i><span>Gulper</span></button><button type="button" data-elder="brood" title="The Broodmother"><i aria-hidden="true">◌</i><span>Brood</span></button><button type="button" data-elder="pike" title="The Glass Pike"><i aria-hidden="true">◌</i><span>Pike</span></button><button type="button" data-elder="hydra" title="The Hydra"><i aria-hidden="true">◌</i><span>Hydra</span></button><button type="button" data-elder="undertow" title="The Undertow"><i aria-hidden="true">◌</i><span>Undertow</span></button></nav></div></section><section class="score-panel" aria-label="Progress"><span class="score-label">LIFE SCORE</span><strong id="score">00000</strong><div class="habitat" id="habitat">Nutrient shallows</div><div class="clock" id="clock">00:00</div><div class="autosave-indicator" id="autosaveIndicator" role="status" aria-live="polite">Unlock a location to save</div><button type="button" id="researchShortcut" class="research-shortcut" title="Field research (R)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3M8 14h8"/><path d="M10 17h.01M14 18h.01"/></svg><span id="researchShortcutText">Research</span><kbd>R</kbd></button></section><section class="boss-hud" id="bossHUD" hidden aria-label="Apex predator"><div class="boss-heading"><span id="bossPhase">ELDER ORGANISM</span><small id="bossHealthText"></small></div><h2 id="bossName">An elder awakens</h2><div class="boss-health" id="bossHealthBar" role="progressbar" aria-label="Apex predator health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="bossHealthFill"></i></div><p id="bossHint">Read its attacks. Keep stamina in reserve.</p><p id="bossShortHint">Read its attacks. Keep stamina in reserve.</p></section><nav class="control-cluster" aria-label="Cell controls">
+<main class="home" id="home"><section class="intro"><div class="eyebrow">An experiment in becoming</div><h1>Eat. Adapt.<br><em>Become.</em></h1><p class="lede">Begin as a single cell in a living drop of water.<br>What you eat, how you move, what you survive.<br><strong>Your body remembers.</strong></p><div class="start-row"><button class="btn primary" id="start">Begin a life <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-5-5 5 5-5 5"/></svg></button><button class="btn subtle" id="homeHelp">How to play</button><button class="btn subtle" id="homeControls">Controls</button><button class="btn subtle home-load" id="homeLoad">Load a life</button><button class="btn subtle" id="homeCoop">Play together</button></div><p class="file-status" data-file-status aria-live="polite"></p><button class="checkpoint-card" id="homeResume" hidden><span><strong>Continue your life</strong><small id="checkpointSummary"></small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></button><p class="home-goal">Grow your own lineage. Survive the five apex predators.</p><div class="seed-row"><label for="seedInput">World</label><input id="seedInput" value="First light" maxlength="48" autocomplete="off" aria-label="World seed"><button id="shuffleSeed" aria-label="Choose a new world" title="A new world"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h3c4 0 8 10 12 10h3m-4-4 4 4-4 4M3 17h3c2 0 4-3 6-5m3-4 3-1h3m-4-4 4 4-4 4"/></svg></button></div><div class="micro"><span class="desktop">Mouse to swim · Left click to strike · Right click to swim fast · Q to block · Shift to hold position · Space to sneak</span><span id="touchMenuHint" hidden>Use the swim pad and ability buttons</span></div></section><div class="specimen-label"><strong>SPECIMEN 001</strong><br>A BEGINNING, NOT A DESTINY</div><footer class="home-footer"><span>V14.3 · AN ENDLESS POND. AN UNWRITTEN FUTURE.</span><a class="home-copy" href="https://jza.app" target="_blank" rel="noopener">© 2026 jza.app</a><button class="journal-link" id="homeJournal"><span id="homeBest">0 / 20 ADAPTATIONS DISCOVERED</span><span aria-hidden="true"> ↗</span></button></footer></main>
+<div class="coop-banner" id="coopBanner" role="status" aria-live="polite" hidden></div><div class="game-ui" id="gameUI" hidden><section class="vitals" id="vitals" aria-label="Cells, health, stamina and nutrition"><div class="vital-gem" id="vitalGem"><strong id="cellCount">1</strong><span id="cellPlural">cell</span></div><div class="vital-bars"><div class="vital-row health"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.6-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.4-7 10-7 10z"/></svg><div class="bar health" role="progressbar" id="healthBar" aria-label="Health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="healthFill"></i></div><b id="healthText">100</b></div><div class="vital-row energy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3 5 13h6l-1 8 8-10h-6z"/></svg><div class="bar energy" role="progressbar" id="energyBar" aria-label="Stamina" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="energyFill"></i></div><b id="energyText">100</b></div><div class="vital-row nutrition"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14zM5 19l8-8"/></svg><div class="bar nutrition" role="progressbar" id="nutritionBar" aria-label="Nutrition" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="nutritionFill"></i></div><b id="nutritionText">100%</b></div></div><div class="vital-foot"><span class="identity-line" id="identityLine">Unformed cell</span><span class="stamina-state" id="staminaState" role="status" aria-live="polite"></span><span id="stealthStatus" class="stealth-status"></span></div><div hidden><span id="healthLabel"></span><span id="energyLabel"></span></div></section><section class="stage-panel" aria-label="Alerts"><button class="next-adaptation" id="nextAdaptation">Choose your path</button><button class="genome-status" id="genomeStatus" hidden><i class="compass-arrow" id="elderArrow" aria-hidden="true">↑</i><span id="genomeStatusText">Hunted</span></button><div hidden><div class="division-track"><i id="divisionFill"></i></div><div class="division-label" id="divisionLabel"></div><nav class="journey-steps" id="journeySteps" aria-label="Apex predators"><button type="button" data-elder="gulper" title="The Gulper"><i aria-hidden="true">◌</i><span>Gulper</span></button><button type="button" data-elder="brood" title="The Broodmother"><i aria-hidden="true">◌</i><span>Brood</span></button><button type="button" data-elder="pike" title="The Glass Pike"><i aria-hidden="true">◌</i><span>Pike</span></button><button type="button" data-elder="hydra" title="The Hydra"><i aria-hidden="true">◌</i><span>Hydra</span></button><button type="button" data-elder="undertow" title="The Undertow"><i aria-hidden="true">◌</i><span>Undertow</span></button></nav></div></section><section class="score-panel" aria-label="Progress"><span class="score-label">LIFE SCORE</span><strong id="score">00000</strong><div class="habitat" id="habitat">Nutrient shallows</div><div class="clock" id="clock">00:00</div><div class="autosave-indicator" id="autosaveIndicator" role="status" aria-live="polite">Unlock a location to save</div><button type="button" id="researchShortcut" class="research-shortcut" title="Field research (R)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3M8 14h8"/><path d="M10 17h.01M14 18h.01"/></svg><span id="researchShortcutText">Research</span><kbd>R</kbd></button></section><section class="boss-hud" id="bossHUD" hidden aria-label="Apex predator"><div class="boss-heading"><span id="bossPhase">ELDER ORGANISM</span><small id="bossHealthText"></small></div><h2 id="bossName">An elder awakens</h2><div class="boss-health" id="bossHealthBar" role="progressbar" aria-label="Apex predator health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="bossHealthFill"></i></div><p id="bossHint">Read its attacks. Keep stamina in reserve.</p><p id="bossShortHint">Read its attacks. Keep stamina in reserve.</p></section><nav class="control-cluster" aria-label="Cell controls">
   <div class="basic-actions" role="group" aria-label="Basic actions">
     <button type="button" class="ability basic-action" id="pulseButton" style="--organ:var(--lime)" title="Jab. Aim with the cursor and left click.">
       <span class="ability-orb" aria-hidden="true"><svg class="cooldown-ring" viewBox="0 0 48 48"><circle class="ring-track" cx="24" cy="24" r="22" pathLength="100"/><circle class="ring-progress" cx="24" cy="24" r="22" pathLength="100"/></svg><svg class="ability-glyph" viewBox="0 0 24 24"><path d="M5 4a11 11 0 0 1 0 16M9 7a7 7 0 0 1 0 10M4 12h16m-4-4 4 4-4 4"/></svg><span class="orb-state"></span></span>
@@ -1668,6 +1684,7 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
 <dt><span data-key="sound">M</span> / <span data-key="fullscreen">F</span></dt><dd>Sound / fullscreen.</dd>
 <dt>Controller</dt><dd>Left stick swims, right stick aims (and turns you on the spot). RT strikes, LT swims fast, LB blocks, RB sneaks (hold, or tap to stay hidden). Abilities: A Venom volley, X Pounce, L3 Slipstream, Y Swarm, B Decoy. Start pauses, View opens navigation. In menus: d-pad or left stick moves, A selects, B goes back, LB/RB switch tabs.</dd><dt>Touchscreen</dt><dd>Steer with the thumbstick that appears under your left thumb; strike, block, swim fast and sneak with the buttons under your right thumb. Strikes fly where the stick points, or the way you face when it rests; tapping open water strikes towards that spot. The DNA icon opens your build.</dd>
 </dl><p class="small-print"><button type="button" class="btn subtle" id="helpControlsEdit">Change controls</button></p></section><section role="tabpanel" id="helpGrowth" aria-labelledby="helpGrowthTab" tabindex="0" hidden><p><strong>Evolution.</strong> You have five classes, and each one trains from its own actions, never from eating. <em>Predator</em> trains when your Jab, Bite and Pounce land and kill. <em>Venomist</em> trains when your venom does damage. <em>Brood</em> trains when your broodlings fight. <em>Riptide</em> trains on rams, near misses and escapes while swimming fast. <em>Stalker</em> trains on ambushes. When a class's experience fills, it gains a rank on its own, and each rank in a class needs more experience than the last, so focusing on one class takes it deep and using several grows them side by side. At ranks II and IV a class forks: choose one of two specialisations on the Lineage tab whenever you like (play carries on), and the other closes for this life. After rank IV, experience grows mastery. Raise two neighbouring classes to rank II and a hybrid forms between them. See it all on the Lineage tab.</p><p><strong>Divisions.</strong> Eating builds growth. When growth fills, your colony divides: twice the cells, a larger body, more health, and a stat point for the six core stats. Each division raises the stat rank limit. You can refund them at full health and stamina, outside elder encounters.</p><p><strong>Mutations.</strong> Six body parts each hold one mutation, opening from 3 to 16 cells. Earn mutations through play, from rare creatures, elders and ancient fossils, and swap them on the Mutations tab whenever no apex predator is hunting you.</p><p><strong>Your Strike.</strong> Every cell starts with Jab. From rank I, your strongest class shapes your Strike: Predators Bite (heavy jaws that reach a little further than Jab; much smaller creatures are devoured whole), Venomists Spit poison, Brood fires a Command pulse that sets the broodlings' target, Riptides Surge through their targets, Stalkers loose a silent Needle. Every other class you raise adds its trait to whatever you hit: Predator hits harder, Venomist adds a poison stack, Brood marks the target for your broodlings, Riptide adds speed and range, Stalker punishes unaware prey. Your Strike changes shape when another class overtakes your strongest.</p><div class="adaptation-guide"><div style="--trait:var(--predator)"><strong>Predator</strong><p>Chase, bite and kill. Pounce on prey, devour small creatures whole and build Frenzy by killing in quick succession.</p></div><div style="--trait:var(--venomist)"><strong>Venomist</strong><p>Stack poison with Spit and Venom volley, then rupture heavily poisoned creatures so the venom bursts into their neighbours.</p></div><div style="--trait:var(--summoner)"><strong>Brood</strong><p>Bud daughter cells that follow you and attack whatever you strike. Swarm sends them all at your aim.</p></div><div style="--trait:var(--riptide)"><strong>Riptide</strong><p>Swim fast, ram, Surge and dodge. A lunge or shot that only just misses you gives Momentum: speed and a harder next hit.</p></div></div><div class="stalker-guide"><strong>Stalker</strong><p>Sneak near real predators and land concealed ambushes. Hiding beside harmless food does not count. Grow camouflage and decoys.</p></div><p class="small-print">Watch the five experience bars on the body screen to see which class ranks up next. Mixed play creates mixed creatures. This is a playful interpretation of evolution.</p><p class="small-print">Explore restorative blooms, sheltered sanctuaries, gene caches, predator nests and fast currents. Sanctuaries heal after you have shaken pursuit and avoided damage for a few seconds. Complete research to record your progress and earn score. Eating algae or protein restores an extra 1.5% of maximum health each second for six seconds. More food refreshes the duration without stacking the rate. This works everywhere, including during attacks and boss fights. Predators pursue and commit to lunges. They keep swimming while recovering stamina. Watch their movement, and choose when to turn, accelerate, conceal or fight. Smaller organisms seek vegetation; armoured scavengers gather around remains. Healthy predators remain dangerous even when they are smaller than you. Beyond four ranks, a family gains mastery.</p></section><section role="tabpanel" id="helpJourney" aria-labelledby="helpJourneyTab" tabindex="0" hidden><section class="help-elders"><h3>The apex predators.</h3><p>Five apex predators wake at levels <span id="elderUnlocks"></span>. When you reach one's level it picks up your scent and comes for you. It is not tied to a place: you can run, but it never gives up. It tracks you out of sight, catches up when you are far away, and sanctuaries do not stop it. Hiding (Sneak or Decoy) only buys a few seconds.</p><p>Each one heals by eating, as you do, so wearing it down and running away will not work on its own. Poison stops most of its healing and bleeding halves it. Every attack is announced by a marked line or area: get out of it, then strike while it recovers, when it takes extra damage. At two thirds and one third of its health it changes and gets more dangerous.</p><p>Defeating one gives its genome (your growth waits at its level until you have it), a unique mutation and 2 stat points. If it kills you, you return to your last checkpoint and it comes for you again.</p></section><p class="small-print">Automatic checkpoints are set when you begin a life, unlock a gene cache, nutrient bloom, predator nest or sanctuary, finish resting safely at a sanctuary, or defeat an apex predator. Location checkpoints retain your current health and stamina; unlocking does not grant a free heal. Simply discovering a distant location or riding a current does not save. At a sanctuary, recover your health and stamina, then settle for 3 seconds to set one checkpoint for that visit. Open navigation with N or the compass card to track a nearby sanctuary or one you have discovered. Attacking briefly suspends its shelter; let your attacks settle before resting. Ordinary travel, evolution and pausing do not change your checkpoint. Use Continue on the title screen or Return to checkpoint after defeat. Loads pause until you are ready. Your checkpoint place and time appear beside your score. Starting a new life replaces that checkpoint. Save life from the pause menu to keep a separate file or move your creature to another device. File saves are specific to this build while the game is evolving.</p></section></div><p class="small-print help-foot">One file. Entirely offline. Imagined with Jaisah and made with AI.</p></dialog><dialog id="controlsDialog" class="guide-dialog" aria-labelledby="controlsTitle"><button class="close" data-close aria-label="Close controls"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><header class="dialog-header"><div class="kicker">Your hands, your way</div><h2 id="controlsTitle">Controls.</h2><p>Choose a control, then press the key you want for it. Left click always strikes and right click always swims fast.</p></header><div class="dialog-content"><p class="controls-status" id="controlsStatus" role="status" aria-live="polite"></p><div class="controls-list" id="controlsList"></div><p class="controls-pad"><strong>Controller</strong> · Left stick swim · Right stick aim · RT strike · LT fast swim · LB block · RB sneak (hold or tap) · A Venom volley · X Pounce · L3 Slipstream · Y Swarm · B Decoy · Start pause · View navigation. Menus: d-pad moves, A selects, B back, LB/RB tabs. Controller buttons are fixed.</p><div class="controls-footer"><button type="button" class="btn subtle" id="controlsWasd">WASD + mouse aim</button><button type="button" class="btn subtle" id="controlsReset">Reset to defaults</button></div></div></dialog><dialog id="confirmDialog" class="confirm-dialog" aria-labelledby="confirmTitle"><h2 id="confirmTitle">Are you sure?</h2><p id="confirmText"></p><div class="confirm-actions"><button type="button" class="btn" id="confirmCancel" data-close>Keep playing</button><button type="button" class="btn caution" id="confirmGo">Confirm</button></div></dialog><dialog id="navigationDialog" aria-labelledby="navigationTitle"><button class="close" data-close aria-label="Close navigation"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><header class="dialog-header"><div class="kicker">A reason to venture further</div><h2 id="navigationTitle">Choose your course.</h2><p class="navigation-intro">Seek a discovery, a safe refuge, or track what is hunting you.</p></header><div class="navigation-modes"><button class="btn" id="navExplore">Discoveries</button><button class="btn" id="navSanctuary">Sanctuary</button><button class="btn" id="navElder">What hunts me</button></div><figure class="pond-map"><canvas id="pondMap" role="img" aria-label="Map of the pond you have explored"></canvas><figcaption class="map-key"><span><i class="k-you"></i>You</span><span><i class="k-save"></i>Checkpoint</span><span><i class="k-refuge"></i>Sanctuary</span><span><i class="k-place"></i>Place found</span><span><i class="k-boss"></i>Hunting you</span></figcaption></figure><aside class="expedition-panel" aria-label="Exploration"><div class="journey-heading"><span>THE ELDER JOURNEY</span><strong id="journeyTitle">Find your first adaptation</strong><p id="journeyDetail">Feed, explore and grow your own lineage.</p></div><div class="landmark-target"><strong><i class="compass-arrow" id="compassArrow" aria-hidden="true">↑</i><span id="landmarkName">The pond continues</span></strong><span id="landmarkHint">Explore in any direction.</span></div><div class="journey-copy" id="landmarkProgress"></div><div class="compass-options"><button class="compass-toggle" id="compassToggle" hidden>Track the hunter</button><button class="compass-toggle" id="sanctuaryTrack" aria-pressed="false">Track sanctuary</button></div></aside><div class="navigation-footer"><p class="small-print">Every place you complete sets a checkpoint (currents do not), and so does each new cell once nothing is hunting you. Sanctuaries also offer repeatable rest checkpoints.</p><button type="button" class="btn subtle" id="navigationResearch">Field research <span aria-hidden="true">↗</span></button></div></dialog><dialog id="journalDialog" class="guide-dialog" aria-labelledby="journalTitle"><button class="close" data-close aria-label="Close field guide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><header class="dialog-header"><div class="kicker">The pond remembers</div><h2 id="journalTitle">Field notes.</h2><p id="journalTotal">0 of 20 adaptations discovered</p></header><div class="guide-tabs dialog-tabs" role="tablist" aria-label="Field guide"><button type="button" role="tab" id="guideAdaptationsTab" aria-controls="guideAdaptations" aria-selected="true">Adaptations</button><button type="button" role="tab" id="guideSpeciesTab" aria-controls="guideSpecies" aria-selected="false" tabindex="-1">Species</button><button type="button" role="tab" id="guideEldersTab" aria-controls="guideElders" aria-selected="false" tabindex="-1">Elders</button><button type="button" role="tab" id="guidePlacesTab" aria-controls="guidePlaces" aria-selected="false" tabindex="-1">Places</button></div><div class="guide-panels dialog-content"><section role="tabpanel" id="guideAdaptations" aria-labelledby="guideAdaptationsTab" tabindex="0"><div id="journalRows"></div><p class="small-print">These adaptation discoveries are remembered across lives in this browser. Different habits reveal different lineages.</p></section><section role="tabpanel" id="guideSpecies" aria-labelledby="guideSpeciesTab" tabindex="0" hidden><p class="small-print" id="speciesSummary"></p><div id="speciesRows"></div><p class="small-print">Every creature and rare find you meet is remembered across lives in this browser.</p></section><section role="tabpanel" id="guideElders" aria-labelledby="guideEldersTab" tabindex="0" hidden><div id="elderSelector" class="elder-selector" role="group" aria-label="Select an elder"></div><div id="elderNotes"></div><p class="small-print">Apex genomes and mutations belong to this life.</p></section><section role="tabpanel" id="guidePlaces" aria-labelledby="guidePlacesTab" tabindex="0" hidden><p class="small-print" id="placeSummary">Places discovered during this life.</p><div id="placeNotes"></div></section></div></dialog>
+<dialog id="coopDialog" class="guide-dialog coop-dialog" aria-labelledby="coopTitle"><button class="close" data-close aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><header class="dialog-header"><div class="kicker">Early test · up to four players</div><h2 id="coopTitle">Play together</h2><p>One pond, shared with friends. Your devices connect directly to each other.</p></header><div class="coop-body"><section data-coop-screen="choose"><button type="button" class="checkpoint-card coop-resume" id="coopResume" hidden><span><strong>Continue your co-op pond</strong><small id="coopResumeText"></small></span></button><label class="coop-field"><span>Your name</span><input id="coopName" maxlength="14" autocomplete="off" placeholder="Player"></label><div class="coop-choice"><button type="button" class="btn primary" id="coopHostGo">Host a pond</button><button type="button" class="btn subtle" id="coopJoinShow">Join a pond</button></div><p class="small-print">One player hosts and gives the others a code. A new co-op pond starts everyone as a single cell. It is saved separately, so your own life is not touched.</p></section><section data-coop-screen="host" hidden><p class="coop-label" id="coopHostLabel">Your pond code</p><div class="coop-code" id="coopCode">······</div><p>Tell your friends this code. They choose <strong>Join a pond</strong> and type it in.</p><ul class="coop-roster" data-coop-roster></ul><div class="coop-choice"><button type="button" class="btn primary" id="coopStart" disabled>Start</button><button type="button" class="btn subtle" data-coop-back>Back</button></div><p class="small-print">Not connecting? <button type="button" class="coop-link" data-coop-manual-host>Connect by copy and paste</button></p></section><section data-coop-screen="join" hidden><label class="coop-field"><span>Pond code</span><input id="coopCodeInput" class="coop-code-input" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC123"></label><div class="coop-choice"><button type="button" class="btn primary" id="coopJoinGo">Join</button><button type="button" class="btn subtle" data-coop-back>Back</button></div><p class="small-print">Not connecting? <button type="button" class="coop-link" data-coop-manual-join>Connect by copy and paste</button></p></section><section data-coop-screen="waiting" hidden><p class="coop-big">Connected ✓</p><p>Waiting for the host to start.</p><ul class="coop-roster" data-coop-roster></ul><div class="coop-choice"><button type="button" class="btn subtle" data-coop-back>Leave</button></div></section><section data-coop-screen="manualHost" hidden><ol class="coop-steps"><li><strong>Copy the invite</strong> and send it to your friend (Messages, AirDrop, anything).<textarea id="coopInvite" readonly rows="2" aria-label="Invite"></textarea><button type="button" class="btn primary" id="coopInviteCopy">Copy invite</button></li><li><strong>Paste the reply</strong> your friend sends back.<textarea id="coopReplyIn" rows="2" aria-label="Reply from your friend" placeholder="Paste the reply here"></textarea><span class="coop-row"><button type="button" class="btn primary" id="coopReplyPaste">Paste reply</button><button type="button" class="btn subtle" id="coopReplyConnect">Connect</button></span></li></ol><ul class="coop-roster" data-coop-roster></ul><div class="coop-choice"><button type="button" class="btn primary" id="coopStart2">Start</button><button type="button" class="btn subtle" data-coop-manual-host>Invite another</button><button type="button" class="btn subtle" data-coop-back>Back</button></div></section><section data-coop-screen="manualJoin" hidden><ol class="coop-steps"><li><strong>Paste the invite</strong> your host sent you.<textarea id="coopInviteIn" rows="2" aria-label="Invite from your host" placeholder="Paste the invite here"></textarea><span class="coop-row"><button type="button" class="btn primary" id="coopInvitePaste">Paste invite</button><button type="button" class="btn subtle" id="coopInviteUse">Use it</button></span></li><li id="coopReplyStep" hidden><strong>Copy the reply</strong> and send it back to your host. You connect as soon as they paste it.<textarea id="coopReply" readonly rows="2" aria-label="Reply"></textarea><button type="button" class="btn primary" id="coopReplyCopy">Copy reply</button></li></ol><div class="coop-choice"><button type="button" class="btn subtle" data-coop-back>Back</button></div></section><p class="coop-status" id="coopStatus" role="status" aria-live="polite"></p></div></dialog>
 <dialog id="skillsDialog" class="workbench-dialog" aria-labelledby="skillsTitle"><header class="pause-head"><div class="pause-id"><div class="cell-gem" aria-hidden="true"><b id="pauseCells">1</b><small id="pauseCellsLabel">cell</small></div><div class="pause-title"><div class="kicker" id="pauseKicker">Paused</div><h2 id="skillsTitle">Your colony</h2></div></div><div class="build-tabs" role="tablist" aria-label="Your build"><button type="button" role="tab" id="buildMutationsTab" aria-controls="mutationsPanel" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4M5.3 5.3l2.6 2.6M16.1 16.1l2.6 2.6M18.7 5.3l-2.6 2.6M7.9 16.1l-2.6 2.6"/></svg><span>Mutations</span></button><button type="button" role="tab" id="buildStatsTab" aria-controls="statsPanel" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20v-8M12 20V4M19 20v-11"/></svg><span>Stats</span></button><button type="button" role="tab" id="buildEvolutionTab" aria-controls="evolutionPanel" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-9M12 12 6.5 6.5M12 12l5.5-5.5"/><circle cx="5.5" cy="5.5" r="2"/><circle cx="18.5" cy="5.5" r="2"/></svg><span>Lineage</span></button></div><div class="head-actions"><div class="skill-balance" title="Stat points to spend on the Stats tab"><strong id="skillPoints">0</strong><span>Stat<br>points</span></div><div class="pause-corner" id="pauseCorner"><button type="button" class="pause-icon on" id="pauseSoundIcon" aria-label="Sound on" title="Sound"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="waves" d="M16 9a4 4 0 0 1 0 6m2.5-8.5a7.5 7.5 0 0 1 0 11"/><path class="mute" d="m16 9 6 6m0-6-6 6"/></svg></button><button type="button" class="pause-icon" id="pauseFullscreenIcon" aria-label="Fullscreen" title="Fullscreen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button></div><button class="btn primary" id="skillsBack">Keep swimming</button></div></header><div class="body-workbench"><aside class="specimen-rail" aria-label="Your organism"><div class="specimen-viewport"><canvas id="specimenCanvas" role="img" aria-label="Your current organism"></canvas><span id="specimenStatus" class="specimen-status"></span></div><aside class="trait-panel" aria-label="Class experience"><div class="trait-row" data-trait="venomist" style="--trait:var(--venomist)"><span class="trait-dot"></span><span>Venomist</span><div class="bar"><i></i></div><span class="trait-rank">·</span></div><div class="trait-row" data-trait="predator" style="--trait:var(--predator)"><span class="trait-dot"></span><span>Predator</span><div class="bar"><i></i></div><span class="trait-rank">·</span></div><div class="trait-row" data-trait="riptide" style="--trait:var(--riptide)"><span class="trait-dot"></span><span>Riptide</span><div class="bar"><i></i></div><span class="trait-rank">·</span></div><div class="trait-row" data-trait="summoner" style="--trait:var(--summoner)"><span class="trait-dot"></span><span>Brood</span><div class="bar"><i></i></div><span class="trait-rank">·</span></div><div class="trait-row" data-trait="stalker" style="--trait:var(--stalker)"><span class="trait-dot"></span><span>Stalker</span><div class="bar"><i></i></div><span class="trait-rank">·</span></div></aside><div hidden><span id="specimenIdentity"></span><p id="specimenKind"></p><p id="specimenCaption"></p><p id="traitForecast"></p><button id="mutationLoadout" tabindex="-1"></button></div></aside><div class="build-content"><section role="tabpanel" id="evolutionPanel" aria-labelledby="buildEvolutionTab" tabindex="0" hidden><div class="lineage-panel"><div class="tree-wrap"><div class="tree-stage"><div class="evo-tree" id="evoTree" role="group" aria-label="Evolution tree"><svg class="evo-lines" id="evoLines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg></div></div><div class="tree-side"><section id="evolutionSummary" class="evolution-summary" hidden aria-labelledby="evolutionTitle"><div class="growth-summary-copy"><div class="kicker" id="evolutionKicker"></div><h3 id="evolutionTitle"></h3><strong id="evolutionCells"></strong><p id="evolutionReason"></p><p id="evolutionLevel"></p></div><div class="growth-summary-ability"><small id="evolutionAbilityKicker"></small><strong id="evolutionAbility"></strong><p id="evolutionAbilityDescription"></p></div><div id="evolutionChoices" class="evolution-choices" role="group" aria-label="Choose your evolution" hidden></div><p id="evolutionPoints"></p><p id="evolutionElder" hidden></p></section><aside class="tree-detail" id="treeDetail" aria-live="polite"></aside></div></div></div></section><section role="tabpanel" id="statsPanel" aria-labelledby="buildStatsTab" tabindex="0"><div class="skills-grid stat-rows" id="skillsGrid"></div><div class="stat-foot"><p id="statDetail" aria-live="polite"></p><div class="body-overview" id="bodyOverview"></div><div class="respec-row"><button class="btn subtle" id="respecStats">Rebuild stats</button><span id="respecHint" hidden></span></div></div><div hidden><p id="attributeCap"></p><span id="statLimitText"></span></div></section><section role="tabpanel" id="mutationsPanel" aria-labelledby="buildMutationsTab" tabindex="0" hidden><div class="mutation-workspace"><div class="anatomy" id="mutationsGrid" role="group" aria-label="Your body parts"><svg class="anatomy-lines" id="anatomyLines" aria-hidden="true"></svg><div class="anatomy-body"><div class="anatomy-viewport"><canvas id="anatomyCanvas" role="img" aria-label="Your organism, front facing up"></canvas></div></div></div><article id="mutationDetail" class="mutation-detail" aria-labelledby="mutationName"><header class="part-head"><h3 id="partTitle"></h3><span id="mutationSlotCount"></span></header><div class="part-progress" id="partProgress" hidden><div class="part-progress-label"><span>Grows at</span><b id="partProgressText"></b></div><div class="part-progress-bar"><i id="partProgressFill"></i></div></div><div class="part-tokens" id="partTokens" role="group" aria-label="Mutations for this body part"></div><div class="mutation-detail-heading"><span id="mutationIcon" class="mutation-symbol" aria-hidden="true"></span><div><h3 id="mutationName"></h3><span id="mutationStatus"></span></div></div><p id="mutationDescription"></p><p id="mutationAppearance" class="appearance-note"></p><p id="mutationRequirementSummary"></p><div id="mutationRequirements" class="mutation-requirements"></div><p id="previewNote" class="preview-note" hidden></p><button type="button" id="mutationAction" class="btn primary"></button><p id="mutationActionHint"></p><p class="mutation-combat-note" id="mutationCombatNote" hidden>Mutations stay fixed while an apex predator hunts you.</p></article></div><div hidden><div id="mutationSlots"></div><div id="previewReplacementRow"><select id="previewReplacement"></select></div></div></section></div></div><footer class="skills-footer"><div class="pause-tools" id="pauseTools"><div class="pause-buttons"><button class="btn" id="saveLife">Save life</button><button class="btn" id="loadLife">Load life</button></div><div class="pause-status"><p class="checkpoint-status" id="checkpointStatus"></p><p class="file-status" data-file-status aria-live="polite"></p></div><div class="life-strip" id="lifeStrip" aria-label="This life"><div><small>Score</small><b id="pauseScore">0</b></div><div><small>Time</small><b id="pauseClock">00:00</b></div><div class="life-habitat"><small>Habitat</small><b id="pauseHabitat">Nutrient shallows</b></div><div class="study" id="pauseStudy" title="Complete a field study for score, growth and a lead to an unexplored place."><small>Field study</small><b id="pauseStudyTitle">Gather nutrients</b><span class="study-bar" aria-hidden="true"><i id="pauseStudyFill"></i></span><em id="pauseStudyNote" hidden></em></div></div><div class="pause-menu-wrap"><button class="btn" id="pauseMenuToggle" aria-haspopup="true" aria-expanded="false" aria-controls="pauseMenuList">Menu</button><div class="pause-menu" id="pauseMenuList" hidden><button class="btn" id="pauseJournal">Field guide</button><button class="btn" id="pauseHelp">How to play</button><button class="btn" id="pauseControls">Controls</button><button class="btn caution" id="restart">Restart world</button><button class="btn" id="pauseMenu">Main menu</button></div></div></div></footer></dialog><input type="file" id="loadInput" accept=".json,application/json" hidden>
 <section class="error" id="error" hidden><div><h2>This little life needs a hand.</h2><p id="errorMessage">The game could not start. Try opening the file in a desktop browser.</p><pre id="errorDetails"></pre><button class="btn primary" id="reload">Reload</button></div></section><noscript><section class="error"><div><h2>Life needs JavaScript.</h2><p>Enable JavaScript in your browser, then reopen this file.</p></div></section></noscript>
 <script>
@@ -1687,6 +1704,8 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
   // player creatures are shared.
   const COOP_LOCAL=new Set(['credit','huntCredit','stalkCredit','lastFamily','attackTokens','ramAt','puppet','owner','remoteCredit','heldUntil','venomFrom','bleedFrom','dotOut','_seen','_tx','_ty','_n','_dealt']);
   const COOP_PRIVATE=new Set(['cooldown','stamina','exhausted','tx','ty','wander','lastSeenX','lastSeenY','pursuit','fedTime','shedClock','broodClock','missNear','targetId','foraging','huntBrood','broodAggroUntil','anchorX','anchorY','biome']);
+  const COOP_UNSAVED=new Set(['puppet','owner','remoteCredit','heldUntil','venomFrom','bleedFrom','dotOut','_seen','_tx','_ty','_n','_dealt']);
+  const COOP_DOWN_SECONDS=30,COOP_REVIVE_SECONDS=4;
   const COOP_STATUS=['poison','poisonDamage','venomStacks','slowTime','stun','bleed','bleedDamage','flee'],COOP_SIGHT=1600;
   const ancientName=name=>String(name).replace(/^The /,'The Ancient ');
   // Experience: each family banks its own experience from matching actions and climbs its own ladder.
@@ -2228,7 +2247,7 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
       const s=this.state,p=s.player;if(s.bossEncounter||s.status!=='playing'||this._nurseryCalm())return;const next=this.nextBoss();if(next&&p.stage+1>=next.level)this._spawnBoss(next.type);
     }
     _spawnBoss(type){
-      const s=this.state,p=s.player,def=BOSSES[type],a=this.random()*TAU,far=900+p.r*7,r=p.r*def.size,maxHp=def.hits*p.attack;
+      const s=this.state,p=s.player,def=BOSSES[type],a=this.random()*TAU,far=900+p.r*7,r=p.r*def.size,party=this.coop?[...this.coop.peers.values()].filter(q=>q.body&&q.body.active&&length(q.body.x-p.x,q.body.y-p.y)<3000).length:0,maxHp=def.hits*p.attack*(1+.7*party);
       s.bossEncounter={id:this._id++,type,name:def.name,phaseLabel:def.phases[0],x:p.x+Math.cos(a)*far,y:p.y+Math.sin(a)*far,r,scale:p.sizeScale||1,unit:p.maxHp,hp:maxHp,maxHp,phase:1,mode:'hunt',modeTime:0,angle:a+Math.PI,vx:0,vy:0,
         attackKind:'',attackAngle:0,attackHit:false,windup:0,windupMax:1,actTime:0,recoverTime:0,cooldown:3,chain:0,lungeSpeed:0,pullTime:0,ringDue:0,lastBirth:-99,nextMeal:0,lastSeenX:p.x,lastSeenY:p.y,lostTime:0,meals:0,feeding:false,healFlash:0,
         poison:0,poisonDamage:0,venomStacks:0,bleed:0,bleedDamage:0,huntCredit:0,flash:0,age:0,projectileTokens:[],heads:type==='hydra'?[-.8,0,.8].map(off=>this._hydraHead(off)):[]};
@@ -2261,6 +2280,8 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
     }
     _bossTick(dt){
       this._bossCheck();const s=this.state,b=s.bossEncounter;if(!b||s.status!=='playing')return;const p=s.player,def=BOSSES[b.type];
+      // Co-op: a boss hunting another player is run on their device; here it is only shown.
+      if(b.puppet){b.x+=b.vx*dt;b.y+=b.vy*dt;b.flash=Math.max(0,b.flash-dt);return;}
       b.age+=dt;b.flash=Math.max(0,b.flash-dt);b.healFlash=Math.max(0,b.healFlash-dt);b.cooldown=Math.max(0,b.cooldown-dt);b.slowTime=Math.max(0,(b.slowTime||0)-dt);
       if(b.poison>0){b.poison=Math.max(0,b.poison-dt);this._hitBoss(b.poisonDamage*dt,{noCritical:true,dot:true});if(!s.bossEncounter)return;}else b.venomStacks=0;
       if(b.bleed>0){b.bleed=Math.max(0,b.bleed-dt);this._hitBoss(b.bleedDamage*dt,{noCritical:true,dot:true});if(!s.bossEncounter)return;}
@@ -2382,7 +2403,8 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
       if(!options.noCritical&&p.criticalChance>0&&this.random()<p.criticalChance){amount*=1.8+.15*this._pk('keenEdge');s.stats.criticals++;this._effect(b.x,b.y,'critical',Math.min(10000,b.r*1.2),'#f4ce82',.45);this._event('critical',{amount});}
       amount*=bossExposure(s).damageMultiplier*(1+.06*this._pk('abyssalHeart'));const actual=Math.min(b.hp,amount);b.hp-=amount;b.flash=.2;
       if(!options.defence&&!options.dot&&options.family){const credit=Math.min(actual*.03,Math.max(0,60-b.huntCredit));this._xp(options.family,credit);b.huntCredit+=credit;}
-      if(!options.dot)this._event('hit',{target:'boss',bossType:b.type,amount:actual,protected:false});
+      if(!options.dot){this._event('hit',{target:'boss',bossType:b.type,amount:actual,protected:false});b.myDamage=(b.myDamage||0)+actual;}
+      if(b.puppet){this._net(b.owner,{t:'bh',a:Math.round(actual*100)/100,p:options.poison||0,pd:options.poisonDamage||0});return true;}
       if(b.hp<=0){this._defeatBoss();return true;}
       const next=b.hp<=b.maxHp/3?3:b.hp<=b.maxHp*2/3?2:1;
       if(next>b.phase){b.phase=next;b.phaseLabel=BOSSES[b.type].phases[next-1];b.mode='transform';b.modeTime=.9;b.chain=0;b.windup=0;b.attackKind='';s.projectiles=s.projectiles.filter(shot=>shot.bossId!==b.id);
@@ -2395,6 +2417,11 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
     }
     _defeatBoss(){
       const s=this.state,b=s.bossEncounter;if(!b)return false;const p=s.player,def=BOSSES[b.type];
+      if(this.coop){
+        if(!b.puppet)this._net(-1,{t:'bd',id:b.id});
+        // Its genome goes to every player who wounded it, and to nobody who did not.
+        if(!(b.myDamage>0)){this._clearBossDependants(b.id);s.bossEncounter=null;this._effect(b.x,b.y,'bossDeath',Math.min(10000,b.r*2),def.colour,1.5);this._event('bossGone',{bossType:b.type});return true;}
+      }
       // Commit the unique reward before any biomass can trigger a division.
       const first=!p.genomes.includes(b.type);if(first)p.genomes.push(b.type);s.stats.encounters++;s.stats.bosses++;
       const reward=first?this._awardPoints(def.reward,'elder'):0;s.score+=1500*(BOSS_ORDER.indexOf(b.type)+1);s.biomass+=this._divisionShare(.4);
@@ -2556,7 +2583,10 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
     // The size a newly appearing creature is built at, against the player's current size: mostly the same
     // generation as you, sometimes a smaller one (easy food) or a larger one (danger). Once born it keeps its size.
     _spawnScale(kind){const F=this.state.player.sizeScale||1,roll=this.random();const m=roll<.2?this.range(.45,.7):roll<.86?this.range(.88,1.12):this.range(1.22,1.5);return Math.max(.5,F*m);}
-    _effect(x,y,kind,r,colour,life=.5,fields={}){this.state.effects.push({x,y,r:0,maxR:r,life,maxLife:life,kind,colour,...fields});if(this.state.effects.length>36)this.state.effects.shift();}
+    _effect(x,y,kind,r,colour,life=.5,fields={}){this.state.effects.push({x,y,r:0,maxR:r,life,maxLife:life,kind,colour,...fields});if(this.state.effects.length>36)this.state.effects.shift();
+      // Co-op: the other players see my strikes and hits too, when one of them is near enough to.
+      const c=this.coop;if(c){for(const q of c.peers.values())if(q.body&&length(q.body.x-x,q.body.y-y)<COOP_SIGHT){this._net(q.id,{t:'e',e:{x:Math.round(x),y:Math.round(y),maxR:Math.round(r),life,kind,colour,...fields}});}}
+    }
     _particles(x,y,colour,count=8,speed=55){const list=this.state.particles;for(let i=0;i<count&&list.length<280;i++){const a=this.range(0,TAU),v=this.range(speed*.3,speed),life=this.range(.35,.85);list.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life,maxLife:life,r:this.range(1.4,3.8),colour,kind:'mote'});}}
     _gain(value,kind){
       const s=this.state,p=s.player;s.biomass+=value*p.assimilation;
@@ -3226,13 +3256,25 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
     // so a creature attacking you is always run on your own device and your dodges are never late.
     // Messages leave through drainNet() and arrive through applyNet(); the engine knows nothing about how
     // they travel.
-    startCoop(me){
-      this.coop={me,clock:0,peers:new Map(),out:[],gone:new Map(),bodyClock:0,sendClock:0,houseClock:0,lookClock:0,lookKey:''};
-      this._id+=(me+1)*1e9;
-      // The first player's device populates the starting water; the others arrive beside it and see its creatures.
-      if(me>0){const s=this.state;s.organisms=[];s.player.x+=70*me;}
+    startCoop(me,fresh=true){
+      this.coop={me,clock:0,peers:new Map(),out:[],gone:new Map(),bodyClock:0,sendClock:0,houseClock:0,lookClock:0,lookKey:'',down:0,wiped:false};
+      // Every device numbers the things it makes from its own random block, so two devices never use the same number.
+      this._id=(1+Math.floor(Math.random()*60000))*4294967296+1;
+      // In a new pond the first player's device populates the starting water; the others arrive beside it.
+      if(fresh&&me>0){const s=this.state;s.organisms=[];s.player.x+=70*me;}
       return this;
     }
+    // Small party-wide notices the interface acts on (a checkpoint, a return to the checkpoint).
+    coopSignal(kind,data=null){if(this.coop)this._net(-1,{t:'u',k:kind,d:data});}
+    // Going down: the body stays where it fell. A friend who stays on it revives it; if nobody does in time, or
+    // everyone is down at once, the whole party returns to its last checkpoint.
+    coopDown(){const c=this.coop;if(!c||this.state.status!=='dead'||c.down>0)return false;c.down=COOP_DOWN_SECONDS;c.bodyClock=0;return true;}
+    coopDownState(){
+      const c=this.coop;if(!c||!(c.down>0))return null;let helper=-1,progress=0;
+      for(const q of c.peers.values()){const b=q.body;if(b&&b.rv&&b.rv[0]===c.me&&b.rv[1]>progress){progress=b.rv[1];helper=q.id;}}
+      return{time:c.down,helper,progress};
+    }
+    _coopWipe(){const c=this.coop;if(c.wiped)return;c.wiped=true;this._event('coopWipe',{});}
     _net(to,msg){this.coop.out.push({to,msg});}
     drainNet(){const c=this.coop;if(!c)return[];const out=c.out;c.out=[];return out;}
     coopPeers(){return this.coop?[...this.coop.peers.values()].filter(q=>q.body&&q.body.r).map(q=>q.body):[];}
@@ -3247,9 +3289,17 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
     // A creature as sent to another device. "full" adds the behaviour fields a new owner needs.
     _wire(o,full=false){
       const out={};
-      for(const k in o){if(COOP_LOCAL.has(k)||(!full&&COOP_PRIVATE.has(k)))continue;const v=o[k];out[k]=typeof v==='number'?Math.round(v*100)/100:v;}
+      for(const k in o){if(COOP_LOCAL.has(k)||(!full&&COOP_PRIVATE.has(k)))continue;const v=o[k];out[k]=typeof v==='number'&&!Number.isInteger(v)?Math.round(v*100)/100:v;}
       if(full)out.cr=(o.credit||0)+(o.remoteCredit||0);
       return out;
+    }
+    // Taking a creature over: clear the puppet bookkeeping and make sure every behaviour field is present.
+    _adopt(o){
+      for(const k of ['puppet','owner','_seen','_tx','_ty','_n','_dealt'])delete o[k];
+      o.targetId=-1;o.chasing=false;o.foraging=false;o.pursuit=0;o.home=this._home(o.x,o.y);o.biome=this._biomeAt(o.x,o.y);
+      const fill={cooldown:.5,stamina:this._profile(o).capacity,exhausted:false,tx:Math.cos(o.angle||0),ty:Math.sin(o.angle||0),wander:1,lastSeenX:o.x,lastSeenY:o.y,fedTime:0,anchorX:o.x,anchorY:o.y,flee:0,stun:0,charge:0,flash:0,slowTime:0,venomStacks:0,windup:0,lungeTime:0,recoverTime:0};
+      for(const k in fill)if(typeof o[k]!==typeof fill[k]||(typeof fill[k]==='number'&&!Number.isFinite(o[k])))o[k]=fill[k];
+      return o;
     }
     _give(o,to){
       const c=this.coop;this._net(to,{t:'g',o:this._wire(o,true)});
@@ -3257,10 +3307,23 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
     }
     coopTick(dt){
       const c=this.coop;if(!c||!(dt>0))return;const s=this.state,p=s.player;c.clock+=dt;
-      for(const q of c.peers.values()){const b=q.body;if(!b)continue;q.tx+=b.vx*dt;q.ty+=b.vy*dt;const k=Math.min(1,dt*14);b.x+=(q.tx-b.x)*k;b.y+=(q.ty-b.y)*k;}
+      for(const q of c.peers.values()){const b=q.body;if(!b)continue;q.tx+=b.vx*dt;q.ty+=b.vy*dt;const k=Math.min(1,dt*14);b.x+=(q.tx-b.x)*k;b.y+=(q.ty-b.y)*k;if(b.brood)for(const v of b.brood){v.x+=v.vx*dt;v.y+=v.vy*dt;}}
+      for(const e of s.effects)if(e.follow!==undefined){const q=c.peers.get(e.follow);if(q&&q.body){e.x=q.body.x;e.y=q.body.y;}}
       c.bodyClock-=dt;if(c.bodyClock<=0){c.bodyClock=.05;
         const r2=v=>Math.round(v*100)/100;
-        this._net(-1,{t:'p',x:r2(p.x),y:r2(p.y),vx:r2(p.vx),vy:r2(p.vy),angle:r2(p.angle),hp:r2(p.hp),maxHp:r2(p.maxHp),r:r2(p.r),stealth:r2(p.stealth||0),hurt:r2(p.hurt||0),invulnerable:r2(p.invulnerable||0),sprinting:!!p.sprinting,sneaking:!!p.sneaking,exhausted:!!p.exhausted,alive:!!p.alive,active:this._coopActive()});
+        this._net(-1,{t:'p',x:r2(p.x),y:r2(p.y),vx:r2(p.vx),vy:r2(p.vy),angle:r2(p.angle),hp:r2(p.hp),maxHp:r2(p.maxHp),r:r2(p.r),stealth:r2(p.stealth||0),hurt:r2(p.hurt||0),invulnerable:r2(p.invulnerable||0),sprinting:!!p.sprinting,sneaking:!!p.sneaking,exhausted:!!p.exhausted,alive:!!p.alive,active:this._coopActive(),down:c.down>0?Math.ceil(c.down):0,rv:c.reviving||null,brood:(s.brood||[]).slice(0,12).map(b=>({x:Math.round(b.x),y:Math.round(b.y),vx:Math.round(b.vx||0),vy:Math.round(b.vy||0),r:r2(b.r||6),phase:r2(b.phase||0)}))});
+      }
+      // Down: count towards the party's return. Nobody left to help makes it short.
+      if(c.down>0&&!c.wiped){
+        const others=[...c.peers.values()].filter(q=>q.body&&q.body.r);if(!others.length)c.down=Math.min(c.down,3);
+        c.down-=dt;const allDown=others.length>0&&others.every(q=>q.body.down>0);
+        if(c.down<=0||allDown){c.down=Math.max(c.down,.01);this.coopSignal('wipe');this._coopWipe();}
+      }
+      // Reviving: stay touching a downed friend. Being hit starts the count again.
+      c.reviving=null;
+      if(this._coopActive())for(const q of c.peers.values()){const b=q.body;if(!b||!(b.down>0)||length(b.x-p.x,b.y-p.y)>p.r+b.r+16||p.hurt>.3){q.rev=0;continue;}
+        q.rev=(q.rev||0)+dt;c.reviving=[q.id,Math.round(q.rev/COOP_REVIVE_SECONDS*100)/100];
+        if(q.rev>=COOP_REVIVE_SECONDS){q.rev=0;b.down=0;this._net(q.id,{t:'v'});this._event('coopHelped',{peer:q.id});}
       }
       c.lookClock-=dt;const key=p.stage+'|'+FAMILIES.map(f=>p.traits[f]+(p.forks[f+2]||'')+(p.forks[f+4]||'')).join('')+'|'+p.mutations.join(',')+'|'+p.strike;
       if(key!==c.lookKey||c.lookClock<=0){c.lookKey=key;c.lookClock=4;this._net(-1,{t:'l',body:JSON.parse(JSON.stringify(p))});}
@@ -3288,11 +3351,12 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
         for(const o of s.organisms){if(o.puppet||o.dead||length(o.x-b.x,o.y-b.y)>COOP_SIGHT+o.r)continue;
           let last=q.known.get(o.id);
           if(!last){if(introduced>=8)continue;introduced++;last=this._wire(o);list.push({...last});}
-          else{const d={id:o.id};for(const k in o){if(COOP_LOCAL.has(k)||COOP_PRIVATE.has(k))continue;let v=o[k];if(v!==null&&typeof v==='object')continue;if(typeof v==='number')v=Math.round(v*100)/100;if(last[k]!==v){d[k]=v;last[k]=v;}}list.push(d);}
+          else{const d={id:o.id};for(const k in o){if(COOP_LOCAL.has(k)||COOP_PRIVATE.has(k))continue;let v=o[k];if(v!==null&&typeof v==='object')continue;if(typeof v==='number'&&!Number.isInteger(v))v=Math.round(v*100)/100;if(last[k]!==v){d[k]=v;last[k]=v;}}list.push(d);}
           fresh.set(o.id,last);
         }
         q.known=fresh;if(list.length)this._net(q.id,{t:'o',l:list});
       }
+      const boss=s.bossEncounter;if(boss&&!boss.puppet){const w={...boss};delete w.myDamage;for(const q of c.peers.values())if(q.body&&length(q.body.x-boss.x,q.body.y-boss.y)<4000+boss.r)this._net(q.id,{t:'b',b:w});}
       // Shots are sent once, when fired: they fly in a straight line, so every device can carry them on alone.
       for(const shot of s.projectiles){if(shot.remote||shot.sent)continue;shot.sent=true;const copy={...shot};delete copy.strike;delete copy.sent;this._net(-1,{t:'s',s:copy});}
     }
@@ -3306,12 +3370,21 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
         if(o.dotOut){for(const k in o.dotOut){const [from,fam]=k.split('|');if(c.peers.has(+from))this._net(+from,{t:'c',id:o.id,a:Math.round(o.dotOut[k]*100)/100,f:fam});}delete o.dotOut;}
         // Hand a creature to the player it is now nearest, unless it is busy with mine. While I am paused,
         // dead or choosing a path, everything near another player goes to them so the pond around them stays alive.
-        if(o.bossId||o.nestId||(o.heldUntil||0)>c.clock||(active&&this._engaged(o)))continue;
+        if((o.bossId&&active)||o.nestId||(o.heldUntil||0)>c.clock||(active&&this._engaged(o)))continue;
+        // A creature of mine that has ended up in water I do not have loaded, with no player near it, is let go.
+        if(!this._chunks[this._home(o.x,o.y)]&&!o.bossId){let seen=false;for(const q of c.peers.values())if(q.body&&length(o.x-q.body.x,o.y-q.body.y)<COOP_SIGHT)seen=true;if(!seen){o.dead=true;dropped=true;continue;}}
         let best=null,bd=Infinity;for(const q of c.peers.values()){const b=q.body;if(!b||!b.active)continue;const d=length(o.x-b.x,o.y-b.y);if(d<bd){bd=d;best=q;}}
         if(!best)continue;const mine=length(o.x-p.x,o.y-p.y);
         if(active?bd<mine*.7&&bd<1200:bd<COOP_SIGHT)this._give(o,best.id);
       }
       if(dropped&&!active)s.organisms=s.organisms.filter(o=>!o.dead);
+      // Remains left in water I do not have loaded cannot be kept.
+      if(s.foods.some(f=>!this._chunks[f.home]))s.foods=s.foods.filter(f=>this._chunks[f.home]||(this._chunks[this._home(f.x,f.y)]&&(f.home=this._home(f.x,f.y))));
+      const boss=s.bossEncounter;
+      if(boss&&boss.puppet&&(c.clock-boss._seen>2||!c.peers.has(boss.owner)))s.bossEncounter=null;
+      // A boss whose player is down or away turns on the nearest player still standing.
+      if(boss&&!boss.puppet&&!active){let best=null,bd=Infinity;for(const q of c.peers.values()){const b=q.body;if(!b||!b.active)continue;const d=length(boss.x-b.x,boss.y-b.y);if(d<bd){bd=d;best=q;}}
+        if(best){const w={...boss};delete w.myDamage;this._net(best.id,{t:'bg',b:w});boss.puppet=true;boss.owner=best.id;boss._seen=c.clock;}}
     }
     // A player has gone. Their creatures near the rest of us carry on: the remaining device with the lowest
     // player number takes them over, and the others keep watching them through it.
@@ -3319,7 +3392,7 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
       const c=this.coop;if(!c||!c.peers.has(id))return;c.peers.delete(id);
       const lowest=Math.min(c.me,...c.peers.keys())===c.me;
       for(const o of this.state.organisms){if(!o.puppet||o.owner!==id)continue;
-        if(lowest){for(const k of ['puppet','owner','_seen','_tx','_ty','_n','_dealt'])delete o[k];o.targetId=-1;o.chasing=false;o.pursuit=0;o.home=this._home(o.x,o.y);if(!Number.isFinite(o.stamina))o.stamina=this._profile(o).capacity;if(!Number.isFinite(o.cooldown))o.cooldown=.5;}
+        if(lowest)this._adopt(o);
         else o._seen=c.clock;
       }
     }
@@ -3328,10 +3401,8 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
     coopAway(away){const c=this.coop;if(!c||!!c.away===!!away)return;c.away=!!away;c.bodyClock=0;if(away)this._coopHouse();this.coopTick(1e-4);}
     // Back on your feet after going down (the full downed-and-revive rules come later).
     coopRevive(){
-      const c=this.coop,s=this.state,p=s.player;if(!c||s.status!=='dead')return false;
-      let best=null,bd=Infinity;for(const q of c.peers.values()){const b=q.body;if(!b||!b.active)continue;const d=length(b.x-p.x,b.y-p.y);if(d<bd){bd=d;best=b;}}
-      if(best){p.x=best.x+90;p.y=best.y;}
-      p.alive=true;p.hp=p.maxHp*.5;p.energy=p.maxEnergy;p.nutrition=Math.max(p.nutrition,50);p.exhausted=false;p.invulnerable=4;p.hurt=0;p.vx=p.vy=0;p.deathCause='';s.status='playing';this._stream(true);
+      const c=this.coop,s=this.state,p=s.player;if(!c||s.status!=='dead')return false;c.down=0;c.bodyClock=0;
+      p.alive=true;p.hp=p.maxHp*.4;p.energy=p.maxEnergy;p.nutrition=Math.max(p.nutrition,50);p.exhausted=false;p.invulnerable=4;p.hurt=0;p.vx=p.vy=0;p.deathCause='';s.status='playing';this._stream(true);
       return true;
     }
     applyNet(from,m){
@@ -3341,13 +3412,13 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
       if(m.t==='p'){
         if(!Number.isFinite(m.x)||!Number.isFinite(m.y))return;
         const first=!q.body||!Number.isFinite(q.body.x);if(!q.body)q.body={};
-        const {t,x,y,...rest}=m;Object.assign(q.body,rest);q.body.peer=from;q.tx=x;q.ty=y;
+        const {t,x,y,...rest}=m;if(!Array.isArray(rest.brood))rest.brood=[];rest.brood=rest.brood.filter(v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)&&v.r>0).slice(0,12);q.fast=rest;Object.assign(q.body,rest);q.body.peer=from;q.tx=x;q.ty=y;
         if(first||length(q.body.x-x,q.body.y-y)>600){q.body.x=x;q.body.y=y;}
       }
       else if(m.t==='l'){
         if(!m.body||typeof m.body!=='object')return;const keep=q.body||{};
-        q.body={...m.body,...Object.fromEntries(['x','y','vx','vy','angle','hp','maxHp','stealth','hurt','invulnerable','sprinting','sneaking','exhausted','alive','active'].filter(k=>keep[k]!==undefined).map(k=>[k,keep[k]])),peer:from};
-        if(!Number.isFinite(q.tx)||!keep.r){q.tx=q.body.x;q.ty=q.body.y;}
+        q.body={...m.body,...(q.fast||{}),peer:from};if(Number.isFinite(keep.x)){q.body.x=keep.x;q.body.y=keep.y;}
+        if(!Number.isFinite(keep.x)){q.tx=q.body.x;q.ty=q.body.y;}
       }
       else if(m.t==='o'){
         if(!Array.isArray(m.l))return;const byId=new Map(s.organisms.map(o=>[o.id,o]));
@@ -3366,6 +3437,8 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
         }
       }
       else if(m.t==='r'){q.known.delete(m.id);}
+      else if(m.t==='v'){if(c.down>0&&!c.wiped&&this.coopRevive(true))this._event('coopRevived',{peer:from});}
+      else if(m.t==='u'){if(m.k==='wipe')this._coopWipe();else if(typeof m.k==='string')this._event('coopSignal',{from,kind:m.k.slice(0,20),data:m.d});}
       else if(m.t==='d'){
         const o=find(m.id);if(!o||o.dead)return;
         if(o.puppet){if(o.owner!==from)this._net(o.owner,m);return;}
@@ -3390,9 +3463,28 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
         let o=find(e.id);if(o&&!o.puppet)return;
         const mine=o?{credit:o.credit||0,huntCredit:o.huntCredit||0,stalkCredit:o.stalkCredit||0,lastFamily:o.lastFamily||'',attackTokens:o.attackTokens||[],ramAt:o.ramAt??-5}:{credit:0,huntCredit:0,stalkCredit:0,lastFamily:'',attackTokens:[],ramAt:-5};
         if(!o){o={};s.organisms.push(o);}
-        for(const k of ['puppet','owner','_seen','_tx','_ty','_n','_dealt'])delete o[k];
-        const cr=e.cr||0;Object.assign(o,e,mine);delete o.cr;o.remoteCredit=cr;o.targetId=-1;o.chasing=false;o.pursuit=0;o.heldUntil=c.clock+1.5;o.home=this._home(o.x,o.y);
-        if(!Number.isFinite(o.cooldown))o.cooldown=.5;if(!Number.isFinite(o.stamina))o.stamina=this._profile(o).capacity;
+        const cr=e.cr||0;Object.assign(o,e,mine);delete o.cr;this._adopt(o);o.remoteCredit=cr;o.heldUntil=c.clock+1.5;
+      }
+      else if(m.t==='b'||m.t==='bg'){
+        const e=m.b;if(!e||!Number.isFinite(e.id)||!Number.isFinite(e.x)||!Number.isFinite(e.y)||!(e.r>0)||!Object.hasOwn(BOSSES,e.type)||!Number.isFinite(e.hp)||!Number.isFinite(e.maxHp))return;
+        const cur=s.bossEncounter;if(cur&&!cur.puppet)return;const same=cur&&cur.id===e.id,mine=same?{myDamage:cur.myDamage||0,huntCredit:cur.huntCredit||0,projectileTokens:cur.projectileTokens||[]}:{myDamage:0,huntCredit:0,projectileTokens:[]};
+        if(m.t==='b'){s.bossEncounter={...e,...mine,puppet:true,owner:from,_seen:c.clock};if(!same)this._event('bossAwakened',{bossType:e.type,name:e.name});}
+        else if(this._coopActive()){
+          // It is mine to run now: it starts its hunt afresh, on my player.
+          const p=s.player;s.bossEncounter={...e,...mine,mode:e.mode==='transform'?'transform':'hunt',attackKind:'',windup:0,actTime:0,cooldown:Math.max(1.5,e.cooldown||0),lastSeenX:p.x,lastSeenY:p.y,lostTime:0};if(!same)this._event('bossAwakened',{bossType:e.type,name:e.name});
+        }
+      }
+      else if(m.t==='bh'){
+        const b=s.bossEncounter;if(!b||!Number.isFinite(m.a)||!(m.a>0))return;if(b.puppet){if(b.owner!==from)this._net(b.owner,m);return;}if(b.mode==='transform'||b.hp<=0)return;
+        b.hp-=clamp(m.a,0,1e7);b.flash=.2;if(m.p>0&&Number.isFinite(m.pd)){b.poison=Math.max(b.poison,clamp(m.p,0,10));b.poisonDamage=Math.max(b.poisonDamage,clamp(m.pd,0,1e5));}
+        // Run the usual checks for a new phase or its defeat, without crediting my player for the blow.
+        if(b.hp<=0)this._defeatBoss();else this._hitBoss(1e-6,{noCritical:true,dot:true});
+      }
+      else if(m.t==='bd'){const b=s.bossEncounter;if(b&&b.puppet&&b.id===m.id)this._defeatBoss();}
+      else if(m.t==='e'){
+        const e=m.e;if(!e||!Number.isFinite(e.x)||!Number.isFinite(e.y)||!(e.life>0)||!(e.maxR>=0)||typeof e.kind!=='string')return;
+        // An effect that follows its maker's body follows that player here.
+        s.effects.push({...e,r:0,life:Math.min(e.life,4),maxLife:Math.min(e.life,4),maxR:Math.min(e.maxR,2000),self:false,follow:e.self?from:undefined});if(s.effects.length>48)s.effects.shift();
       }
       else if(m.t==='s'){
         const e=m.s;if(!e||!Number.isFinite(e.x)||!Number.isFinite(e.y)||!Number.isFinite(e.vx)||!Number.isFinite(e.vy)||!(e.life>0)||!(e.r>0))return;
@@ -3413,7 +3505,17 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
     }
     // The live save data, not copied: for callers that turn it into text straight away.
     saveObject(){
-      const runtime=this._saveRuntime();return{format:'MORPHOS_SAVE',version:18,state:{...this.state,brood:undefined},runtime};
+      const runtime=this._saveRuntime(),state={...this.state,brood:undefined};
+      if(this.coop){
+        // Things made on other devices carry their numbers; the save's own counter must sit above all of them.
+        let top=runtime.id;const lift=v=>{if(v&&Number.isInteger(v.id)&&v.id>=top)top=v.id+1;};
+        // A co-op save holds only what this device owns, without the co-op bookkeeping.
+        const clean=o=>{const out={};for(const k in o)if(!COOP_UNSAVED.has(k))out[k]=o[k];return out;};
+        state.organisms=state.organisms.filter(o=>!o.puppet&&!o.dead&&this._chunks[o.home]).map(clean);state.foods=state.foods.filter(f=>this._chunks[f.home]);if(state.bossEncounter&&state.bossEncounter.puppet)state.bossEncounter=null;else if(state.bossEncounter)state.bossEncounter=clean(state.bossEncounter);state.projectiles=state.projectiles.filter(x=>!x.remote).map(x=>{const y={...x};delete y.sent;return y;});state.effects=[];
+        runtime.chunkCache=Object.fromEntries(Object.entries(runtime.chunkCache).map(([k,v])=>[k,{...v,organisms:v.organisms.filter(o=>!o.puppet).map(clean)}]));
+        for(const name of ['organisms','foods','hazards','scenery','projectiles','drops'])for(const v of state[name])lift(v);for(const v of Object.values(runtime.chunkCache))for(const name of ['organisms','foods','hazards','scenery'])for(const x of v[name])lift(x);for(const o of state.organisms)for(const id of o.attackTokens||[])lift({id});if(state.bossEncounter)lift(state.bossEncounter);runtime.id=top;
+      }
+      return{format:'MORPHOS_SAVE',version:18,state,runtime};
     }
     _saveRuntime(){return{rng:this._rng,id:this._id,maintain:this._maintain,ai:this._ai,scoreClock:this._scoreClock,apexSpawned:this._apexSpawned,lastEat:this._lastEat,hungryWarned:this._hungryWarned,wakeClock:this._wakeClock,streamClock:this._streamClock,chunks:this._chunks,chunkCache:this._chunkCache,cacheOrder:this._cacheOrder};}
     exportSave(){return JSON.parse(JSON.stringify(this.saveObject()));}
@@ -3473,7 +3575,7 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
       ok(list(s.evolutionLog,120)&&s.evolutionLog.every(e=>evolution(e)));
       if(s.pendingChoice===undefined)s.pendingChoice=null;ok(s.pendingChoice===null||object(s.pendingChoice)&&s.pendingEvolution===null&&list(s.pendingChoice.options,5)&&s.pendingChoice.options.length>=1&&(s.pendingChoice.nodes===undefined?s.pendingChoice.options.length>=2:list(s.pendingChoice.nodes,10)&&s.pendingChoice.nodes.length>=2&&s.pendingChoice.nodes.every(n=>object(n)&&s.pendingChoice.options.includes(n.trait)&&names(n.fork,['','a','b'])))&&new Set(s.pendingChoice.options).size===s.pendingChoice.options.length&&s.pendingChoice.options.every(k=>FAMILIES.includes(k))&&s.pendingChoice.stage===p.stage&&s.pendingChoice.options.length===1&&s.pendingChoice.nodes.length===2&&(()=>{const f=s.pendingChoice.options[0],next=p.traits[f]+1;return (next===2||next===4)&&!Object.hasOwn(p.forks,f+next)&&s.pendingChoice.nodes.every(n=>n.trait===f&&n.fork!=='')&&s.pendingChoice.nodes[0].fork!==s.pendingChoice.nodes[1].fork;})());
       ok(s.pendingEvolution===null);
-      ok(int(r.rng,0,0xffffffff)&&int(r.id,1,1e12)&&bool(r.apexSpawned)&&bool(r.hungryWarned));
+      ok(int(r.rng,0,0xffffffff)&&int(r.id,1,1e15)&&bool(r.apexSpawned)&&bool(r.hungryWarned));
       for(const k of ['maintain','ai','scoreClock','wakeClock','streamClock'])ok(num(r[k],-.2,10));ok(num(r.lastEat,-10,s.time));
       ok(object(r.chunks)&&Object.keys(r.chunks).length===25&&object(r.chunkCache)&&Object.keys(r.chunkCache).length<=20&&list(r.cacheOrder,20)&&new Set(r.cacheOrder).size===r.cacheOrder.length&&r.cacheOrder.length===Object.keys(r.chunkCache).length);
       const meta=(v,k)=>object(v)&&key(k)&&v.key===k&&int(v.cx,-1e9,1e9)&&int(v.cy,-1e9,1e9)&&k===v.cx+','+v.cy&&int(v.biome,0,2)&&int(v.rng,0,0xffffffff)&&num(v.foodClock,-2,20)&&num(v.mobClock,-2,60);
@@ -3843,6 +3945,20 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
    c.restore();
   }
   // An arrow at the edge of the view pointing to a boss that is out of sight, brighter as it gets close.
+  // Another player: their body, their name, and an arrow at the edge of the screen when they are out of view.
+  drawPeer(q,p,time){
+   const c=this.ctx,z=this.camera.zoom,cull=this.cull;if(!cull||!Number.isFinite(q.x)||!q.r)return;const colour=q.colour||'#d6eda2',font='600 12px "Helvetica Neue",Arial,sans-serif';
+   if(q.brood&&q.brood.length){const co=mix(this.playerColour(q),[245,214,140],.35);for(const b of q.brood)if(this.visible(b,30))this.drawBroodling(b,co,time);c.globalAlpha=1;}
+   if(this.visible(q,q.r*2)){const keep=this._specimenMorph;this._specimenMorph=null;this.drawPlayer(q.down>0?{...q,stealth:.75,invulnerable:0}:q,time,false,true);this._specimenMorph=keep;c.globalAlpha=1;
+    if(q.down>0){
+     // Down: a red ring empties as their time runs out; a green ring fills while someone revives them.
+     const R=q.r+10/z;c.save();c.lineCap='round';c.lineWidth=3/z;c.strokeStyle='rgba(255,139,145,.25)';c.beginPath();c.arc(q.x,q.y,R,0,TAU);c.stroke();c.strokeStyle='rgba(255,139,145,.95)';c.beginPath();c.arc(q.x,q.y,R,-Math.PI/2,-Math.PI/2+TAU*clamp(q.down/30,0,1));c.stroke();
+     if(q.reviveShown>0){c.strokeStyle='rgba(190,240,150,.95)';c.lineWidth=4/z;c.beginPath();c.arc(q.x,q.y,R+6/z,-Math.PI/2,-Math.PI/2+TAU*clamp(q.reviveShown,0,1));c.stroke();}
+     c.restore();}
+    c.save();c.translate(q.x,q.y-q.r-12/z);c.scale(1/z,1/z);c.font=font;c.textAlign='center';c.fillStyle='rgba(4,20,24,.6)';const w=c.measureText(q.name||'').width+14;c.beginPath();c.roundRect(-w/2,-15,w,20,10);c.fill();c.fillStyle=q.active===false?'rgba(200,210,200,.6)':colour;c.fillText(q.name||'',0,0);c.restore();return;}
+   const cx=(cull.left+cull.right)/2,cy=(cull.top+cull.bottom)/2,a=Math.atan2(q.y-cy,q.x-cx),hw=(cull.right-cull.left)/2-46/z,hh=(cull.bottom-cull.top)/2-70/z,t=Math.min(hw/Math.abs(Math.cos(a)||1e-6),hh/Math.abs(Math.sin(a)||1e-6)),x=cx+Math.cos(a)*t,y=cy+Math.sin(a)*t;
+   c.save();c.translate(x,y);c.scale(1/z,1/z);c.save();c.rotate(a);c.beginPath();c.moveTo(15,0);c.lineTo(-7,-9);c.lineTo(-3,0);c.lineTo(-7,9);c.closePath();c.fillStyle=colour;c.globalAlpha=.85;c.fill();c.restore();c.font=font;c.textAlign='center';c.fillStyle=colour;c.globalAlpha=.85;c.fillText(q.name||'',-Math.cos(a)*34,-Math.sin(a)*22+4);c.restore();
+  }
   drawBossPointer(b,p){
    const c=this.ctx,z=this.camera.zoom,cull=this.cull;if(!cull)return;const cx=(cull.left+cull.right)/2,cy=(cull.top+cull.bottom)/2,a=Math.atan2(b.y-cy,b.x-cx),hw=(cull.right-cull.left)/2-40/z,hh=(cull.bottom-cull.top)/2-60/z;
    const t=Math.min(hw/Math.abs(Math.cos(a)||1e-6),hh/Math.abs(Math.sin(a)||1e-6)),x=cx+Math.cos(a)*t,y=cy+Math.sin(a)*t,d=Math.hypot(b.x-p.x,b.y-p.y),near=clamp(1-(d-b.r)/(b.r*10),0,1),pulse=.6+.4*Math.sin(performance.now()/1000*(3+near*6));
@@ -4457,7 +4573,7 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
    for(const o of state.organisms||[])this.drawOrganism(o,state,time);
    if(!menu&&(state.brood||[]).length){const co=mix(this.playerColour(p),[245,214,140],.35);for(const b of state.brood)if(this.visible(b,30))this.drawBroodling(b,co,time);}
    if(!menu)for(const o of state.organisms||[]){if(o.dead||!(o.venomStacks>0)||!this.visible(o,30))continue;const n=o.venomStacks,w=Math.min(o.r*1.6,n*7);for(let i=0;i<n;i++){const x=o.x-w/2+(n>1?i*w/(n-1):w/2),y=o.y-o.r-9;c.beginPath();c.arc(x,y,2.2,0,TAU);c.fillStyle='rgba(190,240,100,.85)';c.fill();}}
-   if(!menu){this.drawBoss(state,time);this.drawPlayer(p,time);this.drawShell(p,time);}
+   if(!menu){this.drawBoss(state,time);for(const q of options.peers||[])this.drawPeer(q,p,time);this.drawPlayer(p,time);this.drawShell(p,time);}
    this.drawDrops(state,time);this.drawEffects(state,time);if(!menu)this.pointer(options.aim,p,time);
    c.restore();
    // Gentle lens falloff keeps the arena luminous and the HUD readable.
@@ -4469,6 +4585,7 @@ body .tip,body[data-input=touch] .tip{left:max(14px,env(safe-area-inset-left))!i
    if((p.hurt||0)>.03&&!menu){c.fillStyle=`rgba(189,53,77,${clamp(p.hurt*.05,0,.07)})`;c.fillRect(0,0,w,h);}
   }
  }
+ MorphosRenderer.PEER_COLOURS=['#d6eda2','#84d9e8','#f3aa84','#c5aceb'];
  window.MorphosRenderer=MorphosRenderer;
 })();
 
@@ -5025,15 +5142,15 @@ window.MorphosAudio=MorphosAudio;
    clearInput();if(mode==='playing')setMode('paused');
    activateDialog(id,back);
  }
- function startLife(seed=safeSeed()){
-   closeAllDialogs();rewardContext=null;game=new MorphosGame(seed);lastGrowth=null;growthUnseen=false;latestUnseen=false;treeSelected='';clearInput();seenMutations.clear();lessons.clear();resultRecorded=false;lifeNewDiscoveries=0;accumulator=0;buildTab='stats';compassMode='auto';resetSpecimen();
+ function startLife(seed=safeSeed(),session=null){
+   if(!session)coopLeave();closeAllDialogs();rewardContext=null;game=new MorphosGame(seed);lastGrowth=null;growthUnseen=false;latestUnseen=false;treeSelected='';clearInput();seenMutations.clear();lessons.clear();resultRecorded=false;lifeNewDiscoveries=0;accumulator=0;buildTab='stats';compassMode='auto';resetSpecimen();
    $('seedInput').value=seed;clearNotices();fileMessage('');
    if(renderer){renderer.resetView();}
-   setMode('playing');last=performance.now();updateUI(true);notify('Swim over nutrients and smaller organisms to feed. Kills, growth and close calls wake new abilities.',6,2);saveCheckpoint('A new life','initial');
+   setMode('playing');last=performance.now();updateUI(true);notify('Swim over nutrients and smaller organisms to feed. Kills, growth and close calls wake new abilities.',6,2);if(!session)saveCheckpoint('A new life','initial');
    if(audio&&soundOn)audio.event({type:'biome',index:0,name:game.state.biomeName});
  }
  function returnHome(){
-   closeAllDialogs();clearInput();rewardContext=null;game=new MorphosGame(safeSeed());lastGrowth=null;growthUnseen=false;latestUnseen=false;treeSelected='';setMode('menu');clearNotices();refreshRecords();fileMessage('');
+   coopLeave();closeAllDialogs();clearInput();rewardContext=null;game=new MorphosGame(safeSeed());lastGrowth=null;growthUnseen=false;latestUnseen=false;treeSelected='';setMode('menu');clearNotices();refreshRecords();fileMessage('');
  }
  // Pausing opens the body screen: stats first, with save, load, guides and exits along its footer.
  function pauseGame(){
@@ -5632,7 +5749,11 @@ window.MorphosAudio=MorphosAudio;
    else if(e.type==='journeyComplete')journeyWon=true;
    else if(e.type==='bossRetreated')notify('You escaped. The elder will recover before your next attempt.',4);
    else if(e.type==='growthBlocked'){compassMode='elder';notify('Your colony is ready to grow, but '+(game.state.bossEncounter?.name||'an apex predator')+' stands in the way. Defeat it to grow further.',6,3);}
-   else if(e.type==='death')finish();
+   else if(e.type==='death'){if(coopOn())coopDowned();else finish();}
+   else if(e.type==='coopWipe')coopRestore();
+   else if(e.type==='coopRevived'){notify(((coop&&coop.names[e.peer])||'A friend')+' revived you.',4,3);updateUI(true);}
+   else if(e.type==='coopHelped')notify('You revived '+((coop&&coop.names[e.peer])||'your friend')+'.',4,2);
+   else if(e.type==='coopSignal'){if(e.kind==='cp'&&coopCheckpoint(typeof e.data==='string'?e.data.slice(0,64):'Checkpoint','','',true))checkpointBanner(typeof e.data==='string'?e.data.slice(0,64):'Checkpoint');}
  }if(game.state.status==='playing'){if(journeyWon)finish(true,victory);else if(victory)showElderReward(victory);}}
  // Screen directions: up is north.
  function compassWord(dx,dy){const a=Math.atan2(dy,dx),names=['east','south-east','south','south-west','west','north-west','north','north-east'];return names[((Math.round(a/(Math.PI/4))%8)+8)%8];}
@@ -5686,6 +5807,8 @@ window.MorphosAudio=MorphosAudio;
  let pendingCheckpoint=null;
  function flushCheckpoint(){if(pendingCheckpoint===null)return;const text=pendingCheckpoint;pendingCheckpoint=null;try{checkpoint=JSON.parse(text);}catch{}updateCheckpointUI();}
  function saveCheckpoint(reason='Checkpoint',policy='',snapshot=null,landmarkId=''){
+   // A co-op pond has its own save, and never overwrites your own saved life.
+   if(coop)return coopOn()?coopCheckpoint(reason,policy,landmarkId):false;
    if(!game||mode==='menu')return false;const s=snapshot?snapshot.state:game.state;
    if(!checkpointAllows(s,policy,landmarkId))return false;
    try{
@@ -5701,7 +5824,7 @@ window.MorphosAudio=MorphosAudio;
    const restored=MorphosGame.fromSave(raw.game),records=validatedRecords(raw.records);
    if(restored.state.status!=='playing'||!restored.state.player.alive)throw Error('That life has already ended. Choose a save from before it ended.');
    // Commit only once every simulation field has passed engine validation.
-   closeAllDialogs();clearInput();rewardContext=null;game=restored;lastGrowth=null;growthUnseen=false;latestUnseen=false;treeSelected='';game.drainEvents();seenMutations.clear();lessons.clear();resetSpecimen();
+   coopLeave();closeAllDialogs();clearInput();rewardContext=null;game=restored;lastGrowth=null;growthUnseen=false;latestUnseen=false;treeSelected='';game.drainEvents();seenMutations.clear();lessons.clear();resetSpecimen();
    if(Array.isArray(raw.seenMutations))for(const key of raw.seenMutations.slice(0,30))if(typeof key==='string'&&Object.hasOwn(MorphosGame.MUTATIONS,key))seenMutations.add(key);
    resultRecorded=false;lifeNewDiscoveries=0;accumulator=0;
    best=Math.max(best,records.best);for(const [k,v]of Object.entries(records.guide))if(!guide[k])guide[k]=v;save();refreshRecords();$('seedInput').value=game.state.seed;clearNotices();
@@ -6084,6 +6207,183 @@ $('pauseHelp').addEventListener('click',showHelp);
    else if(s.time>20&&s.stats.pulses===0&&!lessons.has('pulse')){lessons.add('pulse');notify(touchUI()?'Tap the large button to strike where your stick points. Tap the shield just before impact to block.':padActive?'Aim with the right stick and pull RT to strike. Tap LB just before impact to block.':'Left click to strike. Aim and tap '+(keyLabel('block')||'Block')+' just before impact to block.',5);}
    else if(p.stage>0&&p.skillPoints>0&&!lessons.has('body')){lessons.add('body');notify((touchUI()?'Tap the DNA icon at the top':pressKey('body'))+' to refine your stats and equip a discovered mutation. Life pauses while you choose.',5);}
  }
+ // ---- Co-op: finding and talking to the other players ----------------------------------------------------
+ // Players connect browser to browser (WebRTC). To set a connection up, the two browsers first have to swap a
+ // block of connection details. Normally that goes through the small helper at SIGNAL_URL, which only passes
+ // those details along; with "copy and paste" the players pass them to each other by hand instead. After that,
+ // everything travels directly between the players. The host's browser sits in the middle: each guest talks
+ // to the host, and the host passes on what is meant for the other guests.
+ const SIGNAL_URL=(()=>{try{const u=new URLSearchParams(location.search).get('signal');if(u&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname))return u;}catch{}return'https://coop.jza.app';})();
+ const ICE={iceServers:[{urls:'stun:stun.cloudflare.com:3478'},{urls:'stun:stun.l.google.com:19302'}]};
+ const COOP_MAX=4,CODE_LETTERS='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+ const coopKey='morphos.coop.v1';
+ let coop=null,coopTimer=0,coopStored=null;
+ const coopOn=()=>!!(coop&&coop.started);
+ const randomText=(n,letters)=>{const v=new Uint32Array(n);crypto.getRandomValues(v);return[...v].map(x=>letters[x%letters.length]).join('');};
+ const coopName=()=>{const v=$('coopName').value.trim().slice(0,14)||'Player';try{localStorage.setItem('morphos.name.v1',v);}catch{}return v;};
+ function coopStatus(text,error=false){const e=$('coopStatus');e.textContent=text;e.classList.toggle('error-note',error);}
+ function coopScreen(name){for(const e of document.querySelectorAll('[data-coop-screen]'))e.hidden=e.dataset.coopScreen!==name;coopStatus('');}
+ async function signalSend(box,data){const r=await fetch(SIGNAL_URL+'/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:box,msg:JSON.stringify(data)}),cache:'no-store'});if(!r.ok)throw Error('signal '+r.status);}
+ async function signalRecv(box){const r=await fetch(SIGNAL_URL+'/recv?box='+encodeURIComponent(box),{cache:'no-store'});if(!r.ok)throw Error('signal '+r.status);const out=[];for(const text of (await r.json()).messages||[]){try{out.push(JSON.parse(text));}catch{}}return out;}
+ // A browser needs a moment to work out every address it can be reached at; wait for that before sharing its details.
+ function gathered(pc){return new Promise(done=>{if(pc.iceGatheringState==='complete')return done();const t=setTimeout(done,3000);pc.addEventListener('icegatheringstatechange',()=>{if(pc.iceGatheringState==='complete'){clearTimeout(t);done();}});});}
+ const packDetails=d=>'MORPHOS1:'+btoa(JSON.stringify(d)),unpackDetails=text=>{const m=/MORPHOS1:([A-Za-z0-9+/=]+)/.exec(String(text).replace(/\s+/g,''));if(!m)throw Error('That is not a MORPHOS invite or reply.');return JSON.parse(atob(m[1]));};
+ function coopSendRaw(link,data){if(!link.dc||link.dc.readyState!=='open')return;
+   const send=list=>{const text=JSON.stringify({...data,m:list});if(text.length>14000&&list.length>1){const half=list.length>>1;send(list.slice(0,half));send(list.slice(half));}else{try{link.dc.send(text);}catch{}}};
+   if(data.m)send(data.m);else{try{link.dc.send(JSON.stringify(data));}catch{}}
+ }
+ function coopRoster(){
+   if(!coop)return;const rows=coop.names.map((n,i)=>n===null?'':'<li><i class="coop-dot" style="--c:'+MorphosRenderer.PEER_COLOURS[i%4]+'"></i>'+escapeText(n)+(i===coop.me?' <small>you</small>':i===0?' <small>host</small>':'')+'</li>').join('');
+   for(const e of document.querySelectorAll('[data-coop-roster]'))e.innerHTML=rows;
+   const others=coop.names.filter((n,i)=>n!==null&&i!==coop.me).length;$('coopStart').disabled=!coop.host||!others;
+ }
+ const escapeText=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ // Host side: a guest's channel has opened.
+ function coopAdmit(link){
+   let id=1;while(coop.names[id]!==undefined&&id<32)id++;if(coop.names.filter(n=>n!==null&&n!==undefined).length>=COOP_MAX){coopSendRaw(link,{c:'full'});link.pc.close();return;}
+   link.id=id;coop.names[id]=link.name||'Player '+(id+1);coop.links.set(id,link);coopRoster();
+   for(const l of coop.links.values())coopSendRaw(l,{c:'names',names:coop.names});
+   if(coop.started){coopSendRaw(link,{c:'start',seed:game.state.seed,me:id,names:coop.names,party:coop.party});notify(coop.names[id]+' joined the pond.',3,2);}
+ }
+ function coopWire(link){
+   const dc=link.dc;
+   dc.onopen=()=>{link.open=true;if(coop&&coop.host)coopAdmit(link);else{coopSendRaw(link,{c:'hello',name:coopName()});coopScreen('waiting');}};
+   dc.onclose=()=>coopLost(link);
+   dc.onmessage=e=>{if(!coop||typeof e.data!=='string'||e.data.length>200000)return;let d;try{d=JSON.parse(e.data);}catch{return;}if(!d||typeof d!=='object')return;try{coopReceive(link,d);}catch(err){console.warn('co-op message ignored',err);}};
+ }
+ function coopReceive(link,d){
+   if(coop.host){
+     if(d.c==='hello'){if(link.id&&typeof d.name==='string'){coop.names[link.id]=d.name.slice(0,14)||coop.names[link.id];coopRoster();for(const l of coop.links.values())coopSendRaw(l,{c:'names',names:coop.names});}return;}
+     if(!link.id||!Array.isArray(d.m)||!Number.isInteger(d.t))return;
+     if(coop.started&&(d.t===-1||d.t===0))for(const m of d.m)game.applyNet(link.id,m);
+     for(const l of coop.links.values())if(l!==link&&(d.t===-1||d.t===l.id))coopSendRaw(l,{f:link.id,m:d.m});
+     return;
+   }
+   if(d.c==='names'&&Array.isArray(d.names)){coop.names=d.names.map(n=>typeof n==='string'?n.slice(0,14):null);coopRoster();}
+   else if(d.c==='full'){coopStatus('That pond is full (four players).',true);coopScreen('join');}
+   else if(d.c==='start'&&typeof d.seed==='string'&&Number.isInteger(d.me)&&d.me>0&&d.me<32){if(Array.isArray(d.names))coop.names=d.names.map(n=>typeof n==='string'?n.slice(0,14):null);coop.me=d.me;if(typeof d.party==='string')coop.party=d.party.slice(0,24);coopReadStored();startCoopLife(d.seed,d.me,coopStored&&coopStored.party===coop.party?coopStored:null);}
+   else if(d.c==='left'&&Number.isInteger(d.id)){if(coop.started)game.peerLeft(d.id);if(coop.names[d.id])notify(coop.names[d.id]+' left the pond.',3,2);coop.names[d.id]=null;}
+   else if(Number.isInteger(d.f)&&Array.isArray(d.m)&&coop.started)for(const m of d.m)game.applyNet(d.f,m);
+ }
+ function coopLost(link){
+   if(!coop||link.gone)return;link.gone=true;
+   if(coop.host){if(!link.id)return;coop.links.delete(link.id);const name=coop.names[link.id];coop.names[link.id]=null;if(coop.started)game.peerLeft(link.id);for(const l of coop.links.values())coopSendRaw(l,{c:'left',id:link.id});if(name)notify(name+' left the pond.',3,2);coopRoster();}
+   else{if(coop.started){for(let i=0;i<coop.names.length;i++)if(i!==coop.me)game.peerLeft(i);notify('The connection to the host was lost. You can keep swimming on your own.',7,3);coop.names=coop.names.map((n,i)=>i===coop.me?n:null);}else{coopStatus('The connection was lost. Try again.',true);coopScreen('choose');}coop.links.clear();}
+ }
+ function coopLeave(){if(!coop)return;clearTimeout(coopTimer);const c=coop;coop=null;$('coopBanner').hidden=true;for(const l of c.links.values()){l.gone=true;try{l.pc.close();}catch{}}if(c.pending)for(const l of c.pending){try{l.pc.close();}catch{}}}
+ function coopNew(host,resume=null){coopLeave();coop={host,me:0,started:false,names:host?[coopName()]:[],links:new Map(),pending:[],code:'',party:resume?resume.party:randomText(12,CODE_LETTERS),resume,checkpoint:resume?JSON.stringify(resume):'',restoredAt:0};}
+ // The co-op pond saved in this browser, if there is one that still loads.
+ function coopReadStored(){
+   coopStored=null;try{const text=localStorage.getItem(coopKey);if(!text||text.length>8*1024*1024)return;const raw=JSON.parse(text);if(raw.format!=='morphos-coop'||raw.version!==saveVersion||typeof raw.party!=='string'||typeof raw.seed!=='string')return;const g=MorphosGame.fromSave(raw.game);if(g.state.status!=='playing'||!g.state.player.alive)return;coopStored=raw;}catch{}
+   $('coopResume').hidden=!coopStored;if(coopStored){const p=coopStored.game.state.player,others=(Array.isArray(coopStored.names)?coopStored.names:[]).filter((n,i)=>typeof n==='string'&&i!==coopStored.me);$('coopResumeText').textContent=(p.cellCountText||p.cellCount)+' '+(p.cellCount===1?'cell':'cells')+(others.length?' · with '+others.join(', '):'')+' · '+String(coopStored.reason||'Checkpoint').slice(0,64);}
+ }
+ // A party checkpoint: every device saves its own player and the creatures it is running, at the same moment.
+ function coopCheckpoint(reason,policy='',landmarkId='',fromPeer=false){
+   if(!coopOn()||mode==='menu'||game.state.status!=='playing'||!game.state.player.alive)return false;
+   if(!fromPeer&&(!checkpointAllows(game.state,policy,landmarkId)||game.coopPeers().some(b=>b.down>0)))return false;
+   try{const text=JSON.stringify({format:'morphos-coop',version:saveVersion,party:coop.party,seed:game.state.seed,names:coop.names,me:coop.me,reason,savedAt:new Date().toISOString(),game:game.saveObject()});coop.checkpoint=text;try{localStorage.setItem(coopKey,text);}catch{}
+     if(!fromPeer&&policy!=='initial')game.coopSignal('cp',reason);return true;}catch{return false;}
+ }
+ function coopLoad(text,message){
+   const raw=JSON.parse(text),restored=MorphosGame.fromSave(raw.game);if(restored.state.status!=='playing'||!restored.state.player.alive)throw Error('ended');
+   closeAllDialogs();clearInput();rewardContext=null;game=restored;game.startCoop(coop.me,false);game.drainEvents();lastGrowth=null;growthUnseen=false;latestUnseen=false;treeSelected='';resultRecorded=false;accumulator=0;clearNotices();resetSpecimen();
+   coop.started=true;coop.restoredAt=performance.now();renderer.resetView();setMode('playing');last=performance.now();updateUI(true);notify(message,6,3);
+ }
+ // The party went down: everyone returns to the last party checkpoint.
+ function coopRestore(){
+   if(!coopOn()||performance.now()-coop.restoredAt<4000)return;
+   try{if(!coop.checkpoint)throw Error('none');coopLoad(coop.checkpoint,'The party went down. You are back at the last checkpoint.');}
+   catch{const session=coop;startLife(game.state.seed,session);game.startCoop(session.me);session.restoredAt=performance.now();notify('The party went down. The pond begins again.',6,3);}
+ }
+ function coopHud(){
+   const b=$('coopBanner'),d=coopOn()&&mode==='playing'?game.coopDownState():null;if(!d){if(!b.hidden)b.hidden=true;return;}
+   b.hidden=false;b.textContent=d.helper>=0?(coop.names[d.helper]||'A friend')+' is reviving you · '+Math.round(d.progress*100)+'%':game.coopPeers().length?'You are down. A friend can revive you by staying on you · '+Math.ceil(d.time)+'s':'You are down. Returning to the checkpoint…';
+ }
+ // Host: wait for guests who type the pond code. Each sends its connection details to the pond's mailbox; the
+ // host answers into the guest's own mailbox.
+ async function coopHost(resume=null){
+   coopNew(true,resume&&resume.party?resume:null);$('coopHostLabel').textContent=coop.resume?'Continuing your pond · code':'Your pond code';coop.code=randomText(6,CODE_LETTERS);$('coopCode').textContent=coop.code;coopScreen('host');coopRoster();
+   const session=coop;let failures=0;
+   const poll=async()=>{
+     if(coop!==session)return;
+     try{for(const m of await signalRecv('h-'+session.code)){if(!m||typeof m.id!=='string'||typeof m.sdp!=='string'||!/^g-[a-f0-9]{24}$/.test(m.id))continue;
+         const pc=new RTCPeerConnection(ICE),link={pc,dc:null,name:typeof m.name==='string'?m.name.slice(0,14):''};session.pending.push(link);
+         pc.ondatachannel=e=>{link.dc=e.channel;coopWire(link);};
+         await pc.setRemoteDescription({type:'offer',sdp:m.sdp});await pc.setLocalDescription(await pc.createAnswer());await gathered(pc);
+         await signalSend(m.id,{sdp:pc.localDescription.sdp});}
+       failures=0;if(!session.started)coopStatus('');}
+     catch(err){if(++failures>=2&&!session.started)coopStatus('The connection helper cannot be reached. Check your internet, or use copy and paste below.',true);}
+     if(coop===session)coopTimer=setTimeout(poll,session.started?4000:1300);
+   };
+   poll();
+ }
+ async function coopJoin(){
+   const code=$('coopCodeInput').value.toUpperCase().replace(/[^A-Z0-9]/g,'');if(code.length!==6){coopStatus('Type the six-character pond code your host can see.',true);return;}
+   coopNew(false);const session=coop;coopStatus('Connecting…');$('coopJoinGo').disabled=true;
+   try{
+     const pc=new RTCPeerConnection(ICE),link={pc,dc:pc.createDataChannel('morphos'),id:0};session.links.set(0,link);coopWire(link);
+     const id='g-'+randomText(24,'0123456789abcdef');await pc.setLocalDescription(await pc.createOffer());await gathered(pc);
+     await signalSend('h-'+code,{id,name:coopName(),sdp:pc.localDescription.sdp});
+     let answer=null;for(let i=0;i<24&&!answer&&coop===session;i++){await new Promise(r=>setTimeout(r,1000));answer=(await signalRecv(id)).find(m=>m&&typeof m.sdp==='string');}
+     if(coop!==session)return;
+     if(!answer){coopStatus('No pond answered to that code. Check the code, and that your host still has the screen open.',true);coopLeave();return;}
+     await pc.setRemoteDescription({type:'answer',sdp:answer.sdp});
+     setTimeout(()=>{if(coop===session&&!link.open){coopStatus('The pond was found, but your two networks would not connect directly. Try with both of you on the same Wi-Fi.',true);coopLeave();$('coopJoinGo').disabled=false;}},15000);
+   }catch(err){if(coop===session){coopStatus('The connection helper cannot be reached. Check your internet, or use copy and paste.',true);coopLeave();}}
+   finally{$('coopJoinGo').disabled=false;}
+ }
+ // Copy and paste, for when the helper cannot be reached. Host: Copy invite → guest: Paste invite, Copy reply → host: Paste reply.
+ async function coopManualInvite(){
+   if(!coop||!coop.host)coopNew(true);const session=coop;coopScreen('manualHost');coopRoster();$('coopInvite').value='Preparing…';$('coopReplyIn').value='';
+   const pc=new RTCPeerConnection(ICE),link={pc,dc:pc.createDataChannel('morphos'),name:''};session.pending.push(link);session.manual=link;coopWire(link);
+   await pc.setLocalDescription(await pc.createOffer());await gathered(pc);if(coop!==session)return;
+   $('coopInvite').value=packDetails({sdp:pc.localDescription.sdp});
+ }
+ async function coopManualConnect(){
+   if(!coop||!coop.manual)return;try{const d=unpackDetails($('coopReplyIn').value);await coop.manual.pc.setRemoteDescription({type:'answer',sdp:d.sdp});coopStatus('Connecting…');const link=coop.manual,session=coop;setTimeout(()=>{if(coop===session&&!link.open)coopStatus('Your two networks would not connect directly. Try with both of you on the same Wi-Fi.',true);},15000);}
+   catch(err){coopStatus(err.message&&err.message.startsWith('That is not')?err.message:'That reply did not work. Ask your friend to copy it again.',true);}
+ }
+ async function coopManualReply(){
+   try{const d=unpackDetails($('coopInviteIn').value);coopNew(false);const session=coop,pc=new RTCPeerConnection(ICE),link={pc,dc:null,id:0};session.links.set(0,link);
+     pc.ondatachannel=e=>{link.dc=e.channel;coopWire(link);};
+     await pc.setRemoteDescription({type:'offer',sdp:d.sdp});await pc.setLocalDescription(await pc.createAnswer());await gathered(pc);if(coop!==session)return;
+     $('coopReply').value=packDetails({sdp:pc.localDescription.sdp});$('coopReplyStep').hidden=false;coopStatus('');}
+   catch(err){coopStatus(err.message&&err.message.startsWith('That is not')?err.message:'That invite did not work. Ask your host to copy it again.',true);}
+ }
+ async function coopCopy(id,button){const text=$(id).value;try{await navigator.clipboard.writeText(text);}catch{$(id).select();try{document.execCommand('copy');}catch{}}const old=button.textContent;button.textContent='Copied ✓';setTimeout(()=>button.textContent=old,1600);}
+ async function coopPaste(id){try{const text=await navigator.clipboard.readText();if(text)$(id).value=text;}catch{$(id).focus();coopStatus('Tap the box and choose Paste.');}}
+ function coopBegin(){if(!coop||!coop.host||coop.started)return;const seed=coop.resume?coop.resume.seed:safeSeed();for(const l of coop.links.values())coopSendRaw(l,{c:'start',seed,me:l.id,names:coop.names,party:coop.party});startCoopLife(seed,0,coop.resume);}
+ function startCoopLife(seed,me,saved=null){
+   const session=coop,others=session.names.filter((n,i)=>n&&i!==me),hello=others.length?'You are in the pond with '+others.join(', ')+'.':'You are in the pond.';
+   if(saved){try{session.checkpoint=JSON.stringify(saved);coopLoad(session.checkpoint,hello+' Continuing from your last checkpoint.');session.restoredAt=0;return;}catch{}}
+   startLife(seed,session);game.startCoop(me);session.started=true;renderer.resetView();notify(hello,5,2);coopCheckpoint('A new pond','initial');
+ }
+ // Each frame: let the engine prepare its messages, then send them on their way.
+ function coopPump(dt){
+   if(!coopOn())return;game.coopTick(dt);const out=game.drainNet();if(!out.length)return;
+   const by=new Map();for(const {to,msg} of out){let list=by.get(to);if(!list)by.set(to,list=[]);list.push(msg);}
+   for(const [to,list] of by){
+     if(coop.host){for(const l of coop.links.values())if(to===-1||to===l.id)coopSendRaw(l,{f:0,m:list});}
+     else{const l=coop.links.get(0);if(l)coopSendRaw(l,{t:to,m:list});}
+   }
+ }
+ function coopDowned(){clearInput();game.coopDown();coopHud();}
+ function coopPeersForDraw(){if(!coopOn())return null;const list=game.coopPeers(),mine=game.coop.reviving;for(const b of list){b.name=coop.names[b.peer]||'';b.colour=MorphosRenderer.PEER_COLOURS[b.peer%4];let rev=mine&&mine[0]===b.peer?mine[1]:0;for(const o of list)if(o.rv&&o.rv[0]===b.peer)rev=Math.max(rev,o.rv[1]);b.reviveShown=rev;}return list;}
+ document.addEventListener('visibilitychange',()=>{if(coopOn()){game.coopAway(document.hidden);coopPump(1e-4);}});
+ try{$('coopName').value=localStorage.getItem('morphos.name.v1')||'';}catch{}
+ $('homeCoop').addEventListener('click',()=>{coopLeave();coopReadStored();coopScreen('choose');$('coopDialog').showModal();});
+ $('coopResume').addEventListener('click',()=>{if(coopStored)coopHost(coopStored);});
+ $('coopDialog').addEventListener('close',()=>{if(coop&&!coop.started)coopLeave();});
+ $('coopHostGo').addEventListener('click',()=>coopHost());$('coopJoinShow').addEventListener('click',()=>{coopScreen('join');$('coopCodeInput').focus();});
+ $('coopJoinGo').addEventListener('click',coopJoin);$('coopCodeInput').addEventListener('keydown',e=>{if(e.key==='Enter')coopJoin();e.stopPropagation();});
+ $('coopName').addEventListener('keydown',e=>e.stopPropagation());
+ $('coopStart').addEventListener('click',coopBegin);$('coopStart2').addEventListener('click',coopBegin);
+ for(const b of document.querySelectorAll('[data-coop-manual-host]'))b.addEventListener('click',coopManualInvite);
+ for(const b of document.querySelectorAll('[data-coop-manual-join]'))b.addEventListener('click',()=>{coopLeave();coopScreen('manualJoin');$('coopReplyStep').hidden=true;$('coopInviteIn').value='';});
+ for(const b of document.querySelectorAll('[data-coop-back]'))b.addEventListener('click',()=>{coopLeave();coopScreen('choose');});
+ $('coopInviteCopy').addEventListener('click',e=>coopCopy('coopInvite',e.currentTarget));$('coopReplyCopy').addEventListener('click',e=>coopCopy('coopReply',e.currentTarget));
+ $('coopReplyPaste').addEventListener('click',async()=>{await coopPaste('coopReplyIn');if($('coopReplyIn').value.trim())coopManualConnect();});$('coopReplyConnect').addEventListener('click',coopManualConnect);
+ $('coopInvitePaste').addEventListener('click',async()=>{await coopPaste('coopInviteIn');if($('coopInviteIn').value.trim())coopManualReply();});$('coopInviteUse').addEventListener('click',coopManualReply);
  function frame(now){
    if(failed)return;requestAnimationFrame(frame);
    const raw=(now-last)/1000;last=now;if(document.hidden)return;
@@ -6101,6 +6401,7 @@ $('pauseHelp').addEventListener('click',showHelp);
        if(steps>=cap||accumulator<0)accumulator=0;
               if(mode==='playing')tutorialTick();
      }else accumulator=0;
+     if(coop)coopPump(dt);
      updateNotices(dt);
      const aim=assistedAim||(pointer.aimed&&!padActive?renderer.screenToWorld(pointer.x,pointer.y):{x:game.state.player.x+Math.cos(game.state.player.angle)*180,y:game.state.player.y+Math.sin(game.state.player.angle)*180});
      // iPhone Safari can report the old size during a rotation: re-fit whenever the window and canvas disagree.
@@ -6109,10 +6410,10 @@ $('pauseHelp').addEventListener('click',showHelp);
      // which slides the fixed game layer down and leaves a blank band at the top; put it back.
      if(scrollX||scrollY||document.documentElement.scrollTop||document.body.scrollTop||(window.visualViewport&&Math.abs(visualViewport.offsetTop)>1)){scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0;resize();}
      if(playAreaDirty&&mode!=='menu')measurePlayArea();const venomGuide=venomPress&&mode==='playing'&&(venomPress.dragged||performance.now()-venomPress.at>220)?venomAimPoint(venomPress):null;
-     renderer.draw(game.state,{venomAim:venomGuide&&[venomGuide.x,venomGuide.y,venomPress.trait],time:reduced&&mode==='menu'?0:time,aim:[aim.x,aim.y],pointer:[pointer.x,pointer.y],menu:mode==='menu',paused:mode!=='playing',quality:pixelScale,playArea,viewZoom});
+     renderer.draw(game.state,{venomAim:venomGuide&&[venomGuide.x,venomGuide.y,venomPress.trait],time:reduced&&mode==='menu'?0:time,aim:[aim.x,aim.y],pointer:[pointer.x,pointer.y],menu:mode==='menu',paused:mode!=='playing',quality:pixelScale,playArea,viewZoom,peers:coopPeersForDraw()});
      drawSpecimenView();
      zoomNoticeTime=Math.max(0,zoomNoticeTime-dt);$('zoomFeedback').hidden=mode!=='playing'||zoomNoticeTime<=0;
-     if(uiTimer>.12){uiTimer=0;if(mode!=='menu')updateUI();}
+     if(uiTimer>.12){uiTimer=0;if(mode!=='menu')updateUI();coopHud();}
      if(audio&&soundOn&&audioTimer>.1){audioTimer=0;audio.update(game.state,.1);}
      if(raw>0&&(mode==='playing'||mode==='menu')){renderWarmup+=Math.min(raw,1);renderAverage=renderAverage*.9+Math.min(raw*1000,250)*.1;qualityTimer+=Math.min(raw,1);if(renderWarmup>2&&qualityTimer>2){const old=pixelScale;// Step resolution down as soon as frames average slower than about 42 a second, not only below 30.
        if(renderAverage>24&&pixelScale>.65)pixelScale=Math.max(.65,pixelScale-(renderAverage>50?.2:.1));else if(renderAverage<19&&pixelScale<1)pixelScale=Math.min(1,pixelScale+.03);if(old!==pixelScale)resize();qualityTimer=0;}}
