@@ -1686,7 +1686,7 @@
   /* ------------------------------------------------------------------
      13. MORPHOS pond — one short life, drawn the way the game draws it.
          The drawing routines (membrane blob, cell body, cilia, tails,
-         jaws, leaves, food sprite, Pulse arc, division rings, the YOU
+         jaws, food sprite, Pulse arc, division rings, the YOU
          marker, danger and edible cues) are ported from the game's
          renderer in morphos.html, with its colours and proportions, at
          the game's real sizes (player r 22 → 28 at the first division,
@@ -1695,10 +1695,11 @@
          kills a prey with a Pulse, then a hunter winds up (jaws open,
          chevrons above), the cell fast-swims aside, the lunge misses
          and the cell strikes during the hunter's recovery before
-         escaping. At 80 growth it divides as the game (v6.6) shows it,
-         without stopping: division rings, then over 1.8 s two cells bud
-         apart inside one shared membrane while its first organ (Grazer I:
-         leaves) fades in and grows outward. The camera follows the
+         escaping. At 80 growth it divides as the game shows it, without
+         stopping: division rings, then over 1.8 s two cells bud apart
+         inside one shared membrane. Its kills have trained the Predator
+         class, so its first organ (Predator I: feeding jaws) fades in and
+         grows outward as its colour turns Predator. The camera follows the
          cell like the game's does. Reduced motion draws one frame
          mid-fight; offscreen it pauses. Units are the game's world units.
      ------------------------------------------------------------------ */
@@ -1715,7 +1716,7 @@
     var rnd = function (n) { var x = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
     var ease = function (u) { u = clamp(u, 0, 1); return u * u * (3 - 2 * u); };
     var PAL = { deep: [5, 24, 29], light: [15, 57, 55], fluid: [87, 161, 130] };
-    var PREY = [98, 194, 218], HUNTER = [237, 110, 103], UNFORMED = [133, 235, 211], GRAZER = [157, 224, 135];
+    var PREY = [98, 194, 218], HUNTER = [237, 110, 103], UNFORMED = [133, 235, 211], PREDATOR = [240, 164, 126];
     var z = 1; /* camera zoom in canvas px per world unit (game's this.camera.zoom) */
 
     /* ---- the game's drawing, ported ---- */
@@ -1817,17 +1818,6 @@
         c.lineTo(r * 1.01, s * r * 0.29); c.lineTo(r * 0.84, s * r * 0.45); c.closePath(); c.fill(); c.stroke();
       });
     };
-    var leaves = function (r, t, co, level, fold) {
-      var count = 5 + level * 2;
-      for (var i = 0; i < count; i++) {
-        var a = (i / count) * TAU + 0.1 * Math.sin(t * 0.6 + i), len = r * (0.27 + level * 0.045) * fold;
-        c.save(); c.rotate(a); c.beginPath(); c.moveTo(r * 0.85, -r * 0.07 * fold);
-        c.quadraticCurveTo(r + len * 0.7, -len * 0.55, r + len, 0); c.quadraticCurveTo(r + len * 0.7, len * 0.55, r * 0.85, r * 0.07 * fold); c.closePath();
-        c.fillStyle = rgba(co, 0.14); c.fill(); c.strokeStyle = rgba(mix(co, [180, 244, 132], 0.5), 0.55); c.lineWidth = 0.8 / z; c.stroke();
-        c.beginPath(); c.moveTo(r * 0.94, 0); c.lineTo(r + len * 0.87, 0); c.strokeStyle = rgba(co, 0.35); c.stroke();
-        c.restore();
-      }
-    };
 
     /* ---- one scripted life ---- */
     var seed = 11;
@@ -1838,7 +1828,7 @@
       S = {
         t: 0, fade: 0, fadeIn: 1, beat: "feed", beatT: 0,
         cam: { x: 0, y: 0 },
-        p: { x: 0, y: 0, vx: 0, vy: 0, a: -0.6, r: 22, cells: 1, split: 1, grazer: 0, leaf: 0, evo: 0, sprint: false, cd: 0, growth: 0, aim: null },
+        p: { x: 0, y: 0, vx: 0, vy: 0, a: -0.6, r: 22, cells: 1, split: 1, predator: 0, organ: 0, evo: 0, sprint: false, cd: 0, growth: 0, aim: null },
         foods: [], prey: null, hunter: null, effects: [], parts: [], divT: -1
       };
       for (var i = 0; i < 12; i++) addFood(0, 0, -0.6, 70, 260, 2.6);
@@ -1987,7 +1977,7 @@
         target = nearestFood();
         if (p.cells === 1 && p.growth >= 80) {
           /* division: the game's rings and burst, then two cells in one membrane */
-          S.divT = S.t; p.cells = 2; p.split = 0; p.grazer = 1; p.evo = 3.2;
+          S.divT = S.t; p.cells = 2; p.split = 0; p.predator = 1; p.evo = 3.2;
           effect(p.x, p.y, "division", p.r * 4, "#b0ffdb", 1.5);
           particles(p.x, p.y, "#b0ffdb", 28, 140);
         }
@@ -2000,7 +1990,7 @@
       if (S.divT > 0) {
         /* the game's morph: 1.8 s, smoothstep, old body → new body */
         var k = ease((S.t - S.divT) / 1.8);
-        p.split = k; p.r = 22 + 6 * k; p.leaf = k;
+        p.split = k; p.r = 22 + 6 * k; p.organ = k;
       }
       if (target) steer(p, target.x, target.y, speed, p.sprint ? 5 : 3, dt);
       else { p.vx *= 0.86; p.vy *= 0.86; }
@@ -2054,12 +2044,10 @@
     };
 
     var drawPlayer = function (t) {
-      var p = S.p, r = p.r, co = p.grazer ? GRAZER : UNFORMED, phase = 0.7;
+      var p = S.p, r = p.r, co = p.predator ? PREDATOR : UNFORMED, phase = 0.7;
       c.save(); c.translate(p.x, p.y); c.rotate(p.a);
       var gl = glow(co); c.drawImage(gl, -r * 2, -r * 2, r * 4, r * 4);
-      cilia(r * 0.93, t, phase, co, 18 + p.grazer * 5, r * (0.11 + p.grazer * 0.025) * (p.sprint ? 0.5 : 1));
-      /* a new organ fades in and grows outward from inside the membrane */
-      if (p.leaf > 0) { c.save(); c.globalAlpha *= p.leaf; var ls = 0.45 + 0.55 * p.leaf; c.scale(ls, ls); leaves(r, t, co, 1, p.sprint ? 0.45 : 1); c.restore(); }
+      cilia(r * 0.93, t, phase, co, 18, r * 0.11 * (p.sprint ? 0.75 : 1));
       var nodes;
       if (p.cells > 1) {
         smoothBlob(r * 0.98, t, phase, 1, 0.07); c.fillStyle = rgba(co, 0.085); c.fill();
@@ -2068,6 +2056,8 @@
         nodes = [{ x: -off, y: 0, r: nr }, { x: off, y: 0, r: nr }];
       } else nodes = [{ x: 0, y: 0, r: r * 0.9 }];
       nodes.forEach(function (q, i) { c.save(); c.translate(q.x, q.y); cellBody(q.r, t, phase + i * 0.64, co, 1, 1, 0.035, 3, 0.65); c.restore(); });
+      /* a new organ fades in and grows outward from inside the membrane (the game draws jaws over the cells) */
+      if (p.organ > 0) { c.save(); c.globalAlpha *= p.organ; var ls = 0.45 + 0.55 * p.organ; c.scale(ls, ls); jaws(r, t, co, 1); c.restore(); }
       if (p.evo > 0) {
         c.strokeStyle = rgba([220, 255, 216], clamp(p.evo * 0.4, 0, 0.6)); c.lineWidth = 2 / z;
         c.beginPath(); c.arc(0, 0, r * (1.1 + (0.5 - Math.sin(t * 3) * 0.5) * 0.3), 0, TAU); c.stroke();
