@@ -3261,7 +3261,7 @@ dialog#coopDialog{width:min(460px,calc(100vw - 24px));max-width:none;max-height:
       // Every device numbers the things it makes from its own random block, so two devices never use the same number.
       this._id=(1+Math.floor(Math.random()*60000))*4294967296+1;
       // In a new pond the first player's device populates the starting water; the others arrive beside it.
-      if(fresh&&me>0){const s=this.state;s.organisms=[];s.player.x+=70*me;}
+      if(fresh&&me>0){this.state.player.x+=70*me;this.coop.arriving=true;}
       return this;
     }
     // What is hunting my player right now, if anything: 'boss', 'predator' or ''.
@@ -3439,6 +3439,9 @@ dialog#coopDialog{width:min(460px,calc(100vw - 24px));max-width:none;max-height:
         const first=!q.body||!Number.isFinite(q.body.x);if(!q.body)q.body={};
         const {t,x,y,...rest}={t:'p',x:m.x,y:m.y,vx:Number.isFinite(m.vx)?m.vx:0,vy:Number.isFinite(m.vy)?m.vy:0,angle:Number.isFinite(m.angle)?m.angle:0,hp:Number.isFinite(m.hp)?m.hp:0,maxHp:m.maxHp>0?m.maxHp:1,r:m.r>0&&m.r<=6000?m.r:22,stealth:clamp(+m.stealth||0,0,1),hurt:clamp(+m.hurt||0,0,5),invulnerable:clamp(+m.invulnerable||0,0,60),sprinting:!!m.sprinting,sneaking:!!m.sneaking,exhausted:!!m.exhausted,alive:!!m.alive,active:!!m.active,down:clamp(+m.down||0,0,COOP_DOWN_SECONDS),rv:Array.isArray(m.rv)&&Number.isInteger(m.rv[0])&&Number.isFinite(m.rv[1])?[m.rv[0],clamp(m.rv[1],0,1)]:null,brood:m.brood};if(!Array.isArray(rest.brood))rest.brood=[];rest.brood=rest.brood.filter(v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)&&v.r>0&&v.r<500).slice(0,12).map(v=>({x:v.x,y:v.y,vx:+v.vx||0,vy:+v.vy||0,r:v.r,phase:+v.phase||0}));q.fast=rest;Object.assign(q.body,rest);q.body.peer=from;q.tx=x;q.ty=y;
         if(first||length(q.body.x-x,q.body.y-y)>600){q.body.x=x;q.body.y=y;}
+        // Just arrived in a new pond: where a player who was here first already has the water, their device runs
+        // its creatures, so mine drops its own copies of them. (The first player's device never does.)
+        if(first&&c.arriving&&c.clock<6&&from<c.me){const cx=Math.floor(x/CHUNK),cy=Math.floor(y/CHUNK);s.organisms=s.organisms.filter(o=>{if(o.puppet||o.nestId)return true;const [hx,hy]=String(o.home).split(',').map(Number);return !(Math.abs(hx-cx)<=2&&Math.abs(hy-cy)<=2);});}
       }
       else if(m.t==='l'){
         const look=m.body;if(!look||typeof look!=='object'||!(look.r>0&&look.r<=6000)||!Number.isInteger(look.stage)||look.stage<0)return;const keep=q.body||{};
@@ -3993,7 +3996,9 @@ dialog#coopDialog{width:min(460px,calc(100vw - 24px));max-width:none;max-height:
     // Resting (their pause screen is open): a pale shell, untouchable.
     if(q.active===false&&!(q.down>0)){c.save();c.strokeStyle='rgba(226,232,214,.5)';c.lineWidth=2/z;c.setLineDash([6/z,5/z]);c.beginPath();c.arc(q.x,q.y,q.r+7/z,0,TAU);c.stroke();c.restore();}
     return;}
-   const cx=(cull.left+cull.right)/2,cy=(cull.top+cull.bottom)/2,a=Math.atan2(q.y-cy,q.x-cx),hw=(cull.right-cull.left)/2-46/z,hh=(cull.bottom-cull.top)/2-70/z,t=Math.min(hw/Math.abs(Math.cos(a)||1e-6),hh/Math.abs(Math.sin(a)||1e-6)),x=cx+Math.cos(a)*t,y=cy+Math.sin(a)*t;
+   const cx=(cull.left+cull.right)/2,cy=(cull.top+cull.bottom)/2,a=Math.atan2(q.y-cy,q.x-cx),hw=(cull.right-cull.left)/2-46/z,hh=(cull.bottom-cull.top)/2-70/z,t=Math.min(hw/Math.abs(Math.cos(a)||1e-6),hh/Math.abs(Math.sin(a)||1e-6));let x=cx+Math.cos(a)*t,y=cy+Math.sin(a)*t;
+   // Keep the arrow inside the part of the screen the HUD leaves free.
+   const f=this.playArea;if(f){x=clamp(x,cull.left+(f.left+24)/z,cull.left+(f.left+f.width-24)/z);y=clamp(y,cull.top+(f.top+24)/z,cull.top+(f.top+f.height-24)/z);}
    c.save();c.translate(x,y);c.scale(1/z,1/z);c.save();c.rotate(a);c.beginPath();c.moveTo(15,0);c.lineTo(-7,-9);c.lineTo(-3,0);c.lineTo(-7,9);c.closePath();c.fillStyle=colour;c.globalAlpha=.85;c.fill();c.restore();c.font=font;c.textAlign='center';c.fillStyle=colour;c.globalAlpha=.85;c.fillText(q.name||'',-Math.cos(a)*34,-Math.sin(a)*22+4);c.restore();
   }
   drawBossPointer(b,p){
@@ -6335,6 +6340,8 @@ $('pauseHelp').addEventListener('click',showHelp);
    catch{const session=coop;startLife(game.state.seed,session);game.startCoop(session.me);session.restoredAt=performance.now();notify('The party went down. The pond begins again.',6,3);}
  }
  function coopHud(){
+   // Restarting the world belongs to a solo life; in a co-op pond you leave from the pause screen instead.
+   const solo=!coopOn();if($('restart').hidden===solo)$('restart').hidden=!solo;
    const b=$('coopBanner'),d=coopOn()&&mode==='playing'?game.coopDownState():null;if(!d){if(!b.hidden)b.hidden=true;return;}
    b.hidden=false;b.textContent=d.helper>=0?(coop.names[d.helper]||'A friend')+' is reviving you · '+Math.round(d.progress*100)+'%':game.coopPeers().length?'You are down. A friend can revive you by staying on you · '+Math.ceil(d.time)+'s':'You are down. Returning to the checkpoint…';
  }
