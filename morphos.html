@@ -1702,10 +1702,11 @@ dialog#coopDialog{width:min(460px,calc(100vw - 24px));max-width:none;max-height:
   // bookkeeping). PRIVATE: behaviour fields only the owner needs; they travel when ownership is handed over.
   // STATUS: what a player's attack can leave on a creature, reported to its owner. SIGHT: how far around a
   // player creatures are shared.
-  const COOP_LOCAL=new Set(['credit','huntCredit','stalkCredit','lastFamily','attackTokens','ramAt','puppet','owner','remoteCredit','heldUntil','venomFrom','bleedFrom','dotOut','_seen','_tx','_ty','_n','_dealt']);
+  const COOP_LOCAL=new Set(['credit','huntCredit','stalkCredit','lastFamily','attackTokens','ramAt','puppet','owner','remoteCredit','heldUntil','venomFrom','bleedFrom','dotOut','_seen','_tx','_ty','_n','_dealt','_ownerHp']);
   const COOP_PRIVATE=new Set(['cooldown','stamina','exhausted','tx','ty','wander','lastSeenX','lastSeenY','pursuit','fedTime','shedClock','broodClock','missNear','targetId','foraging','huntBrood','broodAggroUntil','anchorX','anchorY','biome']);
-  const COOP_UNSAVED=new Set(['puppet','owner','remoteCredit','heldUntil','venomFrom','bleedFrom','dotOut','_seen','_tx','_ty','_n','_dealt']);
+  const COOP_UNSAVED=new Set(['puppet','owner','remoteCredit','heldUntil','venomFrom','bleedFrom','dotOut','_seen','_tx','_ty','_n','_dealt','_ownerHp']);
   const COOP_DOWN_SECONDS=30,COOP_REVIVE_SECONDS=4;
+  const COOP_STATUS_MAX={poison:10,poisonDamage:1000,venomStacks:8,slowTime:10,stun:4,bleed:10,bleedDamage:1000,flee:6};
   const COOP_STATUS=['poison','poisonDamage','venomStacks','slowTime','stun','bleed','bleedDamage','flee'],COOP_SIGHT=1600;
   const ancientName=name=>String(name).replace(/^The /,'The Ancient ');
   // Experience: each family banks its own experience from matching actions and climbs its own ladder.
@@ -1976,9 +1977,10 @@ dialog#coopDialog{width:min(460px,calc(100vw - 24px));max-width:none;max-height:
       for(const key of Object.keys(this._chunks))if(!needed.has(key))this._unloadChunk(key);
       const ordered=[...needed].sort((a,b)=>{const [ax,ay]=a.split(',').map(Number),[bx,by]=b.split(',').map(Number);return length((ax+.5)*CHUNK-p.x,(ay+.5)*CHUNK-p.y)-length((bx+.5)*CHUNK-p.x,(by+.5)*CHUNK-p.y);});
       // Water another player is already in has its creatures on their device: take the place, not a second set.
-      for(const key of ordered)if(!this._chunks[key]){const had=this.coop&&this._peerHolding(key)?new Set(s.organisms):null;this._loadChunk(key);if(had)s.organisms=s.organisms.filter(o=>had.has(o)||o.nestId);}
+      for(const key of ordered)if(!this._chunks[key]){const had=this.coop&&this._peerHad(key)?new Set(s.organisms):null;this._loadChunk(key);if(had)s.organisms=s.organisms.filter(o=>had.has(o)||o.nestId);}
       for(const [name,cap] of [['foods',1100],['organisms',120],['scenery',130],['hazards',64]])if(s[name].length>cap){s[name].sort((a,b)=>distance(a,p)-distance(b,p));s[name].length=cap;}
       const b=this._biomeAt(p.x,p.y);if(b!==s.biome){s.previousBiome=s.biome;s.biome=b;s.biomeName=biomeNames[b];s.biomeTransition=0;this._event('biome',{name:s.biomeName,index:b});}
+      if(this.coop)for(const q of this.coop.peers.values())q.was=q.body&&q.body.active&&Number.isFinite(q.body.x)?[Math.floor(q.body.x/CHUNK),Math.floor(q.body.y/CHUNK)]:null;
       s.world.chunkX=cx;s.world.chunkY=cy;s.world.loadedChunks=Object.keys(this._chunks).length;
       this._streamClock=.4;
     }
@@ -2811,7 +2813,7 @@ dialog#coopDialog{width:min(460px,calc(100vw - 24px));max-width:none;max-height:
       if(sp&&sp.escort)for(const v of s.organisms)if(v.leaderId===o.id){v.leaderId=0;v.flee=3;v.pursuit=0;}
       // Splitter: the first death divides it into two smaller copies that do not split again.
       if(sp&&sp.splits&&!o.split&&!consumed&&!assist)for(const side of [-1,1]){const a=(o.angle||0)+side*Math.PI/2,c=this._organism(o.kind,o.x+Math.cos(a)*o.r*.6,o.y+Math.sin(a)*o.r*.6,{species:o.species,home:o.home,biome:o.biome,tier:o.tier});c.split=true;c.r=o.r*.66;c.maxHp=c.hp=o.maxHp*.35;c.flee=.4;c.vx=Math.cos(a)*120;c.vy=Math.sin(a)*120;}
-      if(earned)this._nestKill(o);
+      this._nestKill(o);
       if(earned)this._event('kill',{kind:o.kind,species:o.species||'',elite:o.elite||'',boss:!!o.bossId,value,consumed});
     }
     _hit(o,amount,dx,dy,options={}){
@@ -3287,6 +3289,15 @@ dialog#coopDialog{width:min(460px,calc(100vw - 24px));max-width:none;max-height:
     _coopActive(){const s=this.state;return !this.coop.away&&s.status==='playing'&&!s.paused&&!s.pendingEvolution;}
     // Is this creature busy with my own player? If so it stays on my device.
     _engaged(o){return (o.chasing&&o.targetId===0)||o.windup>0||o.lungeTime>0||o.latchTime>0||o.tetherTime>0||o.vortexTime>0||!!o.huntBrood;}
+    // For water I am about to load: is it already another player's? Yes if they were in range of it before my
+    // last look, or, when we arrive together, if theirs is the lower player number. Otherwise it is mine to fill.
+    _peerHad(key){
+      const [cx,cy]=key.split(',').map(Number),near=(x,y)=>Math.abs(x-cx)<=2&&Math.abs(y-cy)<=2;
+      for(const q of this.coop.peers.values()){const b=q.body;if(!b||!b.active||!Number.isFinite(b.x))continue;
+        if(q.was&&near(q.was[0],q.was[1]))return true;
+        if(q.id<this.coop.me&&near(Math.floor(b.x/CHUNK),Math.floor(b.y/CHUNK)))return true;}
+      return false;
+    }
     _peerHolding(key){
       const [cx,cy]=key.split(',').map(Number);
       for(const q of this.coop.peers.values()){const b=q.body;if(!b||!b.active)continue;if(Math.abs(Math.floor(b.x/CHUNK)-cx)<=2&&Math.abs(Math.floor(b.y/CHUNK)-cy)<=2)return q;}
@@ -3301,7 +3312,7 @@ dialog#coopDialog{width:min(460px,calc(100vw - 24px));max-width:none;max-height:
     }
     // Taking a creature over: clear the puppet bookkeeping and make sure every behaviour field is present.
     _adopt(o){
-      for(const k of ['puppet','owner','_seen','_tx','_ty','_n','_dealt'])delete o[k];
+      for(const k of ['puppet','owner','_seen','_tx','_ty','_n','_dealt','_ownerHp'])delete o[k];
       o.targetId=-1;o.chasing=false;o.foraging=false;o.pursuit=0;o.home=this._home(o.x,o.y);o.biome=this._biomeAt(o.x,o.y);
       const fill={cooldown:.5,stamina:this._profile(o).capacity,exhausted:false,tx:Math.cos(o.angle||0),ty:Math.sin(o.angle||0),wander:1,lastSeenX:o.x,lastSeenY:o.y,fedTime:0,anchorX:o.x,anchorY:o.y,flee:0,stun:0,charge:0,flash:0,slowTime:0,venomStacks:0,windup:0,lungeTime:0,recoverTime:0};
       for(const k in fill)if(typeof o[k]!==typeof fill[k]||(typeof fill[k]==='number'&&!Number.isFinite(o[k])))o[k]=fill[k];
@@ -3355,8 +3366,10 @@ dialog#coopDialog{width:min(460px,calc(100vw - 24px));max-width:none;max-height:
     }
     // Tell each owner what my player did to its creatures since the last report: damage, poison, slows, knockback.
     _coopReports(){
-      const c=this.coop;
-      for(const o of this.state.organisms){if(!o.puppet||o.dead)continue;const n=o._n;if(!n){o._n=this._baseline(o);continue;}
+      for(const o of this.state.organisms)if(o.puppet&&!o.dead)this._coopReport(o);
+    }
+    _coopReport(o){
+      const c=this.coop;{const n=o._n;if(!n){o._n=this._baseline(o);return;}
         const m={t:'d',id:o.id};let any=false;
         if(o.hp<n.hp-.005){m.dmg=Math.round((n.hp-o.hp)*100)/100;any=true;(o._dealt||(o._dealt=[])).push([c.clock,m.dmg]);}
         if(o.credit>n.credit+.005){m.cr=Math.round((o.credit-n.credit)*100)/100;any=true;}
@@ -3409,16 +3422,16 @@ dialog#coopDialog{width:min(460px,calc(100vw - 24px));max-width:none;max-height:
       if(boss&&boss.puppet&&(c.clock-boss._seen>2||!c.peers.has(boss.owner)))s.bossEncounter=null;
       // A boss whose player is down or away turns on the nearest player still standing.
       if(boss&&!boss.puppet&&!active){let best=null,bd=Infinity;for(const q of c.peers.values()){const b=q.body;if(!b||!b.active)continue;const d=length(boss.x-b.x,boss.y-b.y);if(d<bd){bd=d;best=q;}}
-        if(best){const w={...boss};delete w.myDamage;this._net(best.id,{t:'bg',b:w});boss.puppet=true;boss.owner=best.id;boss._seen=c.clock;}}
+        if(best&&!((boss.heldUntil||0)>c.clock)){const w={...boss};delete w.myDamage;delete w.heldUntil;this._net(best.id,{t:'bg',b:w});boss.puppet=true;boss.owner=best.id;boss._seen=c.clock;}}
     }
     // A player has gone. Their creatures near the rest of us carry on: the remaining device with the lowest
     // player number takes them over, and the others keep watching them through it.
     peerLeft(id){
       const c=this.coop;if(!c||!c.peers.has(id))return;c.peers.delete(id);
-      const lowest=Math.min(c.me,...c.peers.keys())===c.me;
+      const heir=Math.min(c.me,...c.peers.keys()),lowest=heir===c.me;
       for(const o of this.state.organisms){if(!o.puppet||o.owner!==id)continue;
         if(lowest)this._adopt(o);
-        else o._seen=c.clock;
+        else{o._seen=c.clock;o.owner=heir;}
       }
     }
     // The page is about to go into the background (a phone call, another app): pass my creatures on first,
@@ -3436,7 +3449,7 @@ dialog#coopDialog{width:min(460px,calc(100vw - 24px));max-width:none;max-height:
       const find=id=>s.organisms.find(o=>o.id===id);
       if(m.t==='p'){
         if(!Number.isFinite(m.x)||!Number.isFinite(m.y))return;
-        const first=!q.body||!Number.isFinite(q.body.x);if(!q.body)q.body={};
+        const first=!q.placed;q.placed=true;if(!q.body)q.body={};
         const {t,x,y,...rest}={t:'p',x:m.x,y:m.y,vx:Number.isFinite(m.vx)?m.vx:0,vy:Number.isFinite(m.vy)?m.vy:0,angle:Number.isFinite(m.angle)?m.angle:0,hp:Number.isFinite(m.hp)?m.hp:0,maxHp:m.maxHp>0?m.maxHp:1,r:m.r>0&&m.r<=6000?m.r:22,stealth:clamp(+m.stealth||0,0,1),hurt:clamp(+m.hurt||0,0,5),invulnerable:clamp(+m.invulnerable||0,0,60),sprinting:!!m.sprinting,sneaking:!!m.sneaking,exhausted:!!m.exhausted,alive:!!m.alive,active:!!m.active,down:clamp(+m.down||0,0,COOP_DOWN_SECONDS),rv:Array.isArray(m.rv)&&Number.isInteger(m.rv[0])&&Number.isFinite(m.rv[1])?[m.rv[0],clamp(m.rv[1],0,1)]:null,brood:m.brood};if(!Array.isArray(rest.brood))rest.brood=[];rest.brood=rest.brood.filter(v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)&&v.r>0&&v.r<500).slice(0,12).map(v=>({x:v.x,y:v.y,vx:+v.vx||0,vy:+v.vy||0,r:v.r,phase:+v.phase||0}));q.fast=rest;Object.assign(q.body,rest);q.body.peer=from;q.tx=x;q.ty=y;
         if(first||length(q.body.x-x,q.body.y-y)>600){q.body.x=x;q.body.y=y;}
         // Just arrived in a new pond: where a player who was here first already has the water, their device runs
@@ -3461,25 +3474,31 @@ dialog#coopDialog{width:min(460px,calc(100vw - 24px));max-width:none;max-height:
             if(!e){if(raw.kind===undefined)this._net(from,{t:'r',id:raw.id});continue;}
             o={...e,credit:0,huntCredit:0,stalkCredit:0,lastFamily:'',attackTokens:[],ramAt:-5,cooldown:1,stamina:0,puppet:true,_tx:e.x,_ty:e.y,_dealt:[]};s.organisms.push(o);byId.set(o.id,o);
           }else{
+            // Two devices both think they run it (after a dropout, or saves from different moments): the lower player number keeps it.
+            if(!o.puppet&&!o.dead&&from<c.me&&!o.bossId&&!o.nestId){o.puppet=true;o.owner=from;o._tx=o.x;o._ty=o.y;o._dealt=[];o._n=null;}
             if(!o.puppet||o.dead||!e)continue;
+            // Anything my player has done to it since the last report goes out first, so the owner's figures arriving now cannot erase it.
+            this._coopReport(o);
             const {x,y,hp,id,...rest}=e;Object.assign(o,rest);if(Number.isFinite(x))o._tx=x;if(Number.isFinite(y))o._ty=y;
             if(length(o._tx-o.x,o._ty-o.y)>260){o.x=o._tx;o.y=o._ty;}
             // My own recent hits may not have reached the owner yet: keep them taken off until they have.
-            if(Number.isFinite(hp)){o._dealt=(o._dealt||[]).filter(d=>c.clock-d[0]<.35);o.hp=hp-o._dealt.reduce((n,d)=>n+d[1],0);}
+            if(Number.isFinite(hp)){let fell=Number.isFinite(o._ownerHp)?o._ownerHp-hp:0;o._ownerHp=hp;const left=[];for(const d of o._dealt||[]){if(c.clock-d[0]>1)continue;if(fell>=d[1]-.01){fell-=d[1];continue;}left.push(d);}o._dealt=left;o.hp=hp-left.reduce((n,d)=>n+d[1],0);}
           }
           o.owner=from;o._seen=c.clock;o.targetId=-1;o._n=this._baseline(o);
         }
       }
       else if(m.t==='r'){q.known.delete(m.id);}
       else if(m.t==='v'){if(c.down>0&&!c.wiped&&this.coopRevive(true))this._event('coopRevived',{peer:from});}
-      else if(m.t==='u'){if(m.k==='wipe')this._coopWipe();else if(typeof m.k==='string')this._event('coopSignal',{from,kind:m.k.slice(0,20),data:m.d});}
+      else if(m.t==='u'){if(m.k==='wipe'){if(c.clock>4)this._coopWipe();}else if(typeof m.k==='string')this._event('coopSignal',{from,kind:m.k.slice(0,20),data:m.d});}
       else if(m.t==='d'){
         const o=find(m.id);if(!o||o.dead)return;
-        if(o.puppet){if(o.owner!==from)this._net(o.owner,m);return;}
-        const dmg=Number.isFinite(m.dmg)?clamp(m.dmg,0,1e6):0,cr=Number.isFinite(m.cr)?clamp(m.cr,0,1e6):0;
+        // A report for a creature I have since handed on goes to its new owner; if that is the sender, it goes
+        // back marked as their own, so the hit is not lost.
+        if(o.puppet){if(o.owner!==from)this._net(o.owner,m);else if(!m.back)this._net(from,{...m,back:true});return;}
+        const own=!!m.back,dmg=Number.isFinite(m.dmg)?clamp(m.dmg,0,1e6):0,cr=own?0:Number.isFinite(m.cr)?clamp(m.cr,0,1e6):0;
         if(dmg>0){o.hp-=dmg;o.flash=.22;}
         if(cr>0)o.remoteCredit=(o.remoteCredit||0)+cr;
-        if(m.st&&typeof m.st==='object')for(const k of COOP_STATUS){const v=m.st[k];if(Number.isFinite(v)&&v>0){o[k]=Math.max(o[k]||0,k==='venomStacks'?Math.min(v,8):v);if(k==='poison'||k==='venomStacks')o.venomFrom=from;if(k==='bleed')o.bleedFrom=from;}}
+        if(m.st&&typeof m.st==='object')for(const k of COOP_STATUS){const v=m.st[k];if(Number.isFinite(v)&&v>0){o[k]=Math.max(o[k]||0,Math.min(v,COOP_STATUS_MAX[k]));if(!own){if(k==='poison'||k==='venomStacks')o.venomFrom=from;if(k==='bleed')o.bleedFrom=from;}}}
         if(Array.isArray(m.iv)&&Number.isFinite(m.iv[0])&&Number.isFinite(m.iv[1])){o.vx+=clamp(m.iv[0],-900,900);o.vy+=clamp(m.iv[1],-900,900);}
         if(o.hp<=0){this._kill(o);s.organisms=s.organisms.filter(v=>!v.dead);return;}
         // A creature that is not busy with my player turns on whoever hurt it.
@@ -3489,7 +3508,7 @@ dialog#coopDialog{width:min(460px,calc(100vw - 24px));max-width:none;max-height:
       else if(m.t==='k'){
         if(!Number.isFinite(m.id))return;c.gone.set(m.id,c.clock);const o=find(m.id);if(!o||o.dead)return;
         // Someone else finished it. If I had hurt it too, I earn my share; otherwise it is simply gone.
-        if(o.credit>0&&this._coopActive())this._kill(o,false,true);else o.dead=true;
+        if(o.credit>0&&this._coopActive())this._kill(o,false,true);else{this._nestKill(o);o.dead=true;}
         s.organisms=s.organisms.filter(v=>!v.dead);
       }
       else if(m.t==='g'){
@@ -3497,16 +3516,19 @@ dialog#coopDialog{width:min(460px,calc(100vw - 24px));max-width:none;max-height:
         let o=find(e.id);if(o&&!o.puppet)return;
         const mine=o?{credit:o.credit||0,huntCredit:o.huntCredit||0,stalkCredit:o.stalkCredit||0,lastFamily:o.lastFamily||'',attackTokens:o.attackTokens||[],ramAt:o.ramAt??-5}:{credit:0,huntCredit:0,stalkCredit:0,lastFamily:'',attackTokens:[],ramAt:-5};
         if(!o){o={};s.organisms.push(o);}
-        const cr=e.cr||0;Object.assign(o,e,mine);delete o.cr;this._adopt(o);o.remoteCredit=cr;o.heldUntil=c.clock+1.5;
+        // A hit of mine that had not been reported yet still counts once the creature is mine.
+        const unsent=o._n&&Number.isFinite(o.hp)?Math.max(0,o._n.hp-o.hp):0;
+        const cr=e.cr||0;Object.assign(o,e,mine);delete o.cr;this._adopt(o);o.hp-=unsent;o.remoteCredit=cr;o.heldUntil=c.clock+1.5;
       }
       else if(m.t==='b'||m.t==='bg'){
         const e=m.b;if(!e||!Number.isFinite(e.id)||!Number.isFinite(e.x)||!Number.isFinite(e.y)||!(e.r>0)||!Object.hasOwn(BOSSES,e.type)||!Number.isFinite(e.hp)||!Number.isFinite(e.maxHp))return;
         if(!['hunt','windup','act','recover','transform'].includes(e.mode)||typeof e.attackKind!=='string'||!Array.isArray(e.heads)||e.heads.length>4||e.heads.some(h=>!h||typeof h!=='object'||!Number.isFinite(h.off)||!Number.isFinite(h.aim)||!Number.isFinite(h.reach))||![1,2,3].includes(e.phase)||!Number.isFinite(e.angle)||!Number.isFinite(e.vx)||!Number.isFinite(e.vy)||!(e.r<=20000))return;
         for(const k in e){const v=e[k];if(k==='heads'||k==='projectileTokens')continue;if(!(typeof v==='boolean'||(typeof v==='string'&&v.length<=60)||(typeof v==='number'&&Number.isFinite(v)&&Math.abs(v)<=1e15)))return;}
         for(const h of e.heads)for(const k in h){const v=h[k];if(!(typeof v==='boolean'||(typeof v==='string'&&v.length<=20)||(typeof v==='number'&&Number.isFinite(v)&&Math.abs(v)<=1e9)))return;}
-        const cur=s.bossEncounter;if(cur&&!cur.puppet)return;const same=cur&&cur.id===e.id,mine=same?{myDamage:cur.myDamage||0,huntCredit:cur.huntCredit||0,projectileTokens:cur.projectileTokens||[]}:{myDamage:0,huntCredit:0,projectileTokens:[]};
+        const cur=s.bossEncounter;if(m.t==='bg'&&((cur&&!cur.puppet&&cur.id!==e.id)||!this._coopActive())){this._net(from,{t:'bn',id:e.id});return;}
+        if(cur&&!cur.puppet)return;const same=cur&&cur.id===e.id,mine=same?{myDamage:cur.myDamage||0,huntCredit:cur.huntCredit||0,projectileTokens:cur.projectileTokens||[]}:{myDamage:0,huntCredit:0,projectileTokens:[]};
         if(m.t==='b'){s.bossEncounter={...e,...mine,puppet:true,owner:from,_seen:c.clock};if(!same)this._event('bossAwakened',{bossType:e.type,name:e.name});}
-        else if(this._coopActive()){
+        else{
           // It is mine to run now: it starts its hunt afresh, on my player.
           const p=s.player;s.bossEncounter={...e,...mine,mode:e.mode==='transform'?'transform':'hunt',attackKind:'',windup:0,actTime:0,cooldown:Math.max(1.5,e.cooldown||0),lastSeenX:p.x,lastSeenY:p.y,lostTime:0};if(!same)this._event('bossAwakened',{bossType:e.type,name:e.name});
         }
@@ -3517,6 +3539,7 @@ dialog#coopDialog{width:min(460px,calc(100vw - 24px));max-width:none;max-height:
         // Run the usual checks for a new phase or its defeat, without crediting my player for the blow.
         if(b.hp<=0)this._defeatBoss();else this._hitBoss(1e-6,{noCritical:true,dot:true});
       }
+      else if(m.t==='bn'){const b=s.bossEncounter;if(b&&b.puppet&&b.id===m.id&&b.owner===from){delete b.puppet;delete b.owner;delete b._seen;b.heldUntil=c.clock+3;}}
       else if(m.t==='bd'){const b=s.bossEncounter;if(b&&b.puppet&&b.id===m.id)this._defeatBoss();}
       else if(m.t==='e'){
         const e=m.e;if(!e||!Number.isFinite(e.x)||!Number.isFinite(e.y)||!(e.life>0)||!(e.maxR>=0)||typeof e.kind!=='string')return;
@@ -6290,24 +6313,25 @@ $('pauseHelp').addEventListener('click',showHelp);
    if(coop.started){coopSendRaw(link,{c:'start',seed:game.state.seed,me:id,names:coop.names,party:coop.party});notify(coop.names[id]+' joined the pond.',3,2);}
  }
  function coopWire(link){
-   const dc=link.dc;
-   dc.onopen=()=>{link.open=true;if(coop&&coop.host)coopAdmit(link);else{coopSendRaw(link,{c:'hello',name:coopName()});coopScreen('waiting');}};
-   dc.onclose=()=>coopLost(link);
-   dc.onmessage=e=>{if(!coop||typeof e.data!=='string'||e.data.length>200000)return;let d;try{d=JSON.parse(e.data);}catch{return;}if(!d||typeof d!=='object')return;try{coopReceive(link,d);}catch(err){console.warn('co-op message ignored',err);}};
+   const dc=link.dc,session=link.session=coop,stale=()=>{if(coop===session)return false;try{link.pc.close();}catch{}return true;};
+   dc.onopen=()=>{if(stale())return;link.open=true;if(coop&&coop.host)coopAdmit(link);else{coopSendRaw(link,{c:'hello',name:coopName()});coopScreen('waiting');}};
+   dc.onclose=()=>{if(coop===session)coopLost(link);};
+   dc.onmessage=e=>{if(stale()||typeof e.data!=='string'||e.data.length>200000)return;let d;try{d=JSON.parse(e.data);}catch{return;}if(!d||typeof d!=='object')return;try{coopReceive(link,d);}catch(err){console.warn('co-op message ignored',err);}};
  }
  function coopReceive(link,d){
    if(coop.host){
      if(d.c==='hello'){if(link.id&&typeof d.name==='string'){coop.names[link.id]=d.name.slice(0,14)||coop.names[link.id];coopRoster();for(const l of coop.links.values())coopSendRaw(l,{c:'names',names:coop.names});}return;}
      if(!link.id||!Array.isArray(d.m)||!Number.isInteger(d.t))return;
-     if(coop.started&&(d.t===-1||d.t===0))for(const m of d.m)game.applyNet(link.id,m);
+     // Pass it on first, then use it: one bad message must not hold up the rest.
      for(const l of coop.links.values())if(l!==link&&(d.t===-1||d.t===l.id))coopSendRaw(l,{f:link.id,m:d.m});
+     if(coop.started&&(d.t===-1||d.t===0))for(const m of d.m){try{game.applyNet(link.id,m);}catch(err){console.warn('co-op message ignored',err);}}
      return;
    }
    if(d.c==='names'&&Array.isArray(d.names)){coop.names=d.names.map(n=>typeof n==='string'?n.slice(0,14):null);coopRoster();}
    else if(d.c==='full'){coopStatus('That pond is full (four players).',true);coopScreen('join');}
    else if(d.c==='start'&&typeof d.seed==='string'&&Number.isInteger(d.me)&&d.me>0&&d.me<32){if(Array.isArray(d.names))coop.names=d.names.map(n=>typeof n==='string'?n.slice(0,14):null);coop.me=d.me;if(typeof d.party==='string')coop.party=d.party.slice(0,24);coopReadStored();startCoopLife(d.seed,d.me,coopStored&&coopStored.party===coop.party?coopStored:null);}
    else if(d.c==='left'&&Number.isInteger(d.id)){if(coop.started)game.peerLeft(d.id);if(coop.names[d.id])notify(coop.names[d.id]+' left the pond.',3,2);coop.names[d.id]=null;}
-   else if(Number.isInteger(d.f)&&Array.isArray(d.m)&&coop.started)for(const m of d.m)game.applyNet(d.f,m);
+   else if(Number.isInteger(d.f)&&Array.isArray(d.m)&&coop.started)for(const m of d.m){try{game.applyNet(d.f,m);}catch(err){console.warn('co-op message ignored',err);}}
  }
  function coopLost(link){
    if(!coop||link.gone)return;link.gone=true;
@@ -6325,7 +6349,12 @@ $('pauseHelp').addEventListener('click',showHelp);
  function coopCheckpoint(reason,policy='',landmarkId='',fromPeer=false){
    if(!coopOn()||mode==='menu'||game.state.status!=='playing'||!game.state.player.alive)return false;
    if(!fromPeer&&(!checkpointAllows(game.state,policy,landmarkId)||game.coopPeers().some(b=>b.down>0)))return false;
-   try{const text=JSON.stringify({format:'morphos-coop',version:saveVersion,party:coop.party,seed:game.state.seed,names:coop.names,me:coop.me,reason,savedAt:new Date().toISOString(),game:game.saveObject()});coop.checkpoint=text;try{localStorage.setItem(coopKey,text);}catch{}
+   try{const text=JSON.stringify({format:'morphos-coop',version:saveVersion,party:coop.party,seed:game.state.seed,names:coop.names,me:coop.me,reason,savedAt:new Date().toISOString(),game:game.saveObject()});
+     // Only a save that loads cleanly replaces the last one.
+     MorphosGame.fromSave(JSON.parse(text).game);coop.checkpoint=text;
+     // A pond that has only just begun does not replace a saved pond from another party; its first real checkpoint does.
+     let other=false;if(policy==='initial'){try{const old=JSON.parse(localStorage.getItem(coopKey)||'null');other=!!old&&old.party!==coop.party;}catch{}}
+     if(!other){try{localStorage.setItem(coopKey,text);}catch{}}
      if(!fromPeer&&policy!=='initial')game.coopSignal('cp',reason);return true;}catch{return false;}
  }
  function coopLoad(text,message){
@@ -6335,7 +6364,7 @@ $('pauseHelp').addEventListener('click',showHelp);
  }
  // The party went down: everyone returns to the last party checkpoint.
  function coopRestore(){
-   if(!coopOn()||performance.now()-coop.restoredAt<4000)return;
+   if(!coopOn())return;if(performance.now()-coop.restoredAt<4000){game.coop.wiped=false;return;}
    try{if(!coop.checkpoint)throw Error('none');coopLoad(coop.checkpoint,'The party went down. You are back at the last checkpoint.');}
    catch{const session=coop;startLife(game.state.seed,session);game.startCoop(session.me);session.restoredAt=performance.now();notify('The party went down. The pond begins again.',6,3);}
  }
@@ -6356,10 +6385,11 @@ $('pauseHelp').addEventListener('click',showHelp);
          const pc=new RTCPeerConnection(ICE),link={pc,dc:null,name:''};session.pending.push(link);
          pc.ondatachannel=e=>{link.dc=e.channel;coopWire(link);};
          await pc.setRemoteDescription({type:'offer',sdp:m.sdp});await pc.setLocalDescription(await pc.createAnswer());await gathered(pc);
+         if(coop!==session){pc.close();return;}
          await signalSend(m.id,{sdp:pc.localDescription.sdp});}
        failures=0;if(!session.started)coopStatus('');}
      catch(err){if(++failures>=2&&!session.started&&!session.manual)coopStatus('The connection helper cannot be reached. Check your internet, or connect by copy and paste.',true);}
-     if(coop===session)coopTimer=setTimeout(poll,session.started?4000:1300);
+     if(coop===session)coopTimer=setTimeout(poll,session.started?6000:1300);
    };
    poll();
  }
