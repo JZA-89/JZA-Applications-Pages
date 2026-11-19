@@ -72,7 +72,11 @@ MORPHOS is Jaisah's HTML game, not an App Store app, so it has **no About or Sup
   - **Body size** grows with cells^0.25 (`BODY_GROWTH`); health, damage and food value use that width to the power `SIZE_POWER` (2.2), which keeps strength on its older curve.
   - **Water levels:** difficulty is fixed by place (`waterLevel`): level 0 in the nursery, then one more per 850 units from it. Creatures, food value and species follow the water's level, never the player's. The HUD shows it as level N+1, comparable with the colony's cell count.
   - **Weapons:** the primary attack comes only from a mutation in the Strike organ (`jaws`, `spitGland`, `needleSpine`, `surgeFin`, `commandGland`; none is Jab), dropped by the creature that uses it. Class ranks strengthen abilities only (`_rankPower`).
-  - **Elders:** named territorial mini-bosses (`_maybeElder`), about one per fifty chunks of open water, that drop a Rare or better mutation.
+  - **Ancients** (code name "elder"): named territorial mini-bosses (`_maybeElder`), about one per fifty chunks of open water, that drop a Rare or better mutation. They stay in a fight while being hurt and go home when left alone.
+  - **Levels:** every creature has its water's level (`o.lv`); each level of difference changes damage dealt and taken by 8% and what a kill, food or place is worth by 12% (`gapDeal`, `gapTake`, `gapWorth`).
+  - **Nests** hold a mother and two young that squeeze in and out one at a time (`_nestEmerge`, `denT`).
+  - **Bosses:** six, ending with the Kraken at level 36. A boss can be escaped by staying well clear of it (`_bossLost`); it returns after two minutes.
+  - **Depth:** scenery (`DEEP_SCENERY`) and two places (glass vault, black smoker) appear only in deeper water.
   - **Saves** are version 20; versions 18 and 19 are converted on load (`fromSave`). Measurements such as reach are always recomputed, so a balance change does not invalidate a save.
 - Playing alone, the game's only network request is a version check: a few seconds after opening (and when the tab comes back into view, at most every 5 minutes) it fetches its own page, `morphos.html`, with the cache bypassed, reads the version from the `<title>`, and offers a reload if it is newer. Nothing is sent. Keep the title in the form `MORPHOS | Living Waters · vX.Y` or the check stops working.
 - **Co-op (the Co-Op button, up to eight players)** connects the players' browsers directly to each other with WebRTC. Game data never passes through a server. The network requests it makes are:
