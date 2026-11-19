@@ -6497,6 +6497,9 @@ $('pauseHelp').addEventListener('click',showHelp);
    session.host=true;session.hubId=session.me;session.tries.clear();if(!session.code)session.code=randomText(6,CODE_LETTERS);
    const old=session.links.get(-1);if(old){old.gone=true;try{old.pc.close();}catch{}session.links.delete(-1);}
    if(session.attempt){try{session.attempt.link.gone=true;session.attempt.link.pc.close();}catch{}session.attempt=null;}
+   // Rank decides which of two lone players hosts the other: whoever started looking first. A player already waiting
+   // therefore answers a newcomer at once.
+   if(!session.ranked){session.ranked=true;session.rank=String(Date.now()).padStart(15,'0')+session.rank;}
    session.seekSince=performance.now();session.patience=7000+Math.random()*3000;coopHostLoop(session);
  }
  // A hub that finds a bigger party of the same pond dissolves its own: everyone, itself included, goes looking, and the
