@@ -39,8 +39,8 @@
     <li><strong>Save files.</strong> If you choose to save a life to a file, that file is created on your device. What you do with it is up to you.</li>
   </ul>
 
-  <h2>Playing together</h2>
-  <p>"Play together" connects up to eight players' browsers directly to each other. Game data (where each player and creature is, and what happens to them) travels straight between the players' devices and does not pass through our servers. Starting those connections involves the following.</p>
+  <h2>Co-Op (playing together)</h2>
+  <p>Co-Op connects up to eight players' browsers directly to each other. Game data (where each player and creature is, and what happens to them) travels straight between the players' devices and does not pass through our servers. Starting those connections involves the following.</p>
   <ul>
     <li><strong>The connection helper (coop.jza.app).</strong> To connect, two browsers must first swap a block of technical connection details, which includes your device's internet (IP) addresses. When you host or join with a pond code, each browser leaves those details with a small helper service we run on Cloudflare, and the other browser collects them. The helper deletes them as soon as they are collected, or after two minutes if they are not. It stores nothing else: no names, no game data and no history. Like any web service, it necessarily sees the internet address a request comes from, and Cloudflare, which runs it, handles that under <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's Privacy Policy</a>.</li>
     <li><strong>Address lookup (STUN).</strong> To find out how your device can be reached from the internet, your browser asks public address-lookup servers run by Cloudflare and Google. They see your internet address and nothing about the game. They are governed by <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's</a> and <a href="https://policies.google.com/privacy">Google's</a> privacy policies.</li>
