@@ -6505,8 +6505,8 @@ window.MorphosAudio=MorphosAudio;
  function downloadLife(){
    if(!game||game.state.status!=='playing')return;
    try{
-     const data=packLife();
-     const blob=new Blob([JSON.stringify(data)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+     const data=packLife(),json=JSON.stringify(data);try{MorphosGame.fromSave(JSON.parse(json).game);}catch{fileMessage('This moment cannot be saved to a file. Try again in a few seconds.',true);return;}
+     const blob=new Blob([json],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
      const seed=game.state.seed.replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').slice(0,32)||'life';a.download='MORPHOS-'+seed+'-colony-'+(game.state.player.colonyLevel||game.state.player.stage+1)+'.morphos.json';a.href=url;a.hidden=true;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
      fileMessage('Save file downloaded. Load it here whenever you want to continue.');
    }catch(error){fileMessage('Could not save this life: '+String(error.message||error),true);}
