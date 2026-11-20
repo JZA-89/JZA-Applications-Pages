@@ -88,6 +88,7 @@ MORPHOS is Jaisah's HTML game, not an App Store app, so it has **no About or Sup
   - The direct connections to the other players.
   - "Connect by copy and paste" in the same dialog skips the Worker.
   The privacy page describes exactly this. If co-op's connections change, or the game adds any other request (analytics, leaderboards), update `morphos/MorphosPrivacyPolicy.html` to match.
+- **Friendly fire (v26.0)** is always on in co-op: a player's Jab, Bite, Command pulse, Surge, shots and Pounce hurt the other players they touch (`_ff`, message `ff`). The attacker's device decides the hit; the victim's device takes the damage through its own defences. Rams, poison and broodlings do not hurt friends.
 - A co-op pond is saved separately from a solo life (`localStorage` key `morphos.coop.v1`), so it also depends on the URL staying the same.
 
 ## Checking your work
