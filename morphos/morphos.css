@@ -1854,3 +1854,7 @@ dialog.hermit-dialog[open]{display:grid!important;height:fit-content!important;a
 .legend-sec{margin:0 0 22px}.legend-sec h3{margin:0 0 10px;font:400 20px/1.2 "Iowan Old Style","Palatino Linotype",Georgia,serif;color:#f2e8c4}
 .legend-row{padding:7px 0 7px 12px;border-left:2px solid #d6ceaa55;margin:0 0 6px}.legend-row b{display:block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#cdbf8e;margin-bottom:3px}
 .legend-row p{margin:0;font:italic 15px/1.55 "Iowan Old Style","Palatino Linotype",Georgia,serif;color:#e6dfc6}.legend-row.gap{border-left-color:#d6ceaa22}.legend-row.gap p{font-style:normal;color:#6f857b;letter-spacing:.3em;font-size:13px}
+
+/* v36.2 a hermit's memory, under its story */
+.hd-memory{margin:8px 0 0;font:italic 13px/1.5 "Iowan Old Style","Palatino Linotype",Georgia,serif;color:#b9c8b4}
+.hd-memory[hidden]{display:none}

@@ -240,7 +240,7 @@
   const SWALLOW_LEVELS=3,SWALLOW_RATIO=2.8,canSwallow=(o,p)=>!!o&&!o.bossId&&!o.elder&&!o.mother&&['hunter','apex','armoured'].includes(o.kind)&&o.r>=p.r*SWALLOW_RATIO&&(Number.isFinite(o.lv)?o.lv:0)-(Number.isFinite(p.stage)?p.stage:0)>=SWALLOW_LEVELS;
   // Shortest distance from point v to the segment a-b.
   function segmentDistance(v,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,ll=dx*dx+dy*dy,t=ll?clamp(((v.x-ax)*dx+(v.y-ay)*dy)/ll,0,1):0;return length(v.x-ax-dx*t,v.y-ay-dy*t);}
-  const LANDMARKS={bloom:{name:'Nutrient bloom',r:110,goal:1},sanctuary:{name:'Sanctuary',r:150,goal:3},geneCache:{name:'Gene cache',r:75,goal:3},nest:{name:'Predator nest',r:140,goal:3},current:{name:'Current vent',r:170,goal:1.2},carcass:{name:'Fallen giant',r:150,goal:1},garden:{name:'Toxic garden',r:175,goal:1},sanctum:{name:'Elder sanctum',r:250,goal:1},fossil:{name:'Ancient fossil',r:95,goal:3},vault:{name:'Glass vault',r:115,goal:3},smoker:{name:'Black smoker',r:165,goal:1},shell:{name:'Abandoned shell',r:120,goal:2},sealed:{name:'Sealed shell',r:110,goal:5},trail:{name:'Hidden garden',r:170,goal:1},silent:{name:'Silent current',r:150,goal:1},wonderBell:{name:'The Sunken Bell',r:270,goal:3},wonderLanterns:{name:'The Lantern Reef',r:430,goal:6},wonderRibs:{name:'The Leviathan Ribs',r:320,goal:3},wonderPool:{name:'The Still Pool',r:390,goal:12},wonderMaelstrom:{name:'The Maelstrom',r:450,goal:3},wonderSpire:{name:'The Crystal Spire',r:280,goal:3},wonderDrowned:{name:'The Drowned Colony',r:350,goal:3},wonderEye:{name:'The Abyssal Eye',r:430,goal:25}};
+  const LANDMARKS={bloom:{name:'Nutrient bloom',r:110,goal:1},sanctuary:{name:'Sanctuary',r:150,goal:3},geneCache:{name:'Gene cache',r:75,goal:3},nest:{name:'Predator nest',r:140,goal:3},current:{name:'Current vent',r:170,goal:1.2},carcass:{name:'Fallen giant',r:150,goal:1},garden:{name:'Toxic garden',r:175,goal:1},sanctum:{name:'Elder sanctum',r:250,goal:1},fossil:{name:'Ancient fossil',r:95,goal:3},vault:{name:'Glass vault',r:115,goal:3},smoker:{name:'Black smoker',r:165,goal:1},shell:{name:'Abandoned shell',r:120,goal:2},sealed:{name:'Sealed shell',r:110,goal:5},trail:{name:'Hidden garden',r:170,goal:1},silent:{name:'Silent current',r:150,goal:1},nursery:{name:'Empty nursery',r:200,goal:3},wonderBell:{name:'The Sunken Bell',r:270,goal:3},wonderLanterns:{name:'The Lantern Reef',r:430,goal:6},wonderRibs:{name:'The Leviathan Ribs',r:320,goal:3},wonderPool:{name:'The Still Pool',r:390,goal:12},wonderMaelstrom:{name:'The Maelstrom',r:450,goal:3},wonderSpire:{name:'The Crystal Spire',r:280,goal:3},wonderDrowned:{name:'The Drowned Colony',r:350,goal:3},wonderEye:{name:'The Abyssal Eye',r:430,goal:25}};
   // Wonders: one of each per pond, at its own depth (zone is the water level, counted from 0) and a direction set by the seed.
   // THE LAST WATER (v35.9). The First Colony's memory, told only through what the player finds. Echoes come from ancient fossils and
   // abandoned shells: each gives the earliest echo not yet heard whose water (index) is at or above the echo's. The keepers (bosses) and
@@ -279,6 +279,35 @@
     wonderDrowned:'A colony grew too large and would not divide. Its walls are all that is left. We were warned.',
     wonderEye:'The Eye is the last thing we saw before we broke apart. It is still looking for us.'
   };
+  // Story threads (v36.2), each heard in order: a hermit's fate when you finish its three tasks, the lost hunters when a named
+  // ancient falls, the other nurseries in empty nurseries of deep water. Ids live in state.echoes beside the LEGEND ones.
+  const THREADS={
+    fate:[
+      {id:'f1',text:'I was going to the bottom too, once. I reached the Glass Pike and turned back. I have been ashamed ever since.'},
+      {id:'f2',text:'We were twelve when we left the nursery. At the Broodmother we were five. I stopped counting after that.'},
+      {id:'f3',text:'The deeper you go, the more the water remembers you. I did not want to be remembered.'},
+      {id:'f4',text:'I grew until I could hear the Kraken’s heart. It beat slower than mine. I was afraid of what that meant.'},
+      {id:'f5',text:'I found an empty nursery in the deep. Someone was seeded there before me. Nothing was left but a ring in the silt.'},
+      {id:'f6',text:'Every colony that reaches the bottom becomes part of it. That is why I stopped. You may not.'}],
+    hunters:[
+      {id:'a1',text:'We sent hunters out to keep the water clean. Some of them forgot to come home.'},
+      {id:'a2',text:'A hunter that eats alone too long forgets it was ever part of us.'},
+      {id:'a3',text:'They still hold the ground we gave them. They do not remember why.'},
+      {id:'a4',text:'Each hunter carried a piece of our hunger. That is why they are so hard to kill.'},
+      {id:'a5',text:'When one falls, its piece comes back to us. To you.'},
+      {id:'a6',text:'We named them so we would not lose them. We lost them anyway.'},
+      {id:'a7',text:'The oldest hunters guard the vaults. We asked them to. We are sorry.'},
+      {id:'a8',text:'The last hunter we sent swam down. It has not come up.'}],
+    nurseries:[
+      {id:'n1',text:'A ring of silt where a seed once lay. The water is still warm, as if it only just left.'},
+      {id:'n2',text:'Another seed. It grew as far as this, then the ring breaks. Something took it.'},
+      {id:'n3',text:'This one grew large. Its ring is wider than yours. It went down and did not come back.'},
+      {id:'n4',text:'We seeded many. We hoped one would reach us.'},
+      {id:'n5',text:'You are the last seed. There will be no other.'}]
+  };
+  const STORY_IDS=new Set([...LEGEND.map(e=>e.id),...Object.values(THREADS).flat().map(e=>e.id)]);
+  // What each hermit remembers, chosen by its sanctuary; told in its dialog.
+  const HERMIT_MEMORIES=['I saw the Bell ring once. Nothing has been the same since.','When I was young the shallows were wider. The pond is smaller every time I look.','The Gulper was smaller once. Or I was bigger.','There were more of us. We went down together. I came back up alone.','Some nights the lanterns on the old reef light by themselves.','Do not trust a current you cannot see.','The deep water talks, if you keep still long enough.','I knew a colony that reached the Hydra. It never told me what it saw.','The sanctuaries are warm because something large once slept in them.','You swim like the first ones did. Straight down, never looking back.'];
   const WONDERS=[
     {type:'wonderBell',zone:3,challenge:'guardian',kind:'hunter',guardian:'The Bell-Warden',reward:'echoChamber',points:1,hint:'Defeat its warden, then rest inside',lore:'A giant bell of shell lies half buried here, and something has made it its home.'},
     {type:'wonderLanterns',zone:7,challenge:'lanterns',reward:'eyespot',points:1,hint:'Light all six lanterns at once',lore:'Six dead lanterns ring an old reef. They were never meant to burn alone.'},
@@ -310,7 +339,7 @@
   // Rare finds never come from the ordinary pool: each has its own small chance per region of open water.
   const RARE_LANDMARKS=['fossil','shell'];
   // Secrets (v36.0): never in an ordinary roll, never a study lead or task target. Each sits in an otherwise empty region of deeper water.
-  const SECRET_LANDMARKS=['sealed','trail','silent'],SECRET_FROM={sealed:6,trail:10,silent:12};
+  const SECRET_LANDMARKS=['sealed','trail','silent','nursery'],SECRET_FROM={sealed:6,trail:10,silent:12,nursery:20};
   // Species: named creatures layered on a base behaviour (kind). The kind drives every shared system (AI, attacks, saves);
   // the species adds identity (name, look, size, strength), rarity, when it can appear, and one signature trait.
   // minStage is a tier: a species first appears at level minStage*3+1 (tier 1 from level 4, tier 4 from level 13, tier 7 from level 22).
@@ -655,8 +684,9 @@
     }
     // A secret takes an empty region only (so no record, task or hazard of an older pond is moved), about one in fifty regions from water level 6.
     _secretFor(cx,cy){
-      if(length(cx,cy)<2)return null;const key=cx+','+cy,rng=localRng(seedHash(this.state.seed+'|secret|'+key));if(rng()>=.06)return null;
-      const x=(cx+.25+rng()*.5)*CHUNK,y=(cy+.25+rng()*.5)*CHUNK,zone=waterLevel(x,y),kinds=SECRET_LANDMARKS.filter(k=>zone>=SECRET_FROM[k]);if(!kinds.length)return null;
+      if(length(cx,cy)<2)return null;const key=cx+','+cy,rng=localRng(seedHash(this.state.seed+'|secret|'+key)),first=rng();if(first>=.075)return null;
+      // Empty nurseries (v36.2) take their own slice of the roll, so the secrets placed in v36.0 stay where they are.
+      const x=(cx+.25+rng()*.5)*CHUNK,y=(cy+.25+rng()*.5)*CHUNK,zone=waterLevel(x,y),kinds=first>=.06?(zone>=SECRET_FROM.nursery?['nursery']:[]):SECRET_LANDMARKS.filter(k=>k!=='nursery'&&zone>=SECRET_FROM[k]);if(!kinds.length)return null;
       const type=kinds[Math.floor(rng()*kinds.length)],def=LANDMARKS[type],turn=rng(),angle=type==='silent'?Math.atan2(y,x)+(turn-.5)*1.2:turn*TAU;
       return{id:'lm:'+key,type,bossType:'',x,y,r:def.r,name:def.name,biome:this._biomeAt(x,y),phase:rng()*TAU,angle,flowX:Math.cos(angle),flowY:Math.sin(angle),variant:0,discovered:false,claimed:false,active:false,progress:0,goal:def.goal,guardianIds:[],home:key};
     }
@@ -711,21 +741,22 @@
     }
     // An ancient fossil or an abandoned shell holds an echo: the earliest one not yet heard in this life that its water can hold.
     _echo(l){const s=this.state;if(!Array.isArray(s.echoes))s.echoes=[];const w=waterLevel(l.x,l.y),e=LEGEND.find(x=>x.water<=w&&!s.echoes.includes(x.id));if(!e)return;s.echoes.push(e.id);this._event('echo',{id:e.id,text:e.text});}
+    _thread(kind){const s=this.state;if(!Array.isArray(s.echoes))s.echoes=[];const e=(THREADS[kind]||[]).find(x=>!s.echoes.includes(x.id));if(!e)return null;s.echoes.push(e.id);this._event('echo',{id:e.id,text:e.text,thread:kind});return e;}
     _claimLandmark(l){
       if(!l||l.claimed||this._claimed.has(l.id))return false;
       const s=this.state,p=s.player;this._discoverLandmark(l);l.claimed=true;l.progress=l.goal;this._claimed.add(l.id);s.claimedLandmarks.push(l.id);s.stats.encounters++;
       if(l.type==='fossil'||l.type==='shell'||l.type==='sealed'||l.type==='trail')this._echo(l);
-      const reward=l.type==='nest'?this._challengeReward():0,scoreReward=120+reward*40,biomassReward=Math.round(this._divisionShare(l.type.startsWith('wonder')?.35:l.type==='fossil'||l.type==='sealed'||l.type==='trail'?.09:l.type==='geneCache'?.09:l.type==='nest'?.2:l.type==='carcass'||l.type==='garden'||l.type==='smoker'?.07:l.type==='vault'?.05:0)*gapWorth(waterLevel(l.x,l.y)-s.player.stage));s.score+=scoreReward;this._recordLandmark(l);
+      const reward=l.type==='nest'?this._challengeReward():0,scoreReward=120+reward*40,biomassReward=Math.round(this._divisionShare(l.type.startsWith('wonder')?.35:l.type==='fossil'||l.type==='sealed'||l.type==='trail'||l.type==='nursery'?.09:l.type==='geneCache'?.09:l.type==='nest'?.2:l.type==='carcass'||l.type==='garden'||l.type==='smoker'?.07:l.type==='vault'?.05:0)*gapWorth(waterLevel(l.x,l.y)-s.player.stage));s.score+=scoreReward;this._recordLandmark(l);
       const descriptions={bloom:'The bloom released a rich cloud of nutrients.',sanctuary:'A safe refuge. Its restorative field remains available.',geneCache:'Ancient nutrients add biomass to your colony.',nest:'The nest is clear. Its genetic rewards are yours.',current:'You learned to ride this current. It still flows through the pond.',carcass:'You fed on the fallen giant before the scavengers stripped it.',garden:'You grazed the heart of the garden through the toxin.',fossil:'',vault:'',smoker:'You fed on the minerals pouring from the smoker, between its vents.',shell:'A hiding place. Predators cannot see you inside it while you are not fighting.'};
       if(l.type==='vault'){const all=Object.keys(MUTATION_SOURCE).filter(k=>!(SPECIES[MUTATION_SOURCE[k]]&&SPECIES[MUTATION_SOURCE[k]].rarity==='legendary')),cap=clamp(1+Math.floor(waterLevel(l.x,l.y)/6),2,4),pool=all.filter(k=>(p.mutationTiers[k]??-1)<cap&&this._mutationOpen(k,cap)),key=pool.length?pool[Math.floor(this.random()*pool.length)]:'';descriptions.vault=key?'The vault opened and gave up '+TIERS[cap].toLowerCase()+' '+MUTATIONS[key].name.toLowerCase()+'.':'The vault opened, but it holds nothing better than you already carry.';if(key)this._findMutation(key,cap,'Glass vault');}
-      descriptions.sealed='The shell opened.';descriptions.trail='The garden has never been grazed.';descriptions.silent='The current carried you out of the known water.';
+      descriptions.sealed='The shell opened.';descriptions.nursery='Nothing is left here but the ring.';if(l.type==='nursery')this._thread('nurseries');descriptions.trail='The garden has never been grazed.';descriptions.silent='The current carried you out of the known water.';
       if(l.type==='trail'){p.hp=p.maxHp;p.nutrition=p.maxNutrition;}
       if(l.type==='fossil'||l.type==='sealed'){const pool=Object.keys(MUTATION_SOURCE).filter(k=>(p.mutationTiers[k]??-1)<2&&this._mutationOpen(k,2)),key=pool.length?pool[Math.floor(this.random()*pool.length)]:'';descriptions[l.type]=key?'You drew '+MUTATIONS[key].name.toLowerCase()+' from the ancient genome.':'Its genome holds nothing you have not found.';if(key)this._findMutation(key,2,l.type==='sealed'?'Sealed shell':'Ancient fossil');}
       if(l.type.startsWith('wonder'))descriptions[l.type]=this._wonderReward(l);
       if(l.type==='bloom'){p.nutrition=p.maxNutrition;for(let i=0;i<24;i++){const a=this.range(0,TAU),r=this.range(15,l.r*.9);this._food(l.x+Math.cos(a)*r,l.y+Math.sin(a)*r,i%6===0?'mineral':'algae',1.5,l.home,l.biome);}}
       if(l.type==='nest')s.stats.nests++;if(l.type==='current')s.stats.currentsRidden++;
       this._effect(l.x,l.y,'discovery',l.r*1.7,'#d7f3aa',1.2);this._event('encounter',{id:l.id,landmarkType:l.type,name:l.name,reward,rewardSource:reward?'challenge':'',scoreReward,biomassReward,description:descriptions[l.type]});this._grantBiomass(biomassReward);
-      if(['bloom','geneCache','nest','sanctuary','carcass','garden','fossil','shell','vault','smoker','sealed','trail'].includes(l.type)||l.type.startsWith('wonder'))this._requestCheckpoint(l,'location');return true;
+      if(['bloom','geneCache','nest','sanctuary','carcass','garden','fossil','shell','vault','smoker','sealed','trail','nursery'].includes(l.type)||l.type.startsWith('wonder'))this._requestCheckpoint(l,'location');return true;
     }
     // A toxic garden: rich algae at the centre, ringed by toxin pockets that pulse out of step, so gaps open in turn.
     // A glass vault is guarded. Its warden is an ancient of the vault's own water that stands on the vault; the vault will not open while it
@@ -883,7 +914,8 @@
       if(t.done)return 1;if(t.kind==='hunt')return 0;const r=this.state.landmarkRecords[t.target],def=null;
       if(t.kind==='nest')return r?Math.min(1,(r.defeated||[]).length/3):0;const l=this.state.landmarks.find(x=>x.id===t.target);return l?clamp(l.progress/Math.max(.01,l.goal),0,1):r?clamp(r.progress/3,0,1):0;
     }
-    hermitHere(){
+    hermitHere(){const h=this._hermitHere();if(h)h.memory=HERMIT_MEMORIES[seedHash(this.state.seed+'|memory|'+h.id)%HERMIT_MEMORIES.length];return h;}
+    _hermitHere(){
       const l=this._hermitSanctuary();if(!l)return null;const s=this.state,p=s.player,name=MorphosGame.hermitOf(l.id),mine=(s.tasks||[]).find(x=>x.from===l.id);
       if(mine)return{name,id:l.id,state:mine.done?'ready':'active',task:mine,helped:this.hermitHelped(l.id)};
       if(this.hermitHelped(l.id)>=HERMIT_TASKS)return{name,id:l.id,state:'spent'};if(p.stage<2)return{name,id:l.id,state:'young'};if((s.tasks||[]).length>=MAX_TASKS)return{name,id:l.id,state:'full'};
@@ -898,7 +930,7 @@
       {const h=s.stats.helped||(s.stats.helped={});h[l.id]=Math.min(HERMIT_TASKS,(h[l.id]||0)+1);}
       const cap=MorphosGame.taskTier(b),pool=Object.keys(MUTATION_SOURCE).filter(k=>MUTATIONS[k]&&(p.mutationTiers[k]??-1)<cap&&this._mutationOpen(k,cap)),key=pool.length?pool[Math.floor(this.random()*pool.length)]:'';
       const had=key?p.mutationTiers[key]:undefined;if(key)this._findMutation(key,cap,b.hermit);this._grantBiomass(Math.round(this._divisionShare(.15)*gapWorth((b.zone||0)-p.stage)));s.score+=200;
-      this.lastReward={key,tier:cap,upgrade:had!==undefined,last:this.hermitHelped(l.id)>=HERMIT_TASKS,hermit:b.hermit};
+      {const last=this.hermitHelped(l.id)>=HERMIT_TASKS,fate=last?this._thread('fate'):null;this.lastReward={key,tier:cap,upgrade:had!==undefined,last,fate:fate?fate.text:'',hermit:b.hermit};}
       this._event('bountyDone',{hermit:b.hermit,title:b.title,reward:key?TIERS[cap]+' '+MUTATIONS[key].name.toLowerCase():''});return true;
     }
     _bountyTick(){
@@ -961,6 +993,8 @@
         if(l.type==='shell'&&d<l.r*.72){l.active=true;p.shelterTime=.25;if(!l.claimed){l.progress=Math.min(l.goal,l.progress+dt);if(l.progress>=l.goal)this._claimLandmark(l);}}
         // Sealed shell: it opens only for a colony that stays still inside it for five seconds. Any movement starts it again.
         if(l.type==='sealed'&&!l.claimed){if(d<l.r*.5){l.active=true;l.progress=length(p.vx,p.vy)<14?Math.min(l.goal,l.progress+dt):0;if(l.progress>=l.goal)this._claimLandmark(l);}else if(l.progress){l.progress=0;l.active=false;}}
+        // Empty nursery: rest at its heart for three seconds.
+        if(l.type==='nursery'&&!l.claimed&&d<l.r*.4){l.active=true;l.progress=Math.min(l.goal,l.progress+dt);if(l.progress>=l.goal)this._claimLandmark(l);}
         if(l.type==='trail'&&!l.claimed&&d<l.r*.45){l.active=true;l.progress=l.goal;this._claimLandmark(l);}
         // Silent current: it takes you 2,800 along its flow in 3.5 s. The first time, something rare waits where it lets you go.
         if(l.type==='silent'&&d<l.r*.55&&!((p.surgeTime||0)>0)&&!s.bossEncounter&&p.alive){const [ex,ey]=this._silentEnd(l),dx=ex-p.x,dy=ey-p.y,dd=Math.hypot(dx,dy)||1;p.surgeDX=dx/dd;p.surgeDY=dy/dd;p.surgeSpeed=dd/3.5;p.surgeTime=3.5;p.surgeCtx=null;p.invulnerable=Math.max(p.invulnerable,3.6);
@@ -1668,7 +1702,7 @@
       if(o.credit>0&&o.lastFamily)this._xp(o.lastFamily,value*1.5/Math.pow(this.state.player.sizeScale||1,SIZE_POWER*1.15/1.1));if(o.credit>0){this._awaken('predator','kill');if(o.kind==='jelly'||o.species==='puffer')this._awaken('venomist','venomKill');}if(!o.bossId)this._classKill(o,consumed);if(this._hasMutation('scavenger')){p.hp=Math.min(p.maxHp,p.hp+p.maxHp*.04*this._mp('scavenger'));p.energy=Math.min(p.maxEnergy,p.energy+4*this._pk('scavenger'));}if(o.elite){s.stats.elites++;const reward=this._challengeReward();s.score+=250;this._event('eliteDefeated',{name:'Lancer',reward,rewardSource:reward?'challenge':'',scoreReward:250});}
       if(o.credit>0)this._rollDrop(o);
       this._elderFell(o);
-      if(o.elder&&earned){s.stats.elders=(s.stats.elders||0)+1;s.score+=400;this._event('elderSlain',{name:o.elderName,x:o.x,y:o.y,count:s.stats.elders,marked:String(o.elderHome||'').startsWith('bounty:')});}
+      if(o.elder&&earned){s.stats.elders=(s.stats.elders||0)+1;s.score+=400;if(!/^(vault|wonder):/.test(String(o.elderHome||'')))this._thread('hunters');this._event('elderSlain',{name:o.elderName,x:o.x,y:o.y,count:s.stats.elders,marked:String(o.elderHome||'').startsWith('bounty:')});}
       if(consumed&&this._hasMutation('bileSac')){const n=Math.round(2*this._mp('bileSac'));for(const v of s.organisms)if(v!==o&&!v.dead&&!v.bossId&&distance(v,p)<p.r+v.r+90)this._addVenom(v,n);p.energy=Math.min(p.maxEnergy,p.energy+5*this._pk('bileSac'));this._effect(p.x,p.y,'burst',p.r+90,'#c9e08f',.4);}
       if(consumed&&this._hasMutation('devourerGullet')){p.hp=Math.min(p.maxHp,p.hp+p.maxHp*.05*this._mp('devourerGullet'));p.energy=Math.min(p.maxEnergy,p.energy+6*this._pk('devourerGullet'));}if(consumed&&this._hasMutation('engulfingMembrane')){p.hp=Math.min(p.maxHp,p.hp+p.maxHp*.03*this._mp('engulfingMembrane'));const em=this._pk('engulfingMembrane');if(em)for(const f of FAMILIES)p.abilityCooldowns[f]=Math.max(0,p.abilityCooldowns[f]-em);}if(this._hasMutation('regrowingOrgans'))for(const f of FAMILIES)p.abilityCooldowns[f]=Math.max(0,p.abilityCooldowns[f]-1.5*this._mp('regrowingOrgans'));p.energy=Math.min(p.maxEnergy,p.energy+3*this._pk('regrowingOrgans'));
       if(sp&&sp.challenge){s.stats.elites++;let reward=0;for(let i=0;i<sp.challenge;i++)reward+=this._challengeReward();this._event('eliteDefeated',{name:sp.name,species:o.species,rarity:sp.rarity,reward,rewardSource:reward?'challenge':'',scoreReward:sp.score||RARITY_SCORE[sp.rarity]});}this._gain(value*(o.bossId?.3:1)*(o.elder?4:1)*(Number.isFinite(o.lv)&&!o.bossId?gapWorth(o.lv-p.stage):1)*(this.coop&&!o.bossId?clamp((o.credit||0)/Math.max(1,o.maxHp)*1.25,.08,1):1)*(consumed||assist?1:.55),'protein');}else this._particles(o.x,o.y,'#c9eeca',14,80);
@@ -2665,7 +2699,7 @@
       if(s.status==='dead')ok(p.hp===0&&string(p.deathCause,100));
       ok(object(s.stats));if(!Number.isInteger(s.stats.elders)||s.stats.elders<0)s.stats.elders=0;if(!Number.isFinite(s.stats.bossRest)||s.stats.bossRest<0||s.stats.bossRest>s.time+BOSS_REST_SECONDS)s.stats.bossRest=0;if(!Number.isInteger(s.stats.deepest)||s.stats.deepest<1||s.stats.deepest>99)s.stats.deepest=1;if(!Array.isArray(s.stats.eldersFallen)||s.stats.eldersFallen.length>600||!s.stats.eldersFallen.every(k=>typeof k==='string'&&k.length<40))s.stats.eldersFallen=[];for(const k of ['food','kills','dashes','pulses','specials','sneaks','ambushes','discoveries','encounters','meaningfulDashes','objectives'])ok(int(s.stats[k]));for(const k of ['stealthTime','distance'])ok(num(s.stats[k],0,1e15));for(const k of ['algae','minerals','criticals','reflections','elites','nests','escapes','bosses','parries','hostileKills','nearMisses','ruptures','currentsRidden'])ok(int(s.stats[k]));for(const k of ['sprintDistance','blockedDamage'])ok(num(s.stats[k],0,1e15));
       ok(s.stats.hostileKills<=s.stats.kills&&s.stats.currentsRidden<=s.stats.encounters&&object(s.stats.earnedPoints)&&Object.keys(s.stats.earnedPoints).every(k=>['evolution','elder','challenge','wonder'].includes(k)));for(const k of ['evolution','elder','challenge'])ok(int(s.stats.earnedPoints[k]));
-      if(!Number.isFinite(s.stats.earnedPoints.wonder))s.stats.earnedPoints.wonder=0;if(!Number.isInteger(s.stats.bounties)||s.stats.bounties<0)s.stats.bounties=0;for(const k of ['bountiesDropped','tasksTaken'])if(!Number.isInteger(s.stats[k])||s.stats[k]<0)s.stats[k]=0;s.echoes=Array.isArray(s.echoes)?[...new Set(s.echoes.filter(id=>LEGEND.some(e=>e.id===id)))]:[];{const h=s.stats.helped,ok={};if(h&&typeof h==='object'&&!Array.isArray(h))for(const [k,v] of Object.entries(h).slice(0,500))if(/^lm:-?\d+,-?\d+$/.test(k)&&Number.isInteger(v)&&v>0)ok[k]=Math.min(HERMIT_TASKS,v);s.stats.helped=ok;}{const was=s.bounty&&typeof s.bounty==='object'?[{...s.bounty,done:false}]:[];delete s.bounty;delete s.bountyRest;const good=b=>b&&typeof b==='object'&&typeof b.title==='string'&&b.title.length<=80&&typeof b.target==='string'&&b.target.length<=60&&typeof b.hermit==='string'&&b.hermit.length<=60&&typeof b.from==='string'&&['hunt','nest','place','rescue','fetch'].includes(b.kind)&&[b.x,b.y].every(Number.isFinite)&&Math.abs(b.x)<1e7&&Math.abs(b.y)<1e7;s.tasks=(Array.isArray(s.tasks)?s.tasks:was).filter(good).slice(0,MAX_TASKS).map(b=>({...b,done:!!b.done,zone:Number.isInteger(b.zone)?clamp(b.zone,0,99):waterLevel(b.x,b.y),hx:Number.isFinite(b.hx)?b.hx:b.x,hy:Number.isFinite(b.hy)?b.hy:b.y,reward:TIERS.includes(b.reward)?b.reward:'Uncommon',story:typeof b.story==='string'?b.story.slice(0,400):'',fx:Number.isFinite(b.fx)?b.fx:b.x,fy:Number.isFinite(b.fy)?b.fy:b.y,found:!!b.found,carried:!!b.carried}));if(typeof s.trackedTask!=='string'||!s.tasks.some(b=>b.target===s.trackedTask))s.trackedTask='';}ok(int(s.stats.earnedPoints.wonder,0,WONDERS.length*3)&&s.stats.earnedPoints.evolution===p.stage&&s.stats.earnedPoints.elder===p.genomes.length*2&&s.stats.earnedPoints.challenge<=Math.floor(p.stage/2)&&Object.values(s.stats.earnedPoints).reduce((a,b)=>a+b,0)===p.skillPoints+Object.values(p.attributes).reduce((a,b)=>a+b,0));
+      if(!Number.isFinite(s.stats.earnedPoints.wonder))s.stats.earnedPoints.wonder=0;if(!Number.isInteger(s.stats.bounties)||s.stats.bounties<0)s.stats.bounties=0;for(const k of ['bountiesDropped','tasksTaken'])if(!Number.isInteger(s.stats[k])||s.stats[k]<0)s.stats[k]=0;s.echoes=Array.isArray(s.echoes)?[...new Set(s.echoes.filter(id=>STORY_IDS.has(id)))]:[];{const h=s.stats.helped,ok={};if(h&&typeof h==='object'&&!Array.isArray(h))for(const [k,v] of Object.entries(h).slice(0,500))if(/^lm:-?\d+,-?\d+$/.test(k)&&Number.isInteger(v)&&v>0)ok[k]=Math.min(HERMIT_TASKS,v);s.stats.helped=ok;}{const was=s.bounty&&typeof s.bounty==='object'?[{...s.bounty,done:false}]:[];delete s.bounty;delete s.bountyRest;const good=b=>b&&typeof b==='object'&&typeof b.title==='string'&&b.title.length<=80&&typeof b.target==='string'&&b.target.length<=60&&typeof b.hermit==='string'&&b.hermit.length<=60&&typeof b.from==='string'&&['hunt','nest','place','rescue','fetch'].includes(b.kind)&&[b.x,b.y].every(Number.isFinite)&&Math.abs(b.x)<1e7&&Math.abs(b.y)<1e7;s.tasks=(Array.isArray(s.tasks)?s.tasks:was).filter(good).slice(0,MAX_TASKS).map(b=>({...b,done:!!b.done,zone:Number.isInteger(b.zone)?clamp(b.zone,0,99):waterLevel(b.x,b.y),hx:Number.isFinite(b.hx)?b.hx:b.x,hy:Number.isFinite(b.hy)?b.hy:b.y,reward:TIERS.includes(b.reward)?b.reward:'Uncommon',story:typeof b.story==='string'?b.story.slice(0,400):'',fx:Number.isFinite(b.fx)?b.fx:b.x,fy:Number.isFinite(b.fy)?b.fy:b.y,found:!!b.found,carried:!!b.carried}));if(typeof s.trackedTask!=='string'||!s.tasks.some(b=>b.target===s.trackedTask))s.trackedTask='';}ok(int(s.stats.earnedPoints.wonder,0,WONDERS.length*3)&&s.stats.earnedPoints.evolution===p.stage&&s.stats.earnedPoints.elder===p.genomes.length*2&&s.stats.earnedPoints.challenge<=Math.floor(p.stage/2)&&Object.values(s.stats.earnedPoints).reduce((a,b)=>a+b,0)===p.skillPoints+Object.values(p.attributes).reduce((a,b)=>a+b,0));
       ok(s.stats.bosses>=p.genomes.length&&list(s.bossLog,40));for(const e of s.bossLog)ok(object(e)&&Object.hasOwn(BOSSES,e.type)&&e.name===BOSSES[e.type].name&&num(e.time,0,s.time)&&bool(e.first)&&e.reward===(e.first?2:0)&&p.genomes.includes(e.type));
       ok(s.bossEncounter===null||object(s.bossEncounter));if(s.bossEncounter){const b=s.bossEncounter,def=Object.hasOwn(BOSSES,b.type)&&BOSSES[b.type];
         ok(def&&!p.genomes.includes(b.type)&&int(b.id,1,r.id-1)&&b.name===def.name&&def.phases.includes(b.phaseLabel)&&position(b)&&num(b.r,1,20000)&&num(b.maxHp,1,1e9)&&num(b.hp,-1e9,b.maxHp+1e-6)&&int(b.phase,1,3)&&names(b.mode,['hunt','windup','act','recover','transform'])&&names(b.attackKind,['','engulf','sweep','birth','spores','slam','dash','tendrils','vortex','charge','rings','grab'])&&bool(b.attackHit)&&bool(b.feeding)&&list(b.projectileTokens,40)&&list(b.heads,4));
@@ -2751,7 +2785,7 @@
   MorphosGame.HYBRIDS=HYBRIDS;
   MorphosGame.FAMILY_RING=FAMILY_RING;
   MorphosGame.rankName=rankName;MorphosGame.MAX_RANK=MAX_RANK;
-  MorphosGame.BOSSES=BOSSES;MorphosGame.MAX_TASKS=MAX_TASKS;MorphosGame.TASK_THANKS=TASK_THANKS;MorphosGame.LEGEND=LEGEND;MorphosGame.LANDMARKS=LANDMARKS;MorphosGame.KEEPER_LINES=KEEPER_LINES;MorphosGame.WONDER_LINES=WONDER_LINES;MorphosGame.HERMIT_TASKS=HERMIT_TASKS;// A task pays by its effort: the water sets the base, a long trip (over 2,500 from the hermit) adds a tier, and hunting an ancient adds a tier.
+  MorphosGame.BOSSES=BOSSES;MorphosGame.MAX_TASKS=MAX_TASKS;MorphosGame.TASK_THANKS=TASK_THANKS;MorphosGame.LEGEND=LEGEND;MorphosGame.LANDMARKS=LANDMARKS;MorphosGame.KEEPER_LINES=KEEPER_LINES;MorphosGame.THREADS=THREADS;MorphosGame.HERMIT_MEMORIES=HERMIT_MEMORIES;MorphosGame.WONDER_LINES=WONDER_LINES;MorphosGame.HERMIT_TASKS=HERMIT_TASKS;// A task pays by its effort: the water sets the base, a long trip (over 2,500 from the hermit) adds a tier, and hunting an ancient adds a tier.
   MorphosGame.taskTier=b=>clamp(1+Math.floor((b.zone||0)/8)+(Math.hypot((b.x||0)-(b.hx??b.x??0),(b.y||0)-(b.hy??b.y??0))>2500?1:0)+(b.kind==='hunt'?1:0),1,4);MorphosGame.taskPoint=t=>!t?null:t.done||(t.kind==='rescue'&&t.found)?{x:t.hx,y:t.hy,home:true}:t.kind==='rescue'?{x:t.fx,y:t.fy}:t.kind==='hunt'&&Number.isFinite(t.ax)?{x:t.ax,y:t.ay}:{x:t.x,y:t.y};MorphosGame.WONDERS=WONDERS;MorphosGame.hermitOf=id=>{const r=localRng(seedHash('hermit|'+id))();if(!(id==='lm:0,-1'||r<.55))return '';const q=localRng(seedHash('hermitname|'+id));return HERMIT_NAMES[Math.floor(q()*HERMIT_NAMES.length)]+' '+HERMIT_EPITHETS[Math.floor(q()*HERMIT_EPITHETS.length)];};MorphosGame.DEN_TIME=DEN_TIME;MorphosGame.waterLevel=waterLevel;MorphosGame.depthAt=depthAt;MorphosGame.DEPTHS=DEPTHS;MorphosGame.ZONE_STEP=ZONE_STEP;MorphosGame.COOP_DOWN_SECONDS=COOP_DOWN_SECONDS;MorphosGame.TIERS=TIERS;MorphosGame.TIER_COLOURS=TIER_COLOURS;MorphosGame.MUTATION_SOURCE=MUTATION_SOURCE;MorphosGame.describeMutation=describeMutation;MorphosGame.describePerk=describePerk;MorphosGame.KIND_NAMES=KIND_NAMES;MorphosGame.canSwallow=canSwallow;MorphosGame.WAKE_NEEDS=WAKE_NEEDS;MorphosGame.CHUNK=CHUNK;
   MorphosGame.bossExposure=bossExposure;
   MorphosGame.pulseHalfAngle=PULSE_HALF_ANGLE;

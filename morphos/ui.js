@@ -66,7 +66,7 @@
  const save=()=>{try{localStorage.setItem('morphos.best.v1',JSON.stringify(best));localStorage.setItem('morphos.guide.v1',JSON.stringify(guide));}catch{recordsSaved=false;}};
  // The collection: every creature type and rare find met in any life, kept in this browser.
  let collection={species:{},finds:{},legend:{}};
- try{const raw=JSON.parse(localStorage.getItem('morphos.collection.v1')||'null');if(raw&&typeof raw==='object'){for(const [k,v] of Object.entries(raw.species||{}))if(typeof k==='string'&&k.length<40&&v&&typeof v==='object')collection.species[k]={defeated:Number.isSafeInteger(v.defeated)&&v.defeated>=0?v.defeated:0};for(const k of Object.keys(raw.finds||{}))if(['fossil','shell','sealed','trail','silent'].includes(k))collection.finds[k]=true;for(const k of Object.keys(raw.legend||{}))if(typeof k==='string'&&k.length<=24)collection.legend[k]=1;}}catch{}
+ try{const raw=JSON.parse(localStorage.getItem('morphos.collection.v1')||'null');if(raw&&typeof raw==='object'){for(const [k,v] of Object.entries(raw.species||{}))if(typeof k==='string'&&k.length<40&&v&&typeof v==='object')collection.species[k]={defeated:Number.isSafeInteger(v.defeated)&&v.defeated>=0?v.defeated:0};for(const k of Object.keys(raw.finds||{}))if(['fossil','shell','sealed','trail','silent','nursery'].includes(k))collection.finds[k]=true;for(const k of Object.keys(raw.legend||{}))if(typeof k==='string'&&k.length<=24)collection.legend[k]=1;}}catch{}
  function saveCollection(){try{localStorage.setItem('morphos.collection.v1',JSON.stringify(collection));}catch{}}
  function recordSpecies(key){if(!key)return false;const isNew=!collection.species[key];if(isNew){collection.species[key]={defeated:0};saveCollection();}return isNew;}
  const BASE_CREATURES={
@@ -103,8 +103,8 @@
        if(rec)for(const k of e.drops||[]){const best=tierOf(k);if(best<0)continue;const d=document.createElement('p');d.className='drop';d.textContent='Dropped: '+MorphosGame.MUTATIONS[k].name+' · best '+tierName(best);d.style.color=TIER_COLOURS[best];card.append(d);}
        grid.append(card);}
      sec.append(grid);target.append(sec);}
-   const sec=document.createElement('section');sec.className='species-tier';sec.style.setProperty('--tier','#f0c98a');const h=document.createElement('h3');h.textContent='Rare places · '+finds+' / 5';sec.append(h);const grid=document.createElement('div');grid.className='species-grid';
-   for(const [key,name,blurb,hint] of [['fossil','Ancient fossil','Rest at its centre to draw out a mutation you have not found.','A rare place in open water.'],['shell','Abandoned shell','Shelter inside it and predators cannot see you.','A rare place in open water.'],['sealed','Sealed shell','It opened for a colony that stayed perfectly still.','A secret of the dark water.'],['trail','Hidden garden','Untouched algae at the end of a trail of lights.','A secret of the deep water.'],['silent','Silent current','A current almost too faint to see, running out of the known water.','A secret of the deep water.']]){const found=!!collection.finds[key],card=document.createElement('div');card.className='species-card'+(found?' found':'');const n=document.createElement('strong');n.textContent=found?name:'Undiscovered';const t=document.createElement('p');t.textContent=found?blurb:hint;card.append(n,t);grid.append(card);}
+   const sec=document.createElement('section');sec.className='species-tier';sec.style.setProperty('--tier','#f0c98a');const h=document.createElement('h3');h.textContent='Rare places · '+finds+' / 6';sec.append(h);const grid=document.createElement('div');grid.className='species-grid';
+   for(const [key,name,blurb,hint] of [['fossil','Ancient fossil','Rest at its centre to draw out a mutation you have not found.','A rare place in open water.'],['shell','Abandoned shell','Shelter inside it and predators cannot see you.','A rare place in open water.'],['sealed','Sealed shell','It opened for a colony that stayed perfectly still.','A secret of the dark water.'],['trail','Hidden garden','Untouched algae at the end of a trail of lights.','A secret of the deep water.'],['silent','Silent current','A current almost too faint to see, running out of the known water.','A secret of the deep water.'],['nursery','Empty nursery','A ring of silt where another seed once lay.','A secret of the deepest water.']]){const found=!!collection.finds[key],card=document.createElement('div');card.className='species-card'+(found?' found':'');const n=document.createElement('strong');n.textContent=found?name:'Undiscovered';const t=document.createElement('p');t.textContent=found?blurb:hint;card.append(n,t);grid.append(card);}
    sec.append(grid);target.append(sec);
  }
  const ADAPTATION_TOTAL=35;
@@ -231,6 +231,8 @@
    sec('The keepers',Object.keys(K).flatMap(k=>[[B[k]?B[k].name:k,L['wake:'+k]?K[k].wake:''],['',L['fall:'+k]?K[k].fall:'']]));
    const W=MorphosGame.WONDER_LINES||{},LM=MorphosGame.LANDMARKS||{};
    sec('The remains',Object.keys(W).map(k=>[L['wonder:'+k]&&LM[k]?LM[k].name:'',L['wonder:'+k]?W[k]:'']));
+   const TH=MorphosGame.THREADS||{};for(const [k,title] of [['fate','The hermits’ fate'],['hunters','The lost hunters'],['nurseries','The other nurseries']])sec(title,(TH[k]||[]).map(e=>['',L[e.id]?e.text:'']));
+   sec('What the hermits remember',(MorphosGame.HERMIT_MEMORIES||[]).map((m,i)=>['',L['memory:'+i]?m:'']));
  }
  function showJournal(){renderJournal();setTabGroup(guideTabs,journalTab);showPanel('journalDialog');$(guideTabs[journalTab][0]).focus({preventScroll:true});}
  function showSkills(tab){
@@ -319,7 +321,7 @@
  function openHermit(){
    const h=game.hermitHere&&game.hermitHere();if(!h)return;const tk=h.task;$('hermitDlgName').textContent=h.name;
    const lines={offer:tk?'“'+tk.story+'”':'',active:tk&&tk.kind==='rescue'&&tk.found?'“Bring '+(tk.pro||'them')+' closer. Let me see '+(tk.pro||'them')+'.”':'“Still out there? I am waiting.”',ready:'“'+(MorphosGame.TASK_THANKS[tk&&tk.kind]||'Thank you.').replace(/them/g,tk&&tk.pro||'them')+'”',full:'“You carry enough troubles already. Come back when you have fewer.”',spent:'“You have done more for me than I had any right to ask. There are others like me further out, where the water is deeper. They need you more than I do.”',young:'“You are very small. Grow a little, then come back to me.”',none:'“Nothing for you yet. Rest a while.”'};
-   $('hermitDlgStory').textContent=lines[h.state]||'';$('hermitDlgTask').hidden=!tk;$('hermitDlgReward').hidden=true;
+   $('hermitDlgStory').textContent=lines[h.state]||'';{const m=$('hermitDlgMemory');if(m){m.textContent=h.memory?'“'+h.memory+'”':'';m.hidden=!h.memory;if(h.memory){const i=(MorphosGame.HERMIT_MEMORIES||[]).indexOf(h.memory);if(i>=0)heardLegend('memory:'+i);}}}$('hermitDlgTask').hidden=!tk;$('hermitDlgReward').hidden=true;
    {const n=(h.helped||0)+(h.state==='offer'||h.state==='active'||h.state==='ready'?1:0),T=MorphosGame.HERMIT_TASKS;$('hermitDlgKicker').textContent=h.state==='spent'?'Hermit':n?'Hermit · task '+Math.min(n,T)+' of '+T:'Hermit';}
    if(tk){$('hermitDlgTitle').textContent=tk.title;const lvl=tk.zone+1,me=game.state.player.stage+1;$('hermitDlgMeta').textContent=(h.state==='ready'?'Done':h.state==='active'?taskProgressText(tk):'To the '+game._compass(tk.x-tk.hx,tk.y-tk.hy)+' · '+(Math.hypot(tk.x-tk.hx,tk.y-tk.hy)/1000).toFixed(1)+'k')+' · water level '+lvl+(lvl>me?' (above you)':'')+' · '+tk.reward+' mutation';}
    const P=$('hdPrimary'),S=$('hdSecondary');S.hidden=false;
@@ -336,6 +338,7 @@
    else{$('hermitRwIcon').textContent='+';$('hermitRwTier').textContent='Growth';$('hermitRwName').textContent='Nothing you do not already carry';$('hermitRwPart').textContent='';$('hermitRwText').textContent='';}
    $('hermitRwExtra').textContent='+ growth · +200 score';
    if(r.last)$('hermitDlgStory').textContent=$('hermitDlgStory').textContent.replace(/”$/,' That is all I can give. Others live further out, where the water is deeper.”');
+   if(r.fate){const m=$('hermitDlgMemory');if(m){m.textContent='“'+r.fate+'”';m.hidden=false;}}
    const P=$('hdPrimary'),S=$('hdSecondary');S.hidden=!M;P.textContent='Farewell';P.onclick=closeHermit;S.textContent='Equip';S.onclick=()=>{closeHermit();showSkills('mutations');};P.focus({preventScroll:true});
  }
  function closeHermit(){ckLast.hermit=null;ckLast.tasks=null;$('hermitDialog').close();updateUI(true);}
@@ -916,7 +919,7 @@
    else if(e.type==='biome')notify('New habitat: '+e.name,4);
    else if(e.type==='elderSighted')notify('An ancient is near: '+e.name+' (level '+e.level+').',6,2);
    else if(e.type==='elderSlain'){{const nm=e.name.split(',')[0];notify(nm.charAt(0).toUpperCase()+nm.slice(1)+' has fallen.'+(e.marked?'':/vault warden$/.test(e.name)?' Its vault is unguarded now.':''),6,3);}updateUI(true);}
-   else if(e.type==='discovery'&&['fossil','shell','sealed','trail','silent'].includes(e.landmarkType)){const isNew=!collection.finds[e.landmarkType];collection.finds[e.landmarkType]=true;saveCollection();notify((isNew?'Rare find: ':'Discovered: ')+e.name,5,isNew?2:1);}
+   else if(e.type==='discovery'&&['fossil','shell','sealed','trail','silent','nursery'].includes(e.landmarkType)){const isNew=!collection.finds[e.landmarkType];collection.finds[e.landmarkType]=true;saveCollection();notify((isNew?'Rare find: ':'Discovered: ')+e.name,5,isNew?2:1);}
    else if(e.type==='discovery'&&String(e.landmarkType).startsWith('wonder')){const w=(MorphosGame.WONDERS||[]).find(x=>x.type===e.landmarkType);notify('A wonder: '+e.name+(w?' · '+w.lore:''),8,2);}
      else if(e.type==='taskReady')notify(e.title+' · done',4.5,1);
      else if(e.type==='taskFound')notify(e.title,3.5,1);
@@ -942,7 +945,7 @@
    else if(e.type==='recovered')notify('Stamina restored. Your abilities are ready.',2.5);
    else if(e.type==='bossLost'){compassMode='auto';notify('You lost '+(e.name||'the hunter')+'. It will come looking again in about '+Math.round((e.rest||120)/60)+' minutes, rested. Use the time to prepare.',8,3);updateUI(true);}
    else if(e.type==='bossInk'){notify((e.name||'It')+' blacks out the water. Keep moving and watch for its eyes.',4,3);}
-   else if(e.type==='echo'){notify('“'+e.text+'”',9,2);heardLegend(e.id);}
+   else if(e.type==='echo'){if(e.thread!=='fate')notify('“'+e.text+'”',9,2);heardLegend(e.id);}
    else if(e.type==='wonderLine'){notify('“'+e.text+'”',9,2);heardLegend('wonder:'+e.wonder);}
    else if(e.type==='bossAwakened'){const kl=(MorphosGame.KEEPER_LINES||{})[e.bossType];notify((e.name||'An elder')+' awakens.'+(kl?' “'+kl.wake+'”':''),kl?8:5,2);if(kl)heardLegend('wake:'+e.bossType);}
    else if(e.type==='bossPhase')notify((e.name||'The elder')+' is changing its attack pattern.',3);
@@ -991,7 +994,7 @@
    const p=state?.player;if(!p||!p.alive||state.status!=='playing')return false;
    if(policy==='initial')return state.time===0&&p.stage===0;
    if(policy==='import')return true;
-   if(policy==='location'){const l=state.landmarks.find(l=>l.id===landmarkId);return !state.bossEncounter&&!!l&&l.claimed&&(['bloom','geneCache','nest','sanctuary','carcass','garden','fossil','shell','vault','smoker','sealed','trail'].includes(l.type)||String(l.type).startsWith('wonder'));}
+   if(policy==='location'){const l=state.landmarks.find(l=>l.id===landmarkId);return !state.bossEncounter&&!!l&&l.claimed&&(['bloom','geneCache','nest','sanctuary','carcass','garden','fossil','shell','vault','smoker','sealed','trail','nursery'].includes(l.type)||String(l.type).startsWith('wonder'));}
    if(policy==='sanctum'){const l=state.landmarks.find(l=>l.id===landmarkId);return !state.bossEncounter&&!!l&&l.type==='sanctum'&&state.sanctumArrivalId===l.id;}
    // Growing a cell saves too, but only once nothing is hunting you and you are not badly hurt.
    if(policy==='growth')return !state.bossEncounter&&!MorphosGame.sanctuaryThreat(state)&&p.hp>=p.maxHp*.6;

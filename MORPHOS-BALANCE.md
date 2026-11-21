@@ -146,6 +146,7 @@ Mutations read and write shared **keywords** (poison, bleed, stun, slow, held, c
 | Hermit task | 0.15 | mutation at the effort tier (rule 13) |
 | Gene cache, ancient fossil | 0.09 | fossil: a Rare mutation |
 | Sealed shell, hidden garden (secrets) | 0.09 | sealed shell: a Rare mutation and an echo; hidden garden: full health and nutrition and an echo |
+| Empty nursery (secret, water 20+) | 0.09 | an echo of the other nurseries |
 | Silent current (secret) | 0 | a rare creature of the water it leads to, which always drops a mutation |
 | Fallen giant, toxic garden, black smoker | 0.07 | |
 | Glass vault | 0.05 | mutation as good as its water allows |
@@ -350,3 +351,4 @@ Status after v35.7. Fixed items stay listed so the reasoning is kept.
 | v35.9 | Story step 1: echoes in fossils and shells (`LEGEND`, earliest unheard one the water allows), a wake and fall line for each boss (`KEEPER_LINES`), an inscription for each wonder (`WONDER_LINES`), all collected in the Field guide's Legend tab | The plan's "The Last Water": story told only through what you find; no rewards or numbers changed |
 | v36.0 | First three secrets: sealed shell (water 6+, stay still 5 s inside), hidden garden at the end of a lantern trail (water 10+), silent current (water 12+, carries you 2,800 deeper to a rare creature that always drops). Only in regions that were empty, so no older pond loses a place, record or task | The plan's secrets: rewards for curiosity, built from what the game already has (stillness, places, currents, creatures); no instruction text |
 | v36.1 | Legendary rule changes and duo mutations (batch 2, 9 mutations); Legendary-only mutations never raised from a lower find; duos gated by rank II in both classes and placed only on the five class pairs that have no hybrid | The plan's mutation step 2. Duos for the hybrid pairs would have repeated the hybrids |
+| v36.2 | Story threads: a hermit's fate when you finish its three tasks, the lost hunters when a named ancient falls (not wardens or wonder keepers), the other nurseries in a new deep secret (empty nursery, water 20+, rest 3 s at its heart); each hermit tells one remembered line. All kept in the Legend tab | The plan's story step 2; no rule or number changed apart from the nursery's reward share |

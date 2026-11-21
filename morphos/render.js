@@ -223,7 +223,7 @@
     // The lantern trail: faint lights that pulse one after another towards the hidden garden.
     if(l.type==='trail'&&!l.claimed){const pts=MorphosGame.trailLights(l);for(let i=0;i<pts.length;i++){const [x,y]=pts[i];if(!this.visible({x,y},60))continue;const k=.5+.5*Math.sin(time*1.6-i*.9),rr=10+k*6;c.drawImage(this.glow([246,226,150]),x-rr*3,y-rr*3,rr*6,rr*6);ellipse(c,x,y,2.2+k,2.2+k);c.fillStyle=`rgba(255,240,190,${.35+.45*k})`;c.fill();}}
     if(!this.visible(l,220))continue;
-    const r=clamp(l.r||130,35,650),key=idNumber(l.id),phase=Number.isFinite(l.phase)?l.phase:rnd(key)*TAU,spent=!!l.claimed&&(l.type==='fossil'||l.type==='sealed'||l.type==='trail'||l.type==='vault'||l.type==='smoker'||l.type==='geneCache'||l.type==='nest'||l.type==='sanctum'||l.type==='carcass'||l.type==='garden');
+    const r=clamp(l.r||130,35,650),key=idNumber(l.id),phase=Number.isFinite(l.phase)?l.phase:rnd(key)*TAU,spent=!!l.claimed&&(l.type==='fossil'||l.type==='nursery'||l.type==='sealed'||l.type==='trail'||l.type==='vault'||l.type==='smoker'||l.type==='geneCache'||l.type==='nest'||l.type==='sanctum'||l.type==='carcass'||l.type==='garden');
     const refuge=l.type==='sanctuary',restHere=refuge&&rest&&rest.id===l.id?rest:null,restProgress=restHere&&restHere.phase!=='blocked'?clamp(restHere.progress/Math.max(.01,restHere.required),0,1):0,restComplete=restHere&&restHere.phase==='complete';
     c.save();c.translate(l.x,l.y);c.globalAlpha=spent?.58:1;
     if(l.type==='bloom'){
@@ -315,6 +315,12 @@
      const co=spent?[132,158,130]:[196,226,140];c.drawImage(this.glow(co),-r,-r,r*2,r*2);
      for(let j=0;j<14;j++){const a=j*TAU/14+phase*.2+Math.sin(time*.25+j)*.05,len=r*(.3+rnd(key+j*17)*.25);c.save();c.rotate(a);c.beginPath();c.moveTo(r*.1,0);c.quadraticCurveTo(len*.55,-len*.18,len,0);c.strokeStyle=rgba(co,.4);c.lineWidth=1.5;c.stroke();for(const sd of [-1,1]){c.beginPath();c.moveTo(len*.5,0);c.quadraticCurveTo(len*.62,sd*len*.12,len*.72,sd*len*.2);c.strokeStyle=rgba(co,.25);c.lineWidth=1;c.stroke();}c.restore();}
      ellipse(c,0,0,r*.1,r*.1);c.fillStyle=rgba([255,240,190],spent?.15:.45);c.fill();
+    }else if(l.type==='nursery'){
+     // An empty nursery: a broken ring of pale silt round a shallow hollow, like the nursery you were seeded in.
+     const co=spent?[150,156,150]:[214,222,196];c.drawImage(this.glow([200,214,190]),-r*.8,-r*.8,r*1.6,r*1.6);c.rotate(phase*.1);
+     for(let j=0;j<14;j++){if(j===3||j===4)continue;const a=j*TAU/14;c.beginPath();c.arc(0,0,r*.82,a+.04,a+TAU/14-.04);c.strokeStyle=rgba(co,.34);c.lineWidth=3;c.stroke();}
+     ellipse(c,0,0,r*.32,r*.32);c.fillStyle='rgba(6,12,16,.45)';c.fill();c.strokeStyle=rgba(co,.18);c.lineWidth=1;c.stroke();
+     if(!spent){const k=clamp((l.progress||0)/(l.goal||3),0,1);if(k>0){c.beginPath();c.arc(0,0,r*.4,-Math.PI/2,-Math.PI/2+k*TAU);c.strokeStyle='rgba(236,240,214,.6)';c.lineWidth=2;c.stroke();}}
     }else if(l.type==='silent'){
      // A silent current: the same ribbons as a current vent, but barely there.
      const co=[150,190,215];c.rotate(Number.isFinite(l.angle)?l.angle:phase);
