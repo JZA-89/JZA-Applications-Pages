@@ -6326,7 +6326,7 @@ window.MorphosAudio=MorphosAudio;
    ckSet('ex',!!p.exhausted,v=>$('ckSt').classList.toggle('exhausted',v));
    ckSet('nut',Math.round(clamp(nutrition,0,100)),v=>{$('ckNutFill').style.width=v+'%';$('ckNut').classList.toggle('low',v<22);$('ckNut').title='Nutrition '+v+'%';});
    ckSet('cells',String(p.cellCountText||p.cellCount),v=>{$('ckCells').textContent=v;$('ckCellsWord').textContent=p.cellCount===1?'cell':'cells';});
-   {const st=document.querySelector('.stage-panel'),tip=$('tip');if(st&&tip){const sb=st.getBoundingClientRect(),visible=sb.height>4&&[...st.children].some(e=>!e.hidden&&getComputedStyle(e).display!=='none'),top=parseFloat(getComputedStyle(tip).top)||0,push=visible?Math.max(0,Math.ceil(sb.bottom+8-top)):0;ckSet('tipPush',push,v=>tip.style.marginTop=v?v+'px':'');}}
+   {const st=document.querySelector('.stage-panel'),tip=$('tip'),bh=$('bossHUD');if(st&&tip){const sb=st.getBoundingClientRect(),visible=sb.height>4&&[...st.children].some(e=>!e.hidden&&getComputedStyle(e).display!=='none'),top=parseFloat(getComputedStyle(tip).top)||0,bb=bh&&!bh.hidden?bh.getBoundingClientRect().bottom:0,push=Math.max(0,Math.ceil(Math.max(visible?sb.bottom:0,bb)+8-top));ckSet('tipPush',push,v=>tip.style.marginTop=v?v+'px':'');}}
    const status=p.exhausted?'Exhausted':p.stealth>.66?'Concealed':p.sneaking?'Sneaking':p.sprinting?'Fast swim':'';
    ckSet('status',status,v=>{const el=$('ckStatus');el.textContent=v;el.hidden=!v;el.dataset.kind=p.exhausted?'warn':'';});
  }
