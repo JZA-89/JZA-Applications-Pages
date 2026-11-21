@@ -479,7 +479,7 @@
      // eyes: they glow, and they are what you can see when the water is black
      for(const side of [-1,1]){const ex=r*.36,ey=side*r*.36,er=r*.17;ellipse(c,ex,ey,er,er);c.fillStyle='rgba(250,236,170,.9)';c.fill();c.strokeStyle=rgba(pale,.8);c.lineWidth=1.8;c.stroke();ellipse(c,ex+er*.2,ey,er*.42,er*.72);c.fillStyle='rgba(12,8,20,.95)';c.fill();}}
    c.restore();
-   if(b.type==='kraken'&&b.mode==='act'&&b.grab){const G=b.grab,mx=b.x+Math.cos(b.angle)*r*.72,my=b.y+Math.sin(b.angle)*r*.72,dx=G.tipX-mx,dy=G.tipY-my,L=Math.hypot(dx,dy)||1,nx=-dy/L,ny=dx/L,wave=Math.sin(time*9)*r*.08;
+   if(b.mode==='act'&&b.grab){const G=b.grab,mx=b.x+Math.cos(b.angle)*r*.72,my=b.y+Math.sin(b.angle)*r*.72,dx=G.tipX-mx,dy=G.tipY-my,L=Math.hypot(dx,dy)||1,nx=-dy/L,ny=dx/L,wave=Math.sin(time*9)*r*.08;
      c.save();c.lineCap='round';c.beginPath();c.moveTo(mx,my);c.quadraticCurveTo((mx+G.tipX)/2+nx*wave,(my+G.tipY)/2+ny*wave,G.tipX,G.tipY);c.strokeStyle=rgba(co,.75);c.lineWidth=r*.09;c.stroke();c.strokeStyle=rgba(mix(co,[255,240,255],.45),.7);c.lineWidth=r*.025;c.stroke();
      for(let j=1;j<7;j++){const u=j/7;ellipse(c,mx+dx*u+nx*wave*4*u*(1-u),my+dy*u+ny*wave*4*u*(1-u),r*.02,r*.02);c.fillStyle='rgba(250,230,255,.7)';c.fill();}
      ellipse(c,G.tipX,G.tipY,r*.16,r*.1,Math.atan2(dy,dx));c.fillStyle=rgba(co,.45);c.fill();c.strokeStyle=rgba(mix(co,[255,240,255],.5),.85);c.lineWidth=2/z;c.stroke();
