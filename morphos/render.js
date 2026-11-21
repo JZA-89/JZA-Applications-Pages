@@ -572,6 +572,8 @@
   // Glass rays fade in only up close; a murk is barely visible while its ink hangs about it.
   speciesAlpha(o,state){
    const sees=(state.player.mutations||[]).includes('eyespot');
+   // Pit organ: a poisoned creature cannot hide from you.
+   if(((o.venomStacks||0)>0||(o.poison||0)>0)&&(state.player.mutations||[]).includes('pitOrgan'))return 1;
    if(o.species==='glassray'||o.species==='lurker'){if(sees)return 1;if((o.windup||0)>0||(o.lungeTime||0)>0||(o.flash||0)>0)return 1;const p=state.player,d=Math.hypot(o.x-p.x,o.y-p.y);return clamp((380-d)/220,.12,1);}
    if((o.cloak||0)>0)return sees?.7:.22;return 1;
   }
@@ -1009,6 +1011,7 @@
    // Frenzy: short red marks around the cell, one per stack. Momentum: cyan chevrons behind it.
    if((p.frenzy||0)>0){c.save();c.translate(p.x,p.y);c.rotate(time*.8);const n=p.frenzy;for(let i=0;i<n;i++){const a=i*TAU/n;c.beginPath();c.arc(0,0,r*1.32,a-.12,a+.12);c.strokeStyle=rgba([240,120,100],.55);c.lineWidth=2.2;c.stroke();}c.restore();}
    if((p.momentum||0)>0){c.save();c.translate(p.x,p.y);c.rotate(p.angle||0);for(let i=0;i<p.momentum;i++){const x=-r*(1.25+i*.28);c.beginPath();c.moveTo(x-r*.12,-r*.22);c.lineTo(x+r*.05,0);c.lineTo(x-r*.12,r*.22);c.strokeStyle=rgba([140,220,246],.6-i*.08);c.lineWidth=1.6;c.stroke();}c.restore();}
+   for(const q of state.pools||[]){if(!this.visible(q,q.r))continue;const f=Math.min(1,q.life*2,((q.maxLife||3)-q.life)*6);c.save();c.globalAlpha=.32*f;c.fillStyle='#9fd67a';c.beginPath();c.arc(q.x,q.y,q.r,0,TAU);c.fill();c.globalAlpha=.6*f;c.strokeStyle='#c9f08f';c.lineWidth=1.2/this.camera.zoom;c.stroke();c.restore();}
    for(const v of state.vortices||[]){if(!this.visible(v,v.R))continue;const z=this.camera.zoom,fade=Math.min(1,((v.maxLife||1)-v.life)*4)*Math.min(1,v.life*3),spin=this.reducedMotion?0:(v.spin||0);c.save();c.translate(v.x,v.y);c.strokeStyle='#95dafa';c.lineWidth=1.6/z;c.globalAlpha=.5*fade;
     for(let i=0;i<4;i++){const a0=spin*2.4+i*Math.PI/2;c.beginPath();for(let t=0;t<=1.001;t+=.05){const a=a0+t*2.6,rr=v.R*(1-t*.85);c.lineTo(Math.cos(a)*rr,Math.sin(a)*rr);}c.stroke();}
     c.globalAlpha=.22*fade;c.setLineDash([6/z,10/z]);c.beginPath();c.arc(0,0,v.R,spin*.8,spin*.8+TAU);c.stroke();c.setLineDash([]);c.restore();}

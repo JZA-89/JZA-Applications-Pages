@@ -111,6 +111,29 @@ Damage per stamina = damage × attack ÷ stamina per Strike. A weapon that hits 
 - **One stat point** is worth about **+6–12% in one area**: Vitality +12% base health, Reserves +12 stamina, Recovery +0.12% health and +1.5 stamina a second, Power +8% damage, Reach +10% shot range and +5% Jab and Bite range, Mobility +6% speed.
 - **A Rare mutation** is worth about **1.5–2 stat points** in its own area. Rarity multiplies it: Common 0.7, Uncommon 0.85, Rare 1 (the written number), Epic 1.25, Legendary 1.55. Its extra perk exists only from Rare and scales 1 / 1.6 / 2.4 (Rare / Epic / Legendary).
 
+### 4.3b Kinds of mutation (v35.8)
+Rarity decides the *kind* of effect, and every effect comes from the body part that holds it (Hades-style: each part owns an action).
+
+| Part | Owns |
+|---|---|
+| Strike organ | the weapon |
+| Mouth | eating, swallowing, digesting |
+| Membrane | contact, being hit, defence |
+| Flagellum | propulsion, movement, what is behind you |
+| Nucleus | the class moves (it grows the organs each move uses) |
+| Senses | detecting, seeing, aiming |
+
+| Rarity | Kind | Minimum |
+|---|---|---|
+| Common, Uncommon | number (a stat or rate) | any |
+| Rare | trigger (when X, do Y) | `minTier 2`: found copies are never below Rare, and a drop the water cannot give that rarity does not appear |
+| Epic | class-move change (Nucleus) | `minTier 3` |
+| Legendary | rule change | (to come) |
+
+Mutations read and write shared **keywords** (poison, bleed, stun, slow, held, concealed, momentum, frenzy, brood), so combinations come without new rules.
+
+**Batch 1 (v35.8):** Rare triggers: Bile sac (mouth: swallowing spits acid, 2 poison stacks beside you), Clinging slime (membrane: what hits you is slowed 1.5 s), Tail flick (flagellum: starting a fast swim stuns what is behind you 0.6 s, 4 s recharge), Echo nucleus (nucleus: after a class move, next Strike +30%), Pit organ (senses: poisoned creatures stay visible and take +10%). Epic move changes (nucleus): Rending pounce (bleed 0.35 × attack a second for 4 s), Clinging venom (missed globs leave a 3 s venom pool), Last breath (dying broodlings stun 0.8 s), Toxic husk (decoy bursts for 3 poison stacks), Venom eddy (whirlpool-held creatures gain 1 poison stack a second).
+
 ### 4.4 Rewards (share of your next cell's cost)
 | Source | Share | Plus |
 |---|---|---|
@@ -317,4 +340,5 @@ Status after v35.7. Fixed items stay listed so the reasoning is kept.
 | v35.6 (docs) | This document becomes the rulebook: model, budgets, recipes, balance debt; full formula inventory in `MORPHOS-FORMULAS.md` | So that everything added later fits one set of rules |
 | v35.6 | A dropped mutation no better than your copy never appears (it no longer turns into growth) | Duplicates were confusing and the growth was meaningless; more mutation types will make them rarer anyway |
 | v35.7 | Fixed the rule breaks in section 8 | They contradicted the rules in section 1 |
+| v35.8 | First 10 keyword mutations; rarity decides kind (minTier); every effect comes from its own body part | Jaisah: mutations must be logical (a tail cannot make a wound at the front) and more varied; Hades/Diablo/Slay the Spire patterns |
 | v35.7 | Boss health re-tuned: Gulper 41, Broodmother 85, Glass Pike 74, Hydra 165, Undertow 208, Kraken 480 hits | With class moves from their own class only (break 10), mixed builds lost broodlings and Pounce damage they never should have had; the old health had been tuned against it |
