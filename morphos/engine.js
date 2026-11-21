@@ -135,6 +135,17 @@
     lastBreath:{key:'lastBreath',minTier:3,perk:'The burst also adds [1] poison stack.',name:'Last breath',description:'Broodlings that die burst into stinging cells, stunning creatures beside them for {0.8} seconds.',family:'summoner'},
     toxicHusk:{key:'toxicHusk',minTier:3,perk:'The burst is [25]% wider.',name:'Toxic husk',description:'Your decoy is a shed husk full of toxin: when it ends it bursts, giving creatures nearby {3} poison stacks.',family:'stalker'},
     venomEddy:{key:'venomEddy',minTier:3,perk:'Stacks build [20]% faster.',name:'Venom eddy',description:'Your venom rides your Whirlpool: creatures it holds gain {1} poison stacks a second.',family:'riptide'},
+    // v36.1 Legendary rule changes (minTier 4): each changes what a move or a body part does. Written values are scaled by Legendary power (1.55).
+    dartFlagellum:{key:'dartFlagellum',minTier:4,perk:'Darts cost [2] less stamina.',name:'Darting flagellum',description:'Your fast swim becomes a dart: pressing it throws you {155} forward in a fifth of a second, untouchable on the way, for 24 stamina. Holding it does nothing more.',family:'riptide'},
+    gorgerStomach:{key:'gorgerStomach',minTier:4,perk:'The healing is [10]% stronger.',name:'Gorger stomach',description:'Your stomach holds half as much again. While it is more than two-thirds full you heal {0.4}% of your maximum health a second.',family:'predator'},
+    wanderingEddy:{key:'wanderingEddy',minTier:4,perk:'Its pull is [10]% wider.',name:'Wandering eddy',description:'Your Whirlpool spins round your own body and travels with you, but it is a quarter smaller. It holds and lets go as before.',family:'riptide'},
+    glassSkin:{key:'glassSkin',minTier:4,perk:'You can conceal again [0.3] seconds sooner after a glancing hit.',name:'Glass skin',description:'While you are concealed, the first hit that finds you glances off your clear skin and does no damage. It ends your concealment.',family:'stalker'},
+    // v36.1 duo mutations: Legendary, and they appear only once you hold rank II in both of their classes. They cover the five pairs that have no hybrid.
+    ramJaw:{key:'ramJaw',minTier:4,duo:['predator','riptide'],perk:'Ram bites heal [1]% of your health.',name:'Ramming jaw',description:'Ramming closes your jaws on what you hit: a ram also bites for {65}% of your attack.',family:'predator'},
+    packFeeding:{key:'packFeeding',minTier:4,duo:['predator','summoner'],perk:'Also restores [3] stamina.',name:'Pack feeding',description:'A creature your broodlings kill feeds you: you gain a frenzy stack and heal {1.3}% of your maximum health.',family:'summoner'},
+    toxicWake:{key:'toxicWake',minTier:4,duo:['venomist','riptide'],perk:'The wake is [15]% wider.',name:'Toxic wake',description:'Fast swimming leaves venom in your wake for {1} seconds. Creatures in it gain a poison stack every half second.',family:'venomist'},
+    numbingVenom:{key:'numbingVenom',minTier:4,duo:['venomist','stalker'],perk:'Numbed creatures take [5]% more damage from you.',name:'Numbing venom',description:'Your venom numbs the senses: a creature carrying 3 or more poison stacks never notices you, so a hit on it from concealment is an ambush. Numbed creatures take {5}% more damage from you.',family:'stalker'},
+    phantomBrood:{key:'phantomBrood',minTier:4,duo:['summoner','stalker'],perk:'Shedding them restores [4] stamina.',name:'Phantom brood',description:'Your decoy sheds {1.3} broodlings beside it, which live as long as it does.',family:'summoner'},
     keenEdge:{key:'keenEdge',perk:'Critical multiplier rises by [0.15].',name:'Keen edge',description:'Direct attacks have a {18}% chance to strike critically for 1.8 times the damage.',family:'predator'},
     scavenger:{key:'scavenger',perk:'Kills also restore [4] stamina.',name:'Scavenger',description:'Defeating or consuming an organism restores {4}% of maximum health.',family:'predator'},
     secondWind:{key:'secondWind',perk:'Recharges [5] seconds sooner.',name:'Second wind',description:'Emptying stamina gives {1.8} seconds of emergency speed. Recharges in 35 seconds.',family:'riptide'},
@@ -159,7 +170,7 @@
   // where Rare is the written value). Each boss carries one mutation nothing else drops, at a fixed tier.
   const TIER_COLOURS=['#cfdcc4','#9be08f','#7fc4f2','#c79df5','#f3c969'];
   const TIERS=['Common','Uncommon','Rare','Epic','Legendary'],TIER_POWER=[.7,.85,1,1.25,1.55];
-  const MUTATION_SOURCE={jaws:'hunter',spitGland:'puffer',needleSpine:'needlefish',spikeBattery:'skimmer',sporeSac:'swarmer',bileSac:'apex',clingingSlime:'jelly',tailFlick:'murk',echoNucleus:'crowned',pitOrgan:'lurker',rendingPounce:'ripjaw',clingingVenom:'sporemother',lastBreath:'broodcarrier',toxicHusk:'glassray',venomEddy:'siren',keenEdge:'needlefish',serratedJaws:'crowned',scavenger:'hunter',devourerGullet:'leviathan',barbedShell:'shellback',chitinPlates:'thornback',mirrorMembrane:'glassray',
+  const MUTATION_SOURCE={dartFlagellum:'skimmer',gorgerStomach:'leviathan',wanderingEddy:'maw',glassSkin:'glassray',ramJaw:'thornback',packFeeding:'crowned',toxicWake:'sporemother',numbingVenom:'lurker',phantomBrood:'murk',jaws:'hunter',spitGland:'puffer',needleSpine:'needlefish',spikeBattery:'skimmer',sporeSac:'swarmer',bileSac:'apex',clingingSlime:'jelly',tailFlick:'murk',echoNucleus:'crowned',pitOrgan:'lurker',rendingPounce:'ripjaw',clingingVenom:'sporemother',lastBreath:'broodcarrier',toxicHusk:'glassray',venomEddy:'siren',keenEdge:'needlefish',serratedJaws:'crowned',scavenger:'hunter',devourerGullet:'leviathan',barbedShell:'shellback',chitinPlates:'thornback',mirrorMembrane:'glassray',
     secondWind:'skimmer',whipFlagellum:'lasher',jetSac:'murk',chainPulse:'swarmer',undertow:'jelly',staticCharge:'stormdiatom',sporeGland:'puffer',photosynthesis:'grazer',twinNucleus:'splitter',
     fedHeart:'broodcarrier',abyssalHeart:'maw',shadowMetabolism:'leech',eyespot:'sentinel',lateralLine:'siren',
     leechLining:'leech',bloodScent:'apex',causticGland:'puffer',broodPheromone:'hatchling',keelFin:'prey',mimicSkin:'murk',echoChamber:'wanderer'};
@@ -196,7 +207,7 @@
     mimicSkin:{key:'mimicSkin',perk:'[4]% critical chance.',name:'Mimic skin',description:'Strikes from concealment deal {15}% more damage.',family:'stalker'},
     echoChamber:{key:'echoChamber',perk:'Abilities cost [6]% less stamina.',name:'Echo chamber',description:'Your ability cooldowns are {8}% shorter.',family:'summoner'}
   });
-  for(const [k,part] of Object.entries({leechLining:'mouth',bloodScent:'senses',causticGland:'mouth',broodPheromone:'nucleus',keelFin:'flagellum',mimicSkin:'membrane',echoChamber:'senses',engulfingMembrane:'mouth',regrowingOrgans:'nucleus',keenEdge:'mouth',scavenger:'mouth',serratedJaws:'mouth',devourerGullet:'mouth',barbedShell:'membrane',fissionHeart:'membrane',chitinPlates:'membrane',mirrorMembrane:'membrane',secondWind:'flagellum',phaseMembrane:'flagellum',whipFlagellum:'flagellum',jetSac:'flagellum',chainPulse:'nucleus',storedImpact:'membrane',undertow:'flagellum',staticCharge:'senses',sporeGland:'nucleus',photosynthesis:'nucleus',twinNucleus:'nucleus',fedHeart:'nucleus',abyssalHeart:'nucleus',shadowMetabolism:'senses',eyespot:'senses',lateralLine:'senses',jaws:'organ',spitGland:'organ',needleSpine:'organ',spikeBattery:'organ',sporeSac:'organ',bileSac:'mouth',clingingSlime:'membrane',tailFlick:'flagellum',echoNucleus:'nucleus',pitOrgan:'senses',rendingPounce:'nucleus',clingingVenom:'nucleus',lastBreath:'nucleus',toxicHusk:'nucleus',venomEddy:'nucleus'}))MUTATIONS[k].part=part;
+  for(const [k,part] of Object.entries({leechLining:'mouth',bloodScent:'senses',causticGland:'mouth',broodPheromone:'nucleus',keelFin:'flagellum',mimicSkin:'membrane',echoChamber:'senses',engulfingMembrane:'mouth',regrowingOrgans:'nucleus',keenEdge:'mouth',scavenger:'mouth',serratedJaws:'mouth',devourerGullet:'mouth',barbedShell:'membrane',fissionHeart:'membrane',chitinPlates:'membrane',mirrorMembrane:'membrane',secondWind:'flagellum',phaseMembrane:'flagellum',whipFlagellum:'flagellum',jetSac:'flagellum',chainPulse:'nucleus',storedImpact:'membrane',undertow:'flagellum',staticCharge:'senses',sporeGland:'nucleus',photosynthesis:'nucleus',twinNucleus:'nucleus',fedHeart:'nucleus',abyssalHeart:'nucleus',shadowMetabolism:'senses',eyespot:'senses',lateralLine:'senses',jaws:'organ',spitGland:'organ',needleSpine:'organ',spikeBattery:'organ',sporeSac:'organ',bileSac:'mouth',clingingSlime:'membrane',tailFlick:'flagellum',echoNucleus:'nucleus',pitOrgan:'senses',rendingPounce:'nucleus',clingingVenom:'nucleus',lastBreath:'nucleus',toxicHusk:'nucleus',venomEddy:'nucleus',dartFlagellum:'flagellum',gorgerStomach:'mouth',wanderingEddy:'nucleus',glassSkin:'membrane',ramJaw:'mouth',packFeeding:'nucleus',toxicWake:'flagellum',numbingVenom:'nucleus',phantomBrood:'nucleus'}))MUTATIONS[k].part=part;
   // The five apex predators. Each wakes when you reach its level and hunts you until one of you dies.
   // size: radius as a multiple of yours when it appears. hits: health in your attacks at that moment. speed: as a
   // multiple of your cruising speed (fast swimming is always quicker). contact: share of your health a touch takes.
@@ -706,10 +717,10 @@
       if(l.type==='fossil'||l.type==='shell'||l.type==='sealed'||l.type==='trail')this._echo(l);
       const reward=l.type==='nest'?this._challengeReward():0,scoreReward=120+reward*40,biomassReward=Math.round(this._divisionShare(l.type.startsWith('wonder')?.35:l.type==='fossil'||l.type==='sealed'||l.type==='trail'?.09:l.type==='geneCache'?.09:l.type==='nest'?.2:l.type==='carcass'||l.type==='garden'||l.type==='smoker'?.07:l.type==='vault'?.05:0)*gapWorth(waterLevel(l.x,l.y)-s.player.stage));s.score+=scoreReward;this._recordLandmark(l);
       const descriptions={bloom:'The bloom released a rich cloud of nutrients.',sanctuary:'A safe refuge. Its restorative field remains available.',geneCache:'Ancient nutrients add biomass to your colony.',nest:'The nest is clear. Its genetic rewards are yours.',current:'You learned to ride this current. It still flows through the pond.',carcass:'You fed on the fallen giant before the scavengers stripped it.',garden:'You grazed the heart of the garden through the toxin.',fossil:'',vault:'',smoker:'You fed on the minerals pouring from the smoker, between its vents.',shell:'A hiding place. Predators cannot see you inside it while you are not fighting.'};
-      if(l.type==='vault'){const all=Object.keys(MUTATION_SOURCE).filter(k=>!(SPECIES[MUTATION_SOURCE[k]]&&SPECIES[MUTATION_SOURCE[k]].rarity==='legendary')),cap=clamp(1+Math.floor(waterLevel(l.x,l.y)/6),2,4),pool=all.filter(k=>(p.mutationTiers[k]??-1)<cap),key=pool.length?pool[Math.floor(this.random()*pool.length)]:'';descriptions.vault=key?'The vault opened and gave up '+TIERS[cap].toLowerCase()+' '+MUTATIONS[key].name.toLowerCase()+'.':'The vault opened, but it holds nothing better than you already carry.';if(key)this._findMutation(key,cap,'Glass vault');}
+      if(l.type==='vault'){const all=Object.keys(MUTATION_SOURCE).filter(k=>!(SPECIES[MUTATION_SOURCE[k]]&&SPECIES[MUTATION_SOURCE[k]].rarity==='legendary')),cap=clamp(1+Math.floor(waterLevel(l.x,l.y)/6),2,4),pool=all.filter(k=>(p.mutationTiers[k]??-1)<cap&&this._mutationOpen(k,cap)),key=pool.length?pool[Math.floor(this.random()*pool.length)]:'';descriptions.vault=key?'The vault opened and gave up '+TIERS[cap].toLowerCase()+' '+MUTATIONS[key].name.toLowerCase()+'.':'The vault opened, but it holds nothing better than you already carry.';if(key)this._findMutation(key,cap,'Glass vault');}
       descriptions.sealed='The shell opened.';descriptions.trail='The garden has never been grazed.';descriptions.silent='The current carried you out of the known water.';
       if(l.type==='trail'){p.hp=p.maxHp;p.nutrition=p.maxNutrition;}
-      if(l.type==='fossil'||l.type==='sealed'){const pool=Object.keys(MUTATION_SOURCE).filter(k=>(p.mutationTiers[k]??-1)<2),key=pool.length?pool[Math.floor(this.random()*pool.length)]:'';descriptions[l.type]=key?'You drew '+MUTATIONS[key].name.toLowerCase()+' from the ancient genome.':'Its genome holds nothing you have not found.';if(key)this._findMutation(key,2,l.type==='sealed'?'Sealed shell':'Ancient fossil');}
+      if(l.type==='fossil'||l.type==='sealed'){const pool=Object.keys(MUTATION_SOURCE).filter(k=>(p.mutationTiers[k]??-1)<2&&this._mutationOpen(k,2)),key=pool.length?pool[Math.floor(this.random()*pool.length)]:'';descriptions[l.type]=key?'You drew '+MUTATIONS[key].name.toLowerCase()+' from the ancient genome.':'Its genome holds nothing you have not found.';if(key)this._findMutation(key,2,l.type==='sealed'?'Sealed shell':'Ancient fossil');}
       if(l.type.startsWith('wonder'))descriptions[l.type]=this._wonderReward(l);
       if(l.type==='bloom'){p.nutrition=p.maxNutrition;for(let i=0;i<24;i++){const a=this.range(0,TAU),r=this.range(15,l.r*.9);this._food(l.x+Math.cos(a)*r,l.y+Math.sin(a)*r,i%6===0?'mineral':'algae',1.5,l.home,l.biome);}}
       if(l.type==='nest')s.stats.nests++;if(l.type==='current')s.stats.currentsRidden++;
@@ -828,7 +839,7 @@
     }
     _wonderReward(l){
       const s=this.state,p=s.player,w=WONDER_BY_TYPE[l.type];let key=w.reward&&MUTATIONS[w.reward]&&(p.mutationTiers[w.reward]??-1)<4?w.reward:'';
-      if(!key){const pool=Object.keys(MUTATION_SOURCE).filter(k=>MUTATIONS[k]&&(p.mutationTiers[k]??-1)<4);key=pool.length?pool[Math.floor(this.random()*pool.length)]:'';}
+      if(!key){const pool=Object.keys(MUTATION_SOURCE).filter(k=>MUTATIONS[k]&&(p.mutationTiers[k]??-1)<4&&this._mutationOpen(k,4));key=pool.length?pool[Math.floor(this.random()*pool.length)]:'';}
       if(key)this._findMutation(key,4,LANDMARKS[l.type].name);const pts=this._awardPoints(w.points||1,'wonder');if(WONDER_LINES[l.type])this._event('wonderLine',{wonder:l.type,text:WONDER_LINES[l.type]});
       return (key?'It gave up legendary '+MUTATIONS[key].name.toLowerCase():'It had nothing better than you carry')+' · +'+pts+' stat '+(pts===1?'point':'points')+'.';
     }
@@ -885,7 +896,7 @@
     claimTask(){this._lastThanks='';this.lastReward=null;
       const l=this._hermitSanctuary(),s=this.state,p=s.player;if(!l)return false;const i=s.tasks.findIndex(x=>x.from===l.id&&x.done);if(i<0)return false;const b=s.tasks.splice(i,1)[0];s.stats.bounties=(s.stats.bounties||0)+1;this._lastThanks=(TASK_THANKS[b.kind]||'Thank you.').replace(/them/g,b.pro||'them');this._offer=null;
       {const h=s.stats.helped||(s.stats.helped={});h[l.id]=Math.min(HERMIT_TASKS,(h[l.id]||0)+1);}
-      const cap=MorphosGame.taskTier(b),pool=Object.keys(MUTATION_SOURCE).filter(k=>MUTATIONS[k]&&(p.mutationTiers[k]??-1)<cap),key=pool.length?pool[Math.floor(this.random()*pool.length)]:'';
+      const cap=MorphosGame.taskTier(b),pool=Object.keys(MUTATION_SOURCE).filter(k=>MUTATIONS[k]&&(p.mutationTiers[k]??-1)<cap&&this._mutationOpen(k,cap)),key=pool.length?pool[Math.floor(this.random()*pool.length)]:'';
       const had=key?p.mutationTiers[key]:undefined;if(key)this._findMutation(key,cap,b.hermit);this._grantBiomass(Math.round(this._divisionShare(.15)*gapWorth((b.zone||0)-p.stage)));s.score+=200;
       this.lastReward={key,tier:cap,upgrade:had!==undefined,last:this.hermitHelped(l.id)>=HERMIT_TASKS,hermit:b.hermit};
       this._event('bountyDone',{hermit:b.hermit,title:b.title,reward:key?TIERS[cap]+' '+MUTATIONS[key].name.toLowerCase():''});return true;
@@ -1067,7 +1078,7 @@
       {const d=distance(b,p)||1,wall=b.r*.8+p.r*.6;if(b.mode!=='transform'&&d<wall){const nx=(p.x-b.x)/d,ny=(p.y-b.y)/d,gap=(wall-d)*.7;p.x+=nx*gap;p.y+=ny*gap;const into=-(p.vx*nx+p.vy*ny);if(into>0){p.vx+=nx*into;p.vy+=ny*into;}}}
       const away=Math.atan2(p.y-b.y,p.x-b.x),facing=Math.abs(Math.atan2(Math.sin(away-b.angle),Math.cos(away-b.angle))),touching=b.mode!=='transform'&&distance(b,p)<b.r*.82+p.r*.6+2;
       // A fast-swimming ram lands on a boss as on anything else, and bounces you off; only an open boss can't hurt you back.
-      if(touching&&p.sprinting&&s.time-(b.ramAt||0)>1.5){b.ramAt=s.time;p.refugeCombatTime=3;const rt=p.traits.riptide||0;this._hitBoss(p.attack*this._classPower('riptide')*(.5+rt*.25)*(rt>=5?1.25:1)*(1+p.momentum*.25)*(1+.3*this._pk('jetSac')),{family:'riptide'});this._xp('riptide',8);this._awaken('riptide','ram');p.momentum=0;p.vx+=Math.cos(away)*360;p.vy+=Math.sin(away)*360;this._effect(p.x,p.y,'hit',Math.min(10000,p.r*2),'#95dafa',.3);if(!s.bossEncounter||s.status!=='playing'||s.pendingEvolution)return;if(b.mode==='recover')return;}
+      if(touching&&p.sprinting&&s.time-(b.ramAt||0)>1.5){b.ramAt=s.time;p.refugeCombatTime=3;const rt=p.traits.riptide||0;this._hitBoss(p.attack*this._classPower('riptide')*(.5+rt*.25)*(rt>=5?1.25:1)*(1+p.momentum*.25)*(1+.3*this._pk('jetSac'))+this._ramBite(),{family:'riptide'});this._xp('riptide',8);this._awaken('riptide','ram');p.momentum=0;p.vx+=Math.cos(away)*360;p.vy+=Math.sin(away)*360;this._effect(p.x,p.y,'hit',Math.min(10000,p.r*2),'#95dafa',.3);if(!s.bossEncounter||s.status!=='playing'||s.pendingEvolution)return;if(b.mode==='recover')return;}
       // Brushing its flank or tail is safe; its front half is its mouth.
       this._bossTouch=Math.max(0,(this._bossTouch||0)-dt);if(touching&&facing<1.25&&!(this._bossTouch>0)&&this._bossHitPlayer(b,b.unit*def.contact,away)){this._bossTouch=1.1;p.invulnerable=Math.min(p.invulnerable,.3);}
     }
@@ -1257,7 +1268,7 @@
       p.resistance=.15*this._mp('chitinPlates');{const tn=this._mp('twinNucleus');p.maxHp*=1+.2*tn;p.regeneration*=1+.25*tn;}p.nutritionDrain=.75+Math.min(p.stage,8)*.12;
       p.concealRate=(1.45+k*.3)*(this._fork('stalker',2)==='a'?1.3:1);p.sneakDrain=Math.max(.7,3.5-k*.35)*(1-.12*Math.min(3,this._pk('lateralLine')));p.landmarkSense=(260+u.reach*25)*(1+.5*this._mp('eyespot'));
       // Class numbers that change during play (Frenzy, Momentum) are applied where they are used; these are the caps.
-      {const vr=t.venomist,br=t.summoner,pr=t.predator;p.venomMax=vr>=3?8:5;p.frenzyMax=pr>=5?7:pr>=3?5:pr>=1?3:0;p.broodMax=br<=0?0:Math.min(7,(br>=5?4:br>=3?3:2)+(this._fork('summoner',4)==='a'?1:0)+Math.floor((p.mastery.summoner||0)/2));p.momentumMax=t.riptide>=3?5:3;}
+      {const vr=t.venomist,br=t.summoner,pr=t.predator;p.venomMax=vr>=3?8:5;p.frenzyMax=pr>=5?7:pr>=3?5:pr>=1?3:0;p.broodMax=br<=0?0:Math.min(7,(br>=5?4:br>=3?3:2)+(this._fork('summoner',4)==='a'?1:0)+Math.floor((p.mastery.summoner||0)/2));p.momentumMax=t.riptide>=3?5:3;}p.maxNutrition=this._hasMutation('gorgerStomach')?150:100;p.nutrition=Math.min(p.nutrition,p.maxNutrition);
       p.assimilation=.5;p.mutationSlots=BODY_PARTS.filter(b=>p.stage>=b.stage).length;
       p.criticalChance=.18*this._mp('keenEdge')+.03*this._pk('eyespot')+.04*this._pk('mimicSkin');p.critChance=p.criticalChance;
       for(const family of FAMILIES){const def=ABILITIES[family],rank=p.traits[family];p.abilityCosts[family]=Math.max(16,def.cost-Math.max(0,rank-1)*2);p.abilityCooldownMax[family]=Math.max(6,def.cooldown-Math.max(0,rank-1)*.5)*(1-.08*this._mp('echoChamber'));p.abilityCosts[family]*=1-.06*Math.min(3,this._pk('echoChamber'));}
@@ -1282,7 +1293,11 @@
     // The extra effect a mutation gains at Rare, stronger at Epic and Legendary; 0 below Rare or when not equipped.
     _pk(key){const p=this.state.player;if(!p.mutations.includes(key))return 0;const t=p.mutationTiers[key]??2;return t<2?0:PERK_POWER[t-2];}
     mutationTier(key){const t=this.state.player.mutationTiers[key];return t===undefined?-1:t;}
+    // Ramming jaw: a ram also bites.
+    _ramBite(){if(!this._hasMutation('ramJaw'))return 0;const p=this.state.player;p.hp=Math.min(p.maxHp,p.hp+p.maxHp*.01*this._pk('ramJaw'));return p.attack*.65*this._mp('ramJaw');}
     _hasMutation(key){return this.state.player.mutations.includes(key);}
+    // Can this mutation be given at this tier? A Legendary-only one needs a Legendary gift; a duo needs rank II in both its classes.
+    _mutationOpen(key,tier){const m=MUTATIONS[key];if(!m)return false;if((m.minTier||0)>=4&&tier<4)return false;const t=this.state.player.traits;return !m.duo||m.duo.every(f=>(t[f]||0)>=2);}
     equipMutation(key){
       const s=this.state,p=s.player;if(s.status!=='playing'||(!s.paused&&!s.pendingEvolution)||s.bossEncounter||!p.unlockedMutations.includes(key))return false;
       const i=p.mutations.indexOf(key),part=BODY_PARTS.find(b=>b.key===MUTATIONS[key].part);if(i>=0)p.mutations.splice(i,1);else{if(!part||p.stage<part.stage)return false;const j=p.mutations.findIndex(k=>MUTATIONS[k].part===part.key);if(j>=0)p.mutations.splice(j,1);p.mutations.push(key);}if(!this._hasMutation('storedImpact'))p.impactCharge=0;this._derive();p.pulseCooldown=Math.min(p.pulseCooldown,p.pulseCooldownMax);p.hp=Math.min(p.hp,p.maxHp);p.energy=Math.min(p.energy,p.maxEnergy);this._event('mutation',{key,name:MUTATIONS[key].name,equipped:i<0});return true;
@@ -1304,7 +1319,7 @@
     }
     _rollDrop(o){
       if(o.noDrop)return;
-      const s=this.state,p=s.player,src=o.species||o.kind,own=DROP_FROM[src],fresh2=o.elder?Object.keys(MUTATION_SOURCE).filter(k=>!(SPECIES[MUTATION_SOURCE[k]]&&SPECIES[MUTATION_SOURCE[k]].rarity==='legendary')):null,unfound=fresh2?fresh2.filter(k=>p.mutationTiers[k]===undefined):null,keys=own&&own.length?own:fresh2?(unfound.length?unfound:fresh2):null;if(!keys||o.split||o.bossId)return;const key=keys.find(k=>MUTATIONS[k].weapon&&p.mutationTiers[k]===undefined)||keys[Math.floor(this.random()*keys.length)];
+      const s=this.state,p=s.player,src=o.species||o.kind,own=DROP_FROM[src],fresh2=o.elder?Object.keys(MUTATION_SOURCE).filter(k=>!(SPECIES[MUTATION_SOURCE[k]]&&SPECIES[MUTATION_SOURCE[k]].rarity==='legendary')&&!MUTATIONS[k].duo&&(MUTATIONS[k].minTier||0)<4):null,unfound=fresh2?fresh2.filter(k=>p.mutationTiers[k]===undefined):null,keys=own&&own.length?own:fresh2?(unfound.length?unfound:fresh2):null;if(!keys||o.split||o.bossId)return;const key=keys.find(k=>MUTATIONS[k].weapon&&p.mutationTiers[k]===undefined)||keys[Math.floor(this.random()*keys.length)];
       const sp=o.species?SPECIES[o.species]:null,rarity=sp?sp.rarity:'common',pity=p.dropPity[src]||0,fresh=!!MUTATIONS[key].weapon&&p.mutationTiers[key]===undefined,chance=Math.min(1,(fresh?Math.max(.25,DROP_CHANCE[rarity]):DROP_CHANCE[rarity])*(1+pity*(fresh?.5:.2)));
       // In co-op the player who lands the kill decides whether it drops, and tells the others (_dropForce), so everyone who helped gets one or nobody does.
       if(!o.elder&&!(o._dropForce!==undefined?o._dropForce:this.random()<chance)){if(DROP_FROM[src])p.dropPity[src]=Math.min(60,pity+1);return;}
@@ -1313,7 +1328,7 @@
       // The water decides how good a copy can be: Uncommon at best in levels 1-6, Rare to 12, Epic to 18, Legendary below that. An elder's is one better.
       tier=Math.min(tier,Math.min(4,1+Math.floor(waterLevel(o.x,o.y)/6)+(o.elder?1:0)));
       // A mutation exists only from its minimum rarity; where the water cannot give that rarity it does not drop.
-      {const need=MUTATIONS[key].minTier||0,cap=Math.min(4,1+Math.floor(waterLevel(o.x,o.y)/6)+(o.elder?1:0));if(need>cap){if(DROP_FROM[src])p.dropPity[src]=Math.min(60,pity+1);return;}tier=Math.max(tier,need);}
+      {const need=MUTATIONS[key].minTier||0,cap=Math.min(4,1+Math.floor(waterLevel(o.x,o.y)/6)+(o.elder?1:0));if(need>cap||need>=4&&tier<4||!this._mutationOpen(key,Math.max(tier,need))){if(DROP_FROM[src])p.dropPity[src]=Math.min(60,pity+1);return;}tier=Math.max(tier,need);}
       // A copy no better than the one you hold never appears (v35.6): no glint, no notice, no growth. Bad-luck protection keeps counting.
       if(p.mutationTiers[key]!==undefined&&p.mutationTiers[key]>=tier){if(DROP_FROM[src])p.dropPity[src]=Math.min(60,pity+1);return;}
       delete p.dropPity[src];
@@ -1355,7 +1370,7 @@
         // Maelstrom hurts what the release throws; Eye of the storm is checked while you are inside it; rank V grips a boss for 1 s.
         const wide=this._fork('riptide',2)==='a',R=(p.r+170)*(wide?1.35:1)*(rank?1:.85),life=(3+(rank>=3?1:0))*(rank?1:.75),power=p.attack*this._classPower('riptide');
         if(!s.vortices)s.vortices=[];s.vortices=s.vortices.filter(v=>v.remote);
-        s.vortices.push({x:p.x,y:p.y,R,life,maxLife:life,holdR:p.r*(wide?1:.8),grind:this._fork('riptide',2)==='b'?power*.5:0,slam:this._fork('riptide',4)==='a'?power*1.6:0,grip:rank>=5?1:0,spin:0,tick:.5});
+        {const eddy=this._hasMutation('wanderingEddy');s.vortices.push({x:p.x,y:p.y,R:eddy?R*.75*(1+.1*this._pk('wanderingEddy')):R,follow:eddy,life,maxLife:life,holdR:p.r*(wide?1:.8),grind:this._fork('riptide',2)==='b'?power*.5:0,slam:this._fork('riptide',4)==='a'?power*1.6:0,grip:rank>=5?1:0,spin:0,tick:.5});}
         p.specialTime=life;this._breakStealth();this._event('whirlpool',{x:p.x,y:p.y});
       }
       if(trait==='summoner'){
@@ -1366,6 +1381,7 @@
       if(trait==='stalker'){
         p.specialTime=(5+rank*1.3)*novice*(this._fork('stalker',4)==='a'?1.5:1);p.veilTime=(2.0+rank*.35)*novice;p.stealth=1;p.concealCooldown=0;
         const count=rank>=3?2:1;for(let i=0;i<count;i++){const direction=p.angle+Math.PI+(i===0?-.45:.45);s.decoys.push({x:p.x+Math.cos(direction)*(p.r+18),y:p.y+Math.sin(direction)*(p.r+18),r:p.r*.9,life:p.specialTime,maxLife:p.specialTime,angle:direction,phase:this.range(0,TAU)});}s.decoys=[...s.decoys.filter(d=>d.remote),...s.decoys.filter(d=>!d.remote).slice(-2)];
+        if(this._hasMutation('phantomBrood')){const n=Math.round(1.3*this._mp('phantomBrood'));for(let i=0;i<n;i++)this._bud(p.specialTime);p.energy=Math.min(p.maxEnergy,p.energy+4*this._pk('phantomBrood'));}
       }
       if(s.projectiles.length>80)s.projectiles.splice(0,s.projectiles.length-80);
       this._effect(p.x,p.y,'special',p.r*3,colour,.6,{self:true});this._particles(p.x,p.y,colour,12,80);this._event('special',{trait,rank});return true;
@@ -1501,7 +1517,7 @@
     _vortexTick(dt){
       const s=this.state,p=s.player;if(!s.vortices)s.vortices=[];if(!s.vortices.length)return;
       for(const v of s.vortices){
-        v.life-=dt;v.spin=(v.spin||0)+dt;const ending=v.life<=0,mine=!v.remote;v.tick=(v.tick??.5)-dt;const grindNow=v.grind>0&&v.tick<=0;if(v.tick<=0)v.tick+=.5;
+        if(v.follow&&!v.remote&&p.alive){v.x=p.x;v.y=p.y;}v.life-=dt;v.spin=(v.spin||0)+dt;const ending=v.life<=0,mine=!v.remote;v.tick=(v.tick??.5)-dt;const grindNow=v.grind>0&&v.tick<=0;if(v.tick<=0)v.tick+=.5;
         for(const o of [...s.organisms]){if(o.dead||o.puppet||o.bossId||o.denT)continue;const dx=v.x-o.x,dy=v.y-o.y,d=Math.hypot(dx,dy)||1;if(d>v.R+o.r*.5)continue;
           if(ending){o.vx=-dx/d*420;o.vy=-dy/d*420;o.x-=dx/d*16;o.y-=dy/d*16;o.vortexHeld=0;if(v.slam>0)this._hit(o,v.slam,-dx/d,-dy/d,{family:mine?'riptide':'',noCritical:true});if(s.pendingEvolution)return;continue;}
           if(o.r<=v.holdR){const pull=Math.min(d,(120+260*(1-d/v.R))*dt),swirl=Math.min(1,d/40)*90*dt;o.x+=dx/d*pull-dy/d*swirl;o.y+=dy/d*pull+dx/d*swirl;o.vx*=.5;o.vy*=.5;
@@ -1533,7 +1549,7 @@
         const dx=gx-b.x,dy=gy-b.y,d=length(dx,dy)||1,want=target?speed:Math.min(speed,d*4);
         b.vx+=(dx/d*want-b.vx)*Math.min(1,dt*5);b.vy+=(dy/d*want-b.vy)*Math.min(1,dt*5);b.x+=b.vx*dt;b.y+=b.vy*dt;
         if(target&&b.cd<=0&&distance(b,target)<b.r+target.r+5){b.cd=.75;const k=distance(b,target)||1;
-          if(target===boss)this._hitBoss(bite,{noCritical:true,family:'summoner',brood:true});else{target.broodAggroUntil=s.time+4;this._hit(target,bite,(target.x-b.x)/k,(target.y-b.y)/k,{noCritical:true,family:'summoner'});if(this._hybrid('sporeSwarm'))this._addVenom(target,1);}
+          if(target===boss)this._hitBoss(bite,{noCritical:true,family:'summoner',brood:true});else{target.broodAggroUntil=s.time+4;this._hit(target,bite,(target.x-b.x)/k,(target.y-b.y)/k,{noCritical:true,family:'summoner'});if(target.dead&&this._hasMutation('packFeeding')){if(p.frenzyMax>0){p.frenzy=p.frenzyTime>0?Math.min(p.frenzyMax,p.frenzy+1):1;p.frenzyTime=4;}p.hp=Math.min(p.maxHp,p.hp+p.maxHp*.013*this._mp('packFeeding'));p.energy=Math.min(p.maxEnergy,p.energy+3*this._pk('packFeeding'));}if(this._hybrid('sporeSwarm'))this._addVenom(target,1);}
           if(s.status!=='playing')return;}
         for(const o of s.organisms){if(o.dead||!isHostile(o))continue;if(distance(o,b)<o.r+b.r+2)b.hp-=(o.attackDamage||8)*(o.lungeTime>0||o.windup>0?1.5:.6)*dt;}
       }
@@ -1622,7 +1638,7 @@
       return amount-blocked;
     }
     _damagePlayer(amount,source){
-      const s=this.state,p=s.player;if(p.invulnerable>0||p.phaseShieldTime>0||s.status!=='playing')return;if(source){const src=source.sourceId?s.organisms.find(o=>o.id===source.sourceId):source;if(src&&(src.kind==='jelly'||src.species==='puffer'))this._awaken('venomist','stung');}{const src=source&&(source.sourceId?s.organisms.find(o=>o.id===source.sourceId):source);if(src&&Number.isFinite(src.lv)&&!src.bossId&&src.kind!=='boss')amount*=gapTake(src.lv-p.stage);if(s.bossEncounter&&(source&&(source.kind==='boss'||source.bossId!==undefined)||src&&src.bossId!==undefined))s.bossEncounter.lastBlow=s.time;}amount=this._hardenHit(source,amount);if(source&&source.poison>0)amount*=1-Math.min(.4,.08*this._pk('causticGland'));amount*=1-Math.min(.3,.03*this._pk('broodPheromone')*s.brood.length);
+      const s=this.state,p=s.player;if(p.invulnerable>0||p.phaseShieldTime>0||s.status!=='playing')return;if(this._hasMutation('glassSkin')&&p.stealth>.65&&amount>0){this._breakStealth(Math.max(.5,1.7-.3*this._pk('glassSkin')));p.invulnerable=.5;this._effect(p.x,p.y,'special',p.r*2,'#dff6ff',.35);this._event('glassGlance',{});return;}if(source){const src=source.sourceId?s.organisms.find(o=>o.id===source.sourceId):source;if(src&&(src.kind==='jelly'||src.species==='puffer'))this._awaken('venomist','stung');}{const src=source&&(source.sourceId?s.organisms.find(o=>o.id===source.sourceId):source);if(src&&Number.isFinite(src.lv)&&!src.bossId&&src.kind!=='boss')amount*=gapTake(src.lv-p.stage);if(s.bossEncounter&&(source&&(source.kind==='boss'||source.bossId!==undefined)||src&&src.bossId!==undefined))s.bossEncounter.lastBlow=s.time;}amount=this._hardenHit(source,amount);if(source&&source.poison>0)amount*=1-Math.min(.4,.08*this._pk('causticGland'));amount*=1-Math.min(.3,.03*this._pk('broodPheromone')*s.brood.length);
       const escape=this._eyeOfStorm()?.3:0,base=amount*(1-p.resistance)*(1-escape);
       if(this._hasMutation('fissionHeart')&&p.fissionCooldown<=0&&p.hp-base<=p.maxHp*.25){p.fissionShieldTime=3*this._mp('fissionHeart');p.fissionCooldown=45;p.hp=Math.min(p.maxHp,p.hp+p.maxHp*.06*this._pk('fissionHeart'));this._effect(p.x,p.y,'special',p.r*2.5,'#edb3c0',.8);this._event('fissionShield');}
       const damage=base*(p.fissionShieldTime>0?.3:1),blocked=amount-damage;p.hp=Math.max(0,p.hp-damage);p.hurt=.45;p.invulnerable=1.1;p.stillTime=0;p.photosynthesising=false;
@@ -1671,7 +1687,8 @@
       if(options.token!==undefined){if(o.attackTokens.includes(options.token))return false;o.attackTokens.push(options.token);if(o.attackTokens.length>8)o.attackTokens.shift();}
       if(Number.isFinite(o.lv)&&!o.bossId)amount*=gapDeal(p.stage-o.lv);
       if((o.slowTime||0)>0)amount*=1+.08*this._pk('undertow');
-      if(((o.venomStacks||0)>0||(o.poison||0)>0)&&this._hasMutation('pitOrgan'))amount*=1+.1*this._mp('pitOrgan')+.05*this._pk('pitOrgan');
+      if((o.venomStacks||0)>=3&&this._hasMutation('numbingVenom'))amount*=1+.05*this._mp('numbingVenom')+.05*this._pk('numbingVenom');
+   if(((o.venomStacks||0)>0||(o.poison||0)>0)&&this._hasMutation('pitOrgan'))amount*=1+.1*this._mp('pitOrgan')+.05*this._pk('pitOrgan');
       if(o.hp<o.maxHp*.5)amount*=1+.12*this._mp('bloodScent');else if(o.hp>=o.maxHp*.9)amount*=1+.06*this._pk('bloodScent');
       if(!options.defence&&o.kind!=='jelly'){const f=this._rearFactor((o.windup>0||o.lungeTime>0)&&Number.isFinite(o.attackAngle)?o.attackAngle:o.angle,dx,dy);amount*=f.k;if(f.dot>.6)this._event('rearHit',{x:o.x,y:o.y});}
       const critical=!options.noCritical&&p.criticalChance>0&&this.random()<p.criticalChance;if(critical){amount*=1.8+.15*this._pk('keenEdge');s.stats.criticals++;this._effect(o.x,o.y,'critical',o.r*1.8,'#f4ce82',.45);this._event('critical',{amount});}
@@ -1702,7 +1719,7 @@
       const p=this.state.player;let total=0,c=[0,0,0];for(const f of FAMILIES){const w=(p.traits[f]||0)+(p.mastery[f]||0);total+=w;for(let i=0;i<3;i++)c[i]+=FAMILY_RGB[f][i]*w;}
       if(!total)return'#b5f6e5';return'#'+c.map(v=>Math.round(v/total).toString(16).padStart(2,'0')).join('');
     }
-    _unaware(o){if(o.elder&&o.hp<o.maxHp)return false;return!(o.chasing&&o.targetId===0)&&!(o.windup>0)&&!(o.lungeTime>0);}
+    _unaware(o){if(this._hasMutation('numbingVenom')&&(o.venomStacks||0)>=3)return true;if(o.elder&&o.hp<o.maxHp)return false;return!(o.chasing&&o.targetId===0)&&!(o.windup>0)&&!(o.lungeTime>0);}
     // One Strike hit on an organism, with every trait applied. ctx carries the strike's shared state.
     _strikeHit(o,dx,dy,ctx){
       const s=this.state,p=s.player,tr=ctx.traits;if(o.dead)return false;
@@ -1828,6 +1845,7 @@
       {const here=this._home(s.player.x,s.player.y);if(here!==this._hereChunk){this._hereChunk=here;this._streamClock=0;}}this._streamClock-=dt;if(this._streamClock<=0)this._stream();
       p.invulnerable=Math.max(0,p.invulnerable-dt);p.hurt=Math.max(0,p.hurt-dt);p.evolution=Math.max(0,p.evolution-dt);p.pulseCooldown=Math.max(0,p.pulseCooldown-dt);if(s.bossEncounter)this._bossSenses(s.bossEncounter,dt);
       p.surgeTime=Math.max(0,(p.surgeTime||0)-dt);
+      if(this._hasMutation('gorgerStomach')&&p.alive&&p.nutrition>100&&p.hp<p.maxHp)p.hp=Math.min(p.maxHp,p.hp+dt*p.maxHp*.004*this._mp('gorgerStomach')*(1+.1*this._pk('gorgerStomach')));
       // The pocket at the end of a silent current: one rare creature of its water, chosen by the current, that always drops a mutation.
       if(this._pocket&&!(p.surgeTime>0)){const k=this._pocket;this._pocket=null;const lv=waterLevel(k.x,k.y),pool=Object.keys(SPECIES).filter(q=>{const sp=SPECIES[q];return (sp.rarity==='rare'||sp.rarity==='legendary')&&!sp.spawnOnly&&sp.minStage*3<=lv&&(!sp.biomes||sp.biomes.includes(this._biomeAt(k.x,k.y)));});
         if(pool.length){const key=pool[Math.floor(localRng(seedHash(s.seed+'|pocket|'+k.id))()*pool.length)],a=Math.atan2(p.surgeDY||0,p.surgeDX||1),o=this._spawnSpecies(key,p.x+Math.cos(a)*520,p.y+Math.sin(a)*520,{level:lv,scale:bodyScale(lv+1)});if(o){o._dropForce=true;o.angle=a+Math.PI;}}}
@@ -1835,7 +1853,11 @@
       for(const k of FAMILIES)p.abilityCooldowns[k]=Math.max(0,p.abilityCooldowns[k]-dt);if(p.slipstreamTime<=0)p.slipstreamCharged=false;if(p.frenzyTime<=0)p.frenzy=0;if(p.momentumTime<=0)p.momentum=0;
       let mx=Number.isFinite(input.moveX)?input.moveX:0,my=Number.isFinite(input.moveY)?input.moveY:0,m=length(mx,my);if(m>1){mx/=m;my/=m;m=1;}
       const aimX=Number.isFinite(input.aimX)?input.aimX:p.x+Math.cos(p.angle)*100,aimY=Number.isFinite(input.aimY)?input.aimY:p.y+Math.sin(p.angle)*100;
-      const wasSprinting=p.sprinting,wasSneaking=p.sneaking,requestedSprint=!!input.sprint&&m>.1;
+      const wasSprinting=p.sprinting,wasSneaking=p.sneaking;let requestedSprint=!!input.sprint&&m>.1;
+      // Darting flagellum: a press throws you forward (the surge fields), untouchable on the way; it is your fast swim while it lasts.
+      if(this._hasMutation('dartFlagellum')){const press=requestedSprint&&!p.dartHeld;p.dartHeld=requestedSprint;const cost=Math.max(10,24-2*this._pk('dartFlagellum'));
+        if(press&&!p.exhausted&&p.energy>=cost&&!((p.surgeTime||0)>0)&&!(p.pounceTime>0)){const dist=155*this._mp('dartFlagellum');p.energy-=cost;p.surgeDX=mx/m;p.surgeDY=my/m;p.surgeSpeed=dist/.2;p.surgeTime=.2;p.surgeCtx=null;p.dartTime=.2;p.invulnerable=Math.max(p.invulnerable,.2);p.angle=Math.atan2(my,mx);this._effect(p.x,p.y,'burst',p.r*1.6,'#95dafa',.25);}
+        p.dartTime=Math.max(0,(p.dartTime||0)-dt);requestedSprint=p.dartTime>0;}
       p.sprinting=requestedSprint&&!p.exhausted&&p.energy>0;p.sneaking=!!input.sneak&&!p.exhausted&&!p.sprinting&&p.energy>(wasSneaking?.01:2)&&p.concealCooldown===0;
       if(p.sneaking&&!wasSneaking)s.stats.sneaks++;
       const conceal=p.sneaking||p.veilTime>0?1:0;p.stealth+=(conceal-p.stealth)*(1-Math.exp(-dt*(conceal?p.concealRate:4.5)));
@@ -1852,8 +1874,9 @@
       if(input.ability)this._special(aimX,aimY,input.ability);if(input.pulse||input.pulsePressed)this._strike(aimX,aimY);if(s.pendingEvolution)return;
       p.effectiveSprintDrain=p.sprintDrain;
       p.sprinting=requestedSprint&&!p.exhausted&&p.energy>0;
-      if(p.sprinting){p.energy=Math.max(0,p.energy-p.effectiveSprintDrain*dt);this._breakStealth(.7);p.sneaking=false;if(p.energy<1)this._exhaust();}
+      if(p.sprinting){if(!(p.dartTime>0))p.energy=Math.max(0,p.energy-p.effectiveSprintDrain*dt);this._breakStealth(.7);p.sneaking=false;if(p.energy<1)this._exhaust();}
       
+      if(p.sprinting&&this._hasMutation('toxicWake')){p.wakeT=(p.wakeT||0)-dt;if(p.wakeT<=0){p.wakeT=.25;if(!s.pools)s.pools=[];const life=this._mp('toxicWake');s.pools.push({x:p.x-Math.cos(p.angle)*p.r,y:p.y-Math.sin(p.angle)*p.r,r:(26+p.r*.7)*(1+.15*this._pk('toxicWake')),life,maxLife:life,tick:0,wake:true});if(s.pools.length>12)s.pools.shift();}}
       if(p.sprinting&&!wasSprinting&&this._hasMutation('tailFlick')&&s.time-(p.tailFlickAt??-99)>=4-.5*this._pk('tailFlick')){const bx=-Math.cos(p.angle),by=-Math.sin(p.angle);let hit=false;for(const o of s.organisms){if(o.dead||o.bossId)continue;const dx=o.x-p.x,dy=o.y-p.y,d=Math.hypot(dx,dy)||1;if(d<p.r+o.r+70&&(dx*bx+dy*by)/d>.3){o.stun=Math.max(o.stun||0,.6*this._mp('tailFlick'));hit=true;}}if(hit){p.tailFlickAt=s.time;this._effect(p.x+bx*p.r,p.y+by*p.r,'burst',p.r+40,'#95dafa',.3);}}
       if(p.sprinting&&!wasSprinting){if(this._hasMutation('phaseMembrane')&&p.phaseCooldown<=0){p.phaseShieldTime=.38*this._mp('phaseMembrane');p.phaseCooldown=8-1.2*this._pk('phaseMembrane');this._effect(p.x,p.y,'special',p.r*2.2,'#8edfe0',.4);}s.stats.dashes++;p.sprintSessionDistance=0;p.sprintDanger=false;this._event('dash',{level:p.traits.riptide});}
       if(p.sprinting&&s.organisms.some(o=>!o.dead&&(o.chasing||o.windup>0||o.lungeTime>0)&&isHostile(o)&&distance(o,p)<320))p.sprintDanger=true;
@@ -2049,7 +2072,7 @@
         // bigger creature does not move at all. Food-sized creatures, jellies and anything latched on stay passable.
         if(s.status==='playing'&&!o.dead&&o.kind!=='jelly'&&!(o.latchTime>0)&&!this._edible(o)){
           const touch=p.r+o.r*.9-(p.sneaking?Math.min(p.r,o.r)*.25:0);
-          if(dp<touch+4&&p.sprinting&&s.time-o.ramAt>1.5){o.ramAt=s.time;p.refugeCombatTime=3;const d=dp||1,rt=p.traits.riptide||0,nx=(o.x-p.x)/d,ny=(o.y-p.y)/d;if(this._hit(o,p.attack*this._classPower('riptide')*(.5+rt*.25)*(rt>=5?1.25:1)*(1+p.momentum*.25)*(1+.3*this._pk('jetSac')),nx,ny,{noXp:true})&&isHostile(o)){this._xp('riptide',8);this._awaken('riptide','ram');}p.momentum=0;p.vx-=nx*240;p.vy-=ny*240;if(this._hybrid('shoal'))p.broodTargetId=o.id;this._effect(o.x,o.y,'hit',o.r*1.4,'#95dafa',.3);if(s.pendingEvolution)return;if(o.dead)continue;}
+          if(dp<touch+4&&p.sprinting&&s.time-o.ramAt>1.5){o.ramAt=s.time;p.refugeCombatTime=3;const d=dp||1,rt=p.traits.riptide||0,nx=(o.x-p.x)/d,ny=(o.y-p.y)/d;if(this._hit(o,p.attack*this._classPower('riptide')*(.5+rt*.25)*(rt>=5?1.25:1)*(1+p.momentum*.25)*(1+.3*this._pk('jetSac'))+this._ramBite(),nx,ny,{noXp:true})&&isHostile(o)){this._xp('riptide',8);this._awaken('riptide','ram');}p.momentum=0;p.vx-=nx*240;p.vy-=ny*240;if(this._hybrid('shoal'))p.broodTargetId=o.id;this._effect(o.x,o.y,'hit',o.r*1.4,'#95dafa',.3);if(s.pendingEvolution)return;if(o.dead)continue;}
           if(dp<touch){const d=dp||1,nx=(o.x-p.x)/d,ny=(o.y-p.y)/d,gap=(touch-dp)*.7,fixed=o.kind==='sentinel'||o.r>p.r*2.5;
             let mine=fixed?1:o.r*o.r/(p.r*p.r+o.r*o.r);if(p.sprinting&&o.r<p.r)mine*=.3;
             p.x-=nx*gap*mine;p.y-=ny*gap*mine;if(!fixed){o.x+=nx*gap*(1-mine);o.y+=ny*gap*(1-mine);}
@@ -2637,7 +2660,7 @@
       ok(num(p.parryAngle)&&bool(p.parryRefunded)&&bool(p.slipstreamCharged)&&int(p.broodTargetId,0,r.id-1)&&num(p.budTime,0,60)&&int(p.frenzy,0,10)&&num(p.frenzyTime,0,10)&&int(p.momentum,0,10)&&num(p.momentumTime,0,10));
       ok(s.nextDivision===nextThreshold(p.stage)&&s.divisionFrom===(p.stage?nextThreshold(p.stage-1):0));
       for(const field of ['hp','maxHp','energy','maxEnergy','nutrition','maxNutrition','pulseCooldown','invulnerable','hurt','evolution','shield','concealCooldown','specialTime','swarmTime','slipstreamTime','pounceTime','veilTime'])ok(num(p[field],0,1e6));
-      ok(num(p.stealth,0,1)&&bool(p.sneaking)&&int(p.combo,0,12)&&p.maxNutrition===100&&p.nutrition<=100&&p.hp<=p.maxHp+1e-8&&p.energy<=p.maxEnergy+1e-8);
+      ok(num(p.stealth,0,1)&&bool(p.sneaking)&&int(p.combo,0,12)&&(p.maxNutrition===100||p.maxNutrition===150&&Array.isArray(p.mutations)&&p.mutations.includes('gorgerStomach'))&&p.nutrition<=p.maxNutrition&&p.hp<=p.maxHp+1e-8&&p.energy<=p.maxEnergy+1e-8);
       ok(p.specialActiveTrait===''||FAMILIES.includes(p.specialActiveTrait));
       if(s.status==='dead')ok(p.hp===0&&string(p.deathCause,100));
       ok(object(s.stats));if(!Number.isInteger(s.stats.elders)||s.stats.elders<0)s.stats.elders=0;if(!Number.isFinite(s.stats.bossRest)||s.stats.bossRest<0||s.stats.bossRest>s.time+BOSS_REST_SECONDS)s.stats.bossRest=0;if(!Number.isInteger(s.stats.deepest)||s.stats.deepest<1||s.stats.deepest>99)s.stats.deepest=1;if(!Array.isArray(s.stats.eldersFallen)||s.stats.eldersFallen.length>600||!s.stats.eldersFallen.every(k=>typeof k==='string'&&k.length<40))s.stats.eldersFallen=[];for(const k of ['food','kills','dashes','pulses','specials','sneaks','ambushes','discoveries','encounters','meaningfulDashes','objectives'])ok(int(s.stats[k]));for(const k of ['stealthTime','distance'])ok(num(s.stats[k],0,1e15));for(const k of ['algae','minerals','criticals','reflections','elites','nests','escapes','bosses','parries','hostileKills','nearMisses','ruptures','currentsRidden'])ok(int(s.stats[k]));for(const k of ['sprintDistance','blockedDamage'])ok(num(s.stats[k],0,1e15));
