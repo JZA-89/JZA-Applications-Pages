@@ -1842,3 +1842,15 @@ dialog.hermit-dialog{width:min(560px,calc(100vw - 32px))!important;height:auto!i
 @media (max-width:520px){.hd-portrait{min-height:150px;height:150px}}
 dialog.hermit-dialog[open]{display:grid!important;height:fit-content!important;align-content:start}
 @media (max-height:520px){dialog.hermit-dialog[open]{grid-template-columns:170px minmax(0,1fr)!important}dialog.hermit-dialog .hd-portrait{height:auto;min-height:0}dialog.hermit-dialog .hd-body{padding:14px 16px 12px;gap:7px}}
+/* v35.9: the chosen slot glows from behind instead of a rectangle or a red ring; focus (keyboard, controller) uses the same glow, brighter. */
+#skillsDialog .part-box:focus,#skillsDialog .part-box:focus-visible,body[data-pad=true] #skillsDialog .part-box:focus,#skillsDialog .part-chip:focus-visible,body[data-pad=true] #skillsDialog .part-chip:focus{outline:none!important}
+#skillsDialog .part-box .socket-ring{transition:box-shadow .25s,transform .25s}
+#skillsDialog .part-box.selected .socket-ring{transform:scale(1.08);box-shadow:inset 0 2px 8px #0006,0 0 0 1.5px #e9f5cf,0 0 18px 4px #d6eda266,0 0 42px 12px #9fe0b833!important}
+#skillsDialog .part-box.selected .socket-name{color:#eef6d8}
+#skillsDialog .part-box:focus-visible .socket-ring,body[data-pad=true] #skillsDialog .part-box:focus .socket-ring{box-shadow:inset 0 2px 8px #0006,0 0 0 2px #f2f9de,0 0 22px 6px #d6eda288,0 0 52px 16px #9fe0b844!important}
+#skillsDialog .part-chip:focus-visible,body[data-pad=true] #skillsDialog .part-chip:focus{box-shadow:0 0 0 2px #f2f9de,0 0 16px 4px #d6eda277!important}
+@media (prefers-reduced-motion:reduce){#skillsDialog .part-box .socket-ring{transition:none}}
+/* v35.9: the Legend page in the Field guide. */
+.legend-sec{margin:0 0 22px}.legend-sec h3{margin:0 0 10px;font:400 20px/1.2 "Iowan Old Style","Palatino Linotype",Georgia,serif;color:#f2e8c4}
+.legend-row{padding:7px 0 7px 12px;border-left:2px solid #d6ceaa55;margin:0 0 6px}.legend-row b{display:block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#cdbf8e;margin-bottom:3px}
+.legend-row p{margin:0;font:italic 15px/1.55 "Iowan Old Style","Palatino Linotype",Georgia,serif;color:#e6dfc6}.legend-row.gap{border-left-color:#d6ceaa22}.legend-row.gap p{font-style:normal;color:#6f857b;letter-spacing:.3em;font-size:13px}
