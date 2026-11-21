@@ -66,7 +66,7 @@
  const save=()=>{try{localStorage.setItem('morphos.best.v1',JSON.stringify(best));localStorage.setItem('morphos.guide.v1',JSON.stringify(guide));}catch{recordsSaved=false;}};
  // The collection: every creature type and rare find met in any life, kept in this browser.
  let collection={species:{},finds:{},legend:{}};
- try{const raw=JSON.parse(localStorage.getItem('morphos.collection.v1')||'null');if(raw&&typeof raw==='object'){for(const [k,v] of Object.entries(raw.species||{}))if(typeof k==='string'&&k.length<40&&v&&typeof v==='object')collection.species[k]={defeated:Number.isSafeInteger(v.defeated)&&v.defeated>=0?v.defeated:0};for(const k of Object.keys(raw.finds||{}))if(['fossil','shell'].includes(k))collection.finds[k]=true;for(const k of Object.keys(raw.legend||{}))if(typeof k==='string'&&k.length<=24)collection.legend[k]=1;}}catch{}
+ try{const raw=JSON.parse(localStorage.getItem('morphos.collection.v1')||'null');if(raw&&typeof raw==='object'){for(const [k,v] of Object.entries(raw.species||{}))if(typeof k==='string'&&k.length<40&&v&&typeof v==='object')collection.species[k]={defeated:Number.isSafeInteger(v.defeated)&&v.defeated>=0?v.defeated:0};for(const k of Object.keys(raw.finds||{}))if(['fossil','shell','sealed','trail','silent'].includes(k))collection.finds[k]=true;for(const k of Object.keys(raw.legend||{}))if(typeof k==='string'&&k.length<=24)collection.legend[k]=1;}}catch{}
  function saveCollection(){try{localStorage.setItem('morphos.collection.v1',JSON.stringify(collection));}catch{}}
  function recordSpecies(key){if(!key)return false;const isNew=!collection.species[key];if(isNew){collection.species[key]={defeated:0};saveCollection();}return isNew;}
  const BASE_CREATURES={
@@ -103,8 +103,8 @@
        if(rec)for(const k of e.drops||[]){const best=tierOf(k);if(best<0)continue;const d=document.createElement('p');d.className='drop';d.textContent='Dropped: '+MorphosGame.MUTATIONS[k].name+' · best '+tierName(best);d.style.color=TIER_COLOURS[best];card.append(d);}
        grid.append(card);}
      sec.append(grid);target.append(sec);}
-   const sec=document.createElement('section');sec.className='species-tier';sec.style.setProperty('--tier','#f0c98a');const h=document.createElement('h3');h.textContent='Rare places · '+finds+' / 2';sec.append(h);const grid=document.createElement('div');grid.className='species-grid';
-   for(const [key,name,blurb,hint] of [['fossil','Ancient fossil','Rest at its centre to draw out a mutation you have not found.','A rare place in open water.'],['shell','Abandoned shell','Shelter inside it and predators cannot see you.','A rare place in open water.']]){const found=!!collection.finds[key],card=document.createElement('div');card.className='species-card'+(found?' found':'');const n=document.createElement('strong');n.textContent=found?name:'Undiscovered';const t=document.createElement('p');t.textContent=found?blurb:hint;card.append(n,t);grid.append(card);}
+   const sec=document.createElement('section');sec.className='species-tier';sec.style.setProperty('--tier','#f0c98a');const h=document.createElement('h3');h.textContent='Rare places · '+finds+' / 5';sec.append(h);const grid=document.createElement('div');grid.className='species-grid';
+   for(const [key,name,blurb,hint] of [['fossil','Ancient fossil','Rest at its centre to draw out a mutation you have not found.','A rare place in open water.'],['shell','Abandoned shell','Shelter inside it and predators cannot see you.','A rare place in open water.'],['sealed','Sealed shell','It opened for a colony that stayed perfectly still.','A secret of the dark water.'],['trail','Hidden garden','Untouched algae at the end of a trail of lights.','A secret of the deep water.'],['silent','Silent current','A current almost too faint to see, running out of the known water.','A secret of the deep water.']]){const found=!!collection.finds[key],card=document.createElement('div');card.className='species-card'+(found?' found':'');const n=document.createElement('strong');n.textContent=found?name:'Undiscovered';const t=document.createElement('p');t.textContent=found?blurb:hint;card.append(n,t);grid.append(card);}
    sec.append(grid);target.append(sec);
  }
  const ADAPTATION_TOTAL=35;
@@ -916,7 +916,7 @@
    else if(e.type==='biome')notify('New habitat: '+e.name,4);
    else if(e.type==='elderSighted')notify('An ancient is near: '+e.name+' (level '+e.level+').',6,2);
    else if(e.type==='elderSlain'){{const nm=e.name.split(',')[0];notify(nm.charAt(0).toUpperCase()+nm.slice(1)+' has fallen.'+(e.marked?'':/vault warden$/.test(e.name)?' Its vault is unguarded now.':''),6,3);}updateUI(true);}
-   else if(e.type==='discovery'&&(e.landmarkType==='fossil'||e.landmarkType==='shell')){const isNew=!collection.finds[e.landmarkType];collection.finds[e.landmarkType]=true;saveCollection();notify((isNew?'Rare find: ':'Discovered: ')+e.name,5,isNew?2:1);}
+   else if(e.type==='discovery'&&['fossil','shell','sealed','trail','silent'].includes(e.landmarkType)){const isNew=!collection.finds[e.landmarkType];collection.finds[e.landmarkType]=true;saveCollection();notify((isNew?'Rare find: ':'Discovered: ')+e.name,5,isNew?2:1);}
    else if(e.type==='discovery'&&String(e.landmarkType).startsWith('wonder')){const w=(MorphosGame.WONDERS||[]).find(x=>x.type===e.landmarkType);notify('A wonder: '+e.name+(w?' · '+w.lore:''),8,2);}
      else if(e.type==='taskReady')notify(e.title+' · done',4.5,1);
      else if(e.type==='taskFound')notify(e.title,3.5,1);
@@ -991,7 +991,7 @@
    const p=state?.player;if(!p||!p.alive||state.status!=='playing')return false;
    if(policy==='initial')return state.time===0&&p.stage===0;
    if(policy==='import')return true;
-   if(policy==='location'){const l=state.landmarks.find(l=>l.id===landmarkId);return !state.bossEncounter&&!!l&&l.claimed&&(['bloom','geneCache','nest','sanctuary','carcass','garden','fossil','shell','vault','smoker'].includes(l.type)||String(l.type).startsWith('wonder'));}
+   if(policy==='location'){const l=state.landmarks.find(l=>l.id===landmarkId);return !state.bossEncounter&&!!l&&l.claimed&&(['bloom','geneCache','nest','sanctuary','carcass','garden','fossil','shell','vault','smoker','sealed','trail'].includes(l.type)||String(l.type).startsWith('wonder'));}
    if(policy==='sanctum'){const l=state.landmarks.find(l=>l.id===landmarkId);return !state.bossEncounter&&!!l&&l.type==='sanctum'&&state.sanctumArrivalId===l.id;}
    // Growing a cell saves too, but only once nothing is hunting you and you are not badly hurt.
    if(policy==='growth')return !state.bossEncounter&&!MorphosGame.sanctuaryThreat(state)&&p.hp>=p.maxHp*.6;

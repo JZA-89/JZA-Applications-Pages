@@ -219,8 +219,11 @@
   drawLandmarks(state,time,labels=true){
    const c=this.ctx,p=state.player,rest=labels?MorphosGame.sanctuaryStatus(state):null;
    for(const l of state.landmarks||[]){
-    if(!Number.isFinite(l.x)||!Number.isFinite(l.y)||!this.visible(l,220))continue;
-    const r=clamp(l.r||130,35,650),key=idNumber(l.id),phase=Number.isFinite(l.phase)?l.phase:rnd(key)*TAU,spent=!!l.claimed&&(l.type==='fossil'||l.type==='vault'||l.type==='smoker'||l.type==='geneCache'||l.type==='nest'||l.type==='sanctum'||l.type==='carcass'||l.type==='garden');
+    if(!Number.isFinite(l.x)||!Number.isFinite(l.y))continue;
+    // The lantern trail: faint lights that pulse one after another towards the hidden garden.
+    if(l.type==='trail'&&!l.claimed){const pts=MorphosGame.trailLights(l);for(let i=0;i<pts.length;i++){const [x,y]=pts[i];if(!this.visible({x,y},60))continue;const k=.5+.5*Math.sin(time*1.6-i*.9),rr=10+k*6;c.drawImage(this.glow([246,226,150]),x-rr*3,y-rr*3,rr*6,rr*6);ellipse(c,x,y,2.2+k,2.2+k);c.fillStyle=`rgba(255,240,190,${.35+.45*k})`;c.fill();}}
+    if(!this.visible(l,220))continue;
+    const r=clamp(l.r||130,35,650),key=idNumber(l.id),phase=Number.isFinite(l.phase)?l.phase:rnd(key)*TAU,spent=!!l.claimed&&(l.type==='fossil'||l.type==='sealed'||l.type==='trail'||l.type==='vault'||l.type==='smoker'||l.type==='geneCache'||l.type==='nest'||l.type==='sanctum'||l.type==='carcass'||l.type==='garden');
     const refuge=l.type==='sanctuary',restHere=refuge&&rest&&rest.id===l.id?rest:null,restProgress=restHere&&restHere.phase!=='blocked'?clamp(restHere.progress/Math.max(.01,restHere.required),0,1):0,restComplete=restHere&&restHere.phase==='complete';
     c.save();c.translate(l.x,l.y);c.globalAlpha=spent?.58:1;
     if(l.type==='bloom'){
@@ -300,6 +303,22 @@
      for(let k=6;k<40;k+=2){const u=k/40,a=u*TAU*3.2,r1=r*.08+u*r*.82,r2=r*.08+Math.max(0,u-1/3.2)*r*.82;c.beginPath();c.moveTo(Math.cos(a)*r1,Math.sin(a)*r1);c.lineTo(Math.cos(a)*r2,Math.sin(a)*r2);c.strokeStyle=rgba(co,.3);c.lineWidth=.8;c.stroke();}
      if(!spent){const k=clamp((l.progress||0)/(l.goal||3),0,1);c.beginPath();c.arc(0,0,r*1.05,-Math.PI/2,-Math.PI/2+k*TAU);c.strokeStyle='rgba(255,230,170,.75)';c.lineWidth=2;c.stroke();}
     }else if(l.type.startsWith('wonder')){this.drawWonder(c,l,r,time,p);
+    }else if(l.type==='sealed'){
+     // A shut bivalve: ribbed valves pressed together, light leaking from the seam as it starts to open.
+     const co=spent?[150,146,160]:[198,186,214],k=spent?1:clamp((l.progress||0)/(l.goal||5),0,1);c.rotate(phase*.3);
+     if(!spent&&k>0)c.drawImage(this.glow([240,226,255]),-r*(.6+k),-r*(.6+k),r*(1.2+2*k),r*(1.2+2*k));
+     for(const sd of [-1,1]){const gap=spent?.32:.03+k*.08;c.beginPath();c.moveTo(-r*.95,0);c.quadraticCurveTo(-r*.1,sd*r*(.75+gap),r*.95,sd*r*gap);c.quadraticCurveTo(0,sd*r*gap*.5,-r*.95,0);c.closePath();c.fillStyle=rgba(co,.16);c.fill();c.strokeStyle=rgba(co,.62);c.lineWidth=1.4;c.stroke();
+      for(let i=1;i<6;i++){const u=i/6;c.beginPath();c.moveTo(-r*.95,0);c.quadraticCurveTo(-r*.1+u*r*.1,sd*r*(.12+.6*u),r*(.95-u*.12),sd*r*(gap+.05*u));c.strokeStyle=rgba(co,.18);c.lineWidth=.7;c.stroke();}}
+     c.beginPath();c.moveTo(-r*.9,0);c.lineTo(r*.9,0);c.strokeStyle=`rgba(244,232,255,${spent?.1:.2+.6*k})`;c.lineWidth=1+k*1.5;c.stroke();
+    }else if(l.type==='trail'){
+     // A hidden garden: soft gold-green fronds round a still centre, and nothing that hurts.
+     const co=spent?[132,158,130]:[196,226,140];c.drawImage(this.glow(co),-r,-r,r*2,r*2);
+     for(let j=0;j<14;j++){const a=j*TAU/14+phase*.2+Math.sin(time*.25+j)*.05,len=r*(.3+rnd(key+j*17)*.25);c.save();c.rotate(a);c.beginPath();c.moveTo(r*.1,0);c.quadraticCurveTo(len*.55,-len*.18,len,0);c.strokeStyle=rgba(co,.4);c.lineWidth=1.5;c.stroke();for(const sd of [-1,1]){c.beginPath();c.moveTo(len*.5,0);c.quadraticCurveTo(len*.62,sd*len*.12,len*.72,sd*len*.2);c.strokeStyle=rgba(co,.25);c.lineWidth=1;c.stroke();}c.restore();}
+     ellipse(c,0,0,r*.1,r*.1);c.fillStyle=rgba([255,240,190],spent?.15:.45);c.fill();
+    }else if(l.type==='silent'){
+     // A silent current: the same ribbons as a current vent, but barely there.
+     const co=[150,190,215];c.rotate(Number.isFinite(l.angle)?l.angle:phase);
+     for(let j=-3;j<=3;j++){const off=j*r*.14;c.beginPath();for(let k=0;k<=22;k++){const u=k/22,x=(u-.5)*r*2.4,y=off+Math.sin(u*TAU+phase+j*.3+time*.4)*r*.08;if(k===0)c.moveTo(x,y);else c.lineTo(x,y);}c.strokeStyle=rgba(co,.07-Math.abs(j)*.012);c.lineWidth=1.2;c.stroke();}
     }else if(l.type==='shell'){
      // A large, empty bivalve shell lying open: ribbed valves with a dark hollow between them.
      const co=[198,186,214];c.rotate(phase*.3);ellipse(c,0,0,r*.8,r*.5);c.fillStyle='rgba(6,10,20,.55)';c.fill();

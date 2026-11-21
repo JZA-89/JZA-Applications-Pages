@@ -142,6 +142,8 @@ Mutations read and write shared **keywords** (poison, bleed, stun, slow, held, c
 | Predator nest | 0.20 | 1 challenge stat point |
 | Hermit task | 0.15 | mutation at the effort tier (rule 13) |
 | Gene cache, ancient fossil | 0.09 | fossil: a Rare mutation |
+| Sealed shell, hidden garden (secrets) | 0.09 | sealed shell: a Rare mutation and an echo; hidden garden: full health and nutrition and an echo |
+| Silent current (secret) | 0 | a rare creature of the water it leads to, which always drops a mutation |
 | Fallen giant, toxic garden, black smoker | 0.07 | |
 | Glass vault | 0.05 | mutation as good as its water allows |
 | Field study | 0.03 | |
@@ -343,3 +345,4 @@ Status after v35.7. Fixed items stay listed so the reasoning is kept.
 | v35.8 | First 10 keyword mutations; rarity decides kind (minTier); every effect comes from its own body part | Jaisah: mutations must be logical (a tail cannot make a wound at the front) and more varied; Hades/Diablo/Slay the Spire patterns |
 | v35.7 | Boss health re-tuned: Gulper 41, Broodmother 85, Glass Pike 74, Hydra 165, Undertow 208, Kraken 480 hits | With class moves from their own class only (break 10), mixed builds lost broodlings and Pounce damage they never should have had; the old health had been tuned against it |
 | v35.9 | Story step 1: echoes in fossils and shells (`LEGEND`, earliest unheard one the water allows), a wake and fall line for each boss (`KEEPER_LINES`), an inscription for each wonder (`WONDER_LINES`), all collected in the Field guide's Legend tab | The plan's "The Last Water": story told only through what you find; no rewards or numbers changed |
+| v36.0 | First three secrets: sealed shell (water 6+, stay still 5 s inside), hidden garden at the end of a lantern trail (water 10+), silent current (water 12+, carries you 2,800 deeper to a rare creature that always drops). Only in regions that were empty, so no older pond loses a place, record or task | The plan's secrets: rewards for curiosity, built from what the game already has (stillness, places, currents, creatures); no instruction text |

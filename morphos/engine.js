@@ -229,7 +229,7 @@
   const SWALLOW_LEVELS=3,SWALLOW_RATIO=2.8,canSwallow=(o,p)=>!!o&&!o.bossId&&!o.elder&&!o.mother&&['hunter','apex','armoured'].includes(o.kind)&&o.r>=p.r*SWALLOW_RATIO&&(Number.isFinite(o.lv)?o.lv:0)-(Number.isFinite(p.stage)?p.stage:0)>=SWALLOW_LEVELS;
   // Shortest distance from point v to the segment a-b.
   function segmentDistance(v,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,ll=dx*dx+dy*dy,t=ll?clamp(((v.x-ax)*dx+(v.y-ay)*dy)/ll,0,1):0;return length(v.x-ax-dx*t,v.y-ay-dy*t);}
-  const LANDMARKS={bloom:{name:'Nutrient bloom',r:110,goal:1},sanctuary:{name:'Sanctuary',r:150,goal:3},geneCache:{name:'Gene cache',r:75,goal:3},nest:{name:'Predator nest',r:140,goal:3},current:{name:'Current vent',r:170,goal:1.2},carcass:{name:'Fallen giant',r:150,goal:1},garden:{name:'Toxic garden',r:175,goal:1},sanctum:{name:'Elder sanctum',r:250,goal:1},fossil:{name:'Ancient fossil',r:95,goal:3},vault:{name:'Glass vault',r:115,goal:3},smoker:{name:'Black smoker',r:165,goal:1},shell:{name:'Abandoned shell',r:120,goal:2},wonderBell:{name:'The Sunken Bell',r:270,goal:3},wonderLanterns:{name:'The Lantern Reef',r:430,goal:6},wonderRibs:{name:'The Leviathan Ribs',r:320,goal:3},wonderPool:{name:'The Still Pool',r:390,goal:12},wonderMaelstrom:{name:'The Maelstrom',r:450,goal:3},wonderSpire:{name:'The Crystal Spire',r:280,goal:3},wonderDrowned:{name:'The Drowned Colony',r:350,goal:3},wonderEye:{name:'The Abyssal Eye',r:430,goal:25}};
+  const LANDMARKS={bloom:{name:'Nutrient bloom',r:110,goal:1},sanctuary:{name:'Sanctuary',r:150,goal:3},geneCache:{name:'Gene cache',r:75,goal:3},nest:{name:'Predator nest',r:140,goal:3},current:{name:'Current vent',r:170,goal:1.2},carcass:{name:'Fallen giant',r:150,goal:1},garden:{name:'Toxic garden',r:175,goal:1},sanctum:{name:'Elder sanctum',r:250,goal:1},fossil:{name:'Ancient fossil',r:95,goal:3},vault:{name:'Glass vault',r:115,goal:3},smoker:{name:'Black smoker',r:165,goal:1},shell:{name:'Abandoned shell',r:120,goal:2},sealed:{name:'Sealed shell',r:110,goal:5},trail:{name:'Hidden garden',r:170,goal:1},silent:{name:'Silent current',r:150,goal:1},wonderBell:{name:'The Sunken Bell',r:270,goal:3},wonderLanterns:{name:'The Lantern Reef',r:430,goal:6},wonderRibs:{name:'The Leviathan Ribs',r:320,goal:3},wonderPool:{name:'The Still Pool',r:390,goal:12},wonderMaelstrom:{name:'The Maelstrom',r:450,goal:3},wonderSpire:{name:'The Crystal Spire',r:280,goal:3},wonderDrowned:{name:'The Drowned Colony',r:350,goal:3},wonderEye:{name:'The Abyssal Eye',r:430,goal:25}};
   // Wonders: one of each per pond, at its own depth (zone is the water level, counted from 0) and a direction set by the seed.
   // THE LAST WATER (v35.9). The First Colony's memory, told only through what the player finds. Echoes come from ancient fossils and
   // abandoned shells: each gives the earliest echo not yet heard whose water (index) is at or above the echo's. The keepers (bosses) and
@@ -298,6 +298,8 @@
   const DEEP_LANDMARKS=['carcass','garden'];
   // Rare finds never come from the ordinary pool: each has its own small chance per region of open water.
   const RARE_LANDMARKS=['fossil','shell'];
+  // Secrets (v36.0): never in an ordinary roll, never a study lead or task target. Each sits in an otherwise empty region of deeper water.
+  const SECRET_LANDMARKS=['sealed','trail','silent'],SECRET_FROM={sealed:6,trail:10,silent:12};
   // Species: named creatures layered on a base behaviour (kind). The kind drives every shared system (AI, attacks, saves);
   // the species adds identity (name, look, size, strength), rarity, when it can appear, and one signature trait.
   // minStage is a tier: a species first appears at level minStage*3+1 (tier 1 from level 4, tier 4 from level 13, tier 7 from level 22).
@@ -495,7 +497,7 @@
         this._maybeElder(key,cx,cy,biome);
       });
       {const keep=this._lifeDensity((cx+.5)*CHUNK,(cy+.5)*CHUNK);if(keep<1){const s=this.state,fresh=s.organisms.slice(lifeBefore);s.organisms.length=lifeBefore;for(const o of fresh)if(o.nestId||o.leaderId||o.elder||this.random()<keep)s.organisms.push(o);}}
-      const l=this._landmarkFor(cx,cy);if(l){if(l.type==='sanctuary'||l.type==='garden')this.state.hazards=this.state.hazards.filter(h=>distance(h,l)>l.r+h.r+80);this._restoreLandmark(l);this.state.landmarks.push(l);if(l.type==='garden')this._growGarden(l);if(l.type==='smoker')this._growSmoker(l);if(l.type==='vault'&&this._wardenMine(l))this._spawnWarden(l,l.x,l.y);}
+      const l=this._landmarkFor(cx,cy);if(l){if(l.type==='sanctuary'||l.type==='garden')this.state.hazards=this.state.hazards.filter(h=>distance(h,l)>l.r+h.r+80);this._restoreLandmark(l);this.state.landmarks.push(l);if(l.type==='garden')this._growGarden(l);if(l.type==='smoker')this._growSmoker(l);if(l.type==='trail'&&!l.claimed)this._growHidden(l);if(l.type==='vault'&&this._wardenMine(l))this._spawnWarden(l,l.x,l.y);}
     }
     // Picks a named species for a spawn by rarity, colony size, habitat and distance; '' keeps the plain creature.
     // Hostile species stay out of the nursery, rare ones need open water (distance tier 1+) and only one rare is about at a time.
@@ -632,7 +634,7 @@
     // Would this region's ordinary roll make a sanctuary? (The same draws _landmarkFor makes, without the spacing rule.)
     _rollsSanctuary(cx,cy){
       if(cx===0&&cy===-1)return true;if(cx===0&&cy===0||this._wonderSites().has(cx+','+cy))return false;const key=cx+','+cy,rng=localRng(seedHash(this.state.seed+'|landmark|'+key));
-      if(rng()>.67)return false;const kinds=Object.keys(LANDMARKS).filter(k=>!k.startsWith('wonder')&&k!=='sanctum'&&k!=='vault'&&k!=='smoker'&&!RARE_LANDMARKS.includes(k)&&(length(cx,cy)>=2||!DEEP_LANDMARKS.includes(k)));
+      if(rng()>.67)return false;const kinds=Object.keys(LANDMARKS).filter(k=>!k.startsWith('wonder')&&k!=='sanctum'&&k!=='vault'&&k!=='smoker'&&!RARE_LANDMARKS.includes(k)&&!SECRET_LANDMARKS.includes(k)&&(length(cx,cy)>=2||!DEEP_LANDMARKS.includes(k)));
       if(kinds[Math.floor(rng()*kinds.length)]!=='sanctuary')return false;if(length(cx,cy)>=2&&localRng(seedHash(this.state.seed+'|rare|'+key))()<.11)return false;return true;
     }
     _sanctuaryYields(cx,cy){
@@ -640,12 +642,23 @@
       for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++){if(!dx&&!dy)continue;const nx=cx+dx,ny=cy+dy;if(!this._rollsSanctuary(nx,ny))continue;if(nx===0&&ny===-1||seedHash(this.state.seed+'|sanc|'+nx+','+ny)<mine)return true;}
       return false;
     }
+    // A secret takes an empty region only (so no record, task or hazard of an older pond is moved), about one in fifty regions from water level 6.
+    _secretFor(cx,cy){
+      if(length(cx,cy)<2)return null;const key=cx+','+cy,rng=localRng(seedHash(this.state.seed+'|secret|'+key));if(rng()>=.06)return null;
+      const x=(cx+.25+rng()*.5)*CHUNK,y=(cy+.25+rng()*.5)*CHUNK,zone=waterLevel(x,y),kinds=SECRET_LANDMARKS.filter(k=>zone>=SECRET_FROM[k]);if(!kinds.length)return null;
+      const type=kinds[Math.floor(rng()*kinds.length)],def=LANDMARKS[type],turn=rng(),angle=type==='silent'?Math.atan2(y,x)+(turn-.5)*1.2:turn*TAU;
+      return{id:'lm:'+key,type,bossType:'',x,y,r:def.r,name:def.name,biome:this._biomeAt(x,y),phase:rng()*TAU,angle,flowX:Math.cos(angle),flowY:Math.sin(angle),variant:0,discovered:false,claimed:false,active:false,progress:0,goal:def.goal,guardianIds:[],home:key};
+    }
+    // The lantern trail: seven faint lights running out from a hidden garden along its angle, the farthest about 1,500 away.
+    static trailLights(l){const out=[];for(let i=0;i<7;i++){const d=300+i*200,w=Math.sin(i*1.7+(l.phase||0))*70,a=l.angle||0;out.push([l.x+Math.cos(a)*d-Math.sin(a)*w,l.y+Math.sin(a)*d+Math.cos(a)*w]);}return out;}
+    // Where a silent current comes out: 2,800 along its flow, outside any place.
+    _silentEnd(l){return this._clearOfPlaces(l.x+l.flowX*2800,l.y+l.flowY*2800,200);}
     _landmarkFor(cx,cy){
       {const w=this._wonderSites().get(cx+','+cy);if(w){const def=LANDMARKS[w.type],key=cx+','+cy;return{id:'lm:'+key,type:w.type,bossType:'',x:w.x,y:w.y,r:def.r,name:def.name,biome:this._biomeAt(w.x,w.y),phase:0,angle:Math.atan2(w.y,w.x),flowX:Math.cos(Math.atan2(w.y,w.x)),flowY:Math.sin(Math.atan2(w.y,w.x)),variant:0,discovered:false,claimed:false,active:false,progress:0,goal:def.goal,guardianIds:[],home:key};}}
       const key=cx+','+cy,rng=localRng(seedHash(this.state.seed+'|landmark|'+key));
       const fixed='',earlySanctuary=cx===0&&cy===-1;
-      if(!fixed&&!earlySanctuary&&(cx!==0||cy!==0)&&rng()>.67)return null;
-      const kinds=Object.keys(LANDMARKS).filter(k=>!k.startsWith('wonder')&&k!=='sanctum'&&k!=='vault'&&k!=='smoker'&&!RARE_LANDMARKS.includes(k)&&(length(cx,cy)>=2||!DEEP_LANDMARKS.includes(k)));let type=earlySanctuary?'sanctuary':cx===0&&cy===0?'bloom':kinds[Math.floor(rng()*kinds.length)],bossType=fixed||'';
+      if(!fixed&&!earlySanctuary&&(cx!==0||cy!==0)&&rng()>.67)return this._secretFor(cx,cy);
+      const kinds=Object.keys(LANDMARKS).filter(k=>!k.startsWith('wonder')&&k!=='sanctum'&&k!=='vault'&&k!=='smoker'&&!RARE_LANDMARKS.includes(k)&&!SECRET_LANDMARKS.includes(k)&&(length(cx,cy)>=2||!DEEP_LANDMARKS.includes(k)));let type=earlySanctuary?'sanctuary':cx===0&&cy===0?'bloom':kinds[Math.floor(rng()*kinds.length)],bossType=fixed||'';
       if(!fixed&&!earlySanctuary&&length(cx,cy)>=2){const roll=localRng(seedHash(this.state.seed+'|rare|'+key))();if(roll<.05)type='fossil';else if(roll<.11)type='shell';}if(type==='sanctuary'&&!earlySanctuary&&this._sanctuaryYields(cx,cy))type='geneCache';let def=LANDMARKS[type];
       const x=earlySanctuary?400:cx===0&&cy===0?520:fixed?(cx+.5)*CHUNK:(cx+.23+rng()*.54)*CHUNK,y=earlySanctuary?-350:cx===0&&cy===0?150:fixed?(cy+.5)*CHUNK:(cy+.23+rng()*.54)*CHUNK;
       // No predator nest, toxic garden or fallen giant near the start: one that would sit within reach of the nursery becomes a gene cache instead.
@@ -690,16 +703,18 @@
     _claimLandmark(l){
       if(!l||l.claimed||this._claimed.has(l.id))return false;
       const s=this.state,p=s.player;this._discoverLandmark(l);l.claimed=true;l.progress=l.goal;this._claimed.add(l.id);s.claimedLandmarks.push(l.id);s.stats.encounters++;
-      if(l.type==='fossil'||l.type==='shell')this._echo(l);
-      const reward=l.type==='nest'?this._challengeReward():0,scoreReward=120+reward*40,biomassReward=Math.round(this._divisionShare(l.type.startsWith('wonder')?.35:l.type==='fossil'?.09:l.type==='geneCache'?.09:l.type==='nest'?.2:l.type==='carcass'||l.type==='garden'||l.type==='smoker'?.07:l.type==='vault'?.05:0)*gapWorth(waterLevel(l.x,l.y)-s.player.stage));s.score+=scoreReward;this._recordLandmark(l);
+      if(l.type==='fossil'||l.type==='shell'||l.type==='sealed'||l.type==='trail')this._echo(l);
+      const reward=l.type==='nest'?this._challengeReward():0,scoreReward=120+reward*40,biomassReward=Math.round(this._divisionShare(l.type.startsWith('wonder')?.35:l.type==='fossil'||l.type==='sealed'||l.type==='trail'?.09:l.type==='geneCache'?.09:l.type==='nest'?.2:l.type==='carcass'||l.type==='garden'||l.type==='smoker'?.07:l.type==='vault'?.05:0)*gapWorth(waterLevel(l.x,l.y)-s.player.stage));s.score+=scoreReward;this._recordLandmark(l);
       const descriptions={bloom:'The bloom released a rich cloud of nutrients.',sanctuary:'A safe refuge. Its restorative field remains available.',geneCache:'Ancient nutrients add biomass to your colony.',nest:'The nest is clear. Its genetic rewards are yours.',current:'You learned to ride this current. It still flows through the pond.',carcass:'You fed on the fallen giant before the scavengers stripped it.',garden:'You grazed the heart of the garden through the toxin.',fossil:'',vault:'',smoker:'You fed on the minerals pouring from the smoker, between its vents.',shell:'A hiding place. Predators cannot see you inside it while you are not fighting.'};
       if(l.type==='vault'){const all=Object.keys(MUTATION_SOURCE).filter(k=>!(SPECIES[MUTATION_SOURCE[k]]&&SPECIES[MUTATION_SOURCE[k]].rarity==='legendary')),cap=clamp(1+Math.floor(waterLevel(l.x,l.y)/6),2,4),pool=all.filter(k=>(p.mutationTiers[k]??-1)<cap),key=pool.length?pool[Math.floor(this.random()*pool.length)]:'';descriptions.vault=key?'The vault opened and gave up '+TIERS[cap].toLowerCase()+' '+MUTATIONS[key].name.toLowerCase()+'.':'The vault opened, but it holds nothing better than you already carry.';if(key)this._findMutation(key,cap,'Glass vault');}
-      if(l.type==='fossil'){const pool=Object.keys(MUTATION_SOURCE).filter(k=>(p.mutationTiers[k]??-1)<2),key=pool.length?pool[Math.floor(this.random()*pool.length)]:'';descriptions.fossil=key?'You drew '+MUTATIONS[key].name.toLowerCase()+' from the ancient genome.':'Its genome holds nothing you have not found.';if(key)this._findMutation(key,2,'Ancient fossil');}
+      descriptions.sealed='The shell opened.';descriptions.trail='The garden has never been grazed.';descriptions.silent='The current carried you out of the known water.';
+      if(l.type==='trail'){p.hp=p.maxHp;p.nutrition=p.maxNutrition;}
+      if(l.type==='fossil'||l.type==='sealed'){const pool=Object.keys(MUTATION_SOURCE).filter(k=>(p.mutationTiers[k]??-1)<2),key=pool.length?pool[Math.floor(this.random()*pool.length)]:'';descriptions[l.type]=key?'You drew '+MUTATIONS[key].name.toLowerCase()+' from the ancient genome.':'Its genome holds nothing you have not found.';if(key)this._findMutation(key,2,l.type==='sealed'?'Sealed shell':'Ancient fossil');}
       if(l.type.startsWith('wonder'))descriptions[l.type]=this._wonderReward(l);
       if(l.type==='bloom'){p.nutrition=p.maxNutrition;for(let i=0;i<24;i++){const a=this.range(0,TAU),r=this.range(15,l.r*.9);this._food(l.x+Math.cos(a)*r,l.y+Math.sin(a)*r,i%6===0?'mineral':'algae',1.5,l.home,l.biome);}}
       if(l.type==='nest')s.stats.nests++;if(l.type==='current')s.stats.currentsRidden++;
       this._effect(l.x,l.y,'discovery',l.r*1.7,'#d7f3aa',1.2);this._event('encounter',{id:l.id,landmarkType:l.type,name:l.name,reward,rewardSource:reward?'challenge':'',scoreReward,biomassReward,description:descriptions[l.type]});this._grantBiomass(biomassReward);
-      if(['bloom','geneCache','nest','sanctuary','carcass','garden','fossil','shell','vault','smoker'].includes(l.type)||l.type.startsWith('wonder'))this._requestCheckpoint(l,'location');return true;
+      if(['bloom','geneCache','nest','sanctuary','carcass','garden','fossil','shell','vault','smoker','sealed','trail'].includes(l.type)||l.type.startsWith('wonder'))this._requestCheckpoint(l,'location');return true;
     }
     // A toxic garden: rich algae at the centre, ringed by toxin pockets that pulse out of step, so gaps open in turn.
     // A glass vault is guarded. Its warden is an ancient of the vault's own water that stands on the vault; the vault will not open while it
@@ -719,6 +734,8 @@
       for(let i=0;i<4;i++){const a=l.angle+i*TAU/4,rr=l.r*(.58+rng()*.16);this.state.hazards.push({id:this._id++,x:l.x+Math.cos(a)*rr,y:l.y+Math.sin(a)*rr,r:42+rng()*12,kind:'vent',pulse:true,phase:i*TAU/4,biome:l.biome,home:l.home});}
       if(!l.claimed)for(let i=0;i<30;i++){const a=rng()*TAU,rr=Math.sqrt(rng())*l.r*.4;this._food(l.x+Math.cos(a)*rr,l.y+Math.sin(a)*rr,'mineral',1.6,l.home,l.biome);}
     }
+    // A hidden garden: rich algae and nothing that hurts.
+    _growHidden(l){const rng=localRng(seedHash(this.state.seed+'|hidden|'+l.id)),value=2*this._tierValue(this._tierAt(l.x,l.y));for(let i=0;i<36;i++){const a=rng()*TAU,rr=Math.sqrt(rng())*l.r*.7;this._food(l.x+Math.cos(a)*rr,l.y+Math.sin(a)*rr,i%5===0?'mineral':'algae',value,l.home,l.biome);}}
     _growGarden(l){
       const rng=localRng(seedHash(this.state.seed+'|garden|'+l.id)),value=2*this._tierValue(this._tierAt(l.x,l.y));
       for(let i=0;i<5;i++){const a=l.angle+i*TAU/5,rr=l.r*(.62+rng()*.18);this.state.hazards.push({id:this._id++,x:l.x+Math.cos(a)*rr,y:l.y+Math.sin(a)*rr,r:44+rng()*14,kind:'toxin',pulse:true,phase:i*TAU/5,biome:l.biome,home:l.home});}
@@ -931,6 +948,12 @@
         if(l.type.startsWith('wonder')&&!l.claimed)this._wonderTick(l,d,dt);
         // Abandoned shell: inside and not fighting, predators cannot see you.
         if(l.type==='shell'&&d<l.r*.72){l.active=true;p.shelterTime=.25;if(!l.claimed){l.progress=Math.min(l.goal,l.progress+dt);if(l.progress>=l.goal)this._claimLandmark(l);}}
+        // Sealed shell: it opens only for a colony that stays still inside it for five seconds. Any movement starts it again.
+        if(l.type==='sealed'&&!l.claimed){if(d<l.r*.5){l.active=true;l.progress=length(p.vx,p.vy)<14?Math.min(l.goal,l.progress+dt):0;if(l.progress>=l.goal)this._claimLandmark(l);}else if(l.progress){l.progress=0;l.active=false;}}
+        if(l.type==='trail'&&!l.claimed&&d<l.r*.45){l.active=true;l.progress=l.goal;this._claimLandmark(l);}
+        // Silent current: it takes you 2,800 along its flow in 3.5 s. The first time, something rare waits where it lets you go.
+        if(l.type==='silent'&&d<l.r*.55&&!((p.surgeTime||0)>0)&&!s.bossEncounter&&p.alive){const [ex,ey]=this._silentEnd(l),dx=ex-p.x,dy=ey-p.y,dd=Math.hypot(dx,dy)||1;p.surgeDX=dx/dd;p.surgeDY=dy/dd;p.surgeSpeed=dd/3.5;p.surgeTime=3.5;p.surgeCtx=null;p.invulnerable=Math.max(p.invulnerable,3.6);
+          if(!l.claimed){this._pocket={x:ex,y:ey,id:l.id};this._claimLandmark(l);}this._event('silentRide',{x:l.x,y:l.y});}
         if(l.type==='bloom'&&!l.claimed&&d<l.r*.7){l.active=true;l.progress=l.goal;this._claimLandmark(l);}
         if(l.type==='carcass'&&!l.claimed&&!l.active&&d<l.r+Math.max(...(this._view||[1100,700]))+220)this._openCarcass(l);
         // A fallen giant or garden that has run out (scavengers eat too) spills more while you are there, so the bar can always be filled.
@@ -1805,6 +1828,9 @@
       {const here=this._home(s.player.x,s.player.y);if(here!==this._hereChunk){this._hereChunk=here;this._streamClock=0;}}this._streamClock-=dt;if(this._streamClock<=0)this._stream();
       p.invulnerable=Math.max(0,p.invulnerable-dt);p.hurt=Math.max(0,p.hurt-dt);p.evolution=Math.max(0,p.evolution-dt);p.pulseCooldown=Math.max(0,p.pulseCooldown-dt);if(s.bossEncounter)this._bossSenses(s.bossEncounter,dt);
       p.surgeTime=Math.max(0,(p.surgeTime||0)-dt);
+      // The pocket at the end of a silent current: one rare creature of its water, chosen by the current, that always drops a mutation.
+      if(this._pocket&&!(p.surgeTime>0)){const k=this._pocket;this._pocket=null;const lv=waterLevel(k.x,k.y),pool=Object.keys(SPECIES).filter(q=>{const sp=SPECIES[q];return (sp.rarity==='rare'||sp.rarity==='legendary')&&!sp.spawnOnly&&sp.minStage*3<=lv&&(!sp.biomes||sp.biomes.includes(this._biomeAt(k.x,k.y)));});
+        if(pool.length){const key=pool[Math.floor(localRng(seedHash(s.seed+'|pocket|'+k.id))()*pool.length)],a=Math.atan2(p.surgeDY||0,p.surgeDX||1),o=this._spawnSpecies(key,p.x+Math.cos(a)*520,p.y+Math.sin(a)*520,{level:lv,scale:bodyScale(lv+1)});if(o){o._dropForce=true;o.angle=a+Math.PI;}}}
       for(const key of ['concealCooldown','specialTime','swarmTime','slipstreamTime','pounceTime','veilTime','frenzyTime','momentumTime','escapeCooldown','secondWindTime','secondWindCooldown','chainCooldown','fissionShieldTime','fissionCooldown','phaseShieldTime','phaseCooldown','blockCooldown','feedingRecovery','parryTime','parryBuffer','regenDelay','refugeCombatTime','shadowMetabolismCooldown'])p[key]=Math.max(0,p[key]-dt);
       for(const k of FAMILIES)p.abilityCooldowns[k]=Math.max(0,p.abilityCooldowns[k]-dt);if(p.slipstreamTime<=0)p.slipstreamCharged=false;if(p.frenzyTime<=0)p.frenzy=0;if(p.momentumTime<=0)p.momentum=0;
       let mx=Number.isFinite(input.moveX)?input.moveX:0,my=Number.isFinite(input.moveY)?input.moveY:0,m=length(mx,my);if(m>1){mx/=m;my/=m;m=1;}
