@@ -51,7 +51,9 @@ Two inputs drive almost everything.
 
 **Growth:** each cell costs more than the last (`levelCost`); food is worth more in deeper water and to a bigger colony (`pace = cells^0.3625`). A cell takes about 2–3 minutes of play throughout.
 
-**Bosses** are built at spawn: health = `hits × 21 ×` size power, damage = `dmg × 100 ×` size power per unit of attack.
+**Bosses** are built from their own level (as a colony of that many cells): health = `hits × 21 ×` that size power, each attack a multiple of `dmg × 100 ×` that size power, cruise speed that of such a colony. Your size when it wakes does not matter.
+
+**Class moves** are attack × their own class's power (1 + 0.32 per rank). **Swallowing** needs a creature 2.8× your size and at least 3 levels above you.
 
 ### Key numbers by colony size (no stats, no mutations)
 
@@ -131,8 +133,20 @@ Damage per stamina = damage × attack ÷ stamina per Strike. A weapon that hits 
 - **Ancients:** ×4 health, ×1.25 bite, ×1.3 speed, a guaranteed drop.
 
 ### 4.6 Bosses
-| Boss | Level | Kill time (strong build) | Health lost | Exhausted |
-|---|---|---|---|---|
+Measured v35.7 (strong build, dodging bot, three fights each). Health in "hits" × 21 × the boss level's size power.
+
+| Boss | Level | Hits | Kill time | Health lost | Target kill time |
+|---|---|---|---|---|---|
+| Gulper | 6 | 41 | 37–44 s | about 1× max | about 40 s |
+| Broodmother | 12 | 85 | 84–93 s | under 3× | about 80 s |
+| Glass Pike | 18 | 74 | 78–92 s | about 1× | about 90 s |
+| Hydra | 24 | 165 | 93–99 s | under 2× | about 100 s |
+| Undertow | 30 | 208 | 140–159 s | under 3× | about 150 s |
+| Kraken | 36 | 480 | 3.6–4.2 min | under 5× | 3.5–4 min |
+
+Each boss must sit between its neighbours in kill time. A strong-build bot should die at most once per fight before the Kraken. Time exhausted under 20%.
+
+---|---|---|---|---|
 | Gulper | 6 | about 40 s | about 1× max | under 20% |
 | Broodmother | 12 | about 80 s | under 3× | under 20% |
 | Glass Pike | 18 | about 90 s | under 2.5× | under 20% |
@@ -265,27 +279,25 @@ Each fight records time to kill, health lost (in multiples of maximum health) an
 
 ## 8. Known breaks in the rules (balance debt)
 
-Places where the game does not yet follow this document. Each needs a decision before it is changed. Most serious first.
+Status after v35.7. Fixed items stay listed so the reasoning is kept.
 
-| # | What breaks | Rule | Proposed fix |
+| # | What broke | Rule | Status |
 |---|---|---|---|
-| 1 | Kill remains are scaled for size twice: deep down the food left by a kill is worth about 5× the kill itself (water 30: kill 149, remains 793) | 12, 14 | Scale remains once |
-| 2 | About 80% of apex creatures can swallow a player of their own level whole, because the test compares raw sizes, not levels | 7, 11 | Compare levels, or make swallowing a telegraphed attack |
-| 3 | Bosses are built from your size at the moment they wake, and boss speed follows your own speed (so Mobility makes bosses faster) | 11 | Build each boss from its own level |
-| 4 | Hazards (toxin, vent) and legendary creatures scale with your size or level, not the water's | 11 | Scale them from the water |
-| 5 | Four different level-gap curves, and boss and hermit rewards have none | 14 | One curve for damage, one for worth, used everywhere |
-| 6 | Hidden multipliers: `heft` gives hunters ×1.6–2.1 and apex ×3 health; every species bite is halved; the old tier system still adds +22% health and +25% worth to the fallen giant's scavengers | 15 | Fold them into each creature's listed numbers |
-| 7 | Flat amounts: sanctuary healing (3–5 a second), algae healing, mineral stamina; deep protein refills far more stamina than shallow | 10 | Make them shares of body numbers |
-| 8 | The strongest heal (1.5% of max health a second for 6 s after eating) ignores Recovery, though Recovery's description mentions it | 10 | Tie it to Recovery, or reword |
-| 9 | Class ranks still change base stats: Riptide ranks add stamina, speed and regeneration; Predator ranks widen swallowing; Stalker ranks improve hiding | 3 | Decide: keep as each class's passive (and document) or move into the moves |
-| 10 | Each class move has its own damage base: Pounce and Whirlpool use attack × rank power, Venom volley uses size × Power, broodlings a third formula; rank power counts only Predator and Riptide ranks | 14 | One base for all class moves: attack × that class's own rank |
-| 11 | Spores, stings, touch damage and leeches skip the deep-water bite bonus | 14 | Apply it to all creature damage |
-| 12 | Vitality's in-game text says "+12 maximum health"; it is +12% of base health | 15 | Fix the text |
-| 13 | Rams hit bosses 1.4× harder and more often than creatures, with no stated reason | 3 | Remove or document |
-| 14 | Engulfing membrane widens swallowing by different amounts for Bite and for touch; Apex jaws also quietly widens touch swallowing | 15 | One number, stated |
-| 15 | Dead code from removed things (Slipstream, Surge, old tiers, Strike traits) still sits in the formulas | 15 | Remove |
-
----
+| 1 | Kill remains were scaled for size twice (deep down worth about 5× the kill) | 12, 14 | **Fixed v35.7:** scaled once; remains are worth about 0.8× the kill at every depth |
+| 2 | About 80% of apex creatures could swallow a player of their own level | 7, 11 | **Fixed v35.7:** swallowing needs a creature 2.8× your size **and** at least 3 levels above you. Your level is your strength. At your own level: 0% |
+| 3 | Bosses were built from your size when they woke, and their speed followed yours | 11 | **Fixed v35.7:** built from their own level (fixed stats, as in most RPGs); speed from their own size |
+| 4 | Hazards and legendaries scaled with you, not the water | 11 | **Fixed v35.7** (thorns too) |
+| 5 | Four level-gap curves; boss and hermit rewards had none | 14 | **Fixed v35.7:** one damage curve (±8% a level, 0.35–2.2), one worth curve (±12% a level, 0.2–1.3) on kills, food, places, studies, hermit and boss rewards |
+| 6 | Hidden multipliers (`heft`, halved species bites, the old tier system) | 15 | **Documented** in `MORPHOS-FORMULAS.md`; the tier system's last live use (the giant's scavengers) removed |
+| 7 | Flat amounts (sanctuary healing, algae heal, protein stamina, food nutrition) | 10 | **Fixed v35.7:** sanctuary heals 3% + 1% per variant of max health a second; refills follow the food's kind, not its depth |
+| 8 | The after-meal heal ignored Recovery though Recovery claimed it | 10 | **Fixed v35.7:** Recovery's text no longer claims it; the heal is the same for everyone |
+| 9 | Class ranks still changed base stats | 3 | **Decided v35.7:** kept as each class's passive (Riptide stamina and speed, Predator swallowing, Stalker concealment) and documented |
+| 10 | Each class move had its own damage base, and Pounce, broodlings and the Whirlpool grew with Predator and Riptide ranks whatever your class | 14 | **Fixed v35.7:** every class move is attack × its own class's power. Mixed builds' broodlings had been doing about 3× their intended damage |
+| 11 | Spores, stings, touch and leeches skipped the deep-water bite bonus | 14 | **Fixed v35.7** |
+| 12 | Vitality's text said "+12 maximum health" | 15 | **Fixed v35.7:** "+12% of base maximum health" |
+| 13 | Rams hit bosses 1.4× harder and more often | 3 | **Fixed v35.7:** same as on creatures |
+| 14 | Engulfing membrane widened Bite and touch swallowing by different amounts; Apex jaws quietly widened touch swallowing | 15 | **Fixed v35.7:** +15% to both; Apex jaws does only what it says |
+| 15 | Dead code from removed things | 15 | **Partly fixed v35.7:** Slipstream's multipliers removed from the formulas; some inert Surge code and save fields remain (harmless) |
 
 ## 9. Decision log
 
@@ -304,3 +316,5 @@ Places where the game does not yet follow this document. Each needs a decision b
 | v35.4 | Exhaustion unchanged | Jaisah: stamina stays as it is |
 | v35.6 (docs) | This document becomes the rulebook: model, budgets, recipes, balance debt; full formula inventory in `MORPHOS-FORMULAS.md` | So that everything added later fits one set of rules |
 | v35.6 | A dropped mutation no better than your copy never appears (it no longer turns into growth) | Duplicates were confusing and the growth was meaningless; more mutation types will make them rarer anyway |
+| v35.7 | Fixed the rule breaks in section 8 | They contradicted the rules in section 1 |
+| v35.7 | Boss health re-tuned: Gulper 41, Broodmother 85, Glass Pike 74, Hydra 165, Undertow 208, Kraken 480 hits | With class moves from their own class only (break 10), mixed builds lost broodlings and Pounce damage they never should have had; the old health had been tuned against it |

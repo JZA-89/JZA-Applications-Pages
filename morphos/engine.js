@@ -41,7 +41,8 @@
 // Level gap. A creature's level is its water's level; the colony's is its cell count less one. Each level of difference changes the
   // damage dealt and taken by 8% (you deal less to, and take more from, what is above you), and what a kill or a meal is worth by 12%.
   // This is what makes water above your level dangerous and water below it poor, at every size.
-  const gapDeal=d=>clamp(1+.08*d,.35,1.6),gapTake=d=>clamp(1+.08*d,.4,2.2),gapWorth=d=>clamp(1+.12*d,.2,1.3);
+  // One curve for damage across a level gap (you dealing, d = your level − its level; or taking, d = its level − yours), and one for worth.
+  const gapDamage=d=>clamp(1+.08*d,.35,2.2),gapDeal=gapDamage,gapTake=gapDamage,gapWorth=d=>clamp(1+.12*d,.2,1.3);
 // Scenery changes slowly with depth. Each deep kind has a water level where it first shows, a level where it is commonest and a share
   // at that peak; between and beyond, its share rises and falls gradually, so the pond you swim through is never suddenly different.
   const DEEP_SCENERY=[['spire',8,16,.42,.18],['tube',14,22,.4,.22],['rib',20,30,.46,.46]];
@@ -49,6 +50,11 @@
   const ZONE_STEP=850,MAX_WATER=40,waterLevel=(x,y)=>{const d=Math.hypot(x,y);return d<=1250?0:Math.min(MAX_WATER,1+Math.floor((d-1250)/ZONE_STEP));};
   const DEPTHS=[{from:0,name:'The Nursery'},{from:1,name:'Sunlit water'},{from:6,name:'The Reaches'},{from:12,name:'The Glass Fields'},{from:18,name:'The Deeps'},{from:24,name:'The Abyss'},{from:30,name:'The Trench'}],depthAt=level=>{let out=DEPTHS[0];for(const d of DEPTHS)if(level>=d.from)out=d;return out;};
   const MAX_BODY_CELLS=30,bodyScale=cells=>Math.pow(Math.max(1,Math.min(cells,MAX_BODY_CELLS)),BODY_GROWTH);
+  // A boss is built from its own level, as RPG bosses usually are: its size, health, damage and cruise speed are those of a colony of
+  // that many cells (base speed 144, the player's own base with no stats), whatever size you are when it wakes.
+  function bossScale(type){return bodyScale(BOSSES[type]?BOSSES[type].level:1);}
+  function bossPower(type){return Math.pow(bossScale(type),SIZE_POWER);}
+  function bossCruise(type){return 144*Math.pow(bossScale(type),.45);}
   const RANK_COSTS=[240,700,1500,2800,4500],MASTERY_STEP=1000,MAX_RANK=5;
   // What wakes each class's ability: kills, divisions, venom stings or venom kills, close calls at speed, seconds hidden near a predator.
   const WAKE_NEEDS={predator:12,summoner:3,venomist:2,riptide:5,stalker:5};
@@ -108,9 +114,9 @@
   const STRIKE_TRAITS={venomist:'adds a poison stack',predator:'hits harder',riptide:'travels faster and further, and pushes you forward',summoner:'marks the target for your broodlings',stalker:'hits harder on unaware targets and keeps you better hidden'};
   const FAMILY_RGB={venomist:[157,224,135],predator:[240,164,126],riptide:[119,216,238],summoner:[226,204,143],stalker:[174,172,231]};
   const ATTRIBUTES={
-    vitality:{key:'vitality',name:'Vitality',description:'+12 maximum health per point.',maxRank:12},
+    vitality:{key:'vitality',name:'Vitality',description:'+12% of base maximum health per point.',maxRank:12},
     reserves:{key:'reserves',name:'Reserves',description:'+12 maximum stamina per point.',maxRank:12},
-    recovery:{key:'recovery',name:'Recovery',description:'+1.5 stamina and +0.12% of maximum health regenerated per second. Eating adds a six-second healing boost.',maxRank:12},
+    recovery:{key:'recovery',name:'Recovery',description:'+1.5 stamina and +0.12% of maximum health regenerated per second.',maxRank:12},
     power:{key:'power',name:'Power',description:'+8% base Strike, venom and poison damage per point.',maxRank:12},
     reach:{key:'reach',name:'Reach',description:'+6 feeding reach, +10% range for shots, +5% for Jab and Bite, and wider landmark sensing.',maxRank:12},
     mobility:{key:'mobility',name:'Mobility',description:'+6% base movement speed and 0.35 less stamina per second while swimming fast.',maxRank:12}
@@ -130,7 +136,7 @@
     photosynthesis:{key:'photosynthesis',perk:'Also restores [3] stamina a second.',name:'Photosynthesis',description:'After staying still for 2 seconds, health regeneration rises by {100}% and nutrition slowly recovers. Taking damage interrupts it.',family:'venomist'},
     undertow:{key:'undertow',perk:'Slowed creatures take [8]% more damage from you.',name:'Undertow',description:'Strikes draw in nearby food and slow what they hit by 40% for {1.5} seconds.',family:'venomist'},
     shadowMetabolism:{key:'shadowMetabolism',perk:'Ambushes hit [10]% harder.',name:'Shadow metabolism',description:'A successful ambush returns {12} stamina and lets you conceal again after 0.6 seconds. Recharges in 8 seconds.',family:'stalker'},
-    engulfingMembrane:{key:'engulfingMembrane',perk:'Swallowing takes [1] second off your ability cooldowns.',name:'Engulfing membrane',description:'You can swallow creatures {20}% bigger whole, and swallowing heals {3}% of your health.',family:'predator'},
+    engulfingMembrane:{key:'engulfingMembrane',perk:'Swallowing takes [1] second off your ability cooldowns.',name:'Engulfing membrane',description:'You can swallow creatures {15}% bigger whole, and swallowing heals {3}% of your health.',family:'predator'},
     regrowingOrgans:{key:'regrowingOrgans',perk:'Kills also restore [3] stamina.',name:'Regrowing organs',description:'Every kill takes {1.5} seconds off all your ability cooldowns.',family:'summoner'},
     fissionHeart:{key:'fissionHeart',perk:'The shield also restores [6]% of your health.',name:'Fission heart',description:'A hit that would leave you below 25% health raises a shield that cuts damage by 70% for {3} seconds. Recharges in 45 seconds.',family:'venomist'},
     storedImpact:{key:'storedImpact',perk:'Spending the charge restores [5] stamina.',name:'Stored impact',description:'Store 60% of damage blocked, up to {40}. Your next Strike spends that charge as extra damage.',family:'summoner'},
@@ -183,17 +189,17 @@
   // size: radius as a multiple of yours when it appears. hits: health in your attacks at that moment. speed: as a
   // multiple of your cruising speed (fast swimming is always quicker). contact: share of your health a touch takes.
   const BOSSES={
-    gulper:{key:'gulper',name:'The Gulper',level:6,size:4.4,hits:50,dmg:1,speed:.82,turn:1.6,contact:.08,cooldown:1.5,colour:'#c8d98f',genomeName:'Gulper genome',mutationKey:'engulfingMembrane',reward:2,phases:['Hungry','Double lunge','Feeding frenzy'],
+    gulper:{key:'gulper',name:'The Gulper',level:6,size:4.4,hits:41,dmg:1,speed:.82,turn:1.6,contact:.08,cooldown:1.5,colour:'#c8d98f',genomeName:'Gulper genome',mutationKey:'engulfingMembrane',reward:2,phases:['Hungry','Double lunge','Feeding frenzy'],
       description:'A vast amoeba that engulfs anything smaller than itself. Slow, but it never stops coming.',hint:'Its body stretches before it lunges: swim sideways, then strike while it recovers. Poison stops it healing from its meals.'},
-    brood:{key:'brood',name:'The Broodmother',level:12,size:4,hits:92,dmg:1.05,speed:.72,turn:1.3,contact:.08,cooldown:1.6,colour:'#e4a5c6',genomeName:'Brood genome',mutationKey:'fissionHeart',reward:2,phases:['Swelling','Fast births','Devouring her young'],
+    brood:{key:'brood',name:'The Broodmother',level:12,size:4,hits:85,dmg:1.05,speed:.72,turn:1.3,contact:.08,cooldown:1.6,colour:'#e4a5c6',genomeName:'Brood genome',mutationKey:'fissionHeart',reward:2,phases:['Swelling','Fast births','Devouring her young'],
       description:'A bloated colony-mother that gives birth to hunters as she follows you.',hint:'She swells before each birth. Kill her young fast: once hurt, she eats them to heal. Swim around her spore clouds.'},
-    pike:{key:'pike',name:'The Glass Pike',level:18,size:3.4,hits:110,dmg:1.1,speed:1.2,turn:2.6,contact:.1,cooldown:1.4,colour:'#c4e9f0',genomeName:'Glass genome',mutationKey:'storedImpact',reward:2,phases:['Hunting','Curving dashes','Relentless'],
+    pike:{key:'pike',name:'The Glass Pike',level:18,size:3.4,hits:74,dmg:1.1,speed:1.2,turn:2.6,contact:.1,cooldown:1.4,colour:'#c4e9f0',genomeName:'Glass genome',mutationKey:'storedImpact',reward:2,phases:['Hunting','Curving dashes','Relentless'],
       description:'A long glass predator, the fastest thing in the pond. It dashes in twos, then threes, and sheds glass as it goes.',hint:'A glowing line marks each dash: move off the line, not away along it. After its third dash it stalls. Strike then.'},
-    hydra:{key:'hydra',name:'The Hydra',level:24,size:3,hits:330,dmg:1.25,speed:.5,turn:1.1,contact:.08,cooldown:2.2,colour:'#9fd3aa',genomeName:'Hydra genome',mutationKey:'regrowingOrgans',reward:2,phases:['Rooted','Uprooted','Fourth head'],
+    hydra:{key:'hydra',name:'The Hydra',level:24,size:3,hits:165,dmg:1.25,speed:.5,turn:1.1,contact:.08,cooldown:2.2,colour:'#9fd3aa',genomeName:'Hydra genome',mutationKey:'regrowingOrgans',reward:2,phases:['Rooted','Uprooted','Fourth head'],
       description:'A many-headed predator. Each head strikes on its own, and every head feeds the body.',hint:'Watch each head draw back before it snaps. Keep moving around it; standing still lets every head line up.'},
-    undertow:{key:'undertow',name:'The Undertow',level:30,size:4.6,hits:360,dmg:1.4,speed:.9,turn:1.2,contact:.12,cooldown:1.5,colour:'#86b6da',genomeName:'Abyssal genome',mutationKey:'phaseMembrane',reward:2,phases:['Circling','Storm','Endless hunger'],
+    undertow:{key:'undertow',name:'The Undertow',level:30,size:4.6,hits:208,dmg:1.4,speed:.9,turn:1.2,contact:.12,cooldown:1.5,colour:'#86b6da',genomeName:'Abyssal genome',mutationKey:'phaseMembrane',reward:2,phases:['Circling','Storm','Endless hunger'],
       description:'An abyssal leviathan whose mouth drags the water in. Everything it swallows heals it.',hint:'When it starts to pull, swim away from its mouth and keep creatures away from it. Dodge its charge sideways and find the gap in its rings.'},
-    kraken:{key:'kraken',name:'The Kraken',level:36,size:4.4,hits:1050,dmg:1.45,speed:.9,turn:1.4,contact:.12,cooldown:1.15,colour:'#d2a6dc',genomeName:'Kraken genome',mutationKey:'abyssalHeart',reward:2,phases:['Reaching','Ink','The grip'],
+    kraken:{key:'kraken',name:'The Kraken',level:36,size:4.4,hits:480,dmg:1.45,speed:.9,turn:1.4,contact:.12,cooldown:1.15,colour:'#d2a6dc',genomeName:'Kraken genome',mutationKey:'abyssalHeart',reward:2,phases:['Reaching','Ink','The grip'],
       description:'A giant squid from the bottom of the Trench, and the last thing the pond has to throw at you. It charges, hurls rings of ink, drags the water in, and when it is hurt it blacks out the water around you.',hint:'Sidestep its charge and find the gap in its rings. When the water goes black, keep moving and watch for the glow of its eyes. In its last phase it dashes three times in a row: step off each line, then strike while it gathers itself.'}
   };
   const BOSS_ORDER=['gulper','brood','pike','hydra','undertow','kraken'];
@@ -208,7 +214,7 @@
   const BOSS_ESCAPE_GAP=120,BOSS_REST_SECONDS=120;
   const ELDER_CHANCE=.02,ELDER_HEALTH=4,ELDER_MIGHT=1.25,ELDER_LEASH=950;
   const ELDER_NAMES=['Longtooth','Old Scar','The Patient One','Stonehide','Palewake','The Hollow','Deepmother','Greyfin','The Unhurried','Thornback Sire','Saltjaw','The Watcher','Driftking','Old Ember','Nightmouth','The Stillness'];
-  const SWALLOW_RATIO=2.8,canSwallow=(o,p)=>!!o&&!o.bossId&&!o.elder&&!o.mother&&['hunter','apex','armoured'].includes(o.kind)&&o.r>=p.r*SWALLOW_RATIO;
+  const SWALLOW_LEVELS=3,SWALLOW_RATIO=2.8,canSwallow=(o,p)=>!!o&&!o.bossId&&!o.elder&&!o.mother&&['hunter','apex','armoured'].includes(o.kind)&&o.r>=p.r*SWALLOW_RATIO&&(Number.isFinite(o.lv)?o.lv:0)-(Number.isFinite(p.stage)?p.stage:0)>=SWALLOW_LEVELS;
   // Shortest distance from point v to the segment a-b.
   function segmentDistance(v,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,ll=dx*dx+dy*dy,t=ll?clamp(((v.x-ax)*dx+(v.y-ay)*dy)/ll,0,1):0;return length(v.x-ax-dx*t,v.y-ay-dy*t);}
   const LANDMARKS={bloom:{name:'Nutrient bloom',r:110,goal:1},sanctuary:{name:'Sanctuary',r:150,goal:3},geneCache:{name:'Gene cache',r:75,goal:3},nest:{name:'Predator nest',r:140,goal:3},current:{name:'Current vent',r:170,goal:1.2},carcass:{name:'Fallen giant',r:150,goal:1},garden:{name:'Toxic garden',r:175,goal:1},sanctum:{name:'Elder sanctum',r:250,goal:1},fossil:{name:'Ancient fossil',r:95,goal:3},vault:{name:'Glass vault',r:115,goal:3},smoker:{name:'Black smoker',r:165,goal:1},shell:{name:'Abandoned shell',r:120,goal:2},wonderBell:{name:'The Sunken Bell',r:270,goal:3},wonderLanterns:{name:'The Lantern Reef',r:430,goal:6},wonderRibs:{name:'The Leviathan Ribs',r:320,goal:3},wonderPool:{name:'The Still Pool',r:390,goal:12},wonderMaelstrom:{name:'The Maelstrom',r:450,goal:3},wonderSpire:{name:'The Crystal Spire',r:280,goal:3},wonderDrowned:{name:'The Drowned Colony',r:350,goal:3},wonderEye:{name:'The Abyssal Eye',r:430,goal:25}};
@@ -470,11 +476,11 @@
     // Legendary creatures are not placed with the world: every few minutes one may arrive from beyond view.
     _summonLegend(force=''){
       const s=this.state,p=s.player;if(s.bossEncounter||s.status!=='playing'||s.organisms.some(o=>!o.dead&&o.species&&SPECIES[o.species].rarity==='legendary'))return null;
-      const pool=Object.keys(SPECIES).filter(k=>SPECIES[k].rarity==='legendary'&&(force?k===force:SPECIES[k].minStage*3<=p.stage));if(!pool.length)return null;
+      const pool=Object.keys(SPECIES).filter(k=>SPECIES[k].rarity==='legendary'&&(force?k===force:SPECIES[k].minStage*3<=waterLevel(p.x,p.y)));if(!pool.length)return null;
       if(!force&&(this.random()>.5||length(p.x,p.y)<NURSERY_RADIUS*2))return null;
       const key=pool[Math.floor(this.random()*pool.length)];let at=null;
       for(let i=0;i<10&&!at;i++){const a=this.range(0,TAU),far=Math.max(1500,this._edge(a,420)),x=p.x+Math.cos(a)*far,y=p.y+Math.sin(a)*far;if(length(x,y)<NURSERY_RADIUS+600||s.landmarks.some(l=>l.type==='sanctuary'&&length(l.x-x,l.y-y)<l.r+400))continue;at=[x,y];}
-      if(!at)return null;at=this._offscreen(at[0],at[1],700);const lv=Math.max(waterLevel(at[0],at[1]),p.stage),o=this._spawnSpecies(key,at[0],at[1],{level:lv,scale:bodyScale(lv+1)});this._event('legendStirs',{species:key,name:SPECIES[key].name,x:o.x,y:o.y});return o;
+      if(!at)return null;at=this._offscreen(at[0],at[1],700);const lv=waterLevel(at[0],at[1]),o=this._spawnSpecies(key,at[0],at[1],{level:lv,scale:bodyScale(lv+1)});this._event('legendStirs',{species:key,name:SPECIES[key].name,x:o.x,y:o.y});return o;
     }
     // Per-frame signature traits. Runs after the organism has moved.
     _speciesTick(o,dt,dp){
@@ -483,13 +489,13 @@
       // Nothing outside an elder's arena reaches into the fight.
       if(s.bossEncounter&&!o.bossId){o.latchTime=0;o.tetherTime=0;o.vortexTime=0;o.vortexWind=0;return;}
       // Leech: rides the player and drains health until a fast swim or a hit shakes it off. It never takes the last 5%.
-      if(o.latchTime>0){o.latchTime=Math.max(0,o.latchTime-dt);if(p.sprinting||s.status!=='playing')o.latchTime=0;else{const a=(o.latchAngle||0)+p.angle,k=p.r+o.r*.4;o.x=p.x+Math.cos(a)*k;o.y=p.y+Math.sin(a)*k;o.vx=p.vx;o.vy=p.vy;p.hp=Math.max(Math.min(p.hp,p.maxHp*.05),p.hp-dt*(3+Math.min(o.tier,5)*.6)*Math.pow(o.scale||1,SIZE_POWER));p.regenDelay=Math.max(p.regenDelay,2);}if(o.latchTime===0){o.flee=1.2;o.cooldown=3;}}
+      if(o.latchTime>0){o.latchTime=Math.max(0,o.latchTime-dt);if(p.sprinting||s.status!=='playing')o.latchTime=0;else{const a=(o.latchAngle||0)+p.angle,k=p.r+o.r*.4;o.x=p.x+Math.cos(a)*k;o.y=p.y+Math.sin(a)*k;o.vx=p.vx;o.vy=p.vy;p.hp=Math.max(Math.min(p.hp,p.maxHp*.05),p.hp-dt*(3+Math.min(o.tier,5)*.6)*Math.pow(o.scale||1,SIZE_POWER)*clamp(o.might||1,1,2));p.regenDelay=Math.max(p.regenDelay,2);}if(o.latchTime===0){o.flee=1.2;o.cooldown=3;}}
       // Siren jelly: a current that draws the player in, unless swimming fast.
       const pullIn=p.r+o.r*.85,pullOut=pullIn+(sp.pull||0)*(o.scale||1);if(sp.pull&&dp<pullOut&&dp>o.r*.6&&!p.sprinting&&s.status==='playing'&&!this._hasMutation('abyssalHeart')){const k=clamp(1-(dp-pullIn)/(pullOut-pullIn),.15,1)*50*Math.sqrt(o.scale||1)*dt;p.x+=(o.x-p.x)/dp*k;p.y+=(o.y-p.y)/dp*k;}
       // Lasher: the tendril holds and drags while it lasts.
       if(o.tetherTime>0){o.tetherTime=Math.max(0,o.tetherTime-dt);if(p.sprinting||dp>(sp.tetherReach||330)+40||s.status!=='playing'||this._hasMutation('abyssalHeart'))o.tetherTime=0;else if(dp>o.r+p.r){const k=Math.min(dp-o.r-p.r,250*dt);p.x+=(o.x-p.x)/dp*k;p.y+=(o.y-p.y)/dp*k;}}
       // A bite at the mouth for rooted or slow giants (jellies sting through their own rule).
-      if(sp.sting&&o.kind!=='jelly'&&dp<p.r+o.r*.96+2&&s.status==='playing')this._damagePlayer((sp.sting+Math.min(o.tier,5)*2)*Math.pow(o.scale||1,SIZE_POWER),o);
+      if(sp.sting&&o.kind!=='jelly'&&dp<p.r+o.r*.96+2&&s.status==='playing')this._damagePlayer((sp.sting+Math.min(o.tier,5)*2)*Math.pow(o.scale||1,SIZE_POWER)*clamp(o.might||1,1,2),o);
       // Wandering giant: a trail of food behind it.
       // Hurt, it defends itself: it gathers for a moment (a swelling pulse) and then sends out a crushing shockwave round its body.
       if(sp.shed){if(Number.isFinite(o._lastHp)&&o.hp<o._lastHp-1e-6)o.roused=8;o._lastHp=o.hp;
@@ -503,7 +509,7 @@
       // Brood carrier: a clutch of hatchlings when the player comes near, at most six alive per carrier.
       if(sp.brood){o.broodClock=(o.broodClock??2)-dt;if(o.broodClock<=0&&dp<620&&!this._nurseryCalm()){o.broodClock=9;const alive=s.organisms.filter(v=>!v.dead&&v.parentId===o.id).length;for(let i=0;i<Math.min(3,6-alive);i++){const a=this.range(0,TAU),h=this._organism('swarmer',o.x+Math.cos(a)*o.r,o.y+Math.sin(a)*o.r,{species:'hatchling',home:o.home,biome:o.biome,tier:o.tier});h.parentId=o.id;}this._particles(o.x,o.y,'#f2a7c4',14,80);}}
       // Leviathan: swallows smaller life it swims through; touching it hurts.
-      if(sp.devour){for(const v of s.organisms){if(v===o||v.puppet||v.dead||v.bossId||v.nestId||(v.species&&SPECIES[v.species].rarity==='legendary'))continue;if(distance(o,v)<o.r*.75+v.r){v.dead=true;o.hp=Math.min(o.maxHp,o.hp+v.maxHp*.2);this._particles(v.x,v.y,'#d6a6ad',6,50);}}if(dp<o.r*.7+p.r&&s.status==='playing')this._damagePlayer((30+Math.min(o.tier,5)*3)*Math.pow(o.scale||1,SIZE_POWER),o);}
+      if(sp.devour){for(const v of s.organisms){if(v===o||v.puppet||v.dead||v.bossId||v.nestId||(v.species&&SPECIES[v.species].rarity==='legendary'))continue;if(distance(o,v)<o.r*.75+v.r){v.dead=true;o.hp=Math.min(o.maxHp,o.hp+v.maxHp*.2);this._particles(v.x,v.y,'#d6a6ad',6,50);}}if(dp<o.r*.7+p.r&&s.status==='playing')this._damagePlayer((30+Math.min(o.tier,5)*3)*Math.pow(o.scale||1,SIZE_POWER)*clamp(o.might||1,1,2),o);}
       // Abyssal maw: a wind-up, then a vortex that drags everything towards the mouth. Fast swim resists most of it.
       if(sp.vortex){
         if(o.vortexTime>0){o.vortexTime=Math.max(0,o.vortexTime-dt);const reach=560;
@@ -633,7 +639,7 @@
     _claimLandmark(l){
       if(!l||l.claimed||this._claimed.has(l.id))return false;
       const s=this.state,p=s.player;this._discoverLandmark(l);l.claimed=true;l.progress=l.goal;this._claimed.add(l.id);s.claimedLandmarks.push(l.id);s.stats.encounters++;
-      const reward=l.type==='nest'?this._challengeReward():0,scoreReward=120+reward*40,biomassReward=Math.round(this._divisionShare(l.type.startsWith('wonder')?.35:l.type==='fossil'?.09:l.type==='geneCache'?.09:l.type==='nest'?.2:l.type==='carcass'||l.type==='garden'||l.type==='smoker'?.07:l.type==='vault'?.05:0)*clamp(1+.12*(waterLevel(l.x,l.y)-s.player.stage),.04,1));s.score+=scoreReward;this._recordLandmark(l);
+      const reward=l.type==='nest'?this._challengeReward():0,scoreReward=120+reward*40,biomassReward=Math.round(this._divisionShare(l.type.startsWith('wonder')?.35:l.type==='fossil'?.09:l.type==='geneCache'?.09:l.type==='nest'?.2:l.type==='carcass'||l.type==='garden'||l.type==='smoker'?.07:l.type==='vault'?.05:0)*gapWorth(waterLevel(l.x,l.y)-s.player.stage));s.score+=scoreReward;this._recordLandmark(l);
       const descriptions={bloom:'The bloom released a rich cloud of nutrients.',sanctuary:'A safe refuge. Its restorative field remains available.',geneCache:'Ancient nutrients add biomass to your colony.',nest:'The nest is clear. Its genetic rewards are yours.',current:'You learned to ride this current. It still flows through the pond.',carcass:'You fed on the fallen giant before the scavengers stripped it.',garden:'You grazed the heart of the garden through the toxin.',fossil:'',vault:'',smoker:'You fed on the minerals pouring from the smoker, between its vents.',shell:'A hiding place. Predators cannot see you inside it while you are not fighting.'};
       if(l.type==='vault'){const all=Object.keys(MUTATION_SOURCE).filter(k=>!(SPECIES[MUTATION_SOURCE[k]]&&SPECIES[MUTATION_SOURCE[k]].rarity==='legendary')),cap=clamp(1+Math.floor(waterLevel(l.x,l.y)/6),2,4),pool=all.filter(k=>(p.mutationTiers[k]??-1)<cap),key=pool.length?pool[Math.floor(this.random()*pool.length)]:'';descriptions.vault=key?'The vault opened and gave up '+TIERS[cap].toLowerCase()+' '+MUTATIONS[key].name.toLowerCase()+'.':'The vault opened, but it holds nothing better than you already carry.';if(key)this._findMutation(key,cap,'Glass vault');}
       if(l.type==='fossil'){const pool=Object.keys(MUTATION_SOURCE).filter(k=>(p.mutationTiers[k]??-1)<2),key=pool.length?pool[Math.floor(this.random()*pool.length)]:'';descriptions.fossil=key?'You drew '+MUTATIONS[key].name.toLowerCase()+' from the ancient genome.':'Its genome holds nothing you have not found.';if(key)this._findMutation(key,2,'Ancient fossil');}
@@ -670,7 +676,7 @@
     _openCarcass(l){
       const s=this.state,p=s.player,tier=this._tierAt(l.x,l.y);l.active=true;
       for(let i=0;i<34;i++){const a=this.range(0,TAU),rr=Math.sqrt(this.random())*l.r*.8;this._food(l.x+Math.cos(a)*rr,l.y+Math.sin(a)*rr,'protein',undefined,l.home,l.biome);}
-      for(const [kind,offset] of [['armoured',0],['armoured',2.2],['hunter',4.1]]){const a=Math.atan2(p.y-l.y,p.x-l.x)+Math.PI+offset,[ox,oy]=this._offscreen(l.x+Math.cos(a)*(kind==='hunter'?330:400),l.y+Math.sin(a)*(kind==='hunter'?330:400),220),o=this._organism(kind,ox,oy,{biome:l.biome,tier:tier+1});o.fedTime=0;o.pursuit=4;o.lastSeenX=l.x;o.lastSeenY=l.y;o.angle=Math.atan2(l.y-oy,l.x-ox);}
+      for(const [kind,offset] of [['armoured',0],['armoured',2.2],['hunter',4.1]]){const a=Math.atan2(p.y-l.y,p.x-l.x)+Math.PI+offset,[ox,oy]=this._offscreen(l.x+Math.cos(a)*(kind==='hunter'?330:400),l.y+Math.sin(a)*(kind==='hunter'?330:400),220),o=this._organism(kind,ox,oy,{biome:l.biome,tier:tier});o.fedTime=0;o.pursuit=4;o.lastSeenX=l.x;o.lastSeenY=l.y;o.angle=Math.atan2(l.y-oy,l.x-ox);}
       this._recordLandmark(l);this._event('warning',{message:'The scent of the fallen giant is spreading. Something is coming to feed.',x:l.x,y:l.y});
     }
     _feedAtLandmark(f){
@@ -811,7 +817,7 @@
       const l=this._hermitSanctuary(),s=this.state,p=s.player;if(!l)return false;const i=s.tasks.findIndex(x=>x.from===l.id&&x.done);if(i<0)return false;const b=s.tasks.splice(i,1)[0];s.stats.bounties=(s.stats.bounties||0)+1;this._lastThanks=(TASK_THANKS[b.kind]||'Thank you.').replace(/them/g,b.pro||'them');this._offer=null;
       {const h=s.stats.helped||(s.stats.helped={});h[l.id]=Math.min(HERMIT_TASKS,(h[l.id]||0)+1);}
       const cap=MorphosGame.taskTier(b),pool=Object.keys(MUTATION_SOURCE).filter(k=>MUTATIONS[k]&&(p.mutationTiers[k]??-1)<cap),key=pool.length?pool[Math.floor(this.random()*pool.length)]:'';
-      const had=key?p.mutationTiers[key]:undefined;if(key)this._findMutation(key,cap,b.hermit);this._grantBiomass(Math.round(this._divisionShare(.15)));s.score+=200;
+      const had=key?p.mutationTiers[key]:undefined;if(key)this._findMutation(key,cap,b.hermit);this._grantBiomass(Math.round(this._divisionShare(.15)*gapWorth((b.zone||0)-p.stage)));s.score+=200;
       this.lastReward={key,tier:cap,upgrade:had!==undefined,last:this.hermitHelped(l.id)>=HERMIT_TASKS,hermit:b.hermit};
       this._event('bountyDone',{hermit:b.hermit,title:b.title,reward:key?TIERS[cap]+' '+MUTATIONS[key].name.toLowerCase():''});return true;
     }
@@ -858,7 +864,7 @@
             else if(!out.length&&d>l.r+420&&!s.bossEncounter){const young=this._nestInside(l).filter(slot=>slot>0);if(young.length&&this.random()<.5)this._nestEmerge(l,young[Math.floor(this.random()*young.length)]);clocks.set(l.id,s.time+this.range(5,11));}
           }
         }
-        if(l.type==='sanctuary'&&d<l.r){l.active=true;const safe=p.refugeCombatTime===0&&p.regenDelay===0&&!sanctuaryThreat(s);if(safe){p.hp=Math.min(p.maxHp,p.hp+dt*(3+l.variant));p.nutrition=Math.min(p.maxNutrition,p.nutrition+dt*8);}p.energy=Math.min(p.maxEnergy,p.energy+dt*6);this._recoverEnergy();if(!l.claimed){l.progress=Math.min(l.goal,l.progress+dt);if(l.progress>=l.goal)this._claimLandmark(l);}this._restAtSanctuary(l,dt);}
+        if(l.type==='sanctuary'&&d<l.r){l.active=true;const safe=p.refugeCombatTime===0&&p.regenDelay===0&&!sanctuaryThreat(s);if(safe){p.hp=Math.min(p.maxHp,p.hp+dt*p.maxHp*(.03+.01*l.variant));p.nutrition=Math.min(p.maxNutrition,p.nutrition+dt*8);}p.energy=Math.min(p.maxEnergy,p.energy+dt*6);this._recoverEnergy();if(!l.claimed){l.progress=Math.min(l.goal,l.progress+dt);if(l.progress>=l.goal)this._claimLandmark(l);}this._restAtSanctuary(l,dt);}
         if(l.type==='current'&&d<l.r){l.active=true;p.x+=l.flowX*dt*(55+l.variant*12);p.y+=l.flowY*dt*(55+l.variant*12);if(!l.claimed&&length(p.vx,p.vy)>75){l.progress=Math.min(l.goal,l.progress+dt);if(l.progress>=l.goal)this._claimLandmark(l);}}
         if(l.type==='geneCache'&&!l.claimed&&d<l.r*.72){l.active=true;l.progress=Math.min(l.goal,l.progress+dt);if(l.progress>=l.goal)this._claimLandmark(l);}
         // Ancient fossil: rest in it to extract an ancient mutation.
@@ -898,8 +904,8 @@
       const next=this.nextBoss();if(next&&p.stage+1>=next.level)this._spawnBoss(next.type);
     }
     _spawnBoss(type){
-      const s=this.state,p=s.player,def=BOSSES[type],a=this.random()*TAU,r=p.r*def.size,far=Math.max(900+p.r*7,this._edge(a,r+140)),maxHp=def.hits*BOSS_HEALTH_UNIT*this._sizePower()*(1+COOP_BOSS_HEALTH*Math.min(COOP_PARTY_CAP,this._partyNear()));
-      s.bossEncounter={id:this._id++,type,name:def.name,phaseLabel:def.phases[0],x:p.x+Math.cos(a)*far,y:p.y+Math.sin(a)*far,r,scale:p.sizeScale||1,unit:100*this._sizePower()*(def.dmg||1),hp:maxHp,maxHp,phase:1,mode:'hunt',modeTime:0,angle:a+Math.PI,vx:0,vy:0,
+      const s=this.state,p=s.player,def=BOSSES[type],a=this.random()*TAU,bs=bossScale(type),r=22*bs*def.size,far=Math.max(900+p.r*7,this._edge(a,r+140)),maxHp=def.hits*BOSS_HEALTH_UNIT*bossPower(type)*(1+COOP_BOSS_HEALTH*Math.min(COOP_PARTY_CAP,this._partyNear()));
+      s.bossEncounter={id:this._id++,type,name:def.name,phaseLabel:def.phases[0],x:p.x+Math.cos(a)*far,y:p.y+Math.sin(a)*far,r,scale:bs,unit:100*bossPower(type)*(def.dmg||1),hp:maxHp,maxHp,phase:1,mode:'hunt',modeTime:0,angle:a+Math.PI,vx:0,vy:0,
         attackKind:'',attackAngle:0,attackHit:false,windup:0,windupMax:1,actTime:0,recoverTime:0,cooldown:3,chain:0,lungeSpeed:0,pullTime:0,ringDue:0,lastBirth:-99,nextMeal:0,lastSeenX:p.x,lastSeenY:p.y,lostTime:0,meals:0,feeding:false,healFlash:0,
         poison:0,poisonDamage:0,venomStacks:0,bleed:0,bleedDamage:0,huntCredit:0,flash:0,age:0,projectileTokens:[],heads:type==='hydra'?[-.8,0,.8].map(off=>this._hydraHead(off)):[]};
       this._event('bossAwakened',{bossType:type,name:def.name});return true;
@@ -977,7 +983,7 @@
         // Two or more levels outgrown, it does not lose the scent: left far behind, it comes up just off screen behind you.
         if(over>=2&&b.met&&!b.puppet&&dp>p.r*24+2200){const a=Math.atan2(b.y-p.y,b.x-p.x),far=Math.max(near+200,this._edge(a,b.r+140));b.x=p.x+Math.cos(a)*far;b.y=p.y+Math.sin(a)*far;b.vx=b.vy=0;}
         const hydraPace=b.type==='hydra'?(b.phase===1?.55:1.15):1,enraged=b.hp<b.maxHp*.25,pace=(b.phase===3?1.25:b.phase===2?1.1:1)*hydraPace*(enraged?1.12:1);
-        const speed=p.speed*def.speed*pace*(1+.12*Math.min(3,over))*clamp(1-.1*(b.tire||0),over?.75:.42,1)*(b.feeding?1.2:1)*(b.slowTime>0?.6:1);
+        const speed=bossCruise(b.type)*def.speed*pace*(1+.12*Math.min(3,over))*clamp(1-.1*(b.tire||0),over?.75:.42,1)*(b.feeding?1.2:1)*(b.slowTime>0?.6:1);
         this._bossSteer(b,tx,ty,speed,dt,def.turn);
         if(!decoy&&!b.feeding&&!hidden&&b.cooldown<=0)this._bossChoose(b,dp);
       }else this._bossAct(b,dt);
@@ -986,7 +992,7 @@
       {const d=distance(b,p)||1,wall=b.r*.8+p.r*.6;if(b.mode!=='transform'&&d<wall){const nx=(p.x-b.x)/d,ny=(p.y-b.y)/d,gap=(wall-d)*.7;p.x+=nx*gap;p.y+=ny*gap;const into=-(p.vx*nx+p.vy*ny);if(into>0){p.vx+=nx*into;p.vy+=ny*into;}}}
       const away=Math.atan2(p.y-b.y,p.x-b.x),facing=Math.abs(Math.atan2(Math.sin(away-b.angle),Math.cos(away-b.angle))),touching=b.mode!=='transform'&&distance(b,p)<b.r*.82+p.r*.6+2;
       // A fast-swimming ram lands on a boss as on anything else, and bounces you off; only an open boss can't hurt you back.
-      if(touching&&p.sprinting&&s.time-(b.ramAt||0)>1.2){b.ramAt=s.time;p.refugeCombatTime=3;const rt=p.traits.riptide||0;this._hitBoss(p.attack*this._rankPower()*(.5+rt*.3)*(rt>=5?1.25:1)*(1+p.momentum*.25)*(1+.3*this._pk('jetSac'))*1.4,{family:'riptide'});this._xp('riptide',8);this._awaken('riptide','ram');p.momentum=0;p.vx+=Math.cos(away)*360;p.vy+=Math.sin(away)*360;this._effect(p.x,p.y,'hit',Math.min(10000,p.r*2),'#95dafa',.3);if(!s.bossEncounter||s.status!=='playing'||s.pendingEvolution)return;if(b.mode==='recover')return;}
+      if(touching&&p.sprinting&&s.time-(b.ramAt||0)>1.5){b.ramAt=s.time;p.refugeCombatTime=3;const rt=p.traits.riptide||0;this._hitBoss(p.attack*this._classPower('riptide')*(.5+rt*.25)*(rt>=5?1.25:1)*(1+p.momentum*.25)*(1+.3*this._pk('jetSac')),{family:'riptide'});this._xp('riptide',8);this._awaken('riptide','ram');p.momentum=0;p.vx+=Math.cos(away)*360;p.vy+=Math.sin(away)*360;this._effect(p.x,p.y,'hit',Math.min(10000,p.r*2),'#95dafa',.3);if(!s.bossEncounter||s.status!=='playing'||s.pendingEvolution)return;if(b.mode==='recover')return;}
       // Brushing its flank or tail is safe; its front half is its mouth.
       this._bossTouch=Math.max(0,(this._bossTouch||0)-dt);if(touching&&facing<1.25&&!(this._bossTouch>0)&&this._bossHitPlayer(b,b.unit*def.contact,away)){this._bossTouch=1.1;p.invulnerable=Math.min(p.invulnerable,.3);}
     }
@@ -1031,7 +1037,7 @@
       else if(k==='slam'){b.actTime=.28;b.lungeSpeed=b.r*1.7/.28;}
       else if(k==='sweep'){b.actTime=.22;const reach=b.r*2,half=.8,dx=p.x-b.x,dy=p.y-b.y,d=Math.hypot(dx,dy)||1,off=Math.abs(Math.atan2(Math.sin(Math.atan2(dy,dx)-a),Math.cos(Math.atan2(dy,dx)-a)));
         if(d<reach+p.r&&off<half+Math.atan2(p.r,d))b.attackHit=this._bossHitPlayer(b,u*.16,a);this._effect(b.x,b.y,'bite',Math.min(10000,reach),def.colour,.34,{angle:Math.atan2(Math.sin(a),Math.cos(a)),halfAngle:half,body:Math.min(5000,b.r)});}
-      else if(k==='birth'){b.actTime=.4;b.lastBirth=b.age;const n=b.phase===1?2:3;for(let i=0;i<n;i++){const ang=b.angle+Math.PI+(i-(n-1)/2)*.7,o=this._organism('hunter',b.x+Math.cos(ang)*b.r*.95,b.y+Math.sin(ang)*b.r*.95,{scale:(p.sizeScale||1)*.85,home:this._home(b.x,b.y),young:true});o.bossId=b.id;o.hue=330;o.vx=Math.cos(ang)*220;o.vy=Math.sin(ang)*220;o.cooldown=1.2;}this._effect(b.x,b.y,'burst',Math.min(10000,b.r*1.5),def.colour,.5);}
+      else if(k==='birth'){b.actTime=.4;b.lastBirth=b.age;const n=b.phase===1?2:3;for(let i=0;i<n;i++){const ang=b.angle+Math.PI+(i-(n-1)/2)*.7,o=this._organism('hunter',b.x+Math.cos(ang)*b.r*.95,b.y+Math.sin(ang)*b.r*.95,{scale:(b.scale||1)*.85,home:this._home(b.x,b.y),young:true});o.bossId=b.id;o.hue=330;o.vx=Math.cos(ang)*220;o.vy=Math.sin(ang)*220;o.cooldown=1.2;}this._effect(b.x,b.y,'burst',Math.min(10000,b.r*1.5),def.colour,.5);}
       else if(k==='spores'){b.actTime=.3;for(let i=0;i<7;i++)this._bossShot(b,a+(i-3)*.15,150*ss,10*ss,u*.07,3.4,'#d9a6d8');}
       else if(k==='rings'){b.actTime=.3;this._bossRing(b);}
       else if(k==='tendrils'){b.actTime=.3;for(let i=0;i<6;i++)this._bossShot(b,a+(i-2.5)*.2,280*ss,9*ss,u*.07,1.7,'#b9e3ab');}
@@ -1127,7 +1133,7 @@
       }
       // Commit the unique reward before any biomass can trigger a division.
       const first=!p.genomes.includes(b.type);if(first)p.genomes.push(b.type);s.stats.encounters++;s.stats.bosses++;
-      const reward=first?this._awardPoints(def.reward,'elder'):0;s.score+=1500*(BOSS_ORDER.indexOf(b.type)+1);s.biomass+=this._divisionShare(.4);
+      const reward=first?this._awardPoints(def.reward,'elder'):0;s.score+=1500*(BOSS_ORDER.indexOf(b.type)+1);s.biomass+=this._divisionShare(.4)*gapWorth((BOSSES[b.type].level-1)-s.player.stage);
       s.bossLog.push({type:b.type,name:b.name,time:s.time,first,reward});if(s.bossLog.length>40)s.bossLog.shift();this._clearBossDependants(b.id);s.bossEncounter=null;
       p.hp=p.maxHp;p.energy=p.maxEnergy;p.exhausted=false;p.recoveryProgress=1;p.nutrition=p.maxNutrition;p.invulnerable=3;p.growthBlockedStage=-1;
       this._effect(b.x,b.y,'bossDeath',Math.min(10000,b.r*2),def.colour,1.5);this._particles(b.x,b.y,def.colour,40,160);this._findMutation(def.mutationKey,BOSS_MUTATION_TIER[b.type],b.name);
@@ -1147,7 +1153,7 @@
         if(RARE_LANDMARKS.includes(l.type)){if(d<rareD){rareD=d;rare=l;}}else if(r<=3&&d<otherD&&['geneCache','nest','carcass','garden','bloom'].includes(l.type)){otherD=d;other=l;}}
       const l=rare||other;return l?{id:l.id,x:l.x,y:l.y,r:l.r,type:l.type,rare:!!rare}:null;
     }
-    _checkObjective(){const s=this.state,o=s.objective;if(!o)return;o.progress=Math.min(o.target,Math.max(0,s.stats[o.stat]-o.start));if(o.progress>=o.target){s.stats.objectives++;s.score+=o.scoreReward;const biomassReward=Math.round(this._divisionShare(.03)*clamp(1+.12*(waterLevel(s.player.x,s.player.y)-s.player.stage),.04,1));s.lead=this._studyLead();this._event('objective',{title:o.title,reward:0,scoreReward:o.scoreReward,biomassReward,id:o.id,lead:s.lead?{rare:s.lead.rare,dx:s.lead.x-s.player.x,dy:s.lead.y-s.player.y}:null});s.objectiveIndex++;this._newObjective();this._grantBiomass(biomassReward);}}
+    _checkObjective(){const s=this.state,o=s.objective;if(!o)return;o.progress=Math.min(o.target,Math.max(0,s.stats[o.stat]-o.start));if(o.progress>=o.target){s.stats.objectives++;s.score+=o.scoreReward;const biomassReward=Math.round(this._divisionShare(.03)*gapWorth(waterLevel(s.player.x,s.player.y)-s.player.stage));s.lead=this._studyLead();this._event('objective',{title:o.title,reward:0,scoreReward:o.scoreReward,biomassReward,id:o.id,lead:s.lead?{rare:s.lead.rare,dx:s.lead.x-s.player.x,dy:s.lead.y-s.player.y}:null});s.objectiveIndex++;this._newObjective();this._grantBiomass(biomassReward);}}
     _derive(){
       const p=this.state.player,t=p.traits,u=p.attributes,power=k=>t[k]+Math.log2(1+p.mastery[k])*.35;
       const g=power('venomist'),h=power('predator'),w=power('riptide'),d=power('summoner'),k=power('stalker'),growth=8*Math.log2(1+p.stage);
@@ -1171,7 +1177,7 @@
       else if(p.strike==='spores'){p.pulseCooldownMax=.7*(1-.08*wk);p.strikeReach=p.r+reachBase*1.15;p.strikeWidth=7;p.strikeDamage=.6*wp;}
       else if(p.strike==='stalker'){p.pulseCooldownMax=.8*(1-.08*wk);p.strikeReach=p.r+reachBase*4;p.strikeWidth=0;p.strikeDamage=1.35*wp;}
       else{p.strikeReach=p.pulseRadius;p.strikeWidth=0;p.strikeDamage=1;}p.parryWindow=.9;p.parryRadius=p.r+28*F;p.blockCost=10;p.blockCooldownMax=1.9;
-      p.sprintDrain=Math.max(12,25-w*1.25-u.mobility*.35);p.sprintSpeed=p.speed*(2.25+w*.035);p.sprintDrain*=1-Math.min(.6,.25*this._mp('whipFlagellum'));p.sprintSpeed*=1+.04*this._pk('whipFlagellum');p.sprintDrain*=1-.08*Math.min(3,this._pk('keelFin'));p.sprintSpeed*=1+.15*this._mp('jetSac');p.effectiveSprintDrain=p.sprintDrain*(p.slipstreamTime>0?.55:1);
+      p.sprintDrain=Math.max(12,25-w*1.25-u.mobility*.35);p.sprintSpeed=p.speed*(2.25+w*.035);p.sprintDrain*=1-Math.min(.6,.25*this._mp('whipFlagellum'));p.sprintSpeed*=1+.04*this._pk('whipFlagellum');p.sprintDrain*=1-.08*Math.min(3,this._pk('keelFin'));p.sprintSpeed*=1+.15*this._mp('jetSac');p.effectiveSprintDrain=p.sprintDrain;
       p.regeneration=p.maxHp*(.0045+u.recovery*.0012);p.energyRegeneration=17+w*2.2+u.recovery*1.5;
       p.resistance=.15*this._mp('chitinPlates');{const tn=this._mp('twinNucleus');p.maxHp*=1+.2*tn;p.regeneration*=1+.25*tn;}p.nutritionDrain=.75+Math.min(p.stage,8)*.12;
       p.concealRate=(1.45+k*.3)*(this._fork('stalker',2)==='a'?1.3:1);p.sneakDrain=Math.max(.7,3.5-k*.35)*(1-.12*Math.min(3,this._pk('lateralLine')));p.landmarkSense=(260+u.reach*25)*(1+.5*this._mp('eyespot'));
@@ -1266,11 +1272,11 @@
         p.specialTime=.6;p.refugeCombatTime=3;this._breakStealth();const count=(rank?3:2)+(this._fork('venomist',2)==='a'?2:0),token=this._id++,stacks=1+(rank>=3?1:0);
         for(let i=0;i<count;i++){const dir=a+(i-(count-1)/2)*.13;s.projectiles.push({id:this._id++,x:p.x+Math.cos(dir)*(p.r+8),y:p.y+Math.sin(dir)*(p.r+8),vx:Math.cos(dir)*400,vy:Math.sin(dir)*400,r:5+rank,life:1.2+rank*.1,damage:(8+rank*4)*size*novice*(1+p.attributes.power*.08),venom:stacks,rupture:rank>=1,seek:true,family:'venomist',attackToken:token+i,owner:'player',colour});}
       }
-      if(trait==='predator'){const reach=(260+rank*30)*(rank?1:.8);p.pounceTime=.26;p.pounceDamage=p.attack*this._rankPower()*(2.4+rank*.4)*(rank>=5?1.25:1)*novice;p.surgeTime=0;p.vx=Math.cos(a)*reach/.26;p.vy=Math.sin(a)*reach/.26;p.angle=a;p.invulnerable=Math.max(p.invulnerable,.2);p.specialTime=.26;this._breakStealth();}
+      if(trait==='predator'){const reach=(260+rank*30)*(rank?1:.8);p.pounceTime=.26;p.pounceDamage=p.attack*this._classPower('predator')*(2.4+rank*.4)*(rank>=5?1.25:1)*novice;p.surgeTime=0;p.vx=Math.cos(a)*reach/.26;p.vy=Math.sin(a)*reach/.26;p.angle=a;p.invulnerable=Math.max(p.invulnerable,.2);p.specialTime=.26;this._breakStealth();}
       if(trait==='riptide'){
         // Whirlpool: a vortex where you are. Wide pull reaches further and holds bigger creatures; Grinding current hurts what it holds;
         // Maelstrom hurts what the release throws; Eye of the storm is checked while you are inside it; rank V grips a boss for 1 s.
-        const wide=this._fork('riptide',2)==='a',R=(p.r+170)*(wide?1.35:1)*(rank?1:.85),life=(3+(rank>=3?1:0))*(rank?1:.75),power=p.attack*this._rankPower();
+        const wide=this._fork('riptide',2)==='a',R=(p.r+170)*(wide?1.35:1)*(rank?1:.85),life=(3+(rank>=3?1:0))*(rank?1:.75),power=p.attack*this._classPower('riptide');
         if(!s.vortices)s.vortices=[];s.vortices=s.vortices.filter(v=>v.remote);
         s.vortices.push({x:p.x,y:p.y,R,life,maxLife:life,holdR:p.r*(wide?1:.8),grind:this._fork('riptide',2)==='b'?power*.5:0,slam:this._fork('riptide',4)==='a'?power*1.6:0,grip:rank>=5?1:0,spin:0,tick:.5});
         p.specialTime=life;this._breakStealth();this._event('whirlpool',{x:p.x,y:p.y});
@@ -1320,11 +1326,13 @@
       // more biomass as it grows (matching what the old, wider body gathered). Kills use the same rule, which also pays for tougher prey.
       const s=this.state,p=s.player,cells=Math.min(p.stage+1,MAX_BODY_CELLS),pace=Math.pow(cells,(.5-BODY_GROWTH)*1.45);s.biomass+=value*p.assimilation*pace;
       p.combo=s.time-this._lastEat<2.4?Math.min(12,p.combo+1):1;this._lastEat=s.time;s.score+=Math.round(value*8)+Math.min(p.combo,6);
-      p.nutrition=Math.min(p.maxNutrition,p.nutrition+value*(kind==='protein'?6:kind==='algae'?3.2:1.8));
+      // Refills (nutrition, stamina, the small algae heal) follow the food's own kind, not how deep it grew: deep food is worth more growth, not more filling.
+      const raw=value/waterPower(p.x,p.y);
+      p.nutrition=Math.min(p.maxNutrition,p.nutrition+raw*(kind==='protein'?6:kind==='algae'?3.2:1.8));
       if(kind==='algae'||kind==='protein')p.feedingRecovery=6;
       // Eating feeds growth and recovery only; it earns no class experience.
-      if(kind==='algae')p.hp=Math.min(p.maxHp,p.hp+Math.min(value,3)*.15);
-      else if(kind==='protein')p.energy=Math.min(p.maxEnergy,p.energy+value*1.6);
+      if(kind==='algae')p.hp=Math.min(p.maxHp,p.hp+p.maxHp*.0015*Math.min(raw,3));
+      else if(kind==='protein')p.energy=Math.min(p.maxEnergy,p.energy+raw*1.6);
       else p.energy=Math.min(p.maxEnergy,p.energy+5);
       this._recoverEnergy();if(!s.pendingEvolution&&s.biomass>=s.nextDivision)this._divide();
     }
@@ -1365,7 +1373,7 @@
     }
     _frenzyBoost(){const p=this.state.player;return 1+(p.frenzy||0)*.08;}
     // Riptide: moving fast enough for a close call to count.
-    _fastNow(){const p=this.state.player;return p.sprinting||(p.surgeTime||0)>0||(p.slipstreamTime||0)>0||(p.pounceTime||0)>0;}
+    _fastNow(){const p=this.state.player;return p.sprinting||(p.pounceTime||0)>0;}
     _nearMissReach(){return 46+((this.state.player.traits.riptide||0)>=3?24:0);}
     _nearMiss(src){
       const s=this.state,p=s.player;if(s.time-(p.nearMissAt??-9)<.35)return;p.nearMissAt=s.time;
@@ -1399,13 +1407,13 @@
     _rupture(o){
       const s=this.state,p=s.player,stacks=o.venomStacks||0;if(!stacks||o.dead)return;const r=p.traits.venomist||0,share=this._fork('venomist',4)==='a'?stacks:Math.ceil(stacks/2);
       o.venomStacks=0;o.poison=0;o.poisonDamage=0;s.stats.ruptures++;this._xp('venomist',4+stacks*2);const token=this._id++;
-      this._hit(o,stacks*((4+r*2)*this._sizePower()*(1+p.attributes.power*.08)+p.attack*this._rankPower()*.15),0,0,{token,noCritical:true,family:'venomist'});
+      this._hit(o,stacks*((4+r*2)*this._sizePower()*(1+p.attributes.power*.08)+p.attack*this._classPower('venomist')*.15),0,0,{token,noCritical:true,family:'venomist'});
       for(const v of s.organisms){if(v===o||v.dead||v.bossId||distance(v,o)>o.r+v.r+110)continue;this._addVenom(v,share);}
       this._effect(o.x,o.y,'burst',o.r+110,'#b7ef91',.5);this._particles(o.x,o.y,'#c9f08f',14,120);this._event('rupture',{stacks,x:o.x,y:o.y});
     }
     // Brood: daughter cells that follow you and fight what you strike. Permanent broodlings bud back over time;
     // Swarm adds short-lived ones. Broodlings are not saved: they bud back when a life is loaded.
-    _broodStats(){const p=this.state.player,r=p.traits.summoner||0,soldier=this._fork('summoner',2)==='a';return{hp:(18+r*8)*this._sizePower()*(soldier?1.6:1),damage:p.attack*this._rankPower()*(.2+.09*r)*(soldier?1.4:1)*(r?1:.75),r:Math.max(7,p.r*.26)};}
+    _broodStats(){const p=this.state.player,r=p.traits.summoner||0,soldier=this._fork('summoner',2)==='a';return{hp:(18+r*8)*this._sizePower()*(soldier?1.6:1),damage:p.attack*this._classPower('summoner')*(.2+.01*r)*(soldier?1.4:1)*(r?1:.75),r:Math.max(7,p.r*.26)};}
     _bud(life){
       const s=this.state,p=s.player,st=this._broodStats(),a=this.random()*TAU;
       s.brood.push({id:this._id++,x:p.x+Math.cos(a)*(p.r+st.r+4),y:p.y+Math.sin(a)*(p.r+st.r+4),vx:0,vy:0,r:st.r,hp:st.hp,maxHp:st.hp,life,cd:.4,phase:a});
@@ -1568,7 +1576,7 @@
       if(o.elder&&earned){s.stats.elders=(s.stats.elders||0)+1;s.score+=400;this._event('elderSlain',{name:o.elderName,x:o.x,y:o.y,count:s.stats.elders,marked:String(o.elderHome||'').startsWith('bounty:')});}
       if(consumed&&this._hasMutation('devourerGullet')){p.hp=Math.min(p.maxHp,p.hp+p.maxHp*.05*this._mp('devourerGullet'));p.energy=Math.min(p.maxEnergy,p.energy+6*this._pk('devourerGullet'));}if(consumed&&this._hasMutation('engulfingMembrane')){p.hp=Math.min(p.maxHp,p.hp+p.maxHp*.03*this._mp('engulfingMembrane'));const em=this._pk('engulfingMembrane');if(em)for(const f of FAMILIES)p.abilityCooldowns[f]=Math.max(0,p.abilityCooldowns[f]-em);}if(this._hasMutation('regrowingOrgans'))for(const f of FAMILIES)p.abilityCooldowns[f]=Math.max(0,p.abilityCooldowns[f]-1.5*this._mp('regrowingOrgans'));p.energy=Math.min(p.maxEnergy,p.energy+3*this._pk('regrowingOrgans'));
       if(sp&&sp.challenge){s.stats.elites++;let reward=0;for(let i=0;i<sp.challenge;i++)reward+=this._challengeReward();this._event('eliteDefeated',{name:sp.name,species:o.species,rarity:sp.rarity,reward,rewardSource:reward?'challenge':'',scoreReward:sp.score||RARITY_SCORE[sp.rarity]});}this._gain(value*(o.bossId?.3:1)*(o.elder?4:1)*(Number.isFinite(o.lv)&&!o.bossId?gapWorth(o.lv-p.stage):1)*(this.coop&&!o.bossId?clamp((o.credit||0)/Math.max(1,o.maxHp)*1.25,.08,1):1)*(consumed||assist?1:.55),'protein');}else this._particles(o.x,o.y,'#c9eeca',14,80);
-      if(!consumed&&!assist){const n=sp&&sp.rarity==='legendary'?14:sp&&sp.rarity==='rare'?6:3,spread=15+(n>3?o.r*.35:0);for(let i=0;i<n;i++){const a=i*TAU/n;this._food(o.x+Math.cos(a)*spread,o.y+Math.sin(a)*spread,sp&&sp.drops?sp.drops:o.kind==='armoured'||o.kind==='sentinel'?'mineral':'protein',value*(n>3?.6/n*3:.15),o.home,o.biome);}}
+      if(!consumed&&!assist){const n=sp&&sp.rarity==='legendary'?14:sp&&sp.rarity==='rare'?6:3,spread=15+(n>3?o.r*.35:0);for(let i=0;i<n;i++){const a=i*TAU/n;this._food(o.x+Math.cos(a)*spread,o.y+Math.sin(a)*spread,sp&&sp.drops?sp.drops:o.kind==='armoured'||o.kind==='sentinel'?'mineral':'protein',value*(n>3?.6/n*3:.15)/waterPower(o.x,o.y),o.home,o.biome);}}
       if(sp&&sp.escort)for(const v of s.organisms)if(v.leaderId===o.id){v.leaderId=0;v.flee=3;v.pursuit=0;}
       // Splitter: the first death divides it into two smaller copies that do not split again.
       if(sp&&sp.splits&&!o.split&&!consumed&&!assist)for(const side of [-1,1]){const a=(o.angle||0)+side*Math.PI/2,c=this._organism(o.kind,o.x+Math.cos(a)*o.r*.6,o.y+Math.sin(a)*o.r*.6,{species:o.species,home:o.home,biome:o.biome,tier:o.tier});c.split=true;c.r=o.r*.66;c.maxHp=c.hp=o.maxHp*.35;c.flee=.4;c.vx=Math.cos(a)*120;c.vy=Math.sin(a)*120;}
@@ -1594,7 +1602,7 @@
         // Murk: once, below half health, it blinks away in ink.
         if(sp.blink&&!o.blinked&&o.hp<o.maxHp*.5){if(o.windup>0||o.lungeTime>0)this._recoverAttack(o);const a=Math.atan2(o.y-p.y,o.x-p.x)+this.range(-.6,.6);this._particles(o.x,o.y,'#2a2340',26,80);o.x+=Math.cos(a)*190;o.y+=Math.sin(a)*190;o.vx=o.vy=0;o.blinked=true;o.flee=2.2;o.cloak=2.4;this._event('blink',{x:o.x,y:o.y});}
         // Thornback: striking its spines up close costs some health, except while it recovers from a charge.
-        if(sp.thorns&&!options.defence&&o.recoverTime===0&&actual>0&&distance(o,p)<o.r+p.r+140)this._damagePlayer(Math.min(30*this._sizePower(),actual*sp.thorns),o);
+        if(sp.thorns&&!options.defence&&o.recoverTime===0&&actual>0&&distance(o,p)<o.r+p.r+140)this._damagePlayer(Math.min(30*Math.pow(o.scale||1,SIZE_POWER),actual*sp.thorns),o);
       }
       if(o.hp<=0)this._kill(o);return true;
     }
@@ -1605,7 +1613,8 @@
     }
     _weapon(){return this.state.player.mutations.find(k=>MUTATIONS[k]&&MUTATIONS[k].weapon)||'';}
     // What lineage adds to abilities (never to the Strike): Predator and Riptide ranks make pounces, venom, broodlings and rams hit harder.
-    _rankPower(){const p=this.state.player,pw=k=>(p.traits[k]||0)+Math.log2(1+(p.mastery[k]||0))*.35;return (11+pw('predator')*3.5+pw('riptide')*2.6)/11;}
+    // A class move's strength: attack × its own class's power (rank, plus a little for mastery). One base for every class move.
+    _classPower(f){const p=this.state.player,pw=(p.traits[f]||0)+Math.log2(1+(p.mastery[f]||0))*.35;return 1+pw*3.5/11;}
     // Class ranks no longer colour the Strike: a strike is the weapon, and the weapon alone.
     _strikeTraits(){const out={};for(const f of FAMILIES)out[f]=0;return out;}
     strikeColour(){
@@ -1627,7 +1636,7 @@
       if(tr.summoner||ctx.shape==='summoner'||s.brood.length)p.broodTargetId=o.id;
       if(ctx.shape==='predator'){
         // Devour: a bite finishes creatures much smaller than you outright.
-        const gullet=this._fork('predator',2)==='b',limit=(gullet?.75:.55)+(.12*Math.min(1.3,this._mp('engulfingMembrane')));
+        const gullet=this._fork('predator',2)==='b',limit=(gullet?.75:.55)+(.15*Math.min(1.3,this._mp('engulfingMembrane')));
         if(!o.dead&&!o.bossId&&o.kind!=='sentinel'&&o.r<p.r*limit){o.hp=0;this._kill(o,true);p.hp=Math.min(p.maxHp,p.hp+p.maxHp*(gullet?.06:.02));this._event('devour',{});}
         if(!o.dead&&this._fork('predator',2)==='a'){o.bleed=3;o.bleedDamage=Math.min(1000,Math.max(o.bleedDamage||0,p.attack*.12));}
         if(this._fork('predator',4)==='b'&&p.frenzyMax&&p.frenzy>=p.frenzyMax)p.hp=Math.min(p.maxHp,p.hp+p.maxHp*.015);
@@ -1661,7 +1670,7 @@
       const s=this.state,p=s.player;if(p.strike==='pulse'||!p.strike)return this._pulse(aimX,aimY);
       if(p.pulseCooldown>0||!this._spendEnergy(p.pulseCost))return;
       p.pulseCooldown=p.pulseCooldownMax;p.refugeCombatTime=3;s.stats.pulses++;
-      const stored=this._hasMutation('storedImpact')?p.impactCharge:0,boost=p.slipstreamCharged?2.2:1;p.impactCharge=0;p.slipstreamCharged=false;if(stored>0)p.energy=Math.min(p.maxEnergy,p.energy+5*this._pk('storedImpact'));
+      const stored=this._hasMutation('storedImpact')?p.impactCharge:0,boost=1;p.impactCharge=0;p.slipstreamCharged=false;if(stored>0)p.energy=Math.min(p.maxEnergy,p.energy+5*this._pk('storedImpact'));
       const traits=this._strikeTraits(),ambush=p.stealth>.65,angle=pulseAngle(p,aimX,aimY),ax=Math.cos(angle),ay=Math.sin(angle),colour=this.strikeColour();
       this._strikeOrgans(angle);if(s.pendingEvolution)return;
       const ctx={shape:p.strike,family:p.strike,traits,token:this._id++,damage:(p.attack+stored)*boost*p.strikeDamage*this._frenzyBoost()*(ambush?1.65:1),ambush,ambushCredited:false,struck:[],healed:0};
@@ -1686,7 +1695,7 @@
     }
     _pulse(aimX,aimY){
       const s=this.state,p=s.player;if(p.pulseCooldown>0||!this._spendEnergy(p.pulseCost))return;
-      p.pulseCooldown=p.pulseCooldownMax;p.refugeCombatTime=3;s.stats.pulses++;const stored=this._hasMutation('storedImpact')?p.impactCharge:0,pulseBoost=p.slipstreamCharged?2.2:1,attackToken=this._id++;p.impactCharge=0;p.slipstreamCharged=false;if(stored>0)p.energy=Math.min(p.maxEnergy,p.energy+5*this._pk('storedImpact'));
+      p.pulseCooldown=p.pulseCooldownMax;p.refugeCombatTime=3;s.stats.pulses++;const stored=this._hasMutation('storedImpact')?p.impactCharge:0,pulseBoost=1,attackToken=this._id++;p.impactCharge=0;p.slipstreamCharged=false;if(stored>0)p.energy=Math.min(p.maxEnergy,p.energy+5*this._pk('storedImpact'));
       const ambush=p.stealth>.65;let ambushCredited=false;const struck=[];this._breakStealth();
       const angle=pulseAngle(p,aimX,aimY);this._grabStrike(angle);
       this._strikeOrgans(angle);if(s.pendingEvolution)return;
@@ -1756,7 +1765,7 @@
       if(p.nutrition<20&&!this._hungryWarned){this._hungryWarned=true;this._event('warning',{message:'Nutrition is low. Find algae or prey to keep your colony alive.'});}if(p.nutrition>40)this._hungryWarned=false;
       if(input.blockPressed||(input.block&&!p.blockHeld))this._block(aimX,aimY);p.blockHeld=!!input.block;
       if(input.ability)this._special(aimX,aimY,input.ability);if(input.pulse||input.pulsePressed)this._strike(aimX,aimY);if(s.pendingEvolution)return;
-      p.effectiveSprintDrain=p.sprintDrain*(p.slipstreamTime>0?.55:1);
+      p.effectiveSprintDrain=p.sprintDrain;
       p.sprinting=requestedSprint&&!p.exhausted&&p.energy>0;
       if(p.sprinting){p.energy=Math.max(0,p.energy-p.effectiveSprintDrain*dt);this._breakStealth(.7);p.sneaking=false;if(p.energy<1)this._exhaust();}
       
@@ -1764,7 +1773,7 @@
       if(p.sprinting&&s.organisms.some(o=>!o.dead&&(o.chasing||o.windup>0||o.lungeTime>0)&&isHostile(o)&&distance(o,p)<320))p.sprintDanger=true;
       if(!p.sprinting&&wasSprinting)this._finishSprint();
       const surging=(p.surgeTime||0)>0;
-      const follow=1-Math.exp(-dt*(p.sprinting?9:6.8)),speed=(p.sprinting?p.sprintSpeed:p.speed)*(1+(p.frenzy||0)*.05)*(1+(p.momentum||0)*.05)*(p.sneaking?.43+p.traits.stalker*.035:1)*(p.slipstreamTime>0?1.35+p.traits.riptide*.07:1)*(p.secondWindTime>0?1.55:1)*(this._eyeOfStorm()?1.25:1);
+      const follow=1-Math.exp(-dt*(p.sprinting?9:6.8)),speed=(p.sprinting?p.sprintSpeed:p.speed)*(1+(p.frenzy||0)*.05)*(1+(p.momentum||0)*.05)*(p.sneaking?.43+p.traits.stalker*.035:1)*(p.secondWindTime>0?1.55:1)*(this._eyeOfStorm()?1.25:1);
       if(surging){p.vx=p.surgeDX*p.surgeSpeed;p.vy=p.surgeDY*p.surgeSpeed;}else if(p.pounceTime>0){}else{p.vx+=(mx*speed-p.vx)*follow;p.vy+=(my*speed-p.vy)*follow;}const faceHeld=(p.faceTime||0)>0&&Number.isFinite(p.faceAngle);if(faceHeld){p.faceTime=Math.max(0,p.faceTime-dt);const diff=Math.atan2(Math.sin(p.faceAngle-p.angle),Math.cos(p.faceAngle-p.angle));p.angle+=diff*Math.min(1,dt*14);}
       const aimFace=!faceHeld&&input.faceAim&&Number.isFinite(input.aimX)&&Number.isFinite(input.aimY)&&Math.hypot(input.aimX-p.x,input.aimY-p.y)>1;if(m>.05&&!aimFace&&!faceHeld){const target=Math.atan2(my,mx),diff=Math.atan2(Math.sin(target-p.angle),Math.cos(target-p.angle));p.angle+=diff*Math.min(1,dt*10);}
       // Aiming an attack (input.faceAim) turns the body towards the aim, even while swimming another way, so Strikes leave from the front.
@@ -1896,7 +1905,7 @@
     }
     // Small enough to be food: you swim through it (and swallow it when you are not swimming fast).
     _edible(o){const p=this.state.player;return this._canEngulf(o,true)||(!o.bossId&&o.kind==='swarmer'&&o.r<p.r*.6);}
-    _canEngulf(o,anySpeed=false){const p=this.state.player;return (anySpeed||!p.sprinting)&&!o.bossId&&o.kind!=='apex'&&o.kind!=='jelly'&&o.kind!=='sentinel'&&o.r<p.r*((this._hasMutation('devourerGullet')?.95:.78)+(.2*Math.min(1.3,this._mp('engulfingMembrane')))+(this._fork('predator',4)==='a'?.08:0)+p.traits.predator*.035)&&((o.kind==='prey'||o.kind==='grazer')||o.hp<=o.maxHp*.4);}
+    _canEngulf(o,anySpeed=false){const p=this.state.player;return (anySpeed||!p.sprinting)&&!o.bossId&&o.kind!=='apex'&&o.kind!=='jelly'&&o.kind!=='sentinel'&&o.r<p.r*((this._hasMutation('devourerGullet')?.95:.78)+(.15*Math.min(1.3,this._mp('engulfingMembrane')))+p.traits.predator*.035)&&((o.kind==='prey'||o.kind==='grazer')||o.hp<=o.maxHp*.4);}
     _moveOrganisms(dt){
       const s=this.state,p=s.player;
       for(const o of s.organisms){if(s.pendingEvolution||s.status!=='playing')break;if(o.dead)continue;
@@ -1946,7 +1955,7 @@
         }
         const dp=distance(o,p),contact=p.r+o.r*.72;
         if(o.species&&!o.puppet){this._speciesTick(o,dt,dp);if(s.status!=='playing')return;if(o.dead)continue;}
-        if(o.kind==='jelly'&&dp<p.r+o.r*.85&&s.status==='playing'&&!o.stun){this._damagePlayer(((o.species&&SPECIES[o.species].sting||12)+Math.min(o.tier,5)*2.5)*Math.pow(o.scale||1,SIZE_POWER),o);if(s.status!=='playing')return;}
+        if(o.kind==='jelly'&&dp<p.r+o.r*.85&&s.status==='playing'&&!o.stun){this._damagePlayer(((o.species&&SPECIES[o.species].sting||12)+Math.min(o.tier,5)*2.5)*Math.pow(o.scale||1,SIZE_POWER)*clamp(o.might||1,1,2),o);if(s.status!=='playing')return;}
         if(dp<contact&&s.status==='playing'){
           if(this._canEngulf(o)){this._kill(o,true);if(s.pendingEvolution)return;continue;}
         }
@@ -1954,7 +1963,7 @@
         // bigger creature does not move at all. Food-sized creatures, jellies and anything latched on stay passable.
         if(s.status==='playing'&&!o.dead&&o.kind!=='jelly'&&!(o.latchTime>0)&&!this._edible(o)){
           const touch=p.r+o.r*.9-(p.sneaking?Math.min(p.r,o.r)*.25:0);
-          if(dp<touch+4&&p.sprinting&&s.time-o.ramAt>1.5){o.ramAt=s.time;p.refugeCombatTime=3;const d=dp||1,rt=p.traits.riptide||0,nx=(o.x-p.x)/d,ny=(o.y-p.y)/d;if(this._hit(o,p.attack*this._rankPower()*(.5+rt*.3)*(rt>=5?1.25:1)*(1+p.momentum*.25)*(1+.3*this._pk('jetSac')),nx,ny,{noXp:true})&&isHostile(o)){this._xp('riptide',8);this._awaken('riptide','ram');}p.momentum=0;p.vx-=nx*240;p.vy-=ny*240;if(this._hybrid('shoal'))p.broodTargetId=o.id;this._effect(o.x,o.y,'hit',o.r*1.4,'#95dafa',.3);if(s.pendingEvolution)return;if(o.dead)continue;}
+          if(dp<touch+4&&p.sprinting&&s.time-o.ramAt>1.5){o.ramAt=s.time;p.refugeCombatTime=3;const d=dp||1,rt=p.traits.riptide||0,nx=(o.x-p.x)/d,ny=(o.y-p.y)/d;if(this._hit(o,p.attack*this._classPower('riptide')*(.5+rt*.25)*(rt>=5?1.25:1)*(1+p.momentum*.25)*(1+.3*this._pk('jetSac')),nx,ny,{noXp:true})&&isHostile(o)){this._xp('riptide',8);this._awaken('riptide','ram');}p.momentum=0;p.vx-=nx*240;p.vy-=ny*240;if(this._hybrid('shoal'))p.broodTargetId=o.id;this._effect(o.x,o.y,'hit',o.r*1.4,'#95dafa',.3);if(s.pendingEvolution)return;if(o.dead)continue;}
           if(dp<touch){const d=dp||1,nx=(o.x-p.x)/d,ny=(o.y-p.y)/d,gap=(touch-dp)*.7,fixed=o.kind==='sentinel'||o.r>p.r*2.5;
             let mine=fixed?1:o.r*o.r/(p.r*p.r+o.r*o.r);if(p.sprinting&&o.r<p.r)mine*=.3;
             p.x-=nx*gap*mine;p.y-=ny*gap*mine;if(!fixed){o.x+=nx*gap*(1-mine);o.y+=ny*gap*(1-mine);}
@@ -2014,7 +2023,7 @@
       if(o.attackKind!=='spores'){o.attackMode='lunge';o.lungeTime=o.lungeMax;o.charge=o.lungeMax;return;}
       // Ranged species pause longer between volleys than an apex does.
       if(o.species&&SPECIES[o.species].ranged)o.recoverMax=1.7;
-      const k=o.scale||1,ss=185*Math.sqrt(k);for(const offset of [-.16,0,.16]){const a=o.attackAngle+offset;this.state.projectiles.push({id:this._id++,x:o.x+Math.cos(a)*o.r,y:o.y+Math.sin(a)*o.r,vx:Math.cos(a)*ss,vy:Math.sin(a)*ss,r:8*k,life:o.attackRange/ss,damage:((o.species&&SPECIES[o.species].sporeDamage||21)+Math.min(o.tier,5)*2)*Math.pow(k,SIZE_POWER),owner:'enemy',sourceId:o.id,colour:'#ed91c9'});}if(this.state.projectiles.length>80)this.state.projectiles.splice(0,this.state.projectiles.length-80);o.charge=.3;this._recoverAttack(o);
+      const k=o.scale||1,ss=185*Math.sqrt(k);for(const offset of [-.16,0,.16]){const a=o.attackAngle+offset;this.state.projectiles.push({id:this._id++,x:o.x+Math.cos(a)*o.r,y:o.y+Math.sin(a)*o.r,vx:Math.cos(a)*ss,vy:Math.sin(a)*ss,r:8*k,life:o.attackRange/ss,damage:((o.species&&SPECIES[o.species].sporeDamage||21)+Math.min(o.tier,5)*2)*Math.pow(k,SIZE_POWER)*clamp(o.might||1,1,2),owner:'enemy',sourceId:o.id,colour:'#ed91c9'});}if(this.state.projectiles.length>80)this.state.projectiles.splice(0,this.state.projectiles.length-80);o.charge=.3;this._recoverAttack(o);
     }
     _projectiles(dt){
       const s=this.state,p=s.player;
@@ -2038,7 +2047,7 @@
     }
     _hazards(dt){
       const s=this.state,p=s.player;
-      for(const h of s.hazards){h.active=h.pulse?Math.max(0,Math.sin(s.time*.7+h.phase)):h.kind==='toxin'?.8+.2*Math.sin(s.time*.75+h.phase):Math.max(0,Math.sin(s.time*.9+h.phase));if(h.active>.45&&distance(p,h)<h.r*.75+p.r*.5){this._damagePlayer((h.kind==='toxin'?12:9)*this._sizePower(),h);}}
+      for(const h of s.hazards){h.active=h.pulse?Math.max(0,Math.sin(s.time*.7+h.phase)):h.kind==='toxin'?.8+.2*Math.sin(s.time*.75+h.phase):Math.max(0,Math.sin(s.time*.9+h.phase));if(h.active>.45&&distance(p,h)<h.r*.75+p.r*.5){this._damagePlayer((h.kind==='toxin'?12:9)*waterPower(h.x,h.y),h);}}
     }
     _animate(dt){
       const s=this.state;
@@ -2281,7 +2290,7 @@
       if(s.foods.some(f=>!this._chunks[f.home]))s.foods=s.foods.filter(f=>this._chunks[f.home]||(this._chunks[this._home(f.x,f.y)]&&(f.home=this._home(f.x,f.y))));
       const boss=s.bossEncounter;
       if(boss&&boss.puppet&&(c.clock-boss._seen>5||!c.peers.has(boss.owner))){let heir=c.me;for(const [qid,q] of c.peers)if(qid!==boss.owner&&q.body&&q.body.active&&qid<heir)heir=qid;
-        if(heir===c.me&&this._coopActive()){const p=s.player;delete boss.puppet;delete boss.owner;delete boss._seen;Object.assign(boss,{mode:boss.mode==='transform'?'transform':'hunt',attackKind:'',windup:0,actTime:0,cooldown:Math.max(1.5,boss.cooldown||0),lastSeenX:p.x,lastSeenY:p.y,lostTime:0,lastBlow:s.time,nextMeal:s.time+4,tire:0,grab:null,unit:100*this._sizePower()*(BOSSES[boss.type]?.dmg||1)});delete boss.grab;}
+        if(heir===c.me&&this._coopActive()){const p=s.player;delete boss.puppet;delete boss.owner;delete boss._seen;Object.assign(boss,{mode:boss.mode==='transform'?'transform':'hunt',attackKind:'',windup:0,actTime:0,cooldown:Math.max(1.5,boss.cooldown||0),lastSeenX:p.x,lastSeenY:p.y,lostTime:0,lastBlow:s.time,nextMeal:s.time+4,tire:0,grab:null,unit:100*bossPower(boss.type)*(BOSSES[boss.type]?.dmg||1)});delete boss.grab;}
         else if(c.clock-boss._seen<15&&heir!==c.me){}
         else{s.projectiles=s.projectiles.filter(x=>x.bossId!==boss.id);
         // Remember what I had done to it, and do not rush to make a boss of my own: its owner may only have dropped out for a moment.
@@ -2299,7 +2308,7 @@
         if(lowest)this._adopt(o);
         else{o._seen=c.clock;o.owner=heir;}
       }
-      const b=this.state.bossEncounter;if(b&&b.puppet&&b.owner===id){if(lowest&&this._coopActive()){const p=this.state.player;delete b.puppet;delete b.owner;delete b._seen;Object.assign(b,{mode:b.mode==='transform'?'transform':'hunt',attackKind:'',windup:0,actTime:0,cooldown:Math.max(1.5,b.cooldown||0),lastSeenX:p.x,lastSeenY:p.y,lostTime:0,lastBlow:this.state.time,nextMeal:this.state.time+4,tire:0,unit:100*this._sizePower()*(BOSSES[b.type]?.dmg||1)});delete b.grab;}else{b.owner=heir;b._seen=c.clock;}}
+      const b=this.state.bossEncounter;if(b&&b.puppet&&b.owner===id){if(lowest&&this._coopActive()){const p=this.state.player;delete b.puppet;delete b.owner;delete b._seen;Object.assign(b,{mode:b.mode==='transform'?'transform':'hunt',attackKind:'',windup:0,actTime:0,cooldown:Math.max(1.5,b.cooldown||0),lastSeenX:p.x,lastSeenY:p.y,lostTime:0,lastBlow:this.state.time,nextMeal:this.state.time+4,tire:0,unit:100*bossPower(b.type)*(BOSSES[b.type]?.dmg||1)});delete b.grab;}else{b.owner=heir;b._seen=c.clock;}}
     }
     // The page is about to go into the background (a phone call, another app): pass my creatures on first,
     // because a hidden page stops running and they would freeze for everyone else.
@@ -2406,7 +2415,7 @@
         if(m.t==='b'){delete e.ambushAt;delete e.knowsMe;s.bossEncounter={...e,...mine,knowsMe:same&&cur?cur.knowsMe:1,puppet:true,owner:from,_seen:c.clock,_bit:same?!!cur._bit:false};if(!same)this._event('bossAwakened',{bossType:e.type,name:e.name});}
         else{
           // It is mine to run now: it starts its hunt afresh, on my player.
-          const p=s.player;delete e.ambushAt;delete e.knowsMe;s.bossEncounter={...e,...mine,knowsMe:same&&cur?cur.knowsMe:1,unit:100*this._sizePower()*(BOSSES[e.type]?.dmg||1),mode:e.mode==='transform'?'transform':'hunt',attackKind:'',windup:0,actTime:0,cooldown:Math.max(1.5,e.cooldown||0),lastSeenX:p.x,lastSeenY:p.y,lostTime:0,lastBlow:s.time,nextMeal:s.time+4,tire:0};delete s.bossEncounter.grab;if(!same)this._event('bossAwakened',{bossType:e.type,name:e.name});
+          const p=s.player;delete e.ambushAt;delete e.knowsMe;s.bossEncounter={...e,...mine,knowsMe:same&&cur?cur.knowsMe:1,unit:100*bossPower(e.type)*(BOSSES[e.type]?.dmg||1),mode:e.mode==='transform'?'transform':'hunt',attackKind:'',windup:0,actTime:0,cooldown:Math.max(1.5,e.cooldown||0),lastSeenX:p.x,lastSeenY:p.y,lostTime:0,lastBlow:s.time,nextMeal:s.time+4,tire:0};delete s.bossEncounter.grab;if(!same)this._event('bossAwakened',{bossType:e.type,name:e.name});
         }
       }
       else if(m.t==='bh'){
