@@ -11,6 +11,10 @@ The rules, numbers and decisions behind how MORPHOS is balanced. Read this befor
 5. **Weapons are physical attacks.** A weapon is what the cell itself does. Summoning, poison spreading and stealth belong to the class moves.
 6. **It is meant to be hard.** No instruction or hint text in play. Story text is fine.
 7. **Measure outcomes, not just damage.** Intangibles show up as faster kills and less health lost, so test fights measure those (see Method).
+8. **Count by stamina, not by presses.** Anything that triggers "on a Strike" triggers once per 18 stamina spent on Strikes (one ordinary Strike), so a fast-firing weapon gains nothing extra from it.
+9. **Scale with the body.** Values that should feel the same at every size are shares of the body's own numbers (healing is a share of maximum health), not flat amounts.
+10. **Fair telegraphs.** An attack must lock its aim early enough that a player who reads it can step off its line without draining all their stamina.
+11. **Reward follows effort.** Rewards are set by the water, how far the trip is, and whether it means fighting something big.
 
 ## How strength is measured
 
@@ -112,10 +116,15 @@ Tuned with `test/bosssim.js` (strong build, Bite, dodging bot). Target kill time
 |---|---|---|---|
 | Gulper | 6 | about 45 s | 38–41 s |
 | Broodmother | 12 | | 80–83 s |
-| Glass Pike | 18 | | 84–109 s |
+| Glass Pike | 18 | | 74–124 s (v35.4) |
 | Hydra | 24 | | 91–110 s |
 | Undertow | 30 | | 146–162 s |
 | Kraken | 36 | about 3.5 min | 234–247 s |
+
+## Boss notes
+
+- **Glass Pike (v35.4):** dashes in twos in its first phase and threes after; 0.55 s between dashes (0.4 s in its last phase); a dash locks its line with 70% of its wind-up left; health 110 hits (was 170). Measured: time exhausted 30% → about 19%, dash damage 3.1× → 1.5× max health, kill about 87 s.
+- Exhaustion stays as it is: when stamina empties you cannot swim fast until it is full again (Jaisah).
 
 ## Other fixed numbers
 
@@ -124,6 +133,10 @@ Tuned with `test/bosssim.js` (strong build, Bite, dodging bot). Target kill time
 - **Body size:** grows with cells^0.25; health, damage and food value scale with that width to the power 2.2.
 - **Water level:** one level per 850 units out from the nursery.
 - **Starving:** health falls by 2.5% of maximum a second at empty nutrition.
+- **Healing:** 0.45% of maximum health a second, plus 0.12% per Recovery point (full heal about 3.7 min with none, 1 min at Recovery 10, at any size).
+- **Stats per point:** Vitality +12 health, Reserves +12 stamina, Recovery as above plus 1.5 stamina a second, Power +8% damage, Reach +10% shot range and +5% Jab and Bite range, Mobility +6% speed.
+- **Waking a class:** Predator 12 kills, Brood 3 divisions, Venomist 2 stings or venom kills, Riptide 5 close calls, Stalker 5 seconds moving hidden near a predator.
+- **Hermit rewards:** tier = 1 + (water level ÷ 8, rounded down) + 1 for a trip over 2,500 from the hermit + 1 for hunting an ancient, from Uncommon up to Legendary.
 
 ## Decision log
 
@@ -131,4 +144,10 @@ Tuned with `test/bosssim.js` (strong build, Bite, dodging bot). Target kill time
 |---|---|---|
 | v35.0 | Bite 2.0 → 3.0; Command pulse 1.5 → 1.9; Needle 1.9 → 1.35, full stamina cost, 0.8 s cooldown; Needle's unaware bonus stated in its description | Needle had the best damage per stamina while also being the safest weapon. Kept. |
 | v35.1 | Whirlpool replaces Slipstream, with a new Riptide lineage | Nothing controlled a group; Slipstream was a passive buff that did not scale |
-| v35.1 | Spike gun and Spore burst replace Surge and Command pulse | Surge repeated fast swimming and Pounce; Command pulse only worked with broodlings |
+| v35.1 | Spike gun and Spore burst replace Surge and Command pulse |
+| v35.4 | Glass Pike fairer (see Boss notes) | Exhausted 30% of the fight; three dashes 0.16–0.3 s apart could only be dodged by swimming fast throughout |
+| v35.4 | Strike mutations count stamina (rule 8) | Spike gun with Spore gland reached 21 damage per stamina against 6.3 |
+| v35.4 | Healing is a share of maximum health (rule 9) | A full heal took 3.7 min at 1 cell and 21 min at 24 cells |
+| v35.4 | Stalker wakes at 5 s, Venomist at 2 | Stalker never woke in 20 min of normal play; Venomist took 5–6 min |
+| v35.4 | Mobility 6%, Reach 5% for Jab and Bite | They were the weakest picks per point |
+| v35.4 | Hermit rewards by effort (rule 11) | A one-minute task paid the same as a long one | Surge repeated fast swimming and Pounce; Command pulse only worked with broodlings |
