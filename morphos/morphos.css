@@ -1896,3 +1896,5 @@ html body[data-input=touch] #hermitCard .hc-actions:not(:has(.btn:not([hidden]))
 
 /* v37.2 The game focuses Solo by itself so iOS passes controller presses to the page; that focus shows no ring until a key or the controller moves it. */
 [data-quiet]:focus,[data-quiet]:focus-visible{outline:none!important;box-shadow:none!important}
+/* v37.3 Touch landscape: the task tracker starts below the minimap's labels, however many lines they take (iPad showed it on top of the water level). */
+@media (orientation:landscape){html body[data-input=touch] #taskTracker{top:max(calc(max(10px,env(safe-area-inset-top)) + 112px),calc(var(--vitals-b,0px) + 8px))}}
