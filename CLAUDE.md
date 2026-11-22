@@ -16,7 +16,7 @@ The portfolio site for JZA Applications, Jaisah's indie iOS/watchOS studio. Live
 - **Never set `overflow-x` on `html` or `body`.** It breaks the homepage scroll snapping. Clip overflow on the container instead (`.chapter` does this).
 - **Every animation must:** respect `prefers-reduced-motion` (show a still frame instead), pause when offscreen (IntersectionObserver), and stay light enough for an older iPhone.
 - **Privacy policies and App Store links matter legally and commercially.** Policy text must match what the app actually does: check the app's code. Don't remove or rename existing pages. App Store Connect links to their exact URLs (`<app>/support.html`, `<app>/<Name>PrivacyPolicy.html`); a renamed file breaks a live listing.
-- **Cache-busting:** CSS and JS are linked with `?v=N` (e.g. `site.css?v=17`, `dock.js?v=12`, `main.js?v=18`). When you change one of these files, bump its number **in every HTML file that links it**: the homepage and all `<app>/*.html` pages. Check with `grep -rho "site.css?v=[0-9]*\|dock.js?v=[0-9]*\|main.js?v=[0-9]*" --include=*.html . | sort | uniq -c`; each file should show a single version.
+- **Cache-busting:** CSS and JS are linked with `?v=N` (e.g. `site.css?v=17`, `dock.js?v=13`, `main.js?v=18`). When you change one of these files, bump its number **in every HTML file that links it**: the homepage and all `<app>/*.html` pages. Check with `grep -rho "site.css?v=[0-9]*\|dock.js?v=[0-9]*\|main.js?v=[0-9]*" --include=*.html . | sort | uniq -c`; each file should show a single version.
 
 ## Structure
 
@@ -53,7 +53,7 @@ Every app chapter in `index.html` follows the same shape. Copy an existing one r
 
 ### Beta apps (TestFlight)
 
-Parlato and ThumbControl are shown before their App Store release. Each chapter has a `.beta-tag` in the wordmark, and a `.beta-cta` block in place of the App Store badge: a "Join the TestFlight beta" button (public links: Parlato `https://testflight.apple.com/join/zTvM7Seb`, ThumbControl `https://testflight.apple.com/join/KvbUzRVB`), plus a link to Apple's TestFlight app. Open TestFlight links in the same tab: on iPhone they hand off to the TestFlight app.
+ThumbControl is shown before its App Store release (Parlato went live on the App Store in November 2026: `https://apps.apple.com/app/id6761753084`; always link the region-free form, not `/nz/`). Its chapter has a `.beta-tag` in the wordmark, and a `.beta-cta` block in place of the App Store badge: a "Join the TestFlight beta" button (public link: ThumbControl `https://testflight.apple.com/join/KvbUzRVB`), plus a link to Apple's TestFlight app. Open TestFlight links in the same tab: on iPhone they hand off to the TestFlight app.
 
 **When an app goes live:** swap the `.beta-cta` block for a `.store-badge` link like the other chapters, remove the beta tag and the "Public beta" kicker text, and update the About, Support and Privacy pages (they mention TestFlight). There's a comment above each beta chapter saying the same.
 

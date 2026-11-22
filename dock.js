@@ -24,7 +24,7 @@
     { path: "ghostdelta/", label: "GhostDelta", slug: "ghostdelta" },
     { path: "bananabomb/", label: "BananaBomb", slug: "bananabomb" },
     { path: "bikespec/", label: "BikeSpec", slug: "bikespec" },
-    { path: "parlato/", label: "Parlato (beta)", slug: "parlato" },
+    { path: "parlato/", label: "Parlato", slug: "parlato" },
     { path: "thumbcontrol/", label: "ThumbControl (beta)", slug: "thumbcontrol" },
     { path: "morphos.html", label: "MORPHOS (game)", slug: "morphos" },
   ];
