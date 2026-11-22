@@ -1881,7 +1881,7 @@ html body[data-input=touch] #hermitCard .hc-actions:not(:has(.btn:not([hidden]))
    pop-ups as touch, kept off the middle: notice under the top buttons, checkpoint under it, hermit card on the left under the minimap. */
 @media (max-height:600px){
  :root{--hx:0px}
- html body:not([data-input=touch]) #tip{left:50%!important;right:auto!important;transform:translateX(-50%)!important;top:calc(max(8px,env(safe-area-inset-top)) + 56px)!important;max-width:min(460px,calc(100vw - 300px))!important;padding:5px 11px!important;line-height:1.35!important;text-align:center!important;border-left-width:1px!important}
+ html body:not([data-input=touch]) #tip{left:50%!important;right:auto!important;transform:translateX(-50%)!important;top:calc(max(8px,env(safe-area-inset-top)) + 56px)!important;max-width:min(400px,calc(100vw - 580px))!important;padding:5px 11px!important;line-height:1.35!important;text-align:center!important;border-left-width:1px!important}
  html body:not([data-input=touch]) #checkpointBanner{top:calc(max(8px,env(safe-area-inset-top)) + 100px)!important;bottom:auto!important;gap:7px;padding:4px 12px 4px 9px;max-width:calc(100vw - 32px);white-space:nowrap;box-shadow:0 4px 14px #0006}
  html body:not([data-input=touch]) #checkpointBanner svg{width:14px;height:14px}
  html body:not([data-input=touch]) #checkpointBanner>span{display:flex;align-items:baseline;gap:7px;overflow:hidden}

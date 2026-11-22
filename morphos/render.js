@@ -1152,7 +1152,7 @@
    const c=this.ctx,w=this.width,h=this.height,p=state.player,wall=options.time||0,dt=clamp(wall-this.lastWall,0,.08);this.lastWall=wall;this.biome=biomeIndex(state.biome);
    const menu=!!options.menu,frozen=!menu&&(!!options.paused||!!state.paused||!!state.pendingEvolution),time=menu?wall:state.time,quality=clamp(Number.isFinite(options.quality)?options.quality:1,.5,1);
    const reset=!this.started||this.seed!==state.seed||state.time<this.lastGameTime-.1;this.lastGameTime=state.time;this.seed=state.seed;
-   const level=Math.max(0,Number(p.colonyLevel===undefined?p.stage:p.colonyLevel)||0),growth=Math.pow(Math.max(22,p.r||22)/22,.55),normalZoom=menu?.98:Math.min(clamp(Math.pow(Math.min(w,h)/780,.12),.85,1.15)*1.23/growth,Math.min(w,h)*.5/(MIN_SIGHT*growth)),viewZoom=!menu&&Number.isFinite(options.viewZoom)?clamp(options.viewZoom,.85,1.20):1,preferredZoom=normalZoom*viewZoom;let zoom=preferredZoom,baselineZoom=normalZoom;
+   const level=Math.max(0,Number(p.colonyLevel===undefined?p.stage:p.colonyLevel)||0),growth=Math.pow(Math.max(22,p.r||22)/22,.55),normalZoom=menu?.98:Math.min(clamp(Math.pow(Math.min(w,h)/780,.12),.85,1.15)*1.23/growth,Math.min(w,h)*.5/(MIN_SIGHT*(Math.min(w,h)<600?1.25:1)*growth)),viewZoom=!menu&&Number.isFinite(options.viewZoom)?clamp(options.viewZoom,.85,1.20):1,preferredZoom=normalZoom*viewZoom;let zoom=preferredZoom,baselineZoom=normalZoom;
    if(reset)this.manualZoomOut=viewZoom<1;else if(viewZoom<1)this.manualZoomOut=true;
    // The camera is always centred on you: no lead towards the aim, and no shift towards a boss (both made mouse aim drift).
    let tx=p.x,ty=p.y;
