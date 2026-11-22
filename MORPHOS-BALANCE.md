@@ -94,7 +94,7 @@ What each kind of thing is allowed to be worth. A new thing must land inside its
 | Range band | Budget | Current |
 |---|---|---|
 | Touching | 0.16–0.18 | Bite 0.167 |
-| Short dash | 0.085–0.10 (below the shots: the dash is also a dodge and reaches further than any other short weapon) | Surge 0.089 |
+| Short dash | 0.10–0.11 (just above the shots, below touching) | Surge 0.104 |
 | Short | 0.10–0.13 (more on groups) | Spore burst about 0.10 single, about 0.24 on four |
 | Short to medium | 0.09–0.11 | Spike gun 0.093 |
 | Medium | 0.09–0.11 including poison | Spit about 0.10 |
@@ -196,14 +196,14 @@ Weapons come only from mutations dropped by the creature that uses them. Better 
 | Weapon | Range | Damage (× attack) | Stamina | Cooldown | Damage per stamina | Role |
 |---|---|---|---|---|---|---|
 | Bite | Short (touching) | 3.0 | 18 | 0.54 s (0.50 s from Rare) | 0.17 | Heavy single hits. Swallows creatures much smaller than you. From Jaws (hunters). |
-| Surge | Short to medium (a dash) | 2.4 to each target touched | 27 | 1.0 s | 0.089 | Dashes along the aim and hits everything on the way once; untouchable for 0.12 s. Dash length (130 + 0.95 × shot reach), the same at any stamina (v36.8). Spammed, it covers about 150% of fast swimming's distance (Jaisah's choice: full range over the travel limit). From the Surge fin (skimmers). |
+| Surge | Short (a dash) | 2.8 to each target touched | 27 | 1.0 s | 0.104 | Dashes along the aim and hits everything on the way once; untouchable for 0.12 s. Dash length (90 + 0.66 × shot reach), the original, the same at any stamina (v36.9). Spammed, it covers about 120% of fast swimming's distance (Jaisah: fine). From the Surge fin (skimmers). |
 | Spore burst | Short | 7 spores × 0.6 | 18 | 0.7 s | about 0.10 single, much more on a group | Wide spray. From the Spore sac (swarmers). |
 | Spike gun | Medium | 0.3 per spike | 3.2 per spike | 0.13 s | about 0.09 | Hold to fire a stream. From the Spike battery (skimmers). |
 | Spit | Medium | 0.8 plus poison | 13.5 (12.15 from Rare) | 0.42 s | about 0.10 | Poison stacks on one target. From the Spitting gland (puffers). |
 | Needle | Long | 1.35 (unaware 1.8×) | 18 | 0.8 s | 0.075 | Aim lock, pierces everything on its line, barely breaks stealth. From the Needle spine (needlefish). |
 | Jab | Short | 1.0 | 18 | 0.68 s | 0.056 | The starter. Meant to be weakest. |
 
-Measured at 24 cells (attack 63), damage per stamina, single target: Bite 9.1, Spore burst 6.4, Spike gun 6.3, Spit 6.1, Needle 4.6, Jab 2.1. Since v36.4 `weaponsim.js` puts knocked-back targets back each frame (before, knockback carried them out of reach of close weapons): Bite 10.7, Surge 5.7 (v36.7; 6.9 in v36.4), Spore burst 6.4, Spike gun 6.3, Spit 6.1 (plus poison), Needle 4.6, Jab 3.6. Travel check: `surgetravel.js`.
+Measured at 24 cells (attack 63), damage per stamina, single target: Bite 9.1, Spore burst 6.4, Spike gun 6.3, Spit 6.1, Needle 4.6, Jab 2.1. Since v36.4 `weaponsim.js` puts knocked-back targets back each frame (before, knockback carried them out of reach of close weapons): Bite 10.7, Surge 6.6 (v36.9), Spore burst 6.4, Spike gun 6.3, Spit 6.1 (plus poison), Needle 4.6, Jab 3.6. Travel check: `surgetravel.js`.
 
 **Considered and rejected:** Suction tentacle (healing on top of mid-range damage is either too strong or too weak); Seed shot (a Brood move dressed as a weapon); Lash (pulling yourself to a big creature only puts you in danger); Dart (fast swimming and Pounce already move you). **Removed in v35.1:** Surge and Command pulse. **Surge returned in v36.4** with the numbers above.
 
@@ -355,6 +355,7 @@ Status after v35.7. Fixed items stay listed so the reasoning is kept.
 | v36.0 | First three secrets: sealed shell (water 6+, stay still 5 s inside), hidden garden at the end of a lantern trail (water 10+), silent current (water 12+, carries you 2,800 deeper to a rare creature that always drops). Only in regions that were empty, so no older pond loses a place, record or task | The plan's secrets: rewards for curiosity, built from what the game already has (stillness, places, currents, creatures); no instruction text |
 | v36.1 | Legendary rule changes and duo mutations (batch 2, 9 mutations); Legendary-only mutations never raised from a lower find; duos gated by rank II in both classes and placed only on the five class pairs that have no hybrid | The plan's mutation step 2. Duos for the hybrid pairs would have repeated the hybrids |
 | v36.2 | Story threads: a hermit's fate when you finish its three tasks, the lost hunters when a named ancient falls (not wardens or wonder keepers), the other nurseries in a new deep secret (empty nursery, water 20+, rest 3 s at its heart); each hermit tells one remembered line. All kept in the Legend tab | The plan's story step 2; no rule or number changed apart from the nursery's reward share |
+| v36.9 | Surge: the original dash length again, (90 + 0.66 × shot reach), at any stamina; damage 2.8 (was 2.4). 6.6 damage per stamina at 24 cells; spammed travel about 120% of fast swimming | Jaisah: the original distance was better; 120% travel is fine |
 | v36.8 | Surge: the dash no longer shortens with stamina. Spammed travel rises from 79% to about 150% of fast swimming | Jaisah: still too weak; remove the stamina limit on its range |
 | v36.7 | Surge: longer and weaker. Dash length (130 + 0.95 × shot reach), was (90 + 0.66 ×), about 44% longer; damage 2.4, was 2.9; the dash shrinks with the square of the stamina share (0.1 + 0.9 × share², was 0.2 + 0.8 × share), so spamming travels 79% of fast swimming (was 85%). A longer cooldown was tried and rejected: waiting refills stamina, so each dash went further and travel beat fast swimming | Jaisah: Surge needs longer range and less damage |
 | v36.4 | Surge returns as a sixth weapon (Surge fin, skimmers): 2.9× attack to each target the dash touches, 27 stamina, 1.0 s cooldown, dash length (90 + 0.66 × shot reach) × (0.2 + 0.8 × stamina share). Old saves with a Surge fin keep it (no longer turned into a Spike battery). Also: seen mutations are kept per pond as soon as they are looked at (`morphos.seen.v1`, `morphos.seen.coop.v1`; the load kept only 30), and controller and mouse/keyboard switch cleanly (a press or a stick past half takes over; the other device's held input is dropped) | Ashley missed the fin dash. Jaisah: less than Bite because it also dodges, more than the medium-range weapons, a slower repeat, and no use as fast travel |

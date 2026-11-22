@@ -153,7 +153,7 @@
     jaws:{key:'jaws',weapon:'predator',perk:'Bites recover [8]% faster.',name:'Jaws',description:'Your Strike becomes Bite. Short range. A wide bite for {300}% of your attack. Creatures much smaller than you are swallowed whole.',family:'predator'},
     spitGland:{key:'spitGland',weapon:'venomist',perk:'Spit costs [10]% less stamina.',name:'Spitting gland',description:'Your Strike becomes Spit. Medium range. A glob for {80}% of your attack that poisons what it hits.',family:'venomist'},
     needleSpine:{key:'needleSpine',weapon:'stalker',perk:'Needles recover [8]% faster.',name:'Needle spine',description:'Your Strike becomes Needle. Long range. A quiet shot that locks onto the creature nearest your aim and passes through everything on its line, for {135}% of your attack. A creature that has not noticed you takes 80% more.',family:'stalker'},
-    surgeFin:{key:'surgeFin',weapon:'riptide',perk:'Surge carries you [8]% further.',name:'Surge fin',description:'Your Strike becomes Surge. Short range. A dash through your targets for {240}% of your attack each.',family:'riptide'},
+    surgeFin:{key:'surgeFin',weapon:'riptide',perk:'Surge carries you [8]% further.',name:'Surge fin',description:'Your Strike becomes Surge. Short range. A dash through your targets for {280}% of your attack each.',family:'riptide'},
     spikeBattery:{key:'spikeBattery',weapon:'spikes',perk:'Spikes fire [8]% faster.',name:'Spike battery',description:'Your Strike becomes Spike gun. Medium range. Hold to fire a fast stream of small spikes, each for {30}% of your attack.',family:'riptide'},
     sporeSac:{key:'sporeSac',weapon:'spores',perk:'Spore burst recovers [8]% faster.',name:'Spore sac',description:'Your Strike becomes Spore burst. Short range. A wide spray of seven spores, each for {60}% of your attack.',family:'summoner'},
     chainPulse:{key:'chainPulse',perk:'Arcs reach [1f] more.',name:'Chain strike',description:'A successful Strike arcs to two further targets for {45}% damage. Recharges in 3 seconds.',family:'summoner'},
@@ -1301,7 +1301,7 @@
       else if(p.strike==='predator'){p.pulseCooldownMax=.54*(1-.08*wk);p.strikeReach=p.r+biteReach;p.strikeWidth=0;p.strikeDamage=3*wp;}
       // Surge: a short dash through targets. Less per stamina than Bite (it also carries you out of reach), more than the shots.
       // The dash shortens as stamina falls and costs more than a Jab, so chaining it never outruns fast swimming.
-      else if(p.strike==='riptide'){p.pulseCost*=1.5;p.pulseCooldownMax=1;p.strikeReach=(130+reachBase*.95)*(1+.08*wk);p.strikeWidth=0;p.strikeDamage=2.4*wp;}
+      else if(p.strike==='riptide'){p.pulseCost*=1.5;p.pulseCooldownMax=1;p.strikeReach=(90+reachBase*.66)*(1+.08*wk);p.strikeWidth=0;p.strikeDamage=2.8*wp;}
       else if(p.strike==='spikes'){p.pulseCost*=.18;p.pulseCooldownMax=.13*(1-.08*wk);p.strikeReach=p.r+reachBase*1.8;p.strikeWidth=1;p.strikeDamage=.3*wp;}
       else if(p.strike==='spores'){p.pulseCooldownMax=.7*(1-.08*wk);p.strikeReach=p.r+reachBase*1.15;p.strikeWidth=7;p.strikeDamage=.6*wp;}
       else if(p.strike==='stalker'){p.pulseCooldownMax=.8*(1-.08*wk);p.strikeReach=p.r+reachBase*4;p.strikeWidth=0;p.strikeDamage=1.35*wp;}
