@@ -153,7 +153,7 @@
     jaws:{key:'jaws',weapon:'predator',perk:'Bites recover [8]% faster.',name:'Jaws',description:'Your Strike becomes Bite. Short range. A wide bite for {300}% of your attack. Creatures much smaller than you are swallowed whole.',family:'predator'},
     spitGland:{key:'spitGland',weapon:'venomist',perk:'Spit costs [10]% less stamina.',name:'Spitting gland',description:'Your Strike becomes Spit. Medium range. A glob for {80}% of your attack that poisons what it hits.',family:'venomist'},
     needleSpine:{key:'needleSpine',weapon:'stalker',perk:'Needles recover [8]% faster.',name:'Needle spine',description:'Your Strike becomes Needle. Long range. A quiet shot that locks onto the creature nearest your aim and passes through everything on its line, for {135}% of your attack. A creature that has not noticed you takes 80% more.',family:'stalker'},
-    surgeFin:{key:'surgeFin',weapon:'riptide',perk:'Surge carries you [8]% further.',name:'Surge fin',description:'Your Strike becomes Surge. Short range. A dash through your targets for {290}% of your attack each.',family:'riptide'},
+    surgeFin:{key:'surgeFin',weapon:'riptide',perk:'Surge carries you [8]% further.',name:'Surge fin',description:'Your Strike becomes Surge. Short range. A dash through your targets for {240}% of your attack each.',family:'riptide'},
     spikeBattery:{key:'spikeBattery',weapon:'spikes',perk:'Spikes fire [8]% faster.',name:'Spike battery',description:'Your Strike becomes Spike gun. Medium range. Hold to fire a fast stream of small spikes, each for {30}% of your attack.',family:'riptide'},
     sporeSac:{key:'sporeSac',weapon:'spores',perk:'Spore burst recovers [8]% faster.',name:'Spore sac',description:'Your Strike becomes Spore burst. Short range. A wide spray of seven spores, each for {60}% of your attack.',family:'summoner'},
     chainPulse:{key:'chainPulse',perk:'Arcs reach [1f] more.',name:'Chain strike',description:'A successful Strike arcs to two further targets for {45}% damage. Recharges in 3 seconds.',family:'summoner'},
@@ -1301,7 +1301,7 @@
       else if(p.strike==='predator'){p.pulseCooldownMax=.54*(1-.08*wk);p.strikeReach=p.r+biteReach;p.strikeWidth=0;p.strikeDamage=3*wp;}
       // Surge: a short dash through targets. Less per stamina than Bite (it also carries you out of reach), more than the shots.
       // The dash shortens as stamina falls and costs more than a Jab, so chaining it never outruns fast swimming.
-      else if(p.strike==='riptide'){p.pulseCost*=1.5;p.pulseCooldownMax=1;p.strikeReach=(90+reachBase*.66)*(1+.08*wk);p.strikeWidth=0;p.strikeDamage=2.9*wp;}
+      else if(p.strike==='riptide'){p.pulseCost*=1.5;p.pulseCooldownMax=1;p.strikeReach=(130+reachBase*.95)*(1+.08*wk);p.strikeWidth=0;p.strikeDamage=2.4*wp;}
       else if(p.strike==='spikes'){p.pulseCost*=.18;p.pulseCooldownMax=.13*(1-.08*wk);p.strikeReach=p.r+reachBase*1.8;p.strikeWidth=1;p.strikeDamage=.3*wp;}
       else if(p.strike==='spores'){p.pulseCooldownMax=.7*(1-.08*wk);p.strikeReach=p.r+reachBase*1.15;p.strikeWidth=7;p.strikeDamage=.6*wp;}
       else if(p.strike==='stalker'){p.pulseCooldownMax=.8*(1-.08*wk);p.strikeReach=p.r+reachBase*4;p.strikeWidth=0;p.strikeDamage=1.35*wp;}
@@ -1829,7 +1829,7 @@
         const b=s.bossEncounter;if(b&&inBite(b)){this._strikeBossHit(ctx);if(s.pendingEvolution)return;}
       }else if(p.strike==='riptide'){
         // Surge: dash along the aim; everything touched on the way is hit once (in the movement step).
-        const fresh=clamp(p.energy/Math.max(1,p.maxEnergy),0,1),dist=p.strikeReach*(.2+.8*fresh);p.surgeTime=.2;p.surgeDX=ax;p.surgeDY=ay;p.surgeSpeed=dist/.2;p.surgeCtx=ctx;p.invulnerable=Math.max(p.invulnerable,.12);p.angle=angle;
+        const fresh=clamp(p.energy/Math.max(1,p.maxEnergy),0,1),dist=p.strikeReach*(.1+.9*fresh*fresh);p.surgeTime=.2;p.surgeDX=ax;p.surgeDY=ay;p.surgeSpeed=dist/.2;p.surgeCtx=ctx;p.invulnerable=Math.max(p.invulnerable,.12);p.angle=angle;
         this._effect(p.x,p.y,'surge',dist,colour,.4,{x2:p.x+ax*dist,y2:p.y+ay*dist});return;
       }else{
         // Spit, Needle, Spike gun and Spore burst are all shots; they differ in speed, spread, count and size.
