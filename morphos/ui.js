@@ -136,6 +136,9 @@ function loadSeen(){try{const o=JSON.parse(localStorage.getItem(seenKey())||'nul
  try{new ResizeObserver(()=>{const v=document.getElementById('vitals');if(!v)return;document.documentElement.style.setProperty('--vitals-b',Math.ceil(v.getBoundingClientRect().bottom)+'px');playAreaDirty=true;}).observe(document.getElementById('vitals'));}catch{}
  function setMode(value){frozenDrawn=false;
    if(value==='menu'&&respawnBusy)respawnCancel();mode=value;document.body.dataset.mode=value;playAreaDirty=true;
+   // iOS passes a controller's presses to the page only while something in it has focus, so play keeps the pond focused.
+   if(value==='playing'){const f=document.activeElement;if(!f||f===document.body||f.closest('[hidden]'))try{canvas.focus({preventScroll:true});}catch{}}
+   else if(value==='menu'){const f=document.activeElement;if(!f||f===document.body||f===canvas||f.closest('[hidden]'))try{const st=$('start');st.dataset.quiet='1';st.addEventListener('blur',()=>delete st.dataset.quiet,{once:true});st.focus({preventScroll:true});}catch{}}
    $('home').hidden=value!=='menu';$('gameUI').hidden=value==='menu'||value==='end';
    $('pause').hidden=value==='menu'||value==='end';$('skillsTool').hidden=value==='menu'||value==='end';
    $('endScreen').hidden=value!=='end';if(game)game.state.paused=value!=='playing';if(value==='playing')canvas.focus({preventScroll:true});
@@ -1398,7 +1401,7 @@ $('pauseHelp').addEventListener('click',showHelp);
    return best;
  }
  // Marks the controller's selection with a class as well as focus, so the highlight shows even if the page lacks focus.
- function padFocus(e){for(const o of document.querySelectorAll('.pad-focus'))o.classList.remove('pad-focus');e.classList.add('pad-focus');e.focus();e.scrollIntoView({block:'nearest',inline:'nearest'});}
+ function padFocus(e){delete e.dataset.quiet;for(const o of document.querySelectorAll('.pad-focus'))o.classList.remove('pad-focus');e.classList.add('pad-focus');e.focus();e.scrollIntoView({block:'nearest',inline:'nearest'});}
  function padNavigate(dir){
    const root=padScope();if(!root)return;const list=padTargets(root);if(!list.length)return;const cur=document.activeElement;
    if(!cur||cur===document.body||!root.contains(cur)){padFocus(list[0]);return;}
@@ -1488,6 +1491,7 @@ $('pauseHelp').addEventListener('click',showHelp);
    const i=Math.max(0,tabs.findIndex(t=>t.getAttribute('aria-selected')==='true'));const next=tabs[(i+step+tabs.length)%tabs.length];next.click();next.focus();
  }
  function padMenu(now,edge,lx,ly){
+   if(mode==='menu'&&!document.querySelector('dialog[open]')&&$('error').hidden&&(edge(0)||edge(12)||edge(13)||edge(14)||edge(15))){const f=document.activeElement;if(!f||f===document.body||f===canvas){padFocus($('start'));return;}}
    if(edge(0)){const f=document.activeElement,root=padScope(),mut=$('skillsDialog').open&&$('skillsDialog').dataset.tab==='mutations';if(root&&f&&root.contains(f)&&f!==root){if(mut&&f.classList.contains('part-chip'))padEquipChip(f);else if(mut&&f.classList.contains('part-box'))padIntoSlot(f);else if(f.classList.contains('tree-node')){padTreeFollow(f);const c=$('treeDetail').querySelector('button.btn');if(c)padFocus(c);}else{const inTree=$('treeDetail').contains(f);f.click();if(inTree&&!document.contains(f)){const n=$('evoTree').querySelector('[data-node="'+treeSelected+'"]');if(n)padFocus(n);}}}else padNavigate('down');return;}
    if(edge(1)){if(padOutOfSlot())return;padBack();return;}
    if(edge(9)){padBack();return;}

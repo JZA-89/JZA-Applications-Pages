@@ -1893,3 +1893,6 @@ html body[data-input=touch] #hermitCard .hc-actions:not(:has(.btn:not([hidden]))
  html body:not([data-input=touch]) #hermitCard .hc-actions .btn{margin-top:0;padding:5px 12px;font-size:12.5px}
  html body:not([data-input=touch]) #hermitCard .hc-actions:not(:has(.btn:not([hidden]))){display:none}
 }
+
+/* v37.2 The game focuses Solo by itself so iOS passes controller presses to the page; that focus shows no ring until a key or the controller moves it. */
+[data-quiet]:focus,[data-quiet]:focus-visible{outline:none!important;box-shadow:none!important}
