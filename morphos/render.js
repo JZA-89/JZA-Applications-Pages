@@ -171,9 +171,7 @@
    }
    if(!tracked)return;const pt=MorphosGame.taskPoint(tracked);if(!pt||!Number.isFinite(pt.x))return;
    if(this.visible(pt,40)){const pulse=(time*.7)%1;c.save();c.translate(pt.x,pt.y);for(const u of [pulse,(pulse+.5)%1]){c.beginPath();c.arc(0,0,(60+u*140)/z*Math.min(1.6,z*1.2),0,TAU);c.strokeStyle=`rgba(240,212,140,${.5*(1-u)})`;c.lineWidth=2/z;c.stroke();}c.scale(1/z,1/z);c.translate(0,-70);if(pt.home||tracked.done){c.beginPath();c.moveTo(-10,0);c.lineTo(-3,7);c.lineTo(10,-7.5);c.lineCap='round';c.lineJoin='round';c.strokeStyle='rgba(8,20,18,.8)';c.lineWidth=7;c.stroke();c.strokeStyle='rgba(240,212,140,.95)';c.lineWidth=4;c.stroke();}else{c.rotate(Math.PI/4);c.fillStyle='rgba(240,212,140,.95)';c.fillRect(-7,-7,14,14);}c.restore();return;}
-   const cull=this.cull;if(!cull)return;const cx=(cull.left+cull.right)/2,cy=(cull.top+cull.bottom)/2,a=Math.atan2(pt.y-cy,pt.x-cx),hw=(cull.right-cull.left)/2-50/z,hh=(cull.bottom-cull.top)/2-80/z,k=Math.min(hw/Math.abs(Math.cos(a)||1e-6),hh/Math.abs(Math.sin(a)||1e-6));
-   let ax=cx+Math.cos(a)*k,ay=cy+Math.sin(a)*k;const f=this.playArea;if(f){ax=clamp(ax,cull.left+(f.left+30)/z,cull.left+(f.left+f.width-30)/z);ay=clamp(ay,cull.top+(f.top+30)/z,cull.top+(f.top+f.height-30)/z);}
-   c.save();c.translate(ax,ay);c.rotate(a);c.scale(1/z,1/z);c.beginPath();c.moveTo(18,0);c.lineTo(-8,-12);c.lineTo(-2,0);c.lineTo(-8,12);c.closePath();c.fillStyle='rgba(240,212,140,.92)';c.fill();c.strokeStyle='rgba(20,24,18,.6)';c.lineWidth=1.5;c.stroke();c.restore();
+   // No arrow at the screen edge: the minimap already shows where the tracked task is (Jaisah, v36.6).
   }
   // The eight wonders, each drawn once and unlike anything else in the pond.
   drawWonder(c,l,r,time,p){
