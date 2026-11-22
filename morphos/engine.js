@@ -1829,7 +1829,7 @@
         const b=s.bossEncounter;if(b&&inBite(b)){this._strikeBossHit(ctx);if(s.pendingEvolution)return;}
       }else if(p.strike==='riptide'){
         // Surge: dash along the aim; everything touched on the way is hit once (in the movement step).
-        const fresh=clamp(p.energy/Math.max(1,p.maxEnergy),0,1),dist=p.strikeReach*(.1+.9*fresh*fresh);p.surgeTime=.2;p.surgeDX=ax;p.surgeDY=ay;p.surgeSpeed=dist/.2;p.surgeCtx=ctx;p.invulnerable=Math.max(p.invulnerable,.12);p.angle=angle;
+        const dist=p.strikeReach;p.surgeTime=.2;p.surgeDX=ax;p.surgeDY=ay;p.surgeSpeed=dist/.2;p.surgeCtx=ctx;p.invulnerable=Math.max(p.invulnerable,.12);p.angle=angle;
         this._effect(p.x,p.y,'surge',dist,colour,.4,{x2:p.x+ax*dist,y2:p.y+ay*dist});return;
       }else{
         // Spit, Needle, Spike gun and Spore burst are all shots; they differ in speed, spread, count and size.
