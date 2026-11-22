@@ -806,6 +806,9 @@
      // A swollen gland at the front holding a bead of venom.
      const beat=.5+.5*Math.sin(time*3.2);c.fillStyle='rgba(166,226,130,.28)';c.strokeStyle='rgba(190,240,150,.8)';ellipse(c,r*.86,0,r*.2,r*.16);c.fill();c.stroke();
      c.fillStyle='rgba(206,250,160,'+(.55+.35*beat)+')';ellipse(c,r*1.06,0,r*(.05+.02*beat+tier*.006),r*(.05+.02*beat+tier*.006));c.fill();
+    }else if(key==='surgeFin'){
+     // Swept fins either side that drive the dash.
+     c.fillStyle='rgba(140,214,246,.2)';c.strokeStyle='rgba(160,224,250,.8)';for(const s of [-1,1]){const sway=Math.sin(time*2.4+s)*r*.04;c.beginPath();c.moveTo(r*.3,s*r*.86);c.quadraticCurveTo(-r*.3,s*r*(1.35+tier*.03)+sway,-r*.95,s*r*(1.12+tier*.03)+sway);c.quadraticCurveTo(-r*.35,s*r*.98,-r*.25,s*r*.9);c.closePath();c.fill();c.stroke();}
     }else if(key==='spikeBattery'){
      // A short battery of spike tubes at the front, one more for a better copy.
      const n=3+Math.min(2,Math.floor(tier/2));c.strokeStyle='rgba(160,224,250,.85)';c.fillStyle='rgba(210,244,255,.9)';c.lineWidth=Math.max(.8,r*.035);for(let i=0;i<n;i++){const y=(i-(n-1)/2)*r*.16;c.beginPath();c.moveTo(r*.72,y);c.lineTo(r*1.12,y);c.stroke();ellipse(c,r*1.13,y,r*.03,r*.03);c.fill();}

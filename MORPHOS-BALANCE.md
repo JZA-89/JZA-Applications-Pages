@@ -94,6 +94,7 @@ What each kind of thing is allowed to be worth. A new thing must land inside its
 | Range band | Budget | Current |
 |---|---|---|
 | Touching | 0.16–0.18 | Bite 0.167 |
+| Short dash | 0.10–0.12 (below touching, because the dash is also a dodge) | Surge 0.107 |
 | Short | 0.10–0.13 (more on groups) | Spore burst about 0.10 single, about 0.24 on four |
 | Short to medium | 0.09–0.11 | Spike gun 0.093 |
 | Medium | 0.09–0.11 including poison | Spit about 0.10 |
@@ -195,15 +196,16 @@ Weapons come only from mutations dropped by the creature that uses them. Better 
 | Weapon | Range | Damage (× attack) | Stamina | Cooldown | Damage per stamina | Role |
 |---|---|---|---|---|---|---|
 | Bite | Short (touching) | 3.0 | 18 | 0.54 s (0.50 s from Rare) | 0.17 | Heavy single hits. Swallows creatures much smaller than you. From Jaws (hunters). |
+| Surge | Short (a dash) | 2.9 to each target touched | 27 | 1.0 s | 0.107 | Dashes along the aim and hits everything on the way once; untouchable for 0.12 s. The dash is shorter the less stamina you have (20% at empty, full at full). Spammed, it covers about 85% of fast swimming's distance, and less with fast swimming held, so it is never a faster way to travel. From the Surge fin (skimmers). |
 | Spore burst | Short | 7 spores × 0.6 | 18 | 0.7 s | about 0.10 single, much more on a group | Wide spray. From the Spore sac (swarmers). |
 | Spike gun | Medium | 0.3 per spike | 3.2 per spike | 0.13 s | about 0.09 | Hold to fire a stream. From the Spike battery (skimmers). |
 | Spit | Medium | 0.8 plus poison | 13.5 (12.15 from Rare) | 0.42 s | about 0.10 | Poison stacks on one target. From the Spitting gland (puffers). |
 | Needle | Long | 1.35 (unaware 1.8×) | 18 | 0.8 s | 0.075 | Aim lock, pierces everything on its line, barely breaks stealth. From the Needle spine (needlefish). |
 | Jab | Short | 1.0 | 18 | 0.68 s | 0.056 | The starter. Meant to be weakest. |
 
-Measured at 24 cells (attack 63), damage per stamina, single target: Bite 9.1, Spore burst 6.4, Spike gun 6.3, Spit 6.1, Needle 4.6, Jab 2.1.
+Measured at 24 cells (attack 63), damage per stamina, single target: Bite 9.1, Spore burst 6.4, Spike gun 6.3, Spit 6.1, Needle 4.6, Jab 2.1. Since v36.4 `weaponsim.js` puts knocked-back targets back each frame (before, knockback carried them out of reach of close weapons): Bite 10.7, Surge 6.9, Spore burst 6.4, Spike gun 6.3, Spit 6.1 (plus poison), Needle 4.6, Jab 3.6. Travel check: `surgetravel.js`.
 
-**Considered and rejected:** Suction tentacle (healing on top of mid-range damage is either too strong or too weak); Seed shot (a Brood move dressed as a weapon); Lash (pulling yourself to a big creature only puts you in danger); Dart (fast swimming and Pounce already move you). **Removed in v35.1:** Surge and Command pulse.
+**Considered and rejected:** Suction tentacle (healing on top of mid-range damage is either too strong or too weak); Seed shot (a Brood move dressed as a weapon); Lash (pulling yourself to a big creature only puts you in danger); Dart (fast swimming and Pounce already move you). **Removed in v35.1:** Surge and Command pulse. **Surge returned in v36.4** with the numbers above.
 
 ### 5.2 Class moves
 | Class | Move | Role | Cost / cooldown, rank I → V | Wakes after |
@@ -353,4 +355,5 @@ Status after v35.7. Fixed items stay listed so the reasoning is kept.
 | v36.0 | First three secrets: sealed shell (water 6+, stay still 5 s inside), hidden garden at the end of a lantern trail (water 10+), silent current (water 12+, carries you 2,800 deeper to a rare creature that always drops). Only in regions that were empty, so no older pond loses a place, record or task | The plan's secrets: rewards for curiosity, built from what the game already has (stillness, places, currents, creatures); no instruction text |
 | v36.1 | Legendary rule changes and duo mutations (batch 2, 9 mutations); Legendary-only mutations never raised from a lower find; duos gated by rank II in both classes and placed only on the five class pairs that have no hybrid | The plan's mutation step 2. Duos for the hybrid pairs would have repeated the hybrids |
 | v36.2 | Story threads: a hermit's fate when you finish its three tasks, the lost hunters when a named ancient falls (not wardens or wonder keepers), the other nurseries in a new deep secret (empty nursery, water 20+, rest 3 s at its heart); each hermit tells one remembered line. All kept in the Legend tab | The plan's story step 2; no rule or number changed apart from the nursery's reward share |
+| v36.4 | Surge returns as a sixth weapon (Surge fin, skimmers): 2.9× attack to each target the dash touches, 27 stamina, 1.0 s cooldown, dash length (90 + 0.66 × shot reach) × (0.2 + 0.8 × stamina share). Old saves with a Surge fin keep it (no longer turned into a Spike battery). Also: seen mutations are kept per pond as soon as they are looked at (`morphos.seen.v1`, `morphos.seen.coop.v1`; the load kept only 30), and controller and mouse/keyboard switch cleanly (a press or a stick past half takes over; the other device's held input is dropped) | Ashley missed the fin dash. Jaisah: less than Bite because it also dodges, more than the medium-range weapons, a slower repeat, and no use as fast travel |
 | v36.3 | Boss attack variety: each boss picks from a weighted list fitting its body (the attack it used last is a third as likely). Gulper: sweep, engulf (mid range only), and from phase 2 grab (grasping arm), body slam, spit (5 globs). Glass Pike: dash chains, hook sweep up close, glass rings from phase 2, a long charge in phase 3. Broodmother: births, slam, spores, a charge from phase 2, spore rings in phase 3. Hydra: heads, then venom tendrils and spray from phase 2, rings in phase 3. Undertow: pull, slam, charge, rings, dashes in phase 3. Kraken unchanged. Retuned against a human-like bot (`bosshuman.js`: sees the fight 0.25 s late, dodges up to 26° off, misses 1 in 8 warnings, breaks a grab after 0.9 s): Hydra 145 hits and damage 1.1 (was 165, 1.25), Kraken damage 1.1 (was 1.45). Result: strong gear about one knockout per boss; average gear 1–5 | Jaisah: bosses repeated one move; the old dodging bot reacted on the same frame and was superhuman, so difficulty is now measured against human reaction |

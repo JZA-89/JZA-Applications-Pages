@@ -1858,3 +1858,8 @@ dialog.hermit-dialog[open]{display:grid!important;height:fit-content!important;a
 /* v36.2 a hermit's memory, under its story */
 .hd-memory{margin:8px 0 0;font:italic 13px/1.5 "Iowan Old Style","Palatino Linotype",Georgia,serif;color:#b9c8b4}
 .hd-memory[hidden]{display:none}
+
+/* Phones hide the long version line, so a short version shows instead: between the copyright and records in landscape, under the records in portrait. Filled from the page title. */
+.home-ver{display:none}
+@media (max-width:960px){.home-ver{display:inline;order:1;color:#77978d;letter-spacing:.12em}.home-footer .journal-link{order:2}}
+@media (max-width:480px){.home-ver{display:block;margin-top:5px;font-size:11px}}

@@ -266,7 +266,7 @@ if(type==='eat'){
 const n=[0,3,7,10,12][Math.floor(now*13)%5],f=hz(this._root+24+n);
 this._tone(f*1.7,f,.13,.026,pan);this._tone(f*.5,f*.85,.19,.012,pan);
 }else if(type==='pulse'){
-if(e.shape==='spikes'){this._tone(1500,900,.04,.012);this._swish(.05,.012,3000,1200);}
+if(e.shape==='riptide'){this._swish(.16,.03,1800,420);this._tone(420,260,.1,.016,0,'sine');}else if(e.shape==='spikes'){this._tone(1500,900,.04,.012);this._swish(.05,.012,3000,1200);}
 else if(e.shape==='spores'){this._swish(.22,.03,700,240);this._tone(150,90,.2,.025,0,'sine');}
 else{this._tone(180,48,.38,.065);this._swish(.25,.038,1100,180);}
 }else if(type==='whirlpool'){
