@@ -364,3 +364,36 @@ body[data-device="pad"] button:focus { outline: 2px solid var(--gold); outline-o
 body[data-device="pad"] .gemtile:focus { outline: 0; background: #fff; filter: drop-shadow(0 0 6px var(--gold)); }
 body[data-device="pad"] .tab:focus { outline-offset: -2px; }
 .keyrow .k { flex-wrap: wrap; }
+
+/* ---------- touch controls (touch.js). --t is one button's width ---------- */
+#touch { position: fixed; inset: 0; z-index: 5; display: none; pointer-events: none; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+  --t: clamp(46px, 14vmin, 80px); --sr: calc(env(safe-area-inset-right, 0px) + 3vmin); --sl: env(safe-area-inset-left, 0px); --sb: calc(env(safe-area-inset-bottom, 0px) + 4vmin); }
+body[data-device="touch"][data-mode="play"] #touch { display: block; }
+.t-zone { position: absolute; left: 0; bottom: 0; width: 44%; height: 70%; pointer-events: auto; touch-action: none; }
+.t-base { position: absolute; left: var(--x, calc(var(--sl) + var(--t) * 1.7)); top: var(--y, calc(100% - var(--sb) - var(--t) * 1.2)); width: calc(var(--t) * 2.1); height: calc(var(--t) * 2.1); margin: calc(var(--t) * -1.05) 0 0 calc(var(--t) * -1.05);
+  border-radius: 50%; background: #ffffff0a; box-shadow: inset 0 0 0 2px #ffffff24; opacity: .55; }
+.t-base.on { opacity: 1; }
+.t-knob { position: absolute; left: 50%; top: 50%; width: var(--t); height: var(--t); margin: calc(var(--t) * -.5) 0 0 calc(var(--t) * -.5); border-radius: 50%; background: #ffffff30; box-shadow: inset 0 0 0 2px #ffffff40, 0 4px 14px #0008;
+  transform: translate(var(--kx, 0px), var(--ky, 0px)); }
+.t-acts { position: absolute; right: var(--sr); bottom: var(--sb); width: calc(var(--t) * 3.15); height: calc(var(--t) * 2.7); }
+.t-btn { position: absolute; width: var(--t); height: var(--t); padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; color: #efe6ff; background: #17121fd9; box-shadow: inset 0 1px 0 #ffffff2e, inset 0 0 0 2px #ffffff2b, 0 4px 14px #0009;
+  pointer-events: auto; touch-action: none; }
+.t-btn svg { width: 44%; height: 44%; pointer-events: none; }
+.t-btn.on { background: #4a3d63; box-shadow: inset 0 0 0 2px #ffffff80, 0 0 16px #b79cff66; }
+.t-shot { right: 0; bottom: 0; width: calc(var(--t) * 1.45); height: calc(var(--t) * 1.45); color: #1a1210; background: linear-gradient(180deg, #ffd98a, #d9a441); box-shadow: inset 0 1px 0 #fff6, inset 0 0 0 2px #fff3, 0 4px 16px #000a; }
+.t-shot.on { background: linear-gradient(180deg, #fff0c4, #f0bd58); box-shadow: inset 0 0 0 2px #fff, 0 0 20px #ffd98a99; }
+.t-aim { position: absolute; left: 50%; top: 50%; width: 30%; height: 30%; margin: -15% 0 0 -15%; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px #000a, 0 0 12px #ffd98a; opacity: 0; transform: translate(var(--kx, 0px), var(--ky, 0px)); pointer-events: none; }
+.t-shot.aiming .t-aim { opacity: 1; }
+.t-jump { right: calc(var(--t) * 1.6); bottom: 0; }
+.t-dash { right: calc(var(--t) * 1.22); bottom: calc(var(--t) * 1.2); }
+.t-burst { right: calc(var(--t) * .1); bottom: calc(var(--t) * 1.62); }
+.t-els { position: absolute; right: var(--sr); bottom: calc(var(--sb) + var(--t) * 2.95); display: flex; gap: calc(var(--t) * .12); }
+.t-el { position: static; width: calc(var(--t) * .82); height: calc(var(--t) * .82); color: var(--c, #cfc6dc); box-shadow: inset 0 1px 0 #ffffff2e, inset 0 0 0 2px color-mix(in srgb, var(--c, #fff) 55%, transparent), 0 4px 14px #0009; }
+.t-el.on { background: color-mix(in srgb, var(--c, #fff) 45%, #17121f); }
+.t-undo { --c: #cfc6dc; margin-left: calc(var(--t) * .1); }
+/* with fingers on the screen the cockpit keeps only what must be read: health, the recipe, mana and level */
+body[data-device="touch"] .ck-els, body[data-device="touch"] .plates, body[data-device="touch"] .mapbox kbd, body[data-device="touch"] .look { display: none; }
+body[data-device="touch"] .rest-prompt { bottom: calc(var(--u) * 118px); pointer-events: auto; padding: calc(var(--u) * 10px) calc(var(--u) * 16px); }
+body[data-device="touch"] .buffs { bottom: calc(var(--u) * 96px); }
+body[data-device="touch"] #view { cursor: default; }
+html, body { touch-action: manipulation; }   /* no double-tap zoom while tapping buttons */

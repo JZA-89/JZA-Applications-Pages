@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.40';
+  const VERSION = 'v0.41';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -105,6 +105,8 @@
     ['shot', 'Cast', [[KIcon('mouse'), 'Aim with the mouse'], [K('Left', 'w'), 'Shot, aimed where you point'], [K('Right', 'w'), 'Burst, around you'], ['', 'Hold any of them to keep casting']]],
     ['rune', 'Recipe', [[elementOrder.map(EK).join(''), 'Add Fire, Water, Earth or Lightning'], [K('C'), 'Take off the last element'], [K('X'), 'Clear the recipe'], ['', 'After a cast, the next element starts a new recipe']]],
     ['keys', 'Menus', [[K('Tab', 'w'), 'Map'], [K('H'), 'Spell book'], [K('M') + K('N'), 'All sound · music, on or off'], [K('Esc', 'w'), 'Pause']]],
+    ['golem', 'Touch', [['Left thumb', 'A stick appears where you touch: run, and push into dirt to dig'], ['Shot', 'Hold to cast. The golem aims at the nearest creature; drag from the button to aim yourself'], ['Jump · Move · Burst', 'The three buttons round Shot. Hold Jump in the air to Lift'],
+      ['Elements', 'The four buttons above; the arrow takes off the last one'], ['', 'Tap the Lodestone notice to rest; the map and the round buttons at the top open the menus']]],
     ['move', 'Controller: play', [[K('L stick', 'w') + K('R stick', 'w'), 'Run (push into dirt to dig) · aim'], [K('LT') + K('RT'), 'Jump and Lift · Shot'], [K('LB') + K('RB'), 'Move (dash) · Burst'],
       [`<kbd style="--c:${elements.fire.css}">B</kbd><kbd style="--c:${elements.water.css}">X</kbd><kbd style="--c:${elements.earth.css}">A</kbd><kbd style="--c:${elements.lightning.css}">Y</kbd>`, 'Fire, Water, Earth, Lightning']]],
     ['keys', 'Controller: the rest', [[K('D-pad', 'w'), 'Up rest · down take off the last element · left map · right spell book'], [K('View', 'w') + K('Menu', 'w'), 'Clear the recipe · pause'],
@@ -217,7 +219,18 @@
     onHelp: () => setMode(mode === 'help' ? 'play' : 'help'),
     onMap: () => { if (mode === 'play') setMode('map'); else if (mode === 'map') setMode('play'); },
     onReset: () => {},
+    // touch: with no finger aiming, aim at the nearest creature in view, if any
+    autoAim: () => {
+      const p = game.players[0], c = game.chest(p), w = game.world; let best = null, bd = 185;
+      const look = a => { if (!a || a.dead || a.asleep) return; const tx = a.x, ty = a.y - a.h / 2, d = Math.hypot(tx - c.x, ty - c.y); if (d < bd && d > 1 && !w.ray(c.x, c.y, (tx - c.x) / d, (ty - c.y) / d, Math.max(0, d - Math.max(a.w, a.h) / 2 - 1)).hit) { bd = d; best = { aim: Math.atan2(ty - c.y, tx - c.x), dist: d }; } };
+      for (const e of game.enemies) if (Math.abs(e.x - c.x) < 190) look(e);
+      look(game.boss);
+      return best;
+    },
+    onTouchDrop: () => touchPad && touchPad.release(),
   });
+  const touchPad = KTouch.build($('touch'));
+  $('restPrompt').addEventListener('pointerdown', e => { e.stopPropagation(); KInput.queue({ type: 'interact' }); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) { save(); if (mode === 'play') setMode('pause'); } });
   // ---------- a controller in the menus ----------
   // The d-pad or left stick moves to the nearest button in that direction, A
@@ -413,7 +426,7 @@
     if (p.slotFlash > 0.3 && hud.flash <= 0.3) { const s = $('queue'); s.classList.remove('flash'); void s.offsetWidth; s.classList.add('flash'); }
     hud.flash = p.slotFlash;
     // what each way of casting gives, and what it costs
-    const pad = KInput.device === 'pad';
+    const pad = KInput.device === 'pad', tch = KInput.device === 'touch';
     const RC = KRecipe.resolve(p.queue);
     p.recipe = RC;
     const specs = KData.modes.map(md => RC ? game.spec(p, md) : null);
@@ -440,7 +453,7 @@
     if (b) $('bossFill').style.transform = `scaleX(${Math.max(0, b.hp) / b.maxHp})`;
     // the rest prompt next to a Lodestone
     const near = !!p.nearStone && mode === 'play';
-    if ((near ? (pad ? 2 : 1) : 0) !== hud.near) { hud.near = near ? (pad ? 2 : 1) : 0; $('restPrompt').hidden = !near; $('restPrompt').innerHTML = pad ? `${KIcon('stone')}D-pad up · Rest at the Lodestone` : '<kbd>F</kbd>Rest at the Lodestone'; }
+    if ((near ? (pad ? 2 : tch ? 3 : 1) : 0) !== hud.near) { hud.near = near ? (pad ? 2 : tch ? 3 : 1) : 0; $('restPrompt').hidden = !near; $('restPrompt').innerHTML = tch ? `${KIcon('stone')}Tap to rest at the Lodestone` : pad ? `${KIcon('stone')}D-pad up · Rest at the Lodestone` : '<kbd>F</kbd>Rest at the Lodestone'; }
   }
 
   // ---------- what is under the mouse (a note in the corner) ----------
@@ -564,7 +577,7 @@
     const p = game.players[0];
     let reticle = null;
     if (mode === 'play') {
-      if (KInput.device === 'pad') { const c = game.chest(p); reticle = { x: c.x + Math.cos(p.aim) * 26, y: c.y + Math.sin(p.aim) * 26 }; }
+      if (KInput.device !== 'kbm') { const c = game.chest(p); reticle = { x: c.x + Math.cos(p.aim) * 26, y: c.y + Math.sin(p.aim) * 26 }; }
       else if (KInput.mouse.moved) reticle = R.clientToWorld(KInput.mouse.x, KInput.mouse.y);
     }
     // an aimed special spell shows where it will land

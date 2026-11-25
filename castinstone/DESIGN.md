@@ -482,6 +482,15 @@ Standing in mud, or being hit by mud spray, slows. A spray hit coats the target 
 
 The last device used takes over. Touch controls are not built yet. (Jaisah, v0.18: W no longer jumps; Q W E S load the elements.)
 
+## Touch (v0.41, `touch.js`, `KInput.touch`)
+
+A third input device, `'touch'`, taken on any finger press (keyboard, mouse and controller take over as before). `touch.js` builds the on-screen controls in `#touch` (shown only in play) and writes what is held into `KInput.touch`; the game still receives plain actions.
+
+- **Left:** the lower-left 44% × 70% of the screen is the run stick; it appears where the thumb lands. Sideways past 22% runs; up or down past 60% sets `moveY`.
+- **Right:** Shot (large, gold) in the corner with Jump, Move and Burst round it; above them the four elements and a button that takes off the last one. Button width `--t` is 14% of the screen's shorter side, between 46 and 80 px.
+- **Aim:** with no finger aiming, the golem aims at the nearest creature within 185 it can see (`autoAim` in main.js), else the way it runs. Pressing Shot and dragging more than 30% of the button's width from its middle aims by hand: drag direction is the aim, drag length sets how far a targeted special lands (36 to 186).
+- The cockpit hides the element keys and the four cast plates; the Lodestone notice is tapped to rest.
+
 ## Interface (v0.26)
 
 Jaisah: a proper game interface like MORPHOS's, not text in boxes. The look is **carved stone and rune light**: slabs of dark slate with a lit top edge, gold for the light inside runes, a serif for names and titles; the only other strong colours are the four elements, health (clay red) and mana (lilac). Icons are line drawings defined once (`KIcon` in `loot.js`) and placed with `data-icon` or from code. No fonts or images are loaded.
@@ -575,6 +584,12 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.39 (2026-11-27):** a 27th special spell, **Meltdown** (fourth circle: Fire Earth Fire Fire Earth Fire, 165 mana): rock within 14 of your pointer, or of the wall face in the way, melts into magma that cools to dirt; power 70 to anything there. It is the only way into rock-sealed caches without wearing the Crucible (Jaisah: in case he wants something else in the core socket). The Runestones tab now has the golem in the middle with a station for each socket round it (Head above, Arms left, Core right, Legs below), each with its spare stones beside it, and the picked stone's card below (Jaisah: like MORPHOS's Mutations screen). With a controller the ring is walked row by row as drawn (`KRest.padMove`): left and right along a row, up and down to the nearest thing in the next row, up from Head to the tab, down from the last row to Leave; down from any tab enters that tab at its first control.
 
 - **v0.40:** Jaisah: the two blob creatures were duplicates, the warden was a tank that did nothing, more ranged enemies and kinds per region were wanted, and enemies swarmed him at a rest point. Added four kinds (two ranged) by re-labelling existing homes rather than changing cave generation, so saves carry over; gave the warden a throw and a ground wave; added the calm after a rest and sent chasing enemies home.
+
+- **v0.41:** touch controls (Jaisah: "Yep, add it"). Shot doubles as the aim so one thumb can fire and aim; automatic aim covers the moments that thumb is on Jump or an element.
+
+## Checks run for v0.41
+
+Simulated fingers at 844 × 390, 390 × 844 and 1180 × 820: tapping an element adds it, the stick runs, holding Shot casts, dragging Shot sets the aim, lifting every finger leaves nothing held. The controller and keyboard switching test still passes. Not tried on a real phone.
 
 ## Checks run for v0.40
 

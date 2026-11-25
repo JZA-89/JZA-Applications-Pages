@@ -19,7 +19,10 @@
    In a menu: d-pad or left stick moves between buttons, A presses, B goes
    back, LB and RB change tab, Menu resumes.
 
-   ONE DEVICE AT A TIME. `device` is 'kbm' or 'pad', and only that device's
+   Touch: on-screen controls (touch.js) write into `touch` below; a finger on
+   the screen makes the device 'touch'.
+
+   ONE DEVICE AT A TIME. `device` is 'kbm', 'pad' or 'touch', and only that device's
    input counts. A controller takes over on a new button press, or a stick
    pushed past half after having been at rest; the keyboard and mouse take
    over on a new key press, a click, or the mouse moving. Whatever the other
@@ -45,15 +48,17 @@ const KInput = (() => {
   let sticksRested = true;       // the sticks have been near the centre since the controller last lost control
   let padBlocked = new Set();    // buttons that were down when the controller lost control: ignored until let go
   let navHeld = null, navAt = 0; // menu direction being held, and when it next repeats
+  // what the on-screen controls are holding; aim is null while the golem aims by itself
+  const touch = { move: 0, moveY: 0, jump: false, cast: false, burst: false, moveSpell: false, aim: null, dist: 90 };
+  const touchDrop = () => { Object.assign(touch, { move: 0, moveY: 0, jump: false, cast: false, burst: false, moveSpell: false, aim: null }); hooks.onTouchDrop && hooks.onTouchDrop(); };
 
   function setDevice(d) {
     if (d === device) return;
     device = d;
     document.body.dataset.device = d;
-    if (d === 'pad') {
-      // drop whatever the keyboard and mouse were holding
-      keys.clear(); mouse.left = mouse.right = false; mouse.moved = false;
-    } else {
+    if (d !== 'kbm') { keys.clear(); mouse.left = mouse.right = false; mouse.moved = false; }   // drop whatever the keyboard and mouse were holding
+    if (d !== 'touch') touchDrop();
+    if (d !== 'pad') {
       // drop whatever the controller was holding; held buttons and pushed sticks must be released first
       padHeld = NONE();
       padBlocked = new Set(padNow.map((v, i) => v ? i : -1).filter(i => i >= 0));
@@ -109,7 +114,7 @@ const KInput = (() => {
       if (e.target === target) { mouse.x = e.clientX; mouse.y = e.clientY; mouse.moved = true; }
       sync(e, e.target === target && (mouse.left || mouse.right));   // a second button pressed while the first is held arrives as a movement
     });
-    addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') setDevice('kbm'); }, true);
+    addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') setDevice('kbm'); else if (e.pointerType === 'touch' || e.pointerType === 'pen') setDevice('touch'); }, true);
     target.addEventListener('pointerdown', e => {
       if (e.pointerType !== 'mouse') return;
       mouse.x = e.clientX; mouse.y = e.clientY; mouse.moved = true;
@@ -178,7 +183,13 @@ const KInput = (() => {
   function sample(origin) {
     const out = { move: 0, moveY: 0, jump: false, cast: false, burst: false, moveSpell: false, aim, aimDist, events };
     events = [];
-    if (device === 'pad') {
+    if (device === 'touch') {
+      out.move = touch.move; out.moveY = touch.moveY; out.jump = touch.jump; out.cast = touch.cast; out.burst = touch.burst; out.moveSpell = touch.moveSpell;
+      const auto = touch.aim === null && hooks.autoAim ? hooks.autoAim() : null;
+      if (touch.aim !== null) { aim = touch.aim; aimDist = touch.dist; }
+      else if (auto) { aim = auto.aim; aimDist = auto.dist; }
+      else if (Math.abs(touch.move) > 0.3) { aim = touch.move > 0 ? 0 : Math.PI; aimDist = 90; }
+    } else if (device === 'pad') {
       out.move = padHeld.move; out.moveY = padHeld.moveY; out.jump = padHeld.jump; out.cast = padHeld.cast; out.burst = padHeld.burst; out.moveSpell = padHeld.moveSpell;
     } else {
       const L = keys.has('KeyA') || keys.has('ArrowLeft'), R = keys.has('KeyD') || keys.has('ArrowRight');
@@ -197,8 +208,8 @@ const KInput = (() => {
   }
 
   // a panel opened or closed: nothing held carries over (a controller button still down is not a new press)
-  function clearHeld() { keys.clear(); mouse.left = mouse.right = false; events = []; padHeld = NONE(); navHeld = 'wait'; }
+  function clearHeld() { keys.clear(); mouse.left = mouse.right = false; events = []; padHeld = NONE(); navHeld = 'wait'; touchDrop(); }
   function queue(e) { events.push(e); }
 
-  return { attach, sample, poll, clearHeld, queue, get device() { return device; }, mouse, PAD };
+  return { attach, sample, poll, clearHeld, queue, get device() { return device; }, mouse, PAD, touch };
 })();
