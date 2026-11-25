@@ -208,23 +208,67 @@ const KData = (() => {
   // An exact sequence (order matters). It replaces the Shot while the recipe
   // matches and your mana bar is big enough to hold its cost; until then you
   // cannot tell it exists. Learned from tomes in relic caches, or by typing it.
+  // tier: 1 to 5. Tomes and tablets teach by tier (see treasure.tierFor): the
+  // deeper the cave, the higher the tier it can teach.
+  const F = 'fire', W = 'water', E = 'earth', L = 'lightning';
   const specials = {
-    geyser: { name: 'Geyser', seq: ['water', 'fire', 'water'], cost: 32, cd: 0.8,
+    // ----- tier 1: three elements -----
+    geyser: { tier: 1, name: 'Geyser', seq: [W, F, W], cost: 32, cd: 0.8,
       desc: 'Boiling water bursts from the ground under your pointer, throwing enemies into the air.', power: 44, radius: 18, range: 170 },
-    haste: { name: 'Haste', seq: ['fire', 'lightning', 'fire'], cost: 30, cd: 1,
+    haste: { tier: 1, name: 'Haste', seq: [F, L, F], cost: 30, cd: 1,
       desc: 'For 8 seconds you run half again as fast and jump higher.', time: 8, speed: 1.5 },
-    phase: { name: 'Phase', seq: ['lightning', 'earth', 'lightning'], cost: 30, cd: 0.6,
+    phase: { tier: 1, name: 'Phase', seq: [L, E, L], cost: 30, cd: 0.6,
       desc: 'Step through walls: you appear at your pointer, or the nearest open spot to it along the way.', dist: 72 },
-    meteor: { name: 'Meteor', seq: ['earth', 'fire', 'earth', 'fire'], cost: 55, cd: 0.9,
+    mend: { tier: 1, name: 'Mend', seq: [W, E, W], cost: 35, cd: 1,
+      desc: 'Wet clay seals your cracks: you regain 35% of your health over 4 seconds.', heal: 0.35, time: 4 },
+    lantern: { tier: 1, name: 'Lantern', seq: [L, F, L], cost: 25, cd: 1.5,
+      desc: 'A flash lights the cave far around you and draws it onto your map.', radius: 420 },
+    bridge: { tier: 1, name: 'Bridge', seq: [E, W, E], cost: 30, cd: 0.8,
+      desc: 'A span of packed earth grows from your feet towards your pointer, over gaps, water and magma.', length: 76, thick: 4 },
+    // ----- tier 2: four elements -----
+    meteor: { tier: 2, name: 'Meteor', seq: [E, F, E, F], cost: 55, cd: 0.9,
       desc: 'A burning rock falls from above onto the ground under your pointer.', power: 95, radius: 16, range: 220 },
-    quake: { name: 'Quake', seq: ['earth', 'earth', 'earth', 'water'], cost: 50, cd: 1.2,
+    quake: { tier: 2, name: 'Quake', seq: [E, E, E, W], cost: 50, cd: 1.2,
       desc: 'The ground heaves: everything near you is hurt, thrown and slowed, and rubble falls from the roof.', power: 38, radius: 140 },
-    stoneskin: { name: 'Stoneskin', seq: ['earth', 'earth', 'lightning', 'earth', 'earth'], cost: 80, cd: 1,
+    chain: { tier: 2, name: 'Chain lightning', seq: [L, L, W, L], cost: 60, cd: 0.8,
+      desc: 'A bolt that leaps from enemy to enemy, up to eight of them.', power: 42, range: 210, hop: 75, hops: 8 },
+    firewall: { tier: 2, name: 'Firewall', seq: [F, E, F, F], cost: 55, cd: 1.2,
+      desc: 'A wall of flame burns on the ground under your pointer for 5 seconds.', power: 24, width: 34, height: 16, time: 5, range: 200 },
+    deluge: { tier: 2, name: 'Deluge', seq: [W, W, E, W], cost: 60, cd: 1.5,
+      desc: 'Water pours out of the air at your pointer for 3 seconds: enough to drown a fire, fill a pit or cool a pool of magma.', time: 3, perTick: 3, spread: 26, range: 200, air: true },
+    well: { tier: 2, name: 'Lodestone pull', seq: [L, E, E, L], cost: 55, cd: 1.5,
+      desc: 'For 3 seconds everything near your pointer is dragged to it and crushed together.', power: 14, radius: 90, time: 3, range: 200, air: true },
+    // ----- tier 3: five elements -----
+    stoneskin: { tier: 3, name: 'Stoneskin', seq: [E, E, L, E, E], cost: 80, cd: 1,
       desc: 'For 10 seconds you take 60% less damage.', time: 10, reduce: 0.6 },
-    thunderstorm: { name: 'Thunderstorm', seq: ['water', 'water', 'lightning', 'water', 'lightning'], cost: 90, cd: 1.5,
-      desc: 'A storm hangs at your pointer for 6 seconds: rain soaks everything under it and lightning strikes again and again.', power: 34, radius: 80, time: 6, every: 0.35, range: 200 },
-    cataclysm: { name: 'Cataclysm', seq: ['fire', 'earth', 'fire', 'earth', 'lightning', 'fire', 'earth'], cost: 240, cd: 2,
-      desc: 'Seven meteors rain down around the ground under your pointer.', power: 95, radius: 16, range: 220, count: 7, spread: 70 },
+    thunderstorm: { tier: 3, name: 'Thunderstorm', seq: [W, W, L, W, L], cost: 90, cd: 1.5,
+      desc: 'A storm hangs at your pointer for 6 seconds: rain soaks everything under it and lightning strikes again and again.', power: 28, radius: 80, time: 6, every: 0.35, range: 200, air: true },
+    inferno: { tier: 3, name: 'Inferno', seq: [F, F, L, F, F], cost: 100, cd: 1.5,
+      desc: 'Three rings of fire burst out from you, each wider than the last.', power: 70, radii: [32, 58, 86] },
+    sanctuary: { tier: 3, name: 'Sanctuary', seq: [W, E, L, E, W], cost: 110, cd: 2,
+      desc: 'A circle of calm where you stand for 8 seconds: inside it you mend quickly and enemies are slowed.', radius: 52, time: 8, heal: 0.06 },
+    tunnel: { tier: 3, name: 'Tunnel', seq: [E, L, E, L, E], cost: 85, cd: 1.5,
+      desc: 'Bores a wide tunnel through dirt towards your pointer, and hurts whatever is in the way.', length: 210, radius: 9, power: 55 },
+    prism: { tier: 3, name: 'Prism', seq: [L, W, F, E, L], cost: 90, cd: 2,
+      desc: 'All four elements in balance: for 10 seconds every spell costs half.', time: 10 },
+    // ----- tier 4: six elements -----
+    avalanche: { tier: 4, name: 'Avalanche', seq: [E, E, W, E, E, E], cost: 150, cd: 2,
+      desc: 'Nine boulders drop from the roof across the ground around your pointer, smashing through dirt.', power: 115, count: 9, spread: 70, range: 220 },
+    maelstrom: { tier: 4, name: 'Maelstrom', seq: [W, L, W, L, W, L], cost: 170, cd: 2,
+      desc: 'A storm that follows you for 12 seconds, wider and faster than a Thunderstorm.', power: 34, radius: 115, time: 12, every: 0.24 },
+    phoenix: { tier: 4, name: 'Phoenix', seq: [F, W, F, W, F, F], cost: 160, cd: 2,
+      desc: 'For 60 seconds, a blow that would break you instead restores half your health in a burst of flame. Once.', time: 60, power: 90, radius: 60 },
+    titan: { tier: 4, name: 'Titan', seq: [E, F, E, L, E, E], cost: 180, cd: 2,
+      desc: 'For 15 seconds your spells hit 60% harder, blows barely move you and you take a quarter less damage.', time: 15, damage: 1.6, reduce: 0.25 },
+    // ----- tier 5: seven elements -----
+    cataclysm: { tier: 5, name: 'Cataclysm', seq: [F, E, F, E, L, F, E], cost: 240, cd: 2,
+      desc: 'Nine great meteors rain down around the ground under your pointer.', power: 135, radius: 20, range: 220, count: 9, spread: 62 },
+    judgement: { tier: 5, name: 'Judgement', seq: [L, L, F, L, L, F, L], cost: 280, cd: 2.5,
+      desc: 'One colossal bolt from above onto the ground under your pointer. What survives the strike is hit again by the lightning that leaps from it.', power: 380, radius: 34, chainPower: 110, chainRadius: 115, range: 240 },
+    worldbreaker: { tier: 5, name: 'Worldbreaker', seq: [E, E, L, E, F, E, E], cost: 300, cd: 3,
+      desc: 'The cave itself breaks: everything far around you is hurt, hurled and slowed, and the dirt near you is torn open.', power: 200, radius: 260 },
+    stillness: { tier: 5, name: 'Stillness', seq: [L, W, L, E, L, W, L], cost: 300, cd: 3,
+      desc: 'For 6 seconds every creature in the cave is frozen in place, bosses too. You are not.', time: 6 },
   };
   function spellKey(a, b) { return a <= b ? a + '+' + b : b + '+' + a; }
   for (const k in spells) { const [a, b] = k.split('+'); if (spellKey(a, b) !== k) throw new Error('Spell key out of order: ' + k); }
@@ -331,7 +375,10 @@ const KData = (() => {
   // high in a ceiling, or inside rock). Crystal veins break into shards.
   const treasure = {
     cacheChance: 0.6,          // per chamber
-    tomeChance: 0.25,          // a cache teaches a special spell (about 10 tomes in a cave of 40 caches)
+    tomeChance: 0.4,           // a cache teaches a special spell (about 16 tomes in a cave of 40 caches)
+    // the highest tier of special spell a find of this level can teach
+    tierFor: L => L <= 2 ? 1 : L <= 4 ? 2 : L <= 6 ? 3 : L <= 7 ? 4 : 5,
+    tablets: 9, tabletApart: 380,   // rune tablets: carved stones that each teach one special spell
     kinds: { buried: 0.28, high: 0.45, pool: 0.7, rock: 0.4 },
     xp: L => 25 * L, shards: L => 12 * L,
     crucibleChance: L => L >= 5 ? 0.1 : 0,   // a deep cache may hold the Crucible

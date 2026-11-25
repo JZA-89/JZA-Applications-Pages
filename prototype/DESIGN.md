@@ -325,16 +325,42 @@ Jaisah's direction: typing combinations from memory is the skill (as in Magicka)
 
 An exact sequence, order and all. While the recipe matches **and your mana bar could hold its cost**, the Shot becomes the special spell (gold in the HUD); with too small a bar nothing shows that it exists. Learned from **tomes** (25% of relic caches teach one of the three cheapest you do not know, each champion teaches one, and the Emberwyrm teaches Cataclysm) or by typing one; known ones are listed in the spell book with their sequence and saved.
 
-| Spell | Sequence | Mana | What it does |
-|---|---|---|---|
-| Geyser | Water Fire Water | 32 | boiling water bursts from the ground where you aim: power 44 within 18, enemies thrown up |
-| Haste | Fire Lightning Fire | 30 | 8 s: run ×1.5, jump ×1.15 |
-| Phase | Lightning Earth Lightning | 30 | appear at the furthest open spot within 72 the way you aim, through walls |
-| Meteor | Earth Fire Earth Fire | 55 | a burning rock falls from the roof onto where you aim: power 95, blast 16 |
-| Quake | Earth Earth Earth Water | 50 | power 38 to everything within 140, thrown up and slowed 2.5 s; rubble falls from the roof |
-| Stoneskin | Earth Earth Lightning Earth Earth | 80 | 10 s: 60% less damage |
-| Thunderstorm | Water Water Lightning Water Lightning | 90 | 6 s where you aim: rain soaks, a bolt (power 34) every 0.35 s onto an enemy within 80 |
-| Cataclysm | Fire Earth Fire Earth Lightning Fire Earth | 240 | seven meteors around where you aim |
+**Twenty-six spells in five circles (v0.31).** A spell's circle is its length: three elements for the first circle up to seven for the fifth, and the cost rises with it (25 to 35, 50 to 60, 80 to 110, 150 to 180, 240 to 300 mana). The spell book lists them by circle; an unknown one shows only how many elements it has.
+
+**How they are found.** A relic cache teaches one 40% of the time, a **rune tablet** always does, each champion teaches one, and the Emberwyrm teaches Cataclysm. What a find can teach depends on its level (`KData.treasure.tierFor`): levels 1 to 2 the first circle, 3 to 4 up to the second, 5 to 6 the third, 7 the fourth, 8 the fifth. Caches teach the lowest circle you have not finished; tablets and champions (up to the fourth circle) the highest they can. Typing a sequence yourself always works if your mana bar can hold it.
+
+**Rune tablets** (`game.makeTablets`, `tabletsTick`): up to nine standing slabs with glowing teal runes, at least 380 apart, placed from the seed where crawlers and wardens live (level 2 and up) without touching the cave's own generation. Touch one to learn a spell; if it has nothing left to teach it gives 20 shards a level. Read tablets are saved; teal dots mark unread ones on the maps.
+
+**Effects that last** run in `game.updateStorms` (storms, the firewall, rain, the pull, rings of fire, sanctuaries, showers of meteors and boulders) and as timers on the golem (Haste, Stoneskin, Mend, Prism, Titan, Phoenix), shown as chips above the cockpit. Stillness stops `enemyTick` and `bossTick` for its 6 seconds.
+
+| Circle | Spell | Sequence | Mana | What it does |
+|---|---|---|---|---|
+| 1 | Geyser | Water Fire Water | 32 | Boiling water bursts from the ground under your pointer, throwing enemies into the air. |
+| 1 | Haste | Fire Lightning Fire | 30 | For 8 seconds you run half again as fast and jump higher. |
+| 1 | Phase | Lightning Earth Lightning | 30 | Step through walls: you appear at your pointer, or the nearest open spot to it along the way. |
+| 1 | Mend | Water Earth Water | 35 | Wet clay seals your cracks: you regain 35% of your health over 4 seconds. |
+| 1 | Lantern | Lightning Fire Lightning | 25 | A flash lights the cave far around you and draws it onto your map. |
+| 1 | Bridge | Earth Water Earth | 30 | A span of packed earth grows from your feet towards your pointer, over gaps, water and magma. |
+| 2 | Meteor | Earth Fire Earth Fire | 55 | A burning rock falls from above onto the ground under your pointer. |
+| 2 | Quake | Earth Earth Earth Water | 50 | The ground heaves: everything near you is hurt, thrown and slowed, and rubble falls from the roof. |
+| 2 | Chain lightning | Lightning Lightning Water Lightning | 60 | A bolt that leaps from enemy to enemy, up to eight of them. |
+| 2 | Firewall | Fire Earth Fire Fire | 55 | A wall of flame burns on the ground under your pointer for 5 seconds. |
+| 2 | Deluge | Water Water Earth Water | 60 | Water pours out of the air at your pointer for 3 seconds: enough to drown a fire, fill a pit or cool a pool of magma. |
+| 2 | Lodestone pull | Lightning Earth Earth Lightning | 55 | For 3 seconds everything near your pointer is dragged to it and crushed together. |
+| 3 | Stoneskin | Earth Earth Lightning Earth Earth | 80 | For 10 seconds you take 60% less damage. |
+| 3 | Thunderstorm | Water Water Lightning Water Lightning | 90 | A storm hangs at your pointer for 6 seconds: rain soaks everything under it and lightning strikes again and again. |
+| 3 | Inferno | Fire Fire Lightning Fire Fire | 100 | Three rings of fire burst out from you, each wider than the last. |
+| 3 | Sanctuary | Water Earth Lightning Earth Water | 110 | A circle of calm where you stand for 8 seconds: inside it you mend quickly and enemies are slowed. |
+| 3 | Tunnel | Earth Lightning Earth Lightning Earth | 85 | Bores a wide tunnel through dirt towards your pointer, and hurts whatever is in the way. |
+| 3 | Prism | Lightning Water Fire Earth Lightning | 90 | All four elements in balance: for 10 seconds every spell costs half. |
+| 4 | Avalanche | Earth Earth Water Earth Earth Earth | 150 | Nine boulders drop from the roof across the ground around your pointer, smashing through dirt. |
+| 4 | Maelstrom | Water Lightning Water Lightning Water Lightning | 170 | A storm that follows you for 12 seconds, wider and faster than a Thunderstorm. |
+| 4 | Phoenix | Fire Water Fire Water Fire Fire | 160 | For 60 seconds, a blow that would break you instead restores half your health in a burst of flame. Once. |
+| 4 | Titan | Earth Fire Earth Lightning Earth Earth | 180 | For 15 seconds your spells hit 60% harder, blows barely move you and you take a quarter less damage. |
+| 5 | Cataclysm | Fire Earth Fire Earth Lightning Fire Earth | 240 | Nine great meteors rain down around the ground under your pointer. |
+| 5 | Judgement | Lightning Lightning Fire Lightning Lightning Fire Lightning | 280 | One colossal bolt from above onto the ground under your pointer. What survives the strike is hit again by the lightning that leaps from it. |
+| 5 | Worldbreaker | Earth Earth Lightning Earth Fire Earth Earth | 300 | The cave itself breaks: everything far around you is hurt, hurled and slowed, and the dirt near you is torn open. |
+| 5 | Stillness | Lightning Water Lightning Earth Lightning Water Lightning | 300 | For 6 seconds every creature in the cave is frozen in place, bosses too. You are not. |
 
 ## Balance pass (v0.24)
 
@@ -521,6 +547,11 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.28 (2026-11-26):** resting works from near a Lodestone (46 to either side, 30 above, 50 below; it was 22 and 20), and every Lodestone stands on a base of rock that cannot be dug away, restored within 2 s if it is missing (Jaisah: stones left floating were hard to rest at). In the Stats tab the five general stats are on the left and the four elements on the right.
 - **v0.29 (2026-11-26):** the bag is split into a row for Head, Core, Arms and Legs, each sorted best grade first, then highest level (Jaisah).
 - **v0.30 (2026-11-26):** no small bits of dirt (Jaisah, again: they still appeared and blocked him). The minimum loose piece is 48 cells (was 10); dirt formed by cooling magma is now cleaned up too (`world.settle`, the spitters' globs were the main source); the clean-up had a counting flaw that could miss pieces and, rarely, crumble part of something large (fixed: single cells first, then pieces, and a fill that meets dirt already counted is part of something bigger); a crumbled piece is two-thirds dust, one-third loose earth; the golem pushes through loose earth (`game.plough`); Stone and Ember steps are 5 thick and at least 11 wide so they never crumble. Aimed special spells land at the pointer (below), with a gold ring showing where. The rest and start panels keep one height on every tab.
+- **v0.31 (2026-11-27):** eighteen more special spells, 26 in five circles, taught by tier as you go deeper; rune tablets to find; the spell book lists them by circle (Jaisah: learning the specials is the fun, so more to discover, rising in power and cost). Fixed: since v0.30 a panel with long content (the spell book) was pushed down off the screen; the panel wrap is now one cell the size of the screen.
+
+## Checks run for v0.31
+
+Every special spell cast in a test arena with four enemies (cost charged, learned, damage, worst step under 6 ms, no errors) and its numbers tuned from that; tablets placed, read, saved and reloaded; tomes from low-level finds teach the first circle before the second; champions teach the fourth; the spell book photographed by circle; recipe, random-play, save, interface and champion tests again.
 
 ## Checks run for v0.30
 

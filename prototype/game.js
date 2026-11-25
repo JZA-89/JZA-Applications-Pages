@@ -43,6 +43,40 @@ const KGame = (() => {
       this.dummies = this.world.dummySpots.map((s, i) => this.makeDummy(s, i));
       this.enemies = this.world.enemyHomes.map((home, i) => this.makeEnemy(home, i));
       this.makeChampions();
+      this.makeTablets();
+    }
+
+    // Rune tablets: carved stones, each teaching one special spell of up to its
+    // level's tier (the best you do not know). They stand where creatures live,
+    // spread through the cave, chosen from the seed without touching the cave's
+    // own generation. Read ones are saved.
+    makeTablets() {
+      const T = KData.treasure, w = this.world, R = makeRng(this.seed ^ 0x7ab1e7);
+      this.tablets = []; this.read = this.read || new Set();
+      const homes = this.enemies.filter(e => (e.kind === 'crawler' || e.kind === 'warden') && !e.champion).map(e => e.home);
+      for (let i = homes.length - 1; i > 0; i--) { const j = (R() * (i + 1)) | 0; [homes[i], homes[j]] = [homes[j], homes[i]]; }
+      for (const h of homes) {
+        if (this.tablets.length >= T.tablets) break;
+        if (h.level < 2 || this.tablets.some(t => Math.hypot(t.x - h.x, t.y - h.y) < T.tabletApart)) continue;
+        if (w.lodestones.some(l => Math.hypot(l.x - h.x, l.y - h.y) < 60) || w.caches.some(c => Math.hypot(c.x - h.x, c.y - h.y) < 40)) continue;
+        const sp = w.standSpot(h.x + (R() < 0.5 ? 16 : -16), h.y - 4, 14);
+        if (sp) this.tablets.push({ id: this.tablets.length, x: sp.x, y: sp.y, level: h.level });
+      }
+    }
+    tabletsTick() {
+      for (const t of this.tablets) {
+        if (this.read.has(t.id)) continue;
+        for (const p of this.players) {
+          if (p.dead || Math.abs(p.x - t.x) > 10 || Math.abs(p.y - t.y) > 14) continue;
+          this.read.add(t.id);
+          const got = this.tome(p, null, KData.treasure.tierFor(t.level), true);
+          if (!got) { const n = 20 * t.level; p.shards = (p.shards || 0) + n; this.events.push({ type: 'toast', kind: 'shard', text: `A rune tablet you can already read · ${n} shards` }); }
+          this.sfx('cache', t.x, t.y); this.gainXp(p, 15 * t.level, 'tablet');
+          this.fx.push({ kind: 'flash', x: t.x, y: t.y - 6, r: 30, t: 0, T: 0.5, color: [150, 240, 230] });
+          this.events.push({ type: 'save' });
+          break;
+        }
+      }
     }
 
     // The highest-level warden, moth and delver become champions (see KData.champions).
@@ -198,7 +232,7 @@ const KGame = (() => {
       const rune = crucible ? this.makeRune(c.level, { type: 'crucible', tier: 2 }) : this.makeRune(c.level, { tier: Math.min(2, RU.tierFor(c.level, this.rand()) + 1) });
       if (p.inventory.length < RU.bag) p.inventory.push(rune); else this.dropRune(c.x, c.y - 6, rune);
       this.events.push({ type: 'toast', kind: 'loot', text: `Relic cache opened · ${RU.types[rune.type].name} (${RU.tiers[rune.tier].name}) · ${shards} shards` });
-      if (this.rand() < KData.treasure.tomeChance) this.tome(p);
+      if (this.rand() < KData.treasure.tomeChance) this.tome(p, null, KData.treasure.tierFor(c.level));
       this.gainXp(p, T.xp(c.level), 'cache');
       this.sfx('cache', c.x, c.y);
       this.burst(c.x, c.y - 4, 24, [[255, 211, 122], [255, 240, 200]], 120);
@@ -214,14 +248,21 @@ const KGame = (() => {
       return true;
     }
     // a tome teaches one special spell you do not know: one of the three cheapest, or a named one
-    tome(p, id) {
+    // A tome (or tablet) teaches one special spell you do not know, of at most
+    // the given tier: the lowest tier you have not finished, so the cave
+    // teaches the simple ones first. best: prefer the highest tier allowed
+    // (tablets and champions). Returns the spell's id, or null if none is left.
+    tome(p, id, maxTier = 5, best = false) {
       const S = KData.specials;
       if (!id || p.known.includes(id)) {
-        const left = Object.keys(S).filter(k => !p.known.includes(k)).sort((a, b) => S[a].cost - S[b].cost).slice(0, 3);
-        if (!left.length) return;
-        id = left[(this.rand() * left.length) | 0];
+        const left = Object.keys(S).filter(k => !p.known.includes(k) && S[k].tier <= maxTier);
+        if (!left.length) return null;
+        const t = best ? Math.max(...left.map(k => S[k].tier)) : Math.min(...left.map(k => S[k].tier));
+        const pool = left.filter(k => S[k].tier === t);
+        id = pool[(this.rand() * pool.length) | 0];
       }
       this.learn(p, id, 'tome');
+      return id;
     }
     meteor(p, S, x, y) {
       const w = this.world;
@@ -249,7 +290,7 @@ const KGame = (() => {
       }
       const h = w.ray(c.x, c.y, dx, dy, Math.min(S.range, Math.max(10, p.aimDist)));
       const t = { x: h.hit ? h.lx - dx : h.x, y: h.hit ? h.ly - dy : h.y, r: S.radius || 10 };
-      if (id !== 'thunderstorm') for (let k = 0; k < 140 && !SOLID[w.get(Math.round(t.x), Math.round(t.y + 1))]; k++) t.y++;
+      if (!S.air) for (let k = 0; k < 140 && !SOLID[w.get(Math.round(t.x), Math.round(t.y + 1))]; k++) t.y++;
       return t;
     }
     castSpecial(p, id) {
@@ -282,7 +323,7 @@ const KGame = (() => {
         this.meteor(p, S, t.x, t.y); this.sfx('whoosh', t.x, t.y, 1);
       } else if (id === 'cataclysm') {
         const t = aimAt();
-        this.storms.push({ kind: 'meteors', x: t.x, y: t.y, t: S.count * 0.45, next: 0, left: S.count, owner: p });
+        this.storms.push({ kind: 'meteors', x: t.x, y: t.y, t: S.count * 0.4 + 0.3, next: 0, left: S.count, owner: p });
         this.sfx('stirs', p.x, p.y, 1);
       } else if (id === 'quake') {
         for (const o of this.actors) {
@@ -306,43 +347,218 @@ const KGame = (() => {
         ring(p.x, p.y - 8, 18, [190, 196, 210]); this.sfx('earth', p.x, p.y, 1);
       } else if (id === 'thunderstorm') {
         const t = aimAt();
-        this.storms.push({ kind: 'storm', x: t.x, y: t.y, t: S.time, next: 0.2, owner: p });
+        this.storms.push({ kind: 'storm', S, x: t.x, y: t.y, t: S.time, next: 0.2, owner: p });
         this.sfx('stirs', t.x, t.y, 0.8);
+      } else if (id === 'maelstrom') {
+        this.storms.push({ kind: 'storm', S, follow: true, x: p.x, y: p.y - 10, t: S.time, next: 0.2, owner: p });
+        this.sfx('stirs', p.x, p.y, 1); this.sfx('roar', p.x, p.y, 0.6);
+      } else if (id === 'mend') {
+        p.mendT = S.time;
+        ring(p.x, p.y - 8, 20, [150, 230, 170]); this.sfx('splash', p.x, p.y, 0.8); this.sfx('stone', p.x, p.y, 0.6);
+      } else if (id === 'lantern') {
+        const cs = w.cs;
+        for (let cy = Math.floor((p.y - S.radius * 0.6) / cs); cy <= (p.y + S.radius * 0.6) / cs; cy++) for (let cx = Math.floor((p.x - S.radius) / cs); cx <= (p.x + S.radius) / cs; cx++)
+          if (cx >= 0 && cy >= 0 && cx < w.cw && cy < w.ch) w.explored[cy * w.cw + cx] = 1;
+        this.fx.push({ kind: 'flash', x: p.x, y: p.y - 10, r: 150, t: 0, T: 0.9, color: [255, 240, 190] });
+        this.fx.push({ kind: 'ring', x: p.x, y: p.y - 10, r0: 6, r1: 150, t: 0, T: 0.7, color: [255, 240, 190] });
+        this.sfx('blink', p.x, p.y, 1); this.sfx('stone', p.x, p.y, 0.8);
+      } else if (id === 'bridge') {
+        // from your feet towards the pointer, at most a gentle slope
+        const dir = dx >= 0 ? 1 : -1, slope = Math.max(-0.5, Math.min(0.5, dy / (Math.abs(dx) || 0.01)));
+        for (let k = 0; k < S.length; k++) {
+          const x = Math.round(p.x + dir * (k - 4)), y0 = Math.round(p.y + 1 + slope * Math.max(0, k - 4));
+          for (let t2 = 0; t2 < S.thick; t2++) { const m = w.get(x, y0 + t2); if (w.inb(x, y0 + t2) && !SOLID[m] && !this.actorAt(x, y0 + t2, p)) w.set(x, y0 + t2, M.DIRT); }
+          if (k % 6 === 0) this.burst(x, y0, 2, [[184, 140, 128], [132, 84, 100]], 40);
+        }
+        this.sfx('rumble', p.x, p.y, 1); this.sfx('earth', p.x, p.y, 0.8);
+      } else if (id === 'chain') {
+        // the first enemy along the aim, then on to the nearest not yet hit
+        let cur = null, from = { x: c.x, y: c.y };
+        for (let d = 4; d <= S.range && !cur; d += 2) { const x = c.x + dx * d, y = c.y + dy * d; if (BLOCKS(w.get(Math.floor(x), Math.floor(y)))) break; const a = this.actorAt(x, y, p, 3); if (a && a.kind !== 'player') cur = a; }
+        if (!cur) {
+          // nothing on the line: the enemy nearest your pointer, if you can see it
+          const t = { x: c.x + dx * Math.min(S.range, p.aimDist), y: c.y + dy * Math.min(S.range, p.aimDist) };
+          let bd = 60;
+          for (const o of this.actors) { if (o.dead || o.kind === 'player') continue; const d = Math.hypot(o.x - t.x, o.y - o.h / 2 - t.y), L2 = Math.hypot(o.x - c.x, o.y - o.h / 2 - c.y) || 1;
+            if (d < bd && L2 <= S.range && !w.ray(c.x, c.y, (o.x - c.x) / L2, (o.y - o.h / 2 - c.y) / L2, L2 - 4).hit) { bd = d; cur = o; } }
+        }
+        const hit = new Set();
+        if (!cur) { this.fx.push({ kind: 'bolt', pts: this.jagged(c.x, c.y, c.x + dx * 60, c.y + dy * 60), t: 0, T: 0.16, color: [190, 230, 255], wide: 1.6 }); }
+        for (let n = 0; cur && n < S.hops; n++) {
+          hit.add(cur);
+          this.fx.push({ kind: 'bolt', pts: this.jagged(from.x, from.y, cur.x, cur.y - cur.h / 2), t: 0, T: 0.2 + n * 0.02, color: [190, 230, 255], wide: 1.8 });
+          this.hurt(cur, S.power, 0, -30, 'bolt', p, 'lightning+lightning+water');
+          from = { x: cur.x, y: cur.y - cur.h / 2 };
+          let best = null, bd = S.hop;
+          for (const o of this.actors) { if (hit.has(o) || o.dead || o.kind === 'player') continue; const d = Math.hypot(o.x - from.x, o.y - o.h / 2 - from.y); if (d < bd) { bd = d; best = o; } }
+          cur = best;
+        }
+        this.sfx('bolt', c.x, c.y, 1); this.sfx('shock', c.x, c.y, 0.8);
+      } else if (id === 'firewall') {
+        const t = aimAt();
+        this.storms.push({ kind: 'firewall', S, x: t.x, y: t.y, t: S.time, next: 0, owner: p });
+        this.sfx('nova', t.x, t.y, 1);
+      } else if (id === 'deluge') {
+        const t = aimAt();
+        this.storms.push({ kind: 'rain', S, x: t.x, y: t.y, t: S.time, next: 0, owner: p });
+        this.sfx('splash', t.x, t.y, 1.2);
+      } else if (id === 'well') {
+        const t = aimAt();
+        this.storms.push({ kind: 'well', S, x: t.x, y: t.y, t: S.time, next: 0, owner: p });
+        this.sfx('stirs', t.x, t.y, 0.7); this.sfx('shock', t.x, t.y, 0.8);
+      } else if (id === 'inferno') {
+        this.storms.push({ kind: 'inferno', S, follow: true, x: p.x, y: p.y - 8, t: 1.1, next: 0, n: 0, owner: p });
+        p.safeT = 2;
+      } else if (id === 'sanctuary') {
+        this.storms.push({ kind: 'sanct', S, x: p.x, y: p.y - 8, t: S.time, next: 0, owner: p });
+        this.sfx('stone', p.x, p.y, 1.2);
+      } else if (id === 'tunnel') {
+        const hitSet = new Set([p]);
+        for (let d = 8; d <= S.length; d += 4) {
+          const x = c.x + dx * d, y = c.y + dy * d;
+          if (x < 14 || y < 14 || x > w.w - 14 || y > w.h - 14) break;
+          w.explode(x, y, S.radius);
+          for (const o of this.actors) if (!hitSet.has(o) && !o.dead && Math.hypot(o.x - x, o.y - o.h / 2 - y) < S.radius + 4) { hitSet.add(o); this.hurt(o, S.power, dx * 200, dy * 200 - 40, 'spear', p, 'earth+lightning+earth'); }
+          if (d % 24 === 8) this.burst(x, y, 4, [[184, 140, 128], [132, 84, 100]], 90);
+        }
+        this.fx.push({ kind: 'beam', x0: c.x, y0: c.y, x1: c.x + dx * S.length, y1: c.y + dy * S.length, t: 0, T: 0.25, color: [200, 196, 210], wide: 2.4 });
+        this.sfx('bigboom', c.x, c.y, 0.9); this.sfx('rumble', c.x, c.y, 1); this.shake = Math.max(this.shake, 4);
+      } else if (id === 'prism') {
+        p.prismT = S.time;
+        for (const [k, col] of [[0, [255, 122, 47]], [1, [63, 169, 255]], [2, [200, 154, 74]], [3, [255, 242, 122]]]) this.fx.push({ kind: 'ring', x: p.x, y: p.y - 8, r0: 2, r1: 14 + k * 7, t: 0, T: 0.35 + k * 0.08, color: col });
+        this.sfx('rune', p.x, p.y, 1.2);
+      } else if (id === 'avalanche') {
+        const t = aimAt();
+        this.storms.push({ kind: 'rocks', S, x: t.x, y: t.y, t: S.count * 0.3 + 0.2, next: 0, left: S.count, owner: p });
+        this.sfx('rumble', t.x, t.y, 1.4);
+      } else if (id === 'phoenix') {
+        p.phoenixT = S.time;
+        ring(p.x, p.y - 8, 26, [255, 170, 70]); this.sfx('nova', p.x, p.y, 1); this.sfx('rune', p.x, p.y, 0.8);
+      } else if (id === 'titan') {
+        p.titanT = S.time;
+        ring(p.x, p.y - 8, 26, [255, 211, 122]); this.sfx('slam', p.x, p.y, 0.8); this.shake = Math.max(this.shake, 3);
+      } else if (id === 'judgement') {
+        const t = aimAt();
+        let top = t.y; for (let n = 0; n < 220 && !BLOCKS(w.get(Math.round(t.x), Math.round(top - 1))); n++) top--;
+        for (const o of [-3, 0, 3]) this.fx.push({ kind: 'bolt', pts: this.jagged(t.x + o, top, t.x, t.y), t: 0, T: 0.45, color: [255, 246, 170], wide: 2.6 });
+        this.fx.push({ kind: 'flash', x: t.x, y: t.y - 6, r: 120, t: 0, T: 0.6, color: [255, 250, 210] });
+        this.fx.push({ kind: 'ring', x: t.x, y: t.y - 4, r0: 6, r1: S.chainRadius, t: 0, T: 0.5, color: [255, 246, 170] });
+        w.explode(t.x, t.y - 2, 14, { fire: 0.5, boil: 1 });
+        for (const o of this.actors) {
+          if (o === p || o.dead || o.kind === 'player') continue;
+          const d = Math.hypot(o.x - t.x, o.y - o.h / 2 - t.y);
+          if (d < S.radius + o.w / 2) this.hurt(o, S.power, Math.sign(o.x - t.x) * 200, -260, 'bolt', p, 'lightning+lightning+fire');
+          else if (d < S.chainRadius) { this.hurt(o, S.chainPower, 0, -60, 'bolt', p, 'lightning+lightning+fire'); this.fx.push({ kind: 'bolt', pts: this.jagged(t.x, t.y - 4, o.x, o.y - o.h / 2), t: 0, T: 0.3, color: [255, 246, 170], wide: 1.4 }); }
+        }
+        this.sfx('bigboom', t.x, t.y, 1.6); this.sfx('bolt', t.x, t.y, 1.4); this.shake = Math.max(this.shake, 9); this.hitStop = Math.max(this.hitStop || 0, 0.12);
+      } else if (id === 'worldbreaker') {
+        for (const o of this.actors) {
+          if (o === p || o.dead || o.kind === 'player') continue;
+          const d = Math.hypot(o.x - p.x, o.y - p.y);
+          if (d > S.radius) continue;
+          this.hurt(o, S.power * (1 - d / S.radius * 0.5), Math.sign(o.x - p.x) * 160, -260, 'quake', p, 'earth+earth+lightning+fire');
+          o.slowT = Math.max(o.slowT || 0, 4);
+        }
+        // the dirt around you is torn open (never right under your feet)
+        for (let k = 0; k < 34; k++) {
+          const an = R() * Math.PI * 2, d = 26 + R() * 110, x = p.x + Math.cos(an) * d, y = p.y - 10 + Math.sin(an) * d * 0.7;
+          if (Math.abs(x - p.x) < 20 && y > p.y - 4) continue;
+          w.explode(x, y, 6 + R() * 6, { fire: 0.15 });
+        }
+        for (let k = 0; k < 40; k++) this.parts.push({ x: p.x + (R() - 0.5) * 240, y: p.y - 40 - R() * 60, vx: (R() - 0.5) * 80, vy: R() * 60, g: 380, mat: M.EARTH, life: 4, owner: p });
+        for (const r1 of [60, 130, 220]) this.fx.push({ kind: 'ring', x: p.x, y: p.y - 6, r0: 6, r1, t: 0, T: 0.35 + r1 / 400, color: [220, 180, 140] });
+        this.fx.push({ kind: 'flash', x: p.x, y: p.y - 6, r: 140, t: 0, T: 0.5, color: [255, 200, 140] });
+        p.safeT = 2;
+        this.sfx('bigboom', p.x, p.y, 1.6); this.sfx('slam', p.x, p.y, 1.4); this.sfx('rumble', p.x, p.y, 1.4);
+        this.shake = Math.max(this.shake, 12); this.hitStop = Math.max(this.hitStop || 0, 0.15);
+      } else if (id === 'stillness') {
+        this.stillT = S.time;
+        for (const o of this.actors) if (o.kind !== 'player') { o.vx = 0; if (o.flying) o.vy = 0; }
+        this.fx.push({ kind: 'ring', x: p.x, y: p.y - 8, r0: 6, r1: 200, t: 0, T: 0.9, color: [200, 210, 255] });
+        this.fx.push({ kind: 'flash', x: p.x, y: p.y - 8, r: 160, t: 0, T: 0.8, color: [190, 200, 255] });
+        this.sfx('stone', p.x, p.y, 1.4); this.sfx('blink', p.x, p.y, 1);
       }
     }
+    // Special spells that last: storms, walls of fire, rain, the pull, rings of
+    // fire, sanctuaries, and showers of meteors and boulders.
     updateStorms() {
       if (!this.storms.length) return;
       const w = this.world, R = this.rand, SP = KData.specials;
+      const foes = (x, y, r) => this.actors.filter(o => !o.dead && o.kind !== 'player' && Math.hypot(o.x - x, o.y - o.h / 2 - y) < r);
       for (const s of this.storms) {
+        const S = s.S || SP.thunderstorm, p = s.owner;
         s.t -= DT; s.next -= DT;
+        if (s.follow && p && !p.dead) { s.x = p.x; s.y = p.y - 10; }
         if (s.kind === 'meteors') {
-          if (s.next <= 0 && s.left > 0) { s.left--; s.next = 0.45; this.meteor(s.owner, SP.cataclysm, s.x + (R() - 0.5) * 2 * SP.cataclysm.spread, s.y); this.sfx('whoosh', s.x, s.y, 0.8); }
-          continue;
+          if (s.next <= 0 && s.left > 0) { s.left--; s.next = 0.4; this.meteor(p, SP.cataclysm, s.x + (R() - 0.5) * 2 * SP.cataclysm.spread, s.y); this.sfx('whoosh', s.x, s.y, 0.8); }
+        } else if (s.kind === 'rocks') {
+          if (s.next <= 0 && s.left > 0) {
+            s.left--; s.next = 0.3;
+            const x = s.x + (R() - 0.5) * 2 * S.spread;
+            let sy = s.y; for (let k = 0; k < 160 && sy > 4 && !BLOCKS(w.get(Math.round(x), Math.round(sy - 1))); k++) sy--;
+            this.projectiles.push({ kind: 'boulder', sp: { power: S.power, knock: 320, dig: 11, rubble: 12, vis: 2.2, splash: 20 }, key: 'earth+earth', owner: p, x, y: sy + 4, vx: (R() - 0.5) * 30, vy: 200, g: 380, age: 0 });
+            this.sfx('earth', x, sy, 0.8);
+          }
+        } else if (s.kind === 'firewall') {
+          for (let k = 0; k < 6; k++) {
+            const x = Math.round(s.x + (R() - 0.5) * 2 * S.width);
+            let gy = Math.round(s.y); for (let n = 0; n < 24 && SOLID[w.get(x, gy)]; n++) gy--; for (let n = 0; n < 24 && !SOLID[w.get(x, gy + 1)]; n++) gy++;
+            const y = gy - Math.floor(R() * S.height * (0.4 + 0.6 * R()));
+            if (w.get(x, y) === M.EMPTY) w.set(x, y, M.FIRE);
+          }
+          for (const o of this.actors) if (!o.dead && o.kind !== 'player' && Math.abs(o.x - s.x) < S.width + o.w / 2 && Math.abs(o.y - s.y) < S.height + 8) this.hurt(o, S.power * DT, 0, 0, 'burn', p, 'fire+earth');
+        } else if (s.kind === 'rain') {
+          for (let k = 0; k < S.perTick; k++) this.parts.push({ x: s.x + (R() - 0.5) * 2 * S.spread, y: s.y + (R() - 0.5) * 6, vx: (R() - 0.5) * 30, vy: 60 + R() * 60, g: 260, mat: M.WATER, life: 4, owner: p });
+          if (s.next <= 0) { s.next = 0.5; this.fx.push({ kind: 'ring', x: s.x, y: s.y, r0: 3, r1: S.spread, t: 0, T: 0.4, color: [110, 170, 255] }); }
+        } else if (s.kind === 'well') {
+          for (const o of foes(s.x, s.y, S.radius)) {
+            if (o.kind === 'boss' || o.anchored) { this.hurt(o, S.power * DT, 0, 0, 'shock', p, 'lightning+earth'); continue; }
+            const ddx = s.x - o.x, ddy = s.y - (o.y - o.h / 2), d = Math.hypot(ddx, ddy) || 1, pull = (o.champion ? 300 : 900) * DT;
+            o.vx += ddx / d * pull; o.vy += ddy / d * pull * (o.flying ? 1 : 0.8) - (o.flying ? 0 : 200 * DT);
+            this.hurt(o, S.power * DT, 0, 0, 'shock', p, 'lightning+earth');
+          }
+          if (s.next <= 0) { s.next = 0.35; this.fx.push({ kind: 'ring', x: s.x, y: s.y, r0: S.radius, r1: 4, t: 0, T: 0.35, color: [200, 196, 255] }); }
+        } else if (s.kind === 'inferno') {
+          if (s.next <= 0 && s.n < S.radii.length) {
+            const r = S.radii[s.n++]; s.next = 0.34;
+            this.hitRadius(s.x, s.y, r, S.power, 260, p, p, 'fire+fire+lightning');
+            this.fx.push({ kind: 'ring', x: s.x, y: s.y, r0: Math.max(3, r - 26), r1: r, t: 0, T: 0.3, color: [255, 150, 60] });
+            this.fx.push({ kind: 'flash', x: s.x, y: s.y, r: r + 20, t: 0, T: 0.25, color: [255, 150, 60] });
+            for (let k = 0; k < 26; k++) { const an = R() * Math.PI * 2, x = Math.round(s.x + Math.cos(an) * r * (0.8 + R() * 0.2)), y = Math.round(s.y + Math.sin(an) * r * (0.8 + R() * 0.2)); if (w.get(x, y) === M.EMPTY) w.set(x, y, M.FIRE); }
+            if (p) p.safeT = Math.max(p.safeT || 0, 1.5);
+            this.sfx('nova', s.x, s.y, 1 + s.n * 0.15); this.shake = Math.max(this.shake, 2 + s.n);
+          }
+        } else if (s.kind === 'sanct') {
+          for (const q of this.players) if (!q.dead && Math.hypot(q.x - s.x, q.y - 8 - s.y) < S.radius) q.hp = Math.min(q.maxHp, q.hp + q.maxHp * S.heal * DT);
+          for (const o of foes(s.x, s.y, S.radius)) o.slowT = Math.max(o.slowT || 0, 0.4);
+          if (s.next <= 0) { s.next = 0.7; this.fx.push({ kind: 'ring', x: s.x, y: s.y, r0: S.radius - 1, r1: S.radius, t: 0, T: 0.7, color: [150, 230, 170] }); this.burst(s.x + (R() - 0.5) * S.radius, s.y + 6, 2, [[150, 230, 170], [200, 250, 220]], 30); }
+        } else {
+          // a storm: rain, and a bolt onto an enemy under it (or the ground)
+          for (let k = 0; k < 2; k++) {
+            const x = s.x + (R() - 0.5) * 2 * S.radius;
+            let y = s.y; for (let n = 0; n < 60 && !BLOCKS(w.get(Math.round(x), Math.round(y - 1))); n++) y--;
+            this.parts.push({ x, y: y + 1, vx: 0, vy: 160, g: 200, mat: M.WATER, life: 3, owner: p });
+          }
+          if (s.next > 0) continue;
+          s.next = S.every;
+          const near = foes(s.x, s.y, S.radius);
+          let tx, ty, target = null;
+          if (near.length) { target = near[(R() * near.length) | 0]; tx = target.x; ty = target.y - target.h / 2; }
+          else { tx = s.x + (R() - 0.5) * 2 * S.radius; ty = s.y; for (let n = 0; n < 60 && !BLOCKS(w.get(Math.round(tx), Math.round(ty + 1))); n++) ty++; }
+          let top = ty; for (let n = 0; n < 90 && !BLOCKS(w.get(Math.round(tx), Math.round(top - 1))); n++) top--;
+          this.fx.push({ kind: 'bolt', pts: this.jagged(tx + (R() - 0.5) * 10, top, tx, ty), t: 0, T: 0.18, color: [190, 230, 255] });
+          this.fx.push({ kind: 'flash', x: tx, y: ty, r: 16, t: 0, T: 0.15, color: [190, 230, 255] });
+          if (target) { target.wetT = KData.statuses.wet.time; this.hurt(target, S.power, 0, -30, 'bolt', p, 'lightning+water'); }
+          this.sfx('bolt', tx, ty, 0.8);
         }
-        const S = SP.thunderstorm;
-        // rain
-        for (let k = 0; k < 2; k++) {
-          const x = s.x + (R() - 0.5) * 2 * S.radius;
-          let y = s.y; for (let n = 0; n < 60 && !BLOCKS(w.get(Math.round(x), Math.round(y - 1))); n++) y--;
-          this.parts.push({ x, y: y + 1, vx: 0, vy: 160, g: 200, mat: M.WATER, life: 3, owner: s.owner });
-        }
-        if (s.next > 0) continue;
-        s.next = S.every;
-        const near = this.actors.filter(o => !o.dead && o.kind !== 'player' && Math.hypot(o.x - s.x, o.y - s.y) < S.radius);
-        let tx, ty, target = null;
-        if (near.length) { target = near[(R() * near.length) | 0]; tx = target.x; ty = target.y - target.h / 2; }
-        else { tx = s.x + (R() - 0.5) * 2 * S.radius; ty = s.y; for (let n = 0; n < 60 && !BLOCKS(w.get(Math.round(tx), Math.round(ty + 1))); n++) ty++; }
-        let top = ty; for (let n = 0; n < 90 && !BLOCKS(w.get(Math.round(tx), Math.round(top - 1))); n++) top--;
-        this.fx.push({ kind: 'bolt', pts: this.jagged(tx + (R() - 0.5) * 10, top, tx, ty), t: 0, T: 0.18, color: [190, 230, 255] });
-        this.fx.push({ kind: 'flash', x: tx, y: ty, r: 16, t: 0, T: 0.15, color: [190, 230, 255] });
-        if (target) { target.wetT = KData.statuses.wet.time; this.hurt(target, S.power, 0, -30, 'bolt', s.owner, 'lightning+water'); }
-        this.sfx('bolt', tx, ty, 0.8);
       }
       this.storms = this.storms.filter(s => s.t > 0);
     }
 
     hasRune(p, type) { return Object.values(p.runes).some(r => r && r.type === type) || p.inventory.some(r => r.type === type); }
     describeTreasure(wx, wy) {
+      for (const t of this.tablets) if (Math.abs(wx - t.x) < 5 && wy > t.y - 12 && wy < t.y + 1)
+        return this.read.has(t.id) ? ['Rune tablet (read)', 'You have learned what it had to teach.'] : [`Rune tablet · Level ${t.level}`, 'Runes cut into a standing slab. Touch it to learn a special spell.'];
       for (const c of this.world.caches) if (Math.abs(wx - c.x) < 6 && wy > c.y - 7 && wy < c.y + 1) {
         const how = { buried: 'Buried in the dirt. Dig to it.', rock: 'Sealed inside rock. Only fire that melts rock reaches it.', magma: 'At the bottom of a magma pool. Wade, or cool the magma with water and dig.', flooded: 'At the bottom of a flooded basin. Swim down to it.', high: 'High in the ceiling. Fly, climb or build up to it.' }[c.kind];
         return this.opened.has(c.id) ? ['Relic cache (empty)', 'Already opened.'] : [`Relic cache · Level ${c.level}`, `${how} Touch it to open it.`];
@@ -351,6 +567,7 @@ const KGame = (() => {
     }
     treasureDots(dot, pk) {
       const w = this.world;
+      for (const t of this.tablets) if (!this.read.has(t.id) && w.explored[(t.y >> 5) * w.cw + (t.x >> 5)]) dot(t.x, t.y - 4, pk(150, 240, 230), true);
       for (const c of w.caches) if (!this.opened.has(c.id) && w.explored[(c.y >> 5) * w.cw + (c.x >> 5)]) dot(c.x, c.y - 3, pk(255, 211, 122), true);
     }
     // the Forge: shards buy stat points and raise a worn runestone's level
@@ -369,10 +586,11 @@ const KGame = (() => {
       this.applyStats(p);
       return true;
     }
-    saveExtra() { return { opened: [...this.opened], defeated: [...this.defeated], cores: [...this.cores] }; }
+    saveExtra() { return { opened: [...this.opened], defeated: [...this.defeated], cores: [...this.cores], read: [...this.read] }; }
     loadExtra(x) {
       if (!x) return;
       if (Array.isArray(x.opened)) this.opened = new Set(x.opened.filter(Number.isInteger));
+      if (Array.isArray(x.read)) this.read = new Set(x.read.filter(Number.isInteger));
       if (Array.isArray(x.defeated)) this.defeated = new Set(x.defeated.filter(id => KData.bosses[id] || (typeof id === 'string' && id.startsWith('champ:'))));
       for (const e of this.enemies) if (e.champion && this.defeated.has('champ:' + e.kind)) { e.dead = true; e.hp = 0; }
       if (Array.isArray(x.cores)) this.cores = new Set(x.cores.filter(c => typeof c === 'string'));
@@ -727,9 +945,10 @@ const KGame = (() => {
       this.updateStorms();
       this.updateParticles();
       this.updateProjectiles();
-      for (const e of this.enemies) this.enemyTick(e);
+      if (!(this.stillT > 0)) for (const e of this.enemies) this.enemyTick(e);
       for (const a of this.actors) if (!a.asleep) this.physics(a);
-      this.bossTick();
+      if (this.stillT > 0) this.stillT -= DT; else this.bossTick();
+      this.tabletsTick();
       this.lodestonesTick();
       this.lootTick();
       this.treasureTick();
@@ -763,7 +982,8 @@ const KGame = (() => {
       const RC = KRecipe.resolve(p.queue);
       p.recipe = RC;
       p.slots = RC ? [RC.form, RC.second] : [null, null];   // the golem's two colours: form and strongest modifier
-      for (const t of ['hasteT', 'skinT', 'guardT']) if (p[t] > 0) p[t] -= DT;
+      for (const t of ['hasteT', 'skinT', 'guardT', 'mendT', 'prismT', 'phoenixT', 'titanT']) if (p[t] > 0) p[t] -= DT;
+      if (p.mendT > 0) p.hp = Math.min(p.maxHp, p.hp + p.maxHp * KData.specials.mend.heal / KData.specials.mend.time * DT);
       p.aim = a.aim;
       p.aimDist = Number.isFinite(a.aimDist) ? a.aimDist : 90;
       const ax = Math.cos(p.aim);
@@ -922,6 +1142,7 @@ const KGame = (() => {
     }
 
     spend(p, amount) {
+      if (p.prismT > 0) amount *= 0.5;   // Prism: every spell costs half
       p.mana -= amount;
       if (p.mana <= 0) { p.mana = 0; p.manaWait = PD.manaEmptyDelay; }
       else p.manaWait = Math.max(p.manaWait, PD.manaDelay);
@@ -1583,7 +1804,8 @@ const KGame = (() => {
         this.sfx('magma', px, py, 0.7);
       } else if (pr.kind === 'boulder') {
         const s = Math.hypot(pr.vx, pr.vy) || 1;
-        if (hit) this.hurt(hit, sp.power, pr.vx / s * sp.knock, pr.vy / s * sp.knock - 60, 'boulder', pr.owner, pr.key);
+        if (sp.splash) this.hitRadius(pr.x, pr.y, sp.splash, sp.power, sp.knock, pr.owner, pr.owner, pr.key);   // Avalanche: each boulder shatters
+        else if (hit) this.hurt(hit, sp.power, pr.vx / s * sp.knock, pr.vy / s * sp.knock - 60, 'boulder', pr.owner, pr.key);
         else this.hitRadius(pr.x, pr.y, 8, sp.power * 0.5, sp.knock * 0.5, null, pr.owner, pr.key);
         w.explode(pr.x, pr.y, sp.dig);
         this.fillBlob(Math.floor(px), Math.floor(py), M.EARTH, sp.rubble);
@@ -1735,7 +1957,8 @@ const KGame = (() => {
         chain = o.lightning;
       }
       amount = this.damage(src || null, a, amount, spell);
-      if (a.kind === 'player') { if (a.skinT > 0) amount *= 1 - KData.specials.stoneskin.reduce; if (a.guardT > 0) amount *= 1 - (a.guard || 0); }
+      if (a.kind === 'player') { if (a.skinT > 0) amount *= 1 - KData.specials.stoneskin.reduce; if (a.guardT > 0) amount *= 1 - (a.guard || 0); if (a.titanT > 0) { amount *= 1 - KData.specials.titan.reduce; kx = (kx || 0) * 0.2; ky = (ky || 0) * 0.2; } }
+      if (src && src.titanT > 0 && a !== src) amount *= KData.specials.titan.damage;
       this.showDamage(a, amount, kind, src);
       if (chain) {
         // lightning jumps on to one more enemy per copy, for a share of the damage (held spells: in pulses)
@@ -1763,6 +1986,17 @@ const KGame = (() => {
       if (a.kind === 'crawler' && amount >= KData.enemies.crawler.staggerAt && a.hp > 0) { a.state = 'stagger'; a.t = 0; }
       if (a.kind === 'moth' && amount >= 10 && a.hp > 0 && a.state === 'windup') { a.state = 'recover'; a.t = 0; }
       if (a.kind === 'warden' && amount >= 40 && a.hp > 0 && a.state === 'windup') { a.state = 'recover'; a.t = 0; }
+      if (a.hp <= 0 && a.kind === 'player' && a.phoenixT > 0) {
+        // Phoenix: the blow that would break you restores you instead, once
+        const S = KData.specials.phoenix;
+        a.phoenixT = 0; a.hp = a.maxHp * 0.5; a.safeT = 1.5; a.burnT = 0;
+        this.hitRadius(a.x, a.y - 8, S.radius, S.power, 320, a, a, 'fire+fire');
+        this.fx.push({ kind: 'ring', x: a.x, y: a.y - 8, r0: 4, r1: S.radius, t: 0, T: 0.4, color: [255, 190, 90] });
+        this.fx.push({ kind: 'flash', x: a.x, y: a.y - 8, r: 80, t: 0, T: 0.5, color: [255, 170, 70] });
+        this.burst(a.x, a.y - 8, 40, [[255, 220, 140], [255, 150, 60]], 180);
+        this.sfx('bigboom', a.x, a.y, 1); this.shake = Math.max(this.shake, 5);
+        this.events.push({ type: 'toast', kind: 'big', text: 'The Phoenix flame restores you' });
+      }
       if (a.hp <= 0) this.kill(a);
     }
 
@@ -1797,7 +2031,7 @@ const KGame = (() => {
         q.shards = (q.shards || 0) + KData.champions.shards * a.level;
         if (q.inventory.length < RU.bag) q.inventory.push(r); else this.dropRune(a.x, a.y - a.h / 2, r);
         this.events.push({ type: 'toast', kind: 'big', text: `${a.champion} has fallen · ${RU.types[r.type].name} (Legendary) · ${KData.champions.shards * a.level} shards` });
-        this.tome(q);
+        this.tome(q, null, 4, true);
         this.sfx('level', a.x, a.y, 1.2); this.shake = Math.max(this.shake, 5);
         this.events.push({ type: 'save' });
       }

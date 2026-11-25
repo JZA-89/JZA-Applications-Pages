@@ -217,6 +217,7 @@ const KRender = (() => {
       if (game.boss && !game.boss.dead) this.drawBoss(game.boss, game);
       for (const pl of game.players) this.drawGolem(pl, game.time, opt.reduced);
       this.drawCaches(game);
+      this.drawTablets(game);
       this.drawLoot(game);
       this.drawProjectiles(game);
       this.drawParticles(game);
@@ -501,6 +502,21 @@ const KRender = (() => {
     }
 
     // relic caches: a stone casket with a gold band; open ones lose their lid
+    // Rune tablets: a standing slab; its runes glow until you have read it.
+    drawTablets(game) {
+      const T = ['.kkkkk.', 'kmmmmmk', 'kmrmrmk', 'kmmrmmk', 'kmrmrmk', 'kmmmmmk', 'kmrrrmk', 'kmmmmmk', 'kdmmmdk', 'kdddddk', 'kkkkkkk'];
+      for (const t of game.tablets) {
+        const ox = Math.round(t.x - this.cam.x) - 3, oy = Math.round(t.y - this.cam.y) - 11;
+        if (ox < -10 || oy < -12 || ox > V.w || oy > V.h) continue;
+        const read = game.read.has(t.id), pulse = 0.75 + 0.25 * Math.sin(game.time * 3 + t.x);
+        for (let y = 0; y < 11; y++) for (let x = 0; x < 7; x++) {
+          const ch = T[y][x]; if (ch === '.') continue;
+          const c = ch === 'k' ? [26, 22, 32] : ch === 'd' ? [70, 66, 84] : ch === 'm' ? [112, 108, 130] : read ? [84, 96, 110] : [150 * pulse, 240 * pulse, 230 * pulse];
+          this.plot(ox + x, oy + y, c[0] | 0, c[1] | 0, c[2] | 0);
+        }
+      }
+    }
+
     drawCaches(game) {
       const S = ['.kkkkkkk.', 'kgggggggk', 'kmmmymmmk', 'kssssssks', 'kmmmmmmmk', 'kdddddddk'];
       const O = ['.........', '.........', 'kk.....kk', 'kssssssks', 'kmmmmmmmk', 'kdddddddk'];
@@ -637,6 +653,7 @@ const KRender = (() => {
         else if (f.kind === 'trail') for (let i = 0; i < f.pts.length; i += 3) this.light(f.pts[i].x, f.pts[i].y, 7, f.color, a * 0.35);
         else if (f.kind === 'beam') for (let k = 0; k <= 6; k++) this.light(f.x0 + (f.x1 - f.x0) * k / 6, f.y0 + (f.y1 - f.y0) * k / 6, 9, f.color, a * 0.6);
       }
+      for (const t of game.tablets) if (!game.read.has(t.id)) this.light(t.x, t.y - 6, 14, [150, 240, 230], 0.4 + 0.1 * Math.sin(game.time * 3 + t.x));
       for (const l of game.world.lodestones) if (game.found.has(l.id)) this.light(l.x, l.y - 8, 18, [201, 182, 255], 0.5 + 0.12 * Math.sin(game.time * 2.5 + l.x));
       if (game.boss && !game.boss.dead) {
         const b = game.boss;

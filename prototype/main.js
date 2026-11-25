@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.30';
+  const VERSION = 'v0.31';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -86,9 +86,16 @@
   function renderSpecials() {
     const known = game.players[0].known, S = KData.specials, ids = Object.keys(S);
     $('specialsTitle').textContent = `Special spells · ${known.length} of ${ids.length} known`;
-    $('specials').innerHTML = ids.map(id => known.includes(id)
-      ? `<div class="special"><b>${S[id].name}<small>${S[id].cost} mana</small></b><span class="pairc">${dots(S[id].seq)}</span><span>${S[id].desc} Type it in this order, then left click.</span></div>`
-      : `<div class="special unknown"><b>Unknown</b><span class="pairc"><i></i><i></i><i></i></span><span>Written in a tome somewhere in the cave, or found by trying sequences.</span></div>`).join('');
+    // by tier: the number of elements tells you how long an unknown one is
+    const TIER = ['', 'First circle · three elements', 'Second circle · four elements', 'Third circle · five elements', 'Fourth circle · six elements', 'Fifth circle · seven elements'];
+    let html = '<p class="note" style="margin:0 0 4px">Type one in its exact order, then left click. Tomes in relic caches, rune tablets, champions and the Emberwyrm teach them; the deeper the cave, the higher the circle.</p>';
+    for (let t = 1; t <= 5; t++) {
+      const list = ids.filter(id => S[id].tier === t), have = list.filter(id => known.includes(id)).length;
+      html += `<h3 class="circle">${TIER[t]}<small>${have} of ${list.length}</small></h3><div class="specials">` + list.map(id => known.includes(id)
+        ? `<div class="special"><b>${S[id].name}<small>${S[id].cost} mana</small></b><span class="pairc">${dots(S[id].seq)}</span><span>${S[id].desc}</span></div>`
+        : `<div class="special unknown"><b>Unknown</b><span class="pairc">${S[id].seq.map(() => '<i></i>').join('')}</span><span>Not yet learned.</span></div>`).join('') + '</div>';
+    }
+    $('specials').innerHTML = html;
   }
 
   // ---------- controls, as key caps ----------
@@ -360,7 +367,8 @@
       }).join('');
     }
     // lasting effects of special spells
-    const buffs = (p.hasteT > 0 ? `Haste ${Math.ceil(p.hasteT)}|` : '') + (p.skinT > 0 ? `Stoneskin ${Math.ceil(p.skinT)}` : '');
+    const B = [['hasteT', 'Haste'], ['skinT', 'Stoneskin'], ['mendT', 'Mend'], ['prismT', 'Prism'], ['titanT', 'Titan'], ['phoenixT', 'Phoenix']];
+    const buffs = B.filter(([k]) => p[k] > 0).map(([k, n]) => `${n} ${Math.ceil(p[k])}`).concat(game.stillT > 0 ? [`Stillness ${Math.ceil(game.stillT)}`] : []).join('|');
     if (buffs !== hud.buffs) { hud.buffs = buffs; $('buffs').innerHTML = buffs.split('|').filter(Boolean).map(t => `<span class="buff">${t}s</span>`).join(''); }
     // the health of the boss, or of a champion that has noticed you
     let b = game.boss; if (!(b && !b.dead && b.engaged)) b = game.championNear(p);
