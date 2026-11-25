@@ -96,9 +96,11 @@ const KGame = (() => {
     championHomes() {
       const CH = KData.champions, H = this.world.enemyHomes, L = this.world.lair, picked = [], out = new Map();
       KData.acts[this.act].order.forEach((kind, biome) => {
-        const far = k => !picked.some(o => Math.hypot(H[o].x - H[k].x, H[o].y - H[k].y) < CH.apart) && !(L && Math.hypot(L.x - H[k].x, L.y - H[k].y) < 320) && Math.hypot(this.world.hub.x - H[k].x, this.world.hub.y - H[k].y) > 420;   // and not on the doorstep
+        const far = k => !picked.some(o => Math.hypot(H[o].x - H[k].x, H[o].y - H[k].y) < CH.apart) && !(L && Math.hypot(L.x - H[k].x, L.y - H[k].y) < 320) ;
         const ground = k => { const t = H[k].kind || 'crawler'; return t === 'crawler' || t === 'warden'; };
-        const i = H.map((h, k) => k).filter(k => H[k].biome === biome && ground(k) && far(k)).sort((a, b) => H[b].level - H[a].level || a - b)[0];
+        // the region's highest-level floor, and of those the furthest from the hub (the first region surrounds the hub, so its champion must not be on the doorstep)
+        const hub = this.world.hub, out2 = k => Math.hypot(hub.x - H[k].x, hub.y - H[k].y);
+        const i = H.map((h, k) => k).filter(k => H[k].biome === biome && ground(k) && far(k)).sort((a, b) => H[b].level - H[a].level || out2(b) - out2(a) || a - b)[0];
         if (i != null) { picked.push(i); out.set(i, kind); }
       });
       return out;
