@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#0d0a14">
-<title>Cast in Stone | Prototype · v0.25</title>
-<link rel="stylesheet" href="style.css?v=0.25">
+<title>Cast in Stone | Prototype · v0.26</title>
+<link rel="stylesheet" href="style.css?v=0.26">
 </head>
 <body data-mode="start">
 
@@ -15,150 +15,161 @@
   <canvas id="glow" aria-hidden="true"></canvas>
 
   <div class="hud">
-    <div class="hud-tl" id="vitals">
-      <div class="vital">
-        <span class="label">Health</span>
-        <div class="hp" role="meter" aria-label="Health" aria-valuemin="0" aria-valuemax="100" id="hpMeter"><i id="hpFill"></i></div>
-      </div>
-      <div class="vital">
-        <span class="label">Mana</span>
-        <div class="hp mana" role="meter" aria-label="Mana" aria-valuemin="0" aria-valuemax="100" id="manaMeter"><i id="manaFill"></i></div>
-      </div>
-      <div class="vital lv">
-        <span class="label"><span id="lvText">Level 1</span> <b class="pts" id="ptsBadge" hidden>+3</b></span>
-        <div class="hp xp" aria-hidden="true"><i id="xpFill"></i></div>
-      </div>
+    <!-- top left: the cave around you -->
+    <button type="button" class="mapbox" id="mapBox" aria-label="Open the map">
+      <canvas id="minimap" width="128" height="64" aria-hidden="true"></canvas>
+      <span class="mapbox-foot"><b id="region">Rose Hollows</b><i id="regionLv">Level 1</i><kbd>Tab</kbd></span>
+    </button>
+
+    <!-- top right: round stone buttons -->
+    <div class="hud-tr">
+      <button type="button" class="orbbtn" id="btnMap" data-icon="map" aria-label="Map" title="Map (Tab)"></button>
+      <button type="button" class="orbbtn" id="btnSpells" data-icon="book" aria-label="Spell book" title="Spell book (H)"></button>
+      <button type="button" class="orbbtn" id="btnMute" data-icon="sound" aria-label="Sound" aria-pressed="false" title="Sound (M)"></button>
+      <button type="button" class="orbbtn" id="btnPause" data-icon="pause" aria-label="Pause" title="Pause (Esc)"></button>
     </div>
 
-    <div class="hud-tr">
-      <button type="button" class="tool" id="btnMute" aria-pressed="false">Sound on <kbd>M</kbd></button>
-      <button type="button" class="tool" id="btnSpells">Spell book <kbd>H</kbd></button>
-      <button type="button" class="tool" id="btnReset">Reset map</button>
-      <button type="button" class="tool icon" id="btnPause" aria-label="Pause">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg>
-      </button>
+    <!-- top centre: a boss or champion, then notices -->
+    <div class="bossbar" id="bossBar" hidden>
+      <span class="boss-name" id="bossName"></span>
+      <div class="boss-track" aria-hidden="true"><i id="bossFill"></i></div>
     </div>
+    <div class="toasts" id="toasts" aria-live="polite"></div>
 
     <div class="look" id="look" hidden><b id="lookName"></b><span id="lookDesc"></span></div>
-
-    <div class="bossbar" id="bossBar" hidden><span id="bossName"></span><div class="hp boss" aria-hidden="true"><i id="bossFill"></i></div></div>
-    <div class="toasts" id="toasts" aria-live="polite"></div>
     <div class="rest-prompt" id="restPrompt" hidden></div>
+    <div class="buffs" id="buffs" aria-live="polite"></div>
 
-    <div class="map" id="mapBox" title="Open the map (Tab)">
-      <canvas id="minimap" width="128" height="64" aria-label="Map of the explored cave"></canvas>
-      <span id="region">Rose Hollows · Level 1</span>
-    </div>
-
-    <div class="element-bar">
-      <div class="loaded">
-        <span class="queue" id="queue"><span class="slot"></span></span>
-        <span class="spell-name" id="spellName">Type elements: Q W E S</span>
+    <!-- bottom centre: the cockpit -->
+    <div class="cockpit" id="cockpit">
+      <div class="ck-els" id="els" aria-label="Elements"></div>
+      <div class="orb orb-hp" id="hpOrb" role="meter" aria-label="Health" aria-valuemin="0" aria-valuemax="100">
+        <i class="orb-fill"></i><b id="hpText">100</b><span class="orb-tag" data-icon="heart"></span>
       </div>
-      <div class="els" id="els"></div>
+      <div class="ck-mid">
+        <div class="queue" id="queue" aria-label="Recipe"></div>
+        <div class="plates" id="plates"></div>
+      </div>
+      <div class="orb orb-mana" id="manaOrb" role="meter" aria-label="Mana" aria-valuemin="0" aria-valuemax="100">
+        <i class="orb-fill"></i><b id="manaText">100</b><span class="orb-tag" data-icon="drop"></span>
+      </div>
+      <div class="gem" id="lvGem" title="Your level, and the experience towards the next">
+        <span class="gem-ring"></span><small>LEVEL</small><strong id="lvNum">1</strong><b class="gem-pts" id="ptsBadge" hidden>+3</b>
+      </div>
     </div>
   </div>
 </main>
 
+<!-- start, pause, spell book, controls -->
 <div class="panel-wrap" id="panelWrap">
-  <section class="panel" id="panel" role="dialog" aria-modal="true" aria-labelledby="panelTitle">
-    <header>
-      <p class="eyebrow" id="panelEyebrow">Prototype · one player · v0.12</p>
-      <h1 id="panelTitle">CAST IN STONE</h1>
-      <p class="lede" id="panelLede">A rock golem in a web of caves, with four elements. Load any two: every pair gives you an aimed Shot, a Burst around you and a way to Move. Explore out from the hub; the further you go, the tougher it gets. Your world and your golem's progress are saved in this browser.</p>
-    </header>
-
-    <section class="picker" aria-labelledby="pickTitle">
-      <h2 id="pickTitle">Your golem</h2>
-      <div class="golems" id="golems" role="radiogroup" aria-labelledby="pickTitle"></div>
-    </section>
-
-    <div class="view-main" id="viewMain">
-      <h2>Controls</h2>
-      <div class="controls">
-        <dl class="keys">
-          <div><dt>Run</dt><dd><kbd>A</kbd> <kbd>D</kbd></dd></div>
-          <div><dt>Jump · Lift</dt><dd><kbd>Space</kbd> (keep holding in the air to lift)</dd></div>
-          <div><dt>Aim</dt><dd>Mouse</dd></div>
-          <div><dt>Fire · Water · Lightning · Earth</dt><dd><kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>S</kbd></dd></div>
-          <div><dt>Take off the last element · clear all</dt><dd><kbd>C</kbd> · <kbd>X</kbd></dd></div>
-          <div><dt>Rest at a Lodestone</dt><dd><kbd>F</kbd></dd></div>
-        </dl>
-        <dl class="keys">
-          <div><dt>Shot, aimed</dt><dd>Left click</dd></div>
-          <div><dt>Burst, around you</dt><dd>Right click</dd></div>
-          <div><dt>Move (dashes and the like)</dt><dd><kbd>Shift</kbd></dd></div>
-          <div><dt>Map · spell book · pause</dt><dd><kbd>Tab</kbd> · <kbd>H</kbd> · <kbd>Esc</kbd></dd></div>
-          <div><dt>Sound on or off</dt><dd><kbd>M</kbd></dd></div>
-        </dl>
+  <section class="panel shell" id="panel" role="dialog" aria-modal="true" aria-labelledby="panelTitle">
+    <header class="shell-head">
+      <div>
+        <p class="eyebrow" id="panelEyebrow">Prototype</p>
+        <h1 id="panelTitle" class="logo">CAST <span>IN</span> STONE</h1>
       </div>
-      <p class="note">Type up to seven elements. The first is the form of the spell and the rest change it; longer recipes cost much more mana. What you typed stays loaded; after you cast it, the next element you type starts a new recipe. Some exact sequences are special spells, learned from tomes in the cave. Your own Lifts, Moves and Bursts never hurt you. Controller: left stick run, right stick aim, B X A Y elements, RT shot, LT burst, LB jump and lift, RB move, d-pad up rests, View clears, d-pad down takes off the last element, Menu pauses.</p>
-      <p class="note touch-note">Touch controls come later. For now, play with a keyboard and mouse, or a controller.</p>
+      <div class="chips" id="saveLine"></div>
+    </header>
+    <nav class="tabs" role="tablist" id="panelTabs">
+      <button type="button" class="tab" role="tab" data-tab="game" data-icon="golem">Golem</button>
+      <button type="button" class="tab" role="tab" data-tab="book" data-icon="book">Spell book</button>
+      <button type="button" class="tab" role="tab" data-tab="controls" data-icon="keys">Controls</button>
+    </nav>
+
+    <div class="shell-body">
+      <div class="view" data-view="game" id="viewGame">
+        <p class="lede" id="panelLede">A golem of living rock in a web of caves. Type elements to shape a spell: the first is its form, the rest change it. Explore out from the hub; the further you go, the tougher it gets. The cave and your golem are saved in this browser.</p>
+        <div class="golems" id="golems" role="radiogroup" aria-label="Your golem"></div>
+      </div>
+
+      <div class="view" data-view="book" id="viewBook" hidden>
+        <div class="forms" id="forms"></div>
+        <div class="mods" id="mods"></div>
+        <h2 class="rule"><span>Two elements</span></h2>
+        <div class="book" id="book" role="grid" aria-label="Recipes of two elements"></div>
+        <div class="book-detail" id="bookDetail" aria-live="polite"><b>Point at a spell</b><span>The first element you type is the form. Each one after it adds its property, in any order. Typing the form's own element again makes it bigger. Each element after the second costs more than the last. Up to seven.</span></div>
+        <h2 class="rule"><span id="specialsTitle">Special spells</span></h2>
+        <div class="specials" id="specials"></div>
+      </div>
+
+      <div class="view" data-view="controls" id="viewControls" hidden>
+        <div class="keygrid" id="keygrid"></div>
+        <p class="note">Controller: left stick run, right stick aim, B X Y A elements, RT shot, LT burst, LB jump and lift, RB move, d-pad up rests, d-pad down takes off the last element, View clears, Menu pauses.</p>
+        <p class="note touch-note">Touch controls come later. For now, play with a keyboard and mouse, or a controller.</p>
+      </div>
     </div>
 
-    <div class="view-book" id="viewBook" hidden>
-      <div class="book" id="book" role="grid" aria-label="Spell book"></div>
-      <div class="book-detail" id="bookDetail" aria-live="polite"><b>Point at a spell</b><span>The first element you type is the form. Each one after it adds its property, in any order: fire burns, water soaks, earth adds weight, lightning chains. Typing the form's own element again makes it bigger. Each element after the second costs more than the last. Up to seven.</span></div>
-      <div class="specials" id="specials"></div>
-    </div>
-
-    <footer>
+    <footer class="shell-foot">
       <button type="button" class="btn primary" id="btnGo">Start</button>
-      <button type="button" class="btn" id="btnBook">Spell book</button>
-      <button type="button" class="btn" id="btnPanelReset" hidden>Reset map</button>
-      <button type="button" class="btn" id="btnNewCave">New game</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn ghost" id="btnPanelReset" hidden title="Rebuild the cave from its seed. Your golem keeps its progress.">Reset the cave</button>
+      <button type="button" class="btn ghost" id="btnNewCave">New game</button>
     </footer>
   </section>
 </div>
 
+<!-- the full map -->
 <div class="panel-wrap" id="mapWrap" hidden>
-  <section class="panel map-panel" role="dialog" aria-modal="true" aria-label="Map">
-    <p class="eyebrow">Map · <span id="mapInfo"></span></p>
-    <canvas id="bigMap" width="768" height="384" aria-label="The explored cave"></canvas>
-    <p class="note map-key"><i style="--c:#fff"></i>You <i style="--c:#c9b6ff"></i>Lodestone found <i style="--c:#786c96"></i>Lodestone seen <i style="--c:#ffd37a"></i>Relic cache or runestone <i style="--c:#ff5a28"></i>Lair <i style="--c:#ff6eb4"></i>Champion <i style="--c:#60e0d6"></i>Crystal</p>
-    <footer><button type="button" class="btn primary" id="btnMapClose">Close <kbd>Tab</kbd></button></footer>
+  <section class="panel shell map-panel" role="dialog" aria-modal="true" aria-label="Map">
+    <header class="shell-head">
+      <div><p class="eyebrow">Map</p><h1 class="title" id="mapTitle">The cave</h1></div>
+      <div class="chips" id="mapInfo"></div>
+    </header>
+    <div class="map-frame"><canvas id="bigMap" width="768" height="384" aria-label="The explored cave"></canvas></div>
+    <div class="map-key">
+      <span><i style="--c:#fff"></i>You</span><span><i style="--c:#c9b6ff"></i>Lodestone</span><span><i style="--c:#786c96"></i>Lodestone, not yet touched</span>
+      <span><i style="--c:#ffd37a"></i>Relic cache or runestone</span><span><i style="--c:#ff5a28"></i>Lair</span><span><i style="--c:#ff6eb4"></i>Champion</span><span><i style="--c:#60e0d6"></i>Crystal</span>
+    </div>
+    <footer class="shell-foot"><button type="button" class="btn primary" id="btnMapClose">Close<kbd>Tab</kbd></button></footer>
   </section>
 </div>
 
+<!-- resting at a Lodestone -->
 <div class="panel-wrap" id="restWrap" hidden>
-  <section class="panel rest" role="dialog" aria-modal="true" aria-labelledby="restTitle">
-    <header>
-      <p class="eyebrow">Lodestone · <span id="restWhere"></span></p>
-      <h1 id="restTitle" class="rest-title">Rest</h1>
-      <p class="lede"><b id="restLevel">Level 1</b> · <span id="restXp"></span> · <span id="restPoints" class="pts-line"></span></p>
+  <section class="panel shell rest" role="dialog" aria-modal="true" aria-labelledby="restTitle">
+    <header class="shell-head">
+      <div class="rest-id">
+        <div class="gem big" id="restGem"><span class="gem-ring"></span><small>LEVEL</small><strong id="restLevel">1</strong></div>
+        <div>
+          <p class="eyebrow">Lodestone · <span id="restWhere"></span></p>
+          <h1 id="restTitle" class="title">Rest</h1>
+          <p class="xp-line" id="restXp"></p>
+        </div>
+      </div>
+      <div class="chips" id="restChips"></div>
     </header>
-    <div class="rest-tabs" role="tablist">
-      <button type="button" class="rest-tab" data-tab="stats" role="tab">Stats</button>
-      <button type="button" class="rest-tab" data-tab="runes" role="tab" id="tabRunes" hidden>Runestones</button>
-      <button type="button" class="rest-tab" data-tab="forge" role="tab">Forge</button>
-      <button type="button" class="rest-tab" data-tab="travel" role="tab">Travel</button>
+    <nav class="tabs" role="tablist">
+      <button type="button" class="tab rest-tab" data-tab="stats" role="tab" data-icon="stats">Stats</button>
+      <button type="button" class="tab rest-tab" data-tab="runes" role="tab" data-icon="rune" id="tabRunes">Runestones</button>
+      <button type="button" class="tab rest-tab" data-tab="forge" role="tab" data-icon="anvil">Forge</button>
+      <button type="button" class="tab rest-tab" data-tab="travel" role="tab" data-icon="stone">Travel</button>
+    </nav>
+    <div class="shell-body">
+      <div class="rest-view" data-view="stats"><div class="stats" id="statGrid"></div></div>
+      <div class="rest-view" data-view="runes" id="runesView" hidden></div>
+      <div class="rest-view" data-view="forge" id="forgeView" hidden></div>
+      <div class="rest-view" data-view="travel" hidden>
+        <div class="trips" id="travelList"></div>
+        <p class="note" id="travelNote"></p>
+      </div>
     </div>
-    <div class="rest-view" data-view="stats">
-      <div class="stats" id="statGrid"></div>
-    </div>
-    <div class="rest-view" data-view="runes" id="runesView" hidden></div>
-    <div class="rest-view" data-view="forge" id="forgeView" hidden></div>
-    <div class="rest-view" data-view="travel" hidden>
-      <div class="trips" id="travelList"></div>
-      <p class="note" id="travelNote"></p>
-    </div>
-    <footer>
-      <button type="button" class="btn primary" id="btnLeave">Leave</button>
+    <footer class="shell-foot">
+      <button type="button" class="btn primary" id="btnLeave">Leave<kbd>Esc</kbd></button>
     </footer>
   </section>
 </div>
 
 <noscript><p class="noscript">This prototype needs JavaScript.</p></noscript>
 
-<script src="data.js?v=0.25"></script>
-<script src="recipe.js?v=0.25"></script>
-<script src="world.js?v=0.25"></script>
-<script src="audio.js?v=0.25"></script>
-<script src="input.js?v=0.25"></script>
-<script src="game.js?v=0.25"></script>
-<script src="save.js?v=0.25"></script>
-<script src="render.js?v=0.25"></script>
-<script src="loot.js?v=0.25"></script>
-<script src="main.js?v=0.25"></script>
+<script src="data.js?v=0.26"></script>
+<script src="recipe.js?v=0.26"></script>
+<script src="world.js?v=0.26"></script>
+<script src="audio.js?v=0.26"></script>
+<script src="input.js?v=0.26"></script>
+<script src="game.js?v=0.26"></script>
+<script src="save.js?v=0.26"></script>
+<script src="render.js?v=0.26"></script>
+<script src="loot.js?v=0.26"></script>
+<script src="main.js?v=0.26"></script>
 </body>
 </html>

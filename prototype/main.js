@@ -3,12 +3,15 @@
    Starts everything: loads the saved world (or starts a new one), fits the
    16:9 stage to the screen, runs the fixed-step loop (60 steps a second,
    independent of the screen's frame rate), passes each step's actions to the
-   game, draws, and keeps the HUD, the panels (start, spell book, pause, rest
-   at a Lodestone) and the notices up to date. Saves now and then. */
+   game, draws, and keeps the interface up to date: the in-game HUD (corner
+   map, cockpit with health, mana, the recipe and its four spells, level),
+   the tabbed panels (golem, spell book, controls; the map; resting at a
+   Lodestone) and the notices. Saves now and then. Icons and the runestone
+   screens are in loot.js. */
 
 (() => {
-  const { elements, elementOrder, spells, spellKey, view: V, step: STEP } = KData;
-  const VERSION = 'v0.25';
+  const { elements, elementOrder, view: V, step: STEP } = KData;
+  const VERSION = 'v0.26';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -17,25 +20,28 @@
   const R = new KRender.Renderer(view, glow);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   function randomSeed() { return (Math.random() * 1e9) | 0; }
+  const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
+  for (const n of document.querySelectorAll('[data-icon]')) n.insertAdjacentHTML('afterbegin', KIcon(n.dataset.icon));
 
-  // ---------- layout ----------
+  // ---------- layout: the HUD scales with the stage (--u = stage width / 1280) ----------
   function fit() {
     const s = Math.min(innerWidth / V.w, innerHeight / V.h);
     const w = Math.floor(V.w * s), h = Math.floor(V.h * s);
     stage.style.width = w + 'px'; stage.style.height = h + 'px';
-    stage.classList.toggle('compact', w < 760);
+    stage.style.setProperty('--u', Math.max(0.55, Math.min(1.5, w / 1280)).toFixed(3));
     R.resize(w, h);
   }
   addEventListener('resize', fit);
   fit();
 
-  // ---------- element chips ----------
+  // ---------- the four element keys ----------
   const els = $('els');
   for (const el of elementOrder) {
     const e = elements[el], b = document.createElement('button');
     b.type = 'button'; b.className = 'el'; b.style.setProperty('--c', e.css);
-    b.innerHTML = `<i></i><span>${e.name}</span><kbd>${e.label}</kbd>`;
-    b.setAttribute('aria-label', `Load ${e.name}`);
+    b.innerHTML = `${KIcon(el)}<kbd>${e.label}</kbd>`;
+    b.title = `${e.name} (${e.label})`;
+    b.setAttribute('aria-label', `Add ${e.name} to the recipe`);
     b.addEventListener('click', () => KInput.queue({ type: 'load', el }));
     els.appendChild(b);
   }
@@ -49,20 +55,29 @@
     move: { fire: 'hits 25% harder and leaves fire', water: 'goes 20% further', earth: 'digs through dirt', lightning: 'is 12% faster' },
   };
   MOD_TEXT.burst = MOD_TEXT.shot;
+  const MOD_SHORT = { fire: 'burns what it hits and scatters flames', water: 'soaks what it hits and splashes water', earth: 'adds knockback, digs and throws rubble', lightning: 'jumps on to another enemy' };
   const dots = q => q.map(e => `<i style="--c:${elements[e].css}" title="${elements[e].name}"></i>`).join('');
-  book.insertAdjacentHTML('beforeend', '<span></span>' + KData.modes.map(md => `<span class="hd">${MODE_LABEL[md][0]}<small>${MODE_LABEL[md][1]}</small></span>`).join(''));
+  // the four forms: what the first element makes
+  $('forms').innerHTML = elementOrder.map(el => {
+    const R2 = KRecipe.resolve([el, el]);
+    return `<div class="form" style="--c:${elements[el].css}"><h3>${KIcon(el)}${elements[el].name}<kbd>${elements[el].label}</kbd></h3><dl>` +
+      KData.modes.map(md => `<div><dt>${MODE_LABEL[md][0]}</dt><dd>${R2[md].name}</dd></div>`).join('') + '</dl></div>';
+  }).join('');
+  $('mods').innerHTML = elementOrder.map(el => `<div class="mod" style="--c:${elements[el].css}">${KIcon(el)}<span><b>${elements[el].name} after the first</b> ${MOD_SHORT[el]}.</span></div>`).join('');
+  book.insertAdjacentHTML('beforeend', '<span></span>' + KData.modes.map(md => `<span class="hd">${KIcon(md)}${MODE_LABEL[md][0]}<small>${MODE_LABEL[md][1]}</small></span>`).join(''));
   const showSpell = (btn, q, md) => {
     const sp = KRecipe.resolve(q)[md], [a, b] = q;
     book.querySelectorAll('button.on').forEach(x => x.classList.remove('on'));
     btn.classList.add('on');
     const extra = Object.keys(sp.mods).filter(e => sp.mods[e] > 0).map(e => `${elements[e].name}: ${MOD_TEXT[md][e]}.`).join(' ');
-    $('bookDetail').innerHTML = `<b>${sp.name} <small style="color:var(--dim);font-weight:500">· ${elements[a].name} first, then ${elements[b].name} · ${MODE_LABEL[md][0]} · ${sp.drain ? sp.drain + ' mana a second' : sp.cost + ' mana'}</small></b><span>${sp.desc}${extra ? ' ' + extra : ''}</span>`;
+    $('bookDetail').innerHTML = `<b>${sp.name} <small>· ${elements[a].name} first, then ${elements[b].name} · ${MODE_LABEL[md][0]} · ${sp.drain ? sp.drain + ' mana a second' : sp.cost + ' mana'}</small></b><span>${sp.desc}${extra ? ' ' + extra : ''}</span>`;
   };
   for (const a of elementOrder) for (const b of [a, ...elementOrder.filter(e => e !== a)]) {
     book.insertAdjacentHTML('beforeend', `<span class="pairc" title="${elements[a].name} first, then ${elements[b].name}">${dots([a, b])}</span>`);
     for (const md of KData.modes) {
-      const btn = document.createElement('button');
-      btn.type = 'button'; btn.textContent = KRecipe.resolve([a, b])[md].name;
+      const sp = KRecipe.resolve([a, b])[md], btn = document.createElement('button');
+      btn.type = 'button'; btn.textContent = sp.name;
+      if (sp.name === sp.baseName) btn.className = 'own';
       for (const ev of ['mouseenter', 'focus', 'click']) btn.addEventListener(ev, () => showSpell(btn, [a, b], md));
       book.appendChild(btn);
     }
@@ -70,10 +85,21 @@
   // special spells: the ones you know show their sequence; the rest stay hidden
   function renderSpecials() {
     const known = game.players[0].known, S = KData.specials, ids = Object.keys(S);
-    $('specials').innerHTML = `<h2 class="bag-title">Special spells · ${known.length} of ${ids.length} known</h2>` + ids.map(id => known.includes(id)
-      ? `<div class="special"><span class="pairc">${dots(S[id].seq)}</span><div><b>${S[id].name} <small>· ${S[id].cost} mana · type it in this order, then left click</small></b><span>${S[id].desc}</span></div></div>`
-      : `<div class="special unknown"><span class="pairc"><i></i><i></i><i></i></span><div><b>Unknown</b><span>Written in a tome somewhere in the cave, or found by trying sequences.</span></div></div>`).join('');
+    $('specialsTitle').textContent = `Special spells · ${known.length} of ${ids.length} known`;
+    $('specials').innerHTML = ids.map(id => known.includes(id)
+      ? `<div class="special"><b>${S[id].name}<small>${S[id].cost} mana</small></b><span class="pairc">${dots(S[id].seq)}</span><span>${S[id].desc} Type it in this order, then left click.</span></div>`
+      : `<div class="special unknown"><b>Unknown</b><span class="pairc"><i></i><i></i><i></i></span><span>Written in a tome somewhere in the cave, or found by trying sequences.</span></div>`).join('');
   }
+
+  // ---------- controls, as key caps ----------
+  const K = (t, cls = '') => `<kbd class="${cls}">${t}</kbd>`, EK = el => `<kbd style="--c:${elements[el].css}">${elements[el].label}</kbd>`;
+  const KEYCARDS = [
+    ['golem', 'Move', [[K('A') + K('D'), 'Run'], [K('Space', 'w'), 'Jump. Keep holding in the air to Lift'], [K('Shift', 'w'), 'Move: a dash, a blink, a climb'], [K('F'), 'Rest at a Lodestone']]],
+    ['shot', 'Cast', [[KIcon('mouse'), 'Aim with the mouse'], [K('Left', 'w'), 'Shot, aimed where you point'], [K('Right', 'w'), 'Burst, around you'], ['', 'Hold any of them to keep casting']]],
+    ['rune', 'Recipe', [[elementOrder.map(EK).join(''), 'Add Fire, Water, Earth or Lightning'], [K('C'), 'Take off the last element'], [K('X'), 'Clear the recipe'], ['', 'After a cast, the next element starts a new recipe']]],
+    ['keys', 'Menus', [[K('Tab', 'w'), 'Map'], [K('H'), 'Spell book'], [K('M'), 'Sound on or off'], [K('Esc', 'w'), 'Pause']]],
+  ];
+  $('keygrid').innerHTML = KEYCARDS.map(([ic, title, rows]) => `<div class="keycard"><h3>${KIcon(ic)}${title}</h3>` + rows.map(([k, t]) => `<div class="keyrow"><span class="k">${k}</span><span>${t}</span></div>`).join('') + '</div>').join('');
 
   // ---------- golem picker (the look; also kept in the save) ----------
   let skin = game.players[0].skin || 0;
@@ -83,9 +109,8 @@
     b.type = 'button'; b.className = 'golem'; b.setAttribute('role', 'radio');
     const c = document.createElement('canvas');
     KRender.preview(c, i, ['fire', 'water']);
-    c.style.width = (c.width * 3) + 'px'; c.style.height = (c.height * 3) + 'px';
-    b.append(c, Object.assign(document.createElement('span'), { textContent: g.name }));
-    b.title = g.desc;
+    c.style.width = (c.width * 4) + 'px'; c.style.height = (c.height * 4) + 'px';
+    b.append(c, Object.assign(document.createElement('span'), { textContent: g.name }), Object.assign(document.createElement('small'), { textContent: g.desc || '' }));
     b.addEventListener('click', () => pickGolem(i));
     $('golems').appendChild(b);
     return b;
@@ -102,8 +127,16 @@
   function save() { if (KSave.store(game)) saveTimer = 0; }
   addEventListener('pagehide', save);
 
-  // ---------- modes: start, help, pause, rest, play ----------
-  let mode = 'start', confirmNew = false;
+  // ---------- modes: start, help (spell book), pause, map, rest, play ----------
+  let mode = 'start', confirmNew = false, panelTab = 'game';
+  const chip = (icon, text, cls = '') => `<span class="chip ${cls}">${KIcon(icon)}${text}</span>`;
+  function showPanelTab(t) {
+    panelTab = t;
+    for (const b of document.querySelectorAll('#panelTabs .tab')) b.setAttribute('aria-selected', b.dataset.tab === t ? 'true' : 'false');
+    for (const v of document.querySelectorAll('#panel .view')) v.hidden = v.dataset.view !== t;
+    if (t === 'book') renderSpecials();
+  }
+  for (const b of document.querySelectorAll('#panelTabs .tab')) b.addEventListener('click', () => showPanelTab(b.dataset.tab));
   function setMode(m) {
     mode = m;
     document.body.dataset.mode = m;
@@ -115,28 +148,24 @@
     if (m === 'play') { view.focus({ preventScroll: true }); return; }
     if (m === 'rest') { buildRest(); $('btnLeave').focus({ preventScroll: true }); return; }
     if (m === 'map') { drawBigMap(); $('btnMapClose').focus({ preventScroll: true }); return; }
-    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spell book' : `Prototype · one player · ${VERSION}`;
+    const p = game.players[0], started = m !== 'start' || hadSave;
+    $('panelEyebrow').textContent = m === 'start' ? `Prototype · one player · ${VERSION}` : 'Paused';
     $('btnGo').textContent = m === 'start' ? (hadSave ? 'Continue' : 'Start') : 'Resume';
     $('btnPanelReset').hidden = m === 'start';
-    showBook(m === 'help');
+    $('saveLine').innerHTML = !started ? '' : chip('star', `Level ${p.level}`) + chip('stone', `${game.found.size} of ${game.world.lodestones.length} Lodestones`) +
+      chip('book', `${p.known.length} of ${Object.keys(KData.specials).length} special spells`) + (p.shards ? chip('shard', `${p.shards} shards`, 'teal') : '');
+    showPanelTab(m === 'help' ? 'book' : 'game');
     $('btnGo').focus({ preventScroll: true });
   }
   view.tabIndex = -1;
-  function showBook(on) {
-    $('viewBook').hidden = !on; $('viewMain').hidden = on;
-    if (on) renderSpecials();
-    document.querySelector('.picker').hidden = on; $('panelLede').hidden = on;
-    $('btnBook').textContent = on ? 'Controls' : 'Spell book';
-  }
-  $('btnBook').addEventListener('click', () => showBook($('viewBook').hidden));
   const resume = () => setMode('play');
-  // Reset map: rebuild the cave from its seed, keeping the golem's progress.
+  // Reset the cave: rebuild it from its seed, keeping the golem's progress.
   const resetMap = () => { game.reset(true); game.players[0].skin = skin; acc = 0; mapTick = 0; save(); };
   $('btnGo').addEventListener('click', () => { KAudio.start(); resume(); });
   addEventListener('pointerdown', () => KAudio.start(), { once: true });
   addEventListener('keydown', () => KAudio.start(), { once: true });
   const muteBtn = $('btnMute');
-  const showMute = () => { muteBtn.setAttribute('aria-pressed', KAudio.muted ? 'true' : 'false'); muteBtn.innerHTML = KAudio.muted ? 'Sound off <kbd>M</kbd>' : 'Sound on <kbd>M</kbd>'; };
+  const showMute = () => { muteBtn.setAttribute('aria-pressed', KAudio.muted ? 'true' : 'false'); muteBtn.innerHTML = KIcon(KAudio.muted ? 'mute' : 'sound'); muteBtn.title = KAudio.muted ? 'Sound is off (M)' : 'Sound is on (M)'; };
   muteBtn.addEventListener('click', () => { KAudio.start(); KAudio.setMuted(!KAudio.muted); showMute(); view.focus(); });
   addEventListener('keydown', e => { if (e.code === 'KeyM' && !e.repeat && !e.metaKey && !e.ctrlKey) { KAudio.start(); KAudio.setMuted(!KAudio.muted); showMute(); } });
   showMute();
@@ -149,7 +178,7 @@
   });
   $('btnPause').addEventListener('click', () => setMode('pause'));
   $('btnSpells').addEventListener('click', () => setMode('help'));
-  $('btnReset').addEventListener('click', () => { resetMap(); view.focus(); });
+  $('btnMap').addEventListener('click', () => setMode('map'));
   $('btnLeave').addEventListener('click', resume);
   for (const b of document.querySelectorAll('.hud button')) b.addEventListener('pointerdown', e => e.stopPropagation());
 
@@ -159,7 +188,7 @@
     onPause: () => setMode(mode === 'play' ? 'pause' : 'play'),
     onHelp: () => setMode(mode === 'help' ? 'play' : 'help'),
     onMap: () => { if (mode === 'play') setMode('map'); else if (mode === 'map') setMode('play'); },
-    onReset: resetMap,
+    onReset: () => {},
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) { save(); if (mode === 'play') setMode('pause'); } });
   // a controller's Menu button resumes from a panel (in play, input.js pauses on it). The
@@ -173,16 +202,22 @@
     padMenuPrev = down;
   }
 
-  // ---------- rest at a Lodestone: spend stat points, travel ----------
+  // ---------- rest at a Lodestone: stats, runestones, the forge, travel ----------
   let restTab = 'stats';
+  const STAT_ICON = { attack: 'attack', defence: 'defence', vitality: 'heart', mana: 'drop', focus: 'focus', fire: 'fire', water: 'water', earth: 'earth', lightning: 'lightning' };
+  const STAT_COL = { attack: '#ffd37a', defence: '#c9c2d6', vitality: '#e0705c', mana: '#b79cff', focus: '#b79cff' };
   function buildRest() {
     const p = game.players[0], P = KData.progression, here = p.nearStone || game.world.lodestones[game.checkpoint];
-    $('restWhere').textContent = here ? `${here.region} · Level ${here.level}` : '';
-    $('restLevel').textContent = `Level ${p.level}`;
+    $('restWhere').textContent = here ? `${here.hub ? 'The hub' : here.region} · Level ${here.level}` : '';
+    $('restLevel').textContent = p.level;
+    $('restGem').style.setProperty('--pct', Math.min(100, 100 * p.xp / P.xpFor(p.level)).toFixed(1));
     $('restXp').textContent = `${Math.floor(p.xp)} of ${P.xpFor(p.level)} experience to level ${p.level + 1}`;
-    $('restPoints').textContent = p.points ? `${p.points} stat point${p.points === 1 ? '' : 's'} to spend` : 'No stat points to spend';
-    $('restPoints').classList.toggle('has', p.points > 0);
-    for (const t of document.querySelectorAll('.rest-tab')) t.setAttribute('aria-selected', t.dataset.tab === restTab ? 'true' : 'false');
+    $('restChips').innerHTML = chip('star', p.points ? `${p.points} stat point${p.points === 1 ? '' : 's'} to spend` : 'No stat points', p.points ? 'gold' : '') + chip('shard', `${p.shards || 0} shards`, 'teal');
+    for (const t of document.querySelectorAll('.rest-tab')) {
+      t.setAttribute('aria-selected', t.dataset.tab === restTab ? 'true' : 'false');
+      const dot = t.querySelector('.dot'); if (dot) dot.remove();
+      if (t.dataset.tab === 'stats' && p.points > 0) t.insertAdjacentHTML('beforeend', '<i class="dot"></i>');
+    }
     for (const v of document.querySelectorAll('.rest-view')) v.hidden = v.dataset.view !== restTab;
     // stats
     const grid = $('statGrid');
@@ -190,8 +225,9 @@
     for (const s of P.stats) {
       const n = p.alloc[s.id] || 0, row = document.createElement('div');
       row.className = 'stat';
-      const dot = s.el ? `<i style="--c:${elements[s.el].css}"></i>` : '';
-      row.innerHTML = `<span class="sn">${dot}${s.name}</span><span class="sv">${s.show(n)}</span><span class="sd">${s.desc}</span>`;
+      row.style.setProperty('--c', s.el ? elements[s.el].css : STAT_COL[s.id]);
+      let pips = ''; for (let k = 0; k < 12; k++) pips += `<i class="${k < n ? 'on' : ''}"></i>`;
+      row.innerHTML = `<span class="si">${KIcon(STAT_ICON[s.id])}</span><span class="sn">${s.name}</span><span class="sv">${s.show(n)}</span><span class="sd">${s.desc}</span><span class="pips" title="${n} point${n === 1 ? '' : 's'} spent">${pips}</span>`;
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'plus'; b.textContent = '+'; b.disabled = p.points <= 0;
       b.setAttribute('aria-label', `Add a point to ${s.name}`);
@@ -206,8 +242,10 @@
       if (!game.found.has(l.id)) continue;
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'trip';
-      const isHere = here && here.id === l.id;
-      b.innerHTML = `<b>${l.hub ? 'The hub' : l.region}</b><span>Level ${l.level}${isHere ? ' · you are here' : ''}</span>`;
+      const isHere = here && here.id === l.id, biome = KData.biomes.find(x => x.name === l.region);
+      if (biome) b.style.setProperty('--c', rgb(biome.strata[0]));
+      const d = here ? Math.round(Math.hypot(l.x - here.x, l.y - here.y)) : 0;
+      b.innerHTML = `<b>${l.hub ? 'The hub' : l.region}</b><span>Level ${l.level}</span><small>${isHere ? 'You are here' : d + ' away'}</small>`;
       b.disabled = isHere;
       b.addEventListener('click', () => { game.travel(p, l.id); save(); resume(); });
       tl.appendChild(b);
@@ -220,10 +258,10 @@
 
   // ---------- notices (top centre): experience, levels, finds ----------
   const toasts = [];
+  const TOAST_ICON = { xp: 'star', shard: 'shard', loot: 'rune', stone: 'stone', big: 'crown', died: 'skull' };
   function toast(text, kind = '') { toasts.push({ text, kind, t: 0 }); if (toasts.length > 4) toasts.shift(); renderToasts(); }
   function renderToasts() {
-    const box = $('toasts');
-    box.innerHTML = toasts.map(t => `<div class="toast ${t.kind}">${t.text}</div>`).join('');
+    $('toasts').innerHTML = toasts.map(t => `<div class="toast ${t.kind}">${KIcon(TOAST_ICON[t.kind] || 'info')}<span>${t.text}</span></div>`).join('');
   }
   let xpPending = 0, xpTimer = 0, shardPending = 0, shardTimer = 0;
   function handleEvents(dt) {
@@ -241,7 +279,7 @@
       else if (e.type === 'found') toast(`Lodestone found · ${e.stone.hub ? 'the hub' : e.stone.region}`, 'stone');
       else if (e.type === 'rest') { save(); setMode('rest'); }
       else if (e.type === 'save') save();
-      else if (e.type === 'died') toast('Your golem crumbled. It rises again at the last Lodestone.', '');
+      else if (e.type === 'died') toast('Your golem crumbled. It rises again at the last Lodestone.', 'died');
       else if (e.type === 'toast') toast(e.text, e.kind || '');
       else if (e.type === 'learn') { const S = KData.specials[e.id]; toast(`${e.how === 'tome' ? 'A tome' : 'Discovered'}: ${S.name} · ${S.seq.map(x => elements[x].label).join(' ')} · ${S.cost} mana`, 'big'); }
     }
@@ -255,70 +293,77 @@
   }
 
   // ---------- HUD ----------
-  const hud = { hp: -1, mana: -1, maxHp: -1, maxMana: -1, q: null, name: '', flash: 0, mflash: 0, lv: '' };
+  const hud = { hp: -1, mana: -1, maxHp: -1, maxMana: -1, q: null, name: '', flash: 0, mflash: 0, lv: '', boss: '', buffs: '' };
   function updateHud() {
     const p = game.players[0];
+    // health and mana: the liquid in the two orbs
     const hp = Math.round(p.hp);
     if (hp !== hud.hp || p.maxHp !== hud.maxHp) {
       hud.hp = hp; hud.maxHp = p.maxHp;
-      $('hpFill').style.transform = `scaleX(${Math.max(0, hp) / p.maxHp})`;
-      $('hpMeter').setAttribute('aria-valuenow', Math.max(0, hp));
-      $('hpMeter').setAttribute('aria-valuemax', p.maxHp);
-      $('hpMeter').classList.toggle('low', hp < p.maxHp * 0.35);
+      const o = $('hpOrb');
+      o.style.setProperty('--f', (Math.max(0, hp) / p.maxHp).toFixed(3));
+      $('hpText').textContent = Math.max(0, hp);
+      o.setAttribute('aria-valuenow', Math.max(0, hp)); o.setAttribute('aria-valuemax', p.maxHp);
+      o.classList.toggle('low', hp < p.maxHp * 0.35);
     }
     const mana = Math.round(p.mana);
     if (mana !== hud.mana || p.maxMana !== hud.maxMana) {
       hud.mana = mana; hud.maxMana = p.maxMana;
-      $('manaFill').style.transform = `scaleX(${mana / p.maxMana})`;
-      $('manaMeter').setAttribute('aria-valuenow', mana);
-      $('manaMeter').setAttribute('aria-valuemax', p.maxMana);
-      $('manaMeter').classList.toggle('empty', p.manaWait > 0.4 && mana < 1);
+      const o = $('manaOrb');
+      o.style.setProperty('--f', (mana / p.maxMana).toFixed(3));
+      $('manaText').textContent = mana;
+      o.setAttribute('aria-valuenow', mana); o.setAttribute('aria-valuemax', p.maxMana);
+      o.classList.toggle('empty', p.manaWait > 0.4 && mana < 1);
     }
-    if (p.manaFlash > 0.3 && hud.mflash <= 0.3) { const mm = $('manaMeter'); mm.classList.remove('flash'); void mm.offsetWidth; mm.classList.add('flash'); }
+    if (p.manaFlash > 0.3 && hud.mflash <= 0.3) { const o = $('manaOrb'); o.classList.remove('short'); void o.offsetWidth; o.classList.add('short'); }
     hud.mflash = p.manaFlash;
+    // level: the gem and its ring of experience
     const P = KData.progression, lv = `${p.level}|${Math.floor(p.xp)}|${p.points}`;
     if (lv !== hud.lv) {
       hud.lv = lv;
-      $('lvText').textContent = `Level ${p.level}`;
-      $('xpFill').style.transform = `scaleX(${Math.min(1, p.xp / P.xpFor(p.level))})`;
+      $('lvNum').textContent = p.level;
+      $('lvGem').style.setProperty('--pct', Math.min(100, 100 * p.xp / P.xpFor(p.level)).toFixed(1));
       $('ptsBadge').hidden = !p.points;
       $('ptsBadge').textContent = `+${p.points}`;
     }
-    // the recipe: one dot per element typed, then what each way of casting gives and costs
-    const qsig = p.queue.join('+');
+    // the recipe: seven sockets, the first one the form
+    const qsig = p.queue.join('+') + (p.used ? '!' : '');
     if (qsig !== hud.q) {
       hud.q = qsig;
-      $('queue').innerHTML = p.queue.map(e => `<span class="slot on" style="--c:${elements[e].css}"></span>`).join('') || '<span class="slot"></span>';
+      let h = '';
+      for (let i = 0; i < KData.recipe.max; i++) { const e = p.queue[i]; h += `<span class="sock${i === 0 ? ' form' : ''}${e ? ' on' : ''}"${e ? ` style="--c:${elements[e].css}"` : ''}>${e ? KIcon(e) : ''}</span>`; }
+      const qn = $('queue'); qn.innerHTML = h; qn.classList.toggle('used', !!p.used);
     }
     if (p.slotFlash > 0.3 && hud.flash <= 0.3) { const s = $('queue'); s.classList.remove('flash'); void s.offsetWidth; s.classList.add('flash'); }
     hud.flash = p.slotFlash;
+    // what each way of casting gives, and what it costs
     const pad = KInput.device === 'pad';
     const RC = KRecipe.resolve(p.queue);
     p.recipe = RC;
-    const specs = RC ? KData.modes.map(md => game.spec(p, md)) : null;
-    const name = (specs ? qsig + specs.map(sp => (sp.special ? 'S' : '') + (p.mana >= (sp.drain ? sp.min : sp.cost) ? 1 : 0)).join('') : 'idle') + (pad ? '#pad' : '');
+    const specs = KData.modes.map(md => RC ? game.spec(p, md) : null);
+    const name = p.queue.join('+') + specs.map((sp, i) => !sp ? '-' : (sp.special ? 'S' : '') + (p.mana >= (sp.drain ? sp.min : sp.cost) ? 1 : 0) + (p.channels[KData.modes[i]] ? 'L' : '')).join('') + (pad ? '#pad' : '');
     if (name !== hud.name) {
       hud.name = name;
-      const n = $('spellName');
-      n.classList.toggle('idle', !specs);
-      if (!specs) n.textContent = pad ? 'Press an element' : 'Type elements: Q W E S';
-      else {
-        const keysFor = pad ? { shot: 'RT', burst: 'LT', lift: 'LB', move: 'RB' } : { shot: 'L', burst: 'R', lift: 'Space', move: 'Shift' };
-        n.innerHTML = KData.modes.map((md, i) => {
-          const sp = specs[i], ok = p.mana >= (sp.drain ? sp.min : sp.cost);
-          return `<span class="mode${sp.special ? ' special' : ''}${ok ? '' : ' no'}" title="${sp.name}"><kbd>${keysFor[md]}</kbd>${sp.special ? sp.name : sp.baseName}<small>${sp.drain ? Math.round(sp.drain) + '/s' : sp.cost}</small></span>`;
-        }).join('');
-      }
+      const keysFor = pad ? { shot: 'RT', burst: 'LT', lift: 'LB', move: 'RB' } : { shot: 'L', burst: 'R', lift: 'Spc', move: 'Shft' };
+      $('plates').innerHTML = KData.modes.map((md, i) => {
+        const sp = specs[i];
+        if (!sp) return `<div class="plate idle"><span class="pi">${KIcon(md)}</span><span class="pn">${MODE_LABEL[md][0]}</span><span class="pc"><kbd>${keysFor[md]}</kbd></span></div>`;
+        const ok = p.mana >= (sp.drain ? sp.min : sp.cost);
+        return `<div class="plate${sp.special ? ' special' : ''}${ok ? '' : ' no'}${p.channels[md] ? ' live' : ''}" title="${sp.name}"><span class="pi">${KIcon(md)}</span><span class="pn">${sp.special ? sp.name : sp.baseName}</span>` +
+          `<span class="pc"><kbd>${keysFor[md]}</kbd>${sp.drain ? Math.round(sp.drain) + ' /s' : sp.cost}</span></div>`;
+      }).join('');
     }
-    // the boss's health while you fight it
+    // lasting effects of special spells
+    const buffs = (p.hasteT > 0 ? `Haste ${Math.ceil(p.hasteT)}|` : '') + (p.skinT > 0 ? `Stoneskin ${Math.ceil(p.skinT)}` : '');
+    if (buffs !== hud.buffs) { hud.buffs = buffs; $('buffs').innerHTML = buffs.split('|').filter(Boolean).map(t => `<span class="buff">${t}s</span>`).join(''); }
     // the health of the boss, or of a champion that has noticed you
     let b = game.boss; if (!(b && !b.dead && b.engaged)) b = game.championNear(p);
     const bossName = b ? (b.champion || KData.bosses[b.type].name) : '';
-    if (bossName !== hud.boss) { hud.boss = bossName; $('bossBar').hidden = !b; $('bossName').textContent = bossName; }
+    if (bossName !== hud.boss) { hud.boss = bossName; $('bossBar').hidden = !b; $('bossName').textContent = bossName; stage.classList.toggle('has-boss', !!b); }
     if (b) $('bossFill').style.transform = `scaleX(${Math.max(0, b.hp) / b.maxHp})`;
     // the rest prompt next to a Lodestone
     const near = !!p.nearStone && mode === 'play';
-    if (near !== hud.near) { hud.near = near; $('restPrompt').hidden = !near; $('restPrompt').innerHTML = pad ? 'D-pad up · Rest' : '<kbd>F</kbd> Rest'; }
+    if (near !== hud.near) { hud.near = near; $('restPrompt').hidden = !near; $('restPrompt').innerHTML = pad ? `${KIcon('stone')}D-pad up · Rest at the Lodestone` : '<kbd>F</kbd>Rest at the Lodestone'; }
   }
 
   // ---------- what is under the mouse (a note in the corner) ----------
@@ -397,7 +442,8 @@
     paintMap(bbuf, big.width, big.height, 0, 0, w.w / big.width);
     bctx.putImageData(bimg, 0, 0);
     const found = game.found.size, all = w.lodestones.length;
-    $('mapInfo').textContent = `${KData.biomes[w.biomeAt(p.x, p.y - 8)].name} · Level ${w.levelAt(p.x, p.y)} · ${found} of ${all} Lodestones found`;
+    const champs = game.enemies.filter(e => e.champion), left = champs.filter(e => !e.dead).length;
+    $('mapInfo').innerHTML = chip('map', `${KData.biomes[w.biomeAt(p.x, p.y - 8)].name} · Level ${w.levelAt(p.x, p.y)}`) + chip('stone', `${found} of ${all} Lodestones`) + chip('crown', `${champs.length - left} of ${champs.length} champions beaten`);
   }
   $('mapBox').addEventListener('click', () => { if (mode === 'play') setMode('map'); });
   $('btnMapClose').addEventListener('click', () => setMode('play'));
@@ -407,8 +453,8 @@
     const x0 = Math.max(0, Math.min(w.w - mm.width * S, p.x - mm.width * S / 2)), y0 = Math.max(0, Math.min(w.h - mm.height * S, p.y - mm.height * S / 2));
     paintMap(mbuf, mm.width, mm.height, x0, y0, S);
     mctx.putImageData(mimg, 0, 0);
-    const t = `${KData.biomes[w.biomeAt(p.x, p.y - 8)].name} · Level ${w.levelAt(p.x, p.y)}`;
-    if (t !== regionText) { regionText = t; $('region').textContent = t; }
+    const t = `${KData.biomes[w.biomeAt(p.x, p.y - 8)].name}|Level ${w.levelAt(p.x, p.y)}`;
+    if (t !== regionText) { regionText = t; $('region').textContent = t.split('|')[0]; $('regionLv').textContent = t.split('|')[1]; }
   }
 
   // ---------- loop ----------
@@ -450,5 +496,5 @@
   requestAnimationFrame(frame);
 
   // for testing from the console
-  window.cis = { get game() { return game; }, set game(g) { game = g; }, R, save, setMode, toast };
+  window.cis = { get game() { return game; }, set game(g) { game = g; }, R, save, setMode, toast, rest: buildRest };
 })();

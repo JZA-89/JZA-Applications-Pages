@@ -436,6 +436,22 @@ Standing in mud, or being hit by mud spray, slows. A spray hit coats the target 
 
 The last device used takes over. Touch controls are not built yet. (Jaisah, v0.18: W no longer jumps; Q W E S load the elements.)
 
+## Interface (v0.26)
+
+Jaisah: a proper game interface like MORPHOS's, not text in boxes. The look is **carved stone and rune light**: slabs of dark slate with a lit top edge, gold for the light inside runes, a serif for names and titles; the only other strong colours are the four elements, health (clay red) and mana (lilac). Icons are line drawings defined once (`KIcon` in `loot.js`) and placed with `data-icon` or from code. No fonts or images are loaded.
+
+**In play.** The HUD scales with the stage (`--u` = stage width / 1280; text never below 10px).
+- **Top left:** the corner map in a stone frame, with the region, the level of the water you are in, and the Tab key. Click or Tab opens the full map.
+- **Top right:** four round stone buttons: map, spell book, sound, pause.
+- **Top centre:** the boss or champion bar (name in the serif, a segmented bar with diamond ends), then notices as pills with an icon by kind (experience, shards, loot, Lodestone, big news, death).
+- **Bottom centre, the cockpit:** the four element keys (round, with the element's icon and its key); **health and mana as liquid in stone-ringed orbs** with the number inside; between them the **recipe as seven carved sockets** (the first, larger one is the form; filled sockets glow in the element's colour; they dim once the recipe has been cast) above **four spell plates** (Shot, Burst, Lift, Move: icon, key, name, mana cost; red when you cannot afford it, gold for a special spell, lilac while a held spell runs); and the **level as a gem with a ring of experience** and a gold badge for unspent points.
+- Above the cockpit: the rest prompt at a Lodestone, and timers for Haste and Stoneskin. Bottom left: the note about what is under the mouse.
+
+**Panels** share one shell: a slab with gold corner studs, a header (eyebrow, title, chips for level, Lodestones, special spells, shards), a tab bar with icons, a scrolling body and a footer with one gold primary button.
+- **Start and pause:** tabs Golem (the four golems as cards), Spell book (the four forms as element cards, what each element adds as a modifier, the 16 two-element recipes, and special spells as gold cards showing their sequence as sockets), Controls (four cards of key caps). Reset the cave and New game are in the footer; Backspace no longer resets the cave.
+- **Map:** the full explored cave in a frame, chips for where you are, Lodestones found and champions beaten, and a key.
+- **Rest:** the level gem with its ring, and tabs. **Stats:** a plate per stat with its icon, value, pips for points spent and a gold + button. **Runestones:** the golem with a socket for head, arms, core and legs around it, the bag as a grid of gem tiles coloured by grade, and a card for the stone you pick (Equip, Take off, Break). **Forge:** rows with a shard cost on each button. **Travel:** a card per Lodestone found, with its region's colour, level and distance.
+
 ## Menu
 
 The start/pause panel holds the title, the golem picker, a two-column controls list and the buttons (Start or Resume, Spell book, Reset map). The **Spell book** (button, H, or the HUD button) replaces the controls with a 10 × 3 grid of spell names (rows are pairs, columns Shot / Burst / Move); pointing at or focusing a name shows its elements, mode, mana and description underneath (Jaisah: the long list was messy).
@@ -485,6 +501,11 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.23 (2026-11-26):** trying a spell that costs more than the whole mana bar clears the recipe straight away (Jaisah).
 - **v0.24 (2026-11-26):** balance pass from measurements (earth digs best, fire no longer best at everything, Bursts worth their mana, single elements not the most efficient, explosions cannot delete magma), longer recipes look bigger, a cave more than twice the size with levels 1 to 8, enemies return only on rest, a much bigger Emberwyrm arena. Saves start again (`castinstone.save.v2`).
 - **v0.25 (2026-11-26):** three champions; a full map on Tab and a local corner map; relic caches teach a special spell 25% of the time (was 70%).
+- **v0.26 (2026-11-26):** a new interface for the HUD and every panel (Jaisah: proper game UI, as in MORPHOS).
+
+## Checks run for v0.26
+
+Every screen opened and photographed at 1280 × 720 (start, spell book, controls, play with a recipe, notices, a timer and the rest prompt, the four rest tabs with runestones worn and in the bag, pause) and the start and play screens at 844 × 390; no errors. The save, recipe-typing, map and random-play tests run again against the new interface.
 
 ## Checks run for v0.25
 
