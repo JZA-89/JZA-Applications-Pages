@@ -320,7 +320,8 @@ const KData = (() => {
       strata: [[112, 58, 52], [128, 70, 58], [88, 46, 48], [148, 88, 66], [74, 40, 44], [118, 64, 56]] },
   ];
   const cave = { chambers: 104, spacing: 150, hubRadius: 320, regionDistance: 800, levelEvery: 200,
-    tunnel: [12, 17], plugChance: 0.16, loopChance: 0.55, lodestones: 15, stoneReach: 22, stoneRepair: 90 };
+    tunnel: [12, 17], plugChance: 0.16, loopChance: 0.55, lodestones: 15, stoneReach: 46, stoneUp: 30, stoneDown: 50,   // how near counts as at a Lodestone: sideways, above it, below it
+    stoneRepair: 90 };
 
   // ---------- Getting stronger ----------
   // Experience from kills and discoveries; each level gives stat points, spent at a Lodestone.

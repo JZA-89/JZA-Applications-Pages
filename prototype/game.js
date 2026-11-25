@@ -640,12 +640,20 @@ const KGame = (() => {
     // while you stand by it. W (or up) on the ground next to it opens the rest panel.
     lodestonesTick() {
       const C = KData.cave;
+      // every Lodestone stands on a base of rock that cannot be dug away (checked every 2 s,
+      // so one whose ground was dug out before this, or melted, gets its base back)
+      if ((this._baseT = (this._baseT || 0) - DT) <= 0) {
+        this._baseT = 2;
+        const w = this.world;
+        for (const l of w.lodestones) for (let y = Math.round(l.y) + 1; y <= Math.round(l.y) + 3; y++) for (let x = Math.round(l.x) - 6; x <= Math.round(l.x) + 6; x++)
+          if (w.inb(x, y) && w.get(x, y) !== M.ROCK) w.set(x, y, M.ROCK);
+      }
       for (const p of this.players) {
         const was = p.nearStone;
         p.nearStone = null;
         if (p.dead) continue;
         for (const l of this.world.lodestones) {
-          if (Math.abs(p.x - l.x) < C.stoneReach && Math.abs(p.y - l.y) < 20) { p.nearStone = l; break; }
+          if (Math.abs(p.x - l.x) < C.stoneReach && p.y - l.y < C.stoneDown && l.y - p.y < C.stoneUp) { p.nearStone = l; break; }
         }
         const l = p.nearStone;
         if (!l) continue;
