@@ -18,24 +18,24 @@ const KData = (() => {
 
   const materials = [];
   materials[M.EMPTY] = { name: 'Empty', state: 'empty', density: 0 };
-  materials[M.ROCK]  = { name: 'Rock', state: 'static', solid: true, hard: true, density: 99,
+  materials[M.ROCK]  = { desc: 'Unbreakable.', name: 'Rock', state: 'static', solid: true, hard: true, density: 99,
     colors: [[42, 48, 74], [50, 58, 88]] };  // drawn as faceted slate by position (render.js)
-  materials[M.DIRT]  = { name: 'Dirt', state: 'static', solid: true, density: 99,
+  materials[M.DIRT]  = { desc: 'Solid. Spells can break it.', name: 'Dirt', state: 'static', solid: true, density: 99,
     colors: [[132, 84, 100], [142, 92, 96]] };  // drawn as layered strata by position (render.js)
-  materials[M.EARTH] = { name: 'Loose earth', state: 'powder', solid: true, density: 6, slide: 0.9,
+  materials[M.EARTH] = { desc: 'Falls and piles up. Turns to mud in water.', name: 'Loose earth', state: 'powder', solid: true, density: 6, slide: 0.9,
     colors: [[184, 140, 128], [172, 128, 118], [194, 152, 136], [178, 134, 124]] };
-  materials[M.WATER] = { name: 'Water', state: 'liquid', density: 3, flow: 5, conducts: true, alpha: 0.78,
+  materials[M.WATER] = { desc: 'Flows and pools. Lightning electrifies it.', name: 'Water', state: 'liquid', density: 3, flow: 5, conducts: true, alpha: 0.78,
     colors: [[44, 86, 196], [48, 92, 204], [40, 80, 188]] };
-  materials[M.STEAM] = { name: 'Steam', state: 'gas', density: 1, life: [90, 170], condense: 0.06,
+  materials[M.STEAM] = { desc: 'Rises and blocks the view, then fades.', name: 'Steam', state: 'gas', density: 1, life: [90, 170], condense: 0.06,
     colors: [[204, 206, 230], [218, 218, 238], [190, 192, 220]] };
-  materials[M.FIRE]  = { name: 'Fire', state: 'fire', density: 0.5, life: [14, 34], glow: true, burns: 22,
+  materials[M.FIRE]  = { desc: 'Burns whatever touches it. Spreads to lichen.', name: 'Fire', state: 'fire', density: 0.5, life: [14, 34], glow: true, burns: 22,
     colors: [[255, 214, 120], [255, 150, 52], [232, 84, 30], [150, 40, 20]] };
-  materials[M.MUD]   = { name: 'Mud', state: 'powder', density: 5, slide: 0.25, moveChance: 0.45, slows: 0.38,
+  materials[M.MUD]   = { desc: 'Slows anything inside it. Fire bakes it into dirt.', name: 'Mud', state: 'powder', density: 5, slide: 0.25, moveChance: 0.45, slows: 0.38,
     colors: [[96, 84, 104], [88, 76, 96], [104, 92, 112], [92, 80, 100]] };
-  materials[M.MAGMA] = { name: 'Magma', state: 'liquid', density: 7, flow: 1, moveChance: 0.35, glow: true,
+  materials[M.MAGMA] = { desc: 'Burns on touch. Cools into dirt.', name: 'Magma', state: 'liquid', density: 7, flow: 1, moveChance: 0.35, glow: true,
     burns: 45, life: [200, 255], coolsTo: M.DIRT,
     colors: [[255, 120, 40], [255, 168, 64], [236, 84, 28], [255, 196, 96]] };
-  materials[M.MOSS]  = { name: 'Lichen', state: 'static', solid: true, flammable: true, density: 99,
+  materials[M.MOSS]  = { desc: 'Solid, and burns easily.', name: 'Lichen', state: 'static', solid: true, flammable: true, density: 99,
     colors: [[118, 168, 146], [104, 154, 134], [132, 182, 156], [110, 160, 140]] };
 
   // ---------- Reactions ----------

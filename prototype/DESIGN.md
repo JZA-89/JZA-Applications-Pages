@@ -183,6 +183,10 @@ Load two elements (order does not matter), then cast. A third element pushes out
 
 The last device used takes over. Touch controls are not built yet.
 
+## Hover note
+
+Pointing the mouse at something shows a small note in the bottom-left corner (`#look`, `describe()` in `main.js`): creatures with their health (and your own mana), or the material under the cursor with a one-line description (`desc` in each material; electrified water has its own). Hidden over empty space, with a controller, outside play, and on screens narrow enough to use the compact layout.
+
 ## Performance
 
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
@@ -198,6 +202,7 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.5 (2026-11-25):** renamed from KILN to Cast in Stone (Jaisah). The golem choice is now stored as `castinstone.golem` (the old `kiln.golem` is still read). The URL stays `/prototype/`.
 - **v0.6 (2026-11-25):** first enemy, the Shale crawler (patrol, chase, wind-up, lunge, recover; staggered by big hits; respawns). Jaisah asked for an enemy to test combat.
 - **v0.7 (2026-11-25):** crawlers no longer get stuck (Jaisah): they notice you by closeness, hits and spell noise as well as sight; walk out from under ledges and jump up; and chew through dirt when nothing else works. Tested: on a ledge above it, behind the rock spur, and sealed behind a dirt wall, it reaches and hits you.
+- **v0.8 (2026-11-25):** hover note: point at anything to see what it is (Jaisah).
 
 ## Open questions to test
 

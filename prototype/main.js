@@ -74,7 +74,7 @@
     document.body.dataset.mode = m;
     KInput.clearHeld();
     if (m === 'play') { view.focus({ preventScroll: true }); return; }
-    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spells and controls' : 'Prototype · one player · v0.7';
+    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spells and controls' : 'Prototype · one player · v0.8';
     $('btnGo').textContent = m === 'start' ? 'Start' : 'Resume';
     $('btnPanelReset').hidden = m === 'start';
     $('panelLede').hidden = m === 'help';
@@ -149,6 +149,38 @@
     }
   }
 
+  // ---------- what is under the mouse (a note in the corner) ----------
+  let lookText = '';
+  function describe(wx, wy) {
+    const pad = 1;
+    for (const a of game.actors) {
+      if (a.dead || !game.inBox(a, wx, wy, pad)) continue;
+      const hp = `Health ${Math.max(0, Math.ceil(a.hp))} of ${a.maxHp}`;
+      if (a.kind === 'crawler') return ['Shale crawler', `${hp}. Winds up, then lunges. A hard hit staggers it.`];
+      if (a.kind === 'dummy') return ['Training dummy', `${hp}. Heals when left alone.`];
+      if (a.kind === 'player') return [`You (${KData.golems[a.skin].name})`, `${hp}. Mana ${Math.round(a.mana)} of ${a.maxMana}.`];
+    }
+    const w = game.world, x = Math.floor(wx), y = Math.floor(wy);
+    if (!w.inb(x, y)) return null;
+    const m = w.get(x, y);
+    if (m === KData.M.EMPTY) return null;
+    if (m === KData.M.WATER && w.charge[y * w.w + x]) return ['Electrified water', 'Hurts anything inside it, for a moment.'];
+    const mat = KData.materials[m];
+    return [mat.name, mat.desc || ''];
+  }
+  function updateLook() {
+    let info = null;
+    if (mode === 'play' && KInput.device === 'kbm' && KInput.mouse.moved) {
+      const r = view.getBoundingClientRect(), mx = KInput.mouse.x, my = KInput.mouse.y;
+      if (mx >= r.left && mx < r.right && my >= r.top && my < r.bottom) { const p = R.clientToWorld(mx, my); info = describe(p.x, p.y); }
+    }
+    const t = info ? info.join('|') : '';
+    if (t === lookText) return;
+    lookText = t;
+    $('look').hidden = !info;
+    if (info) { $('lookName').textContent = info[0]; $('lookDesc').textContent = info[1]; }
+  }
+
   // ---------- loop ----------
   let acc = 0, last = performance.now();
   const origin = () => { const p = game.players[0]; const c = game.chest(p); return R.worldToClient(c.x, c.y); };
@@ -169,6 +201,7 @@
     }
     R.draw(game, { reticle, reduced: reduced.matches, dt: mode === 'play' ? dt : 0 });
     updateHud();
+    updateLook();
     requestAnimationFrame(frame);
   }
   setMode('start');
