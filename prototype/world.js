@@ -263,6 +263,7 @@ const KWorld = (() => {
           const dx = x - cx, dy = y - cy, d2 = dx * dx + dy * dy;
           const i = y * this.w + x, m = this.mat[i];
           if (d2 <= r2) {
+            if (m === M.ROCK && opts.melt && d2 <= r2 * 0.6 && x >= 8 && y >= 8 && x < this.w - 8 && y < this.h - 8) { this.put(i, M.MAGMA); removed++; continue; }
             if (m === M.EMPTY || HARD[m]) continue;
             if (m === M.WATER) { if (R() < (opts.boil || 0)) this.put(i, M.STEAM); continue; }
             const edge = d2 > (r - 2) * (r - 2);
@@ -310,6 +311,18 @@ const KWorld = (() => {
           if (n <= 1) this.put(i, into);
         }
       }
+    }
+
+    // The Crucible: rock within r of (cx, cy) melts into (cooling) magma.
+    meltRock(cx, cy, r) {
+      let n = 0;
+      for (let y = Math.floor(cy - r); y <= cy + r; y++) for (let x = Math.floor(cx - r); x <= cx + r; x++) {
+        if (x < 8 || y < 8 || x >= this.w - 8 || y >= this.h - 8) continue; // never the world's frame
+        if ((x - cx) ** 2 + (y - cy) ** 2 > r * r) continue;
+        const i = y * this.w + x;
+        if (this.mat[i] === M.ROCK) { this.put(i, M.MAGMA); n++; }
+      }
+      return n;
     }
 
     // Electrify the body of water touching (x,y). Returns cells charged.

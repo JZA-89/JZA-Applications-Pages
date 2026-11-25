@@ -25,6 +25,7 @@ Plain scripts sharing one global scope, loaded in this order, no build step:
 | `input.js` | Keyboard, mouse and controller → actions. |
 | `game.js` | Rules: player control, spells, projectiles, particles, actor physics, damage, levels, Lodestones. |
 | `save.js` | Saving and loading the ongoing world in the browser. |
+| `loot.js` | The Runestones tab of the rest panel, and hover notes and map dots for loot. |
 | `render.js` | Drawing: cells, the clay character, dummies, effects, glow. |
 | `main.js` | Startup, the fixed-step loop, HUD, the panel (start, spells, pause). |
 | `style.css` | Page and HUD styles. |
@@ -190,9 +191,33 @@ Standing stones with a rune: one in the hub beside the start, seven more spread 
 | Focus | mana refills 8% faster |
 | Fire / Water / Earth / Lightning power | spells with that element hit 6% harder (a pair averages its two elements) |
 
+### Runestones (`KData.runes`, `loot.js` for the panel)
+
+The golem has four slots: **head, core, arms, legs**. A runestone adds stats (counted in stat points, so the same table as above, × its grade, × 1 + 15% per level above 1) and most add a **trait**. Shown as real effects ("+25% Fire power", "+42 maximum mana"). Grades: Common ×1, Rare ×1.6, Epic ×2.3, Legendary ×3.2, each with its own colour. A stone's level is the level of the place it dropped.
+
+| Stone | Slot | Stats (points) | Trait |
+|---|---|---|---|
+| Glimmer brow | head | Focus 1.5 | — |
+| Storm crown | head | Lightning 1.5 | Bolt and Arc jump to one more target |
+| Ember visor | head | Fire 1.5 | your fire spells set enemies burning: 6 a second for 3 s |
+| Deep core | core | Mana 2 | — |
+| Magma heart | core | Vitality 1.5 | fire and magma do not hurt you; wade through magma |
+| Tidal core | core | Water 1.5 | Steam flight and Hover are free in water or within 14 cells above it |
+| **Crucible** | core | Fire 2 | **your fire melts rock** into cooling magma: Fireball (inner 77% of its blast), Fire nova and Flare (around you), Rocket jump, Ember lance (radius 5 where it hits). Never the world's frame. Not a normal drop: it comes from treasure and bosses. |
+| Quarry fists | arms | Attack 1.5 | spells with earth knock back 60% harder |
+| Splitting arms | arms | Fire 1 | a Fireball's blast throws three small fireballs (55% blast, 40% damage) |
+| Thrifty arms | arms | Focus 1 | every fourth Shot costs no mana |
+| Mire arms | arms | Earth 1, Water 0.5 | each Burst turns the ground within 20 to mud |
+| Spring legs | legs | Speed 1 | jump 30% faster (higher) |
+| Anchor legs | legs | Defence 2 | a quarter of the knockback |
+| Swift legs | legs | Speed 1.5 | Blink, Arc dash and Blast dash cost half |
+| Diver legs | legs | Water 1 | no water drag, swim up fast (160), mud never slows you |
+
+Speed is +5% run speed a point. **Drops:** 14% of kills, every elite, two Epic or better from bosses; grade odds rise with the level (Epic 3% + 2% a level up to 20%, Rare 18% + 4% a level up to 45%). Stones fall, rest on the ground (a small stone in its grade's colour, glowing, gold dot on the map) and are picked up by touch into a **bag of 24**. At a Lodestone's **Runestones** tab: equip (the worn one goes back to the bag), take off, or **break** a stone into shards ((3 + 2 × level) × 1, 2.5, 6 or 15 by grade), spent at Lodestones (see Treasure).
+
 ### Saving (`save.js`)
 
-One ongoing world per browser (`localStorage` key `castinstone.save.v1`). A save holds the seed (which rebuilds the starting cave exactly), only the 32 × 32 chunks changed since generation (materials and life values, run-length encoded and base64), the explored map (bits), found Lodestones and the checkpoint, and the golem (position, health, mana, level, experience, points, stats, loaded elements, look). Saves happen every 20 s of play, on reaching a Lodestone, on resting and spending points, on travel, on pause or leaving the page. A save is checked (readable, complete) before it replaces the last one; loading clamps every number and falls back to the checkpoint if the golem would stand inside terrain. A new world plus a little digging is about 40 KB.
+One ongoing world per browser (`localStorage` key `castinstone.save.v1`). A save holds the seed (which rebuilds the starting cave exactly), only the 32 × 32 chunks changed since generation (materials and life values, run-length encoded and base64), the explored map (bits), found Lodestones and the checkpoint, and the golem (position, health, mana, level, experience, points, stats, loaded elements, look, worn runestones, bag, shards). Runestones are checked on load (known type, grade and slot). Saves happen every 20 s of play, on reaching a Lodestone, on resting and spending points, on travel, on pause or leaving the page. A save is checked (readable, complete) before it replaces the last one; loading clamps every number and falls back to the checkpoint if the golem would stand inside terrain. A new world plus a little digging is about 40 KB.
 
 The start panel says Continue when a save exists. **New game** (pause or start panel) asks for a second press, then starts a new random cave and progress. **Reset map** rebuilds the cave from its seed but keeps the golem's progress.
 
@@ -288,6 +313,7 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.10 (2026-11-25):** Moves don't follow the mouse (hold Space: steam blasts straight down, A/D steer); every spell repeats while held, with short gaps, so mana is the limit; mud blocks spells; the spell list moved to a Spell book grid (all Jaisah).
 - **v0.11 (2026-11-25):** a generated web of caves (hub, 46 chambers, looping tunnels, three regions, pools, plugs, mana wells, levels by distance), a map of explored areas, New cave, crawlers that live in chambers, scale with level and sleep when far away. Liquids come to rest. Jaisah: not a downward descent, and it needs forks.
 - **v0.12 (2026-11-26):** Lodestones (checkpoint, repair, rest panel with stats and travel) replace mana wells; experience, levels and stat points; one ongoing world saved in the browser (Jaisah: an ongoing world; all four elements from the start; upgrades that reach further come with runestones).
+- **v0.13 (2026-11-26):** runestones: four slots, 15 stones with stats and traits (including the Crucible, whose fire melts rock, Jaisah's idea for reaching further), drops, a bag, breaking into shards.
 
 ## Open questions to test
 

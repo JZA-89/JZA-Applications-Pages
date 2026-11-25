@@ -225,6 +225,62 @@ const KData = (() => {
     ],
   };
 
+  // ---------- Runestones (loot) ----------
+  // The golem has four slots. A runestone adds stats (in stat points, the same
+  // as spending points at a Lodestone, scaled by its grade and the level it was
+  // found at) and usually a trait that changes how spells behave.
+  const runes = {
+    slots: ['head', 'core', 'arms', 'legs'],
+    slotNames: { head: 'Head', core: 'Core', arms: 'Arms', legs: 'Legs' },
+    tiers: [
+      { name: 'Common', mult: 1, color: [214, 206, 228] },
+      { name: 'Rare', mult: 1.6, color: [120, 190, 255] },
+      { name: 'Epic', mult: 2.3, color: [206, 140, 255] },
+      { name: 'Legendary', mult: 3.2, color: [255, 200, 90] },
+    ],
+    // extra stat: speed (+5% run speed per point)
+    types: {
+      glimmerBrow: { slot: 'head', name: 'Glimmer brow', stats: { focus: 1.5 }, desc: 'A clear stone. Mana refills faster.' },
+      stormCrown:  { slot: 'head', name: 'Storm crown', stats: { lightning: 1.5 }, trait: 'chain', desc: 'Bolt and Arc jump to one more target.' },
+      emberVisor:  { slot: 'head', name: 'Ember visor', stats: { fire: 1.5 }, trait: 'burn', desc: 'Your fire spells set enemies burning.' },
+      deepCore:    { slot: 'core', name: 'Deep core', stats: { mana: 2 }, desc: 'A dense stone. More mana.' },
+      magmaHeart:  { slot: 'core', name: 'Magma heart', stats: { vitality: 1.5 }, trait: 'magmaproof', desc: 'Fire and magma no longer hurt you. You can wade through magma.' },
+      tidalCore:   { slot: 'core', name: 'Tidal core', stats: { water: 1.5 }, trait: 'tidal', desc: 'Steam flight and Hover cost no mana while you are in or just above water.' },
+      crucible:    { slot: 'core', name: 'Crucible', stats: { fire: 2 }, trait: 'melt', desc: 'Your fire melts rock: Fireball, Fire nova, Rocket jump, Flare and Ember lance turn rock into magma.', rare: true },
+      quarryFists: { slot: 'arms', name: 'Quarry fists', stats: { attack: 1.5 }, trait: 'quarry', desc: 'Spells with earth knock enemies back much harder.' },
+      splitArms:   { slot: 'arms', name: 'Splitting arms', stats: { fire: 1 }, trait: 'split', desc: 'Fireballs burst into three smaller fireballs.' },
+      thriftArms:  { slot: 'arms', name: 'Thrifty arms', stats: { focus: 1 }, trait: 'thrifty', desc: 'Every fourth Shot costs no mana.' },
+      mireArms:    { slot: 'arms', name: 'Mire arms', stats: { earth: 1, water: 0.5 }, trait: 'mudburst', desc: 'Your Bursts leave mud on the ground around you.' },
+      springLegs:  { slot: 'legs', name: 'Spring legs', stats: { speed: 1 }, trait: 'spring', desc: 'You jump much higher.' },
+      anchorLegs:  { slot: 'legs', name: 'Anchor legs', stats: { defence: 2 }, trait: 'anchor', desc: 'You barely get knocked back.' },
+      swiftLegs:   { slot: 'legs', name: 'Swift legs', stats: { speed: 1.5 }, trait: 'swift', desc: 'Blink, Arc dash and Blast dash cost half.' },
+      diverLegs:   { slot: 'legs', name: 'Diver legs', stats: { water: 1 }, trait: 'diver', desc: 'You swim fast and mud never slows you.' },
+    },
+    dropChance: 0.14, eliteDrop: 1, bag: 24,
+    // grade odds by the level of the place it drops
+    tierFor(level, r) {
+      const epic = Math.min(0.2, 0.03 + 0.02 * level), rare = Math.min(0.45, 0.18 + 0.04 * level);
+      return r < epic ? 2 : r < epic + rare ? 1 : 0;
+    },
+    // a stone's stat value: points x grade x (1 + 15% per level above 1)
+    value: (base, tier, level) => Math.round(base * runesTierMult[tier] * (1 + 0.15 * (level - 1)) * 10) / 10,
+    statNames: { attack: 'Attack', defence: 'Defence', vitality: 'Vitality', mana: 'Mana', focus: 'Focus', fire: 'Fire power', water: 'Water power', earth: 'Earth power', lightning: 'Lightning power', speed: 'Speed' },
+    // what v points of a stat actually do, in words
+    effect(k, v) {
+      const pct = x => '+' + Math.round(x) + '%';
+      switch (k) {
+        case 'attack': return `+${Math.round(v * 10) / 10} Attack`;
+        case 'defence': return `+${Math.round(v * 10) / 10} Defence`;
+        case 'vitality': return `+${Math.round(v * 10)} maximum health`;
+        case 'mana': return `+${Math.round(v * 10)} maximum mana`;
+        case 'focus': return `${pct(8 * v)} mana refill`;
+        case 'speed': return `${pct(5 * v)} run speed`;
+        default: return `${pct(6 * v)} ${this.statNames[k]}`;
+      }
+    },
+  };
+  const runesTierMult = runes.tiers.map(t => t.mult);
+
   // ---------- Golems (the player's look) ----------
   // Pixel rows, facing right. k outline, h/m/d stone light/mid/dark, s seam,
   // g lichen, e eye, L/R the two element slots, c crack that glows with both.
@@ -321,6 +377,6 @@ const KData = (() => {
       ] },
   ];
 
-  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, modes, biomes, cave, progression,
+  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, modes, biomes, cave, progression, runes,
     world: { w: 2048, h: 1024, chunk: 32 }, view: { w: 320, h: 180 }, step: 1 / 60 };
 })();

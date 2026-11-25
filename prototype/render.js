@@ -205,6 +205,7 @@ const KRender = (() => {
       for (const d of game.dummies) this.drawDummy(d);
       for (const e of game.enemies) if (!e.asleep) this.drawCrawler(e, game.time);
       for (const pl of game.players) this.drawGolem(pl);
+      this.drawLoot(game);
       this.drawProjectiles(game);
       this.drawParticles(game);
       this.drawFx(game);
@@ -369,6 +370,16 @@ const KRender = (() => {
       }
     }
 
+    // runestones lying in the cave: a small stone in its grade's colour
+    drawLoot(game) {
+      const tiers = KData.runes.tiers;
+      for (const L of game.loot) {
+        const x = Math.round(L.x - this.cam.x), y = Math.round(L.y - this.cam.y + Math.sin(game.time * 3 + L.x) * 0.6) - 2;
+        const c = tiers[L.rune.tier].color;
+        for (const [dx, dy] of [[0, -2], [-1, -1], [0, -1], [1, -1], [-1, 0], [0, 0], [1, 0], [0, 1]]) this.plot(x + dx, y + dy, ...(dy === -2 || (dx === 0 && dy === 0) ? [255, 255, 255] : c));
+      }
+    }
+
     drawProjectiles(game) {
       for (const pr of game.projectiles) {
         const x = pr.x - this.cam.x, y = pr.y - this.cam.y, sp = Math.hypot(pr.vx, pr.vy) || 1;
@@ -436,6 +447,7 @@ const KRender = (() => {
         if (h > 0) this.light(wx, wy, 10 + Math.min(14, h * 0.35), [255, 120, 50], 0.12 + Math.min(0.4, h / 70));
         if (s > 0) this.light(wx, wy, 9 + Math.min(10, s * 0.3), [140, 190, 255], 0.1 + Math.min(0.4, s / 50));
       }
+      for (const L of game.loot) this.light(L.x, L.y - 2, 9, KData.runes.tiers[L.rune.tier].color, 0.55);
       for (const pr of game.projectiles) {
         if (pr.kind === 'fireball') this.light(pr.x, pr.y, 16, [255, 150, 60], 0.85);
         else if (pr.kind === 'blob') this.light(pr.x, pr.y, 12, [255, 120, 40], 0.7);

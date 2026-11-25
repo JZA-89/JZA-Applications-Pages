@@ -82,6 +82,20 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .plus { width: 32px; height: 28px; border-radius: 6px; border: 1px solid var(--line); background: #ffffff10; font-size: 16px; font-weight: 700; }
 .plus:not(:disabled):hover { background: var(--mana); color: #1a1513; }
 .plus:disabled { opacity: .3; cursor: default; }
+.rune-slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.rune-slot, .rune { display: grid; gap: 4px; align-content: start; padding: 10px 11px; border: 1px solid var(--line); border-radius: 9px; background: #ffffff06; font-size: 12px; min-width: 0; }
+.rune-slot.empty { opacity: .6; }
+.slot-label { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); }
+.rune-name { font-size: 13px; font-weight: 700; color: var(--t); }
+.rune-meta { font-size: 11px; color: var(--dim); }
+.rune-stats { color: var(--ink); line-height: 1.45; }
+.rune-trait { color: var(--muted); line-height: 1.45; }
+.rune-cmp { font-size: 11px; color: var(--dim); }
+.rune-bag { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; max-height: 300px; overflow-y: auto; padding-right: 4px; }
+.rune-btns { display: flex; gap: 6px; margin-top: 4px; }
+.btn.small { min-height: 30px; padding: 0 10px; font-size: 12px; }
+.bag-title { margin: 16px 0 8px !important; }
+@media (max-width: 760px) { .rune-slots { grid-template-columns: 1fr 1fr; } }
 .trips { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; }
 .trip { display: grid; gap: 2px; text-align: left; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: #ffffff06; }
 .trip b { font-size: 12.5px; }

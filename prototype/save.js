@@ -53,8 +53,11 @@ const KSave = (() => {
     for (const st of KData.progression.stats) if (s.alloc && Number.isFinite(s.alloc[st.id])) p.alloc[st.id] = num(s.alloc[st.id], 0, 999, 0);
     if (Array.isArray(s.slots)) p.slots = s.slots.map(e => KData.elements[e] ? e : null).slice(0, 2);
     if (Number.isFinite(s.skin)) p.skin = num(s.skin, 0, KData.golems.length - 1, 0);
-    if (s.runes) p.runes = s.runes;
-    if (s.inventory) p.inventory = s.inventory;
+    const RU = KData.runes;
+    const okRune = r => r && RU.types[r.type] && Number.isInteger(r.tier) && r.tier >= 0 && r.tier < RU.tiers.length && Number.isFinite(r.level)
+      ? { id: String(r.id || ''), type: r.type, tier: r.tier, level: num(r.level, 1, 99, 1) } : null;
+    if (s.runes) for (const slot of RU.slots) { const r = okRune(s.runes[slot]); p.runes[slot] = r && RU.types[r.type].slot === slot ? r : null; }
+    if (Array.isArray(s.inventory)) p.inventory = s.inventory.map(okRune).filter(Boolean).slice(0, RU.bag);
     p.shards = num(s.shards, 0, 1e7, 0);
     game.applyStats(p);
     p.hp = num(s.hp, 1, p.maxHp, p.maxHp); p.mana = num(s.mana, 0, p.maxMana, p.maxMana);

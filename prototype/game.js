@@ -28,6 +28,7 @@ const KGame = (() => {
       this.parts = [];
       this.fx = [];
       this.growths = [];
+      this.loot = [];
       this.shake = 0;
       this.players = kept || [this.makePlayer(0)];
       if (kept) for (const p of kept) this.respawn(p);
@@ -53,13 +54,25 @@ const KGame = (() => {
         dead: false, respawnT: 0, lastHurt: -9, flash: 0, slotFlash: 0, lastSpell: null,
         chips, inWater: false, inMud: false, hurtBy: {},
         level: 1, xp: 0, points: 0, alloc: {}, regenMul: 1,
+        runes: { head: null, core: null, arms: null, legs: null }, inventory: [], traits: new Set(), shotCount: 0, shards: 0, speedMul: 1,
       };
     }
 
     // ---------- getting stronger ----------
     // Stats come from points spent (alloc); derived values are rebuilt from them.
     applyStats(p) {
-      const a = p.alloc, v = id => a[id] || 0;
+      // points spent plus what the equipped runestones add
+      const a = { ...p.alloc }, RU = KData.runes;
+      p.traits = new Set();
+      for (const slot of RU.slots) {
+        const r = p.runes && p.runes[slot];
+        if (!r || !RU.types[r.type]) continue;
+        const T = RU.types[r.type];
+        for (const k in T.stats) a[k] = (a[k] || 0) + RU.value(T.stats[k], r.tier, r.level);
+        if (T.trait) p.traits.add(T.trait);
+      }
+      const v = id => a[id] || 0;
+      p.speedMul = 1 + 0.05 * v('speed');
       p.stats.attack = 10 + v('attack');
       p.stats.defence = 10 + v('defence');
       for (const el of KData.elementOrder) p.stats.power[el] = 1 + 0.06 * v(el);
@@ -70,6 +83,56 @@ const KGame = (() => {
       p.mana = Math.min(p.maxMana, mFrac * p.maxMana);
       p.regenMul = 1 + 0.08 * v('focus');
     }
+    // ---------- runestones ----------
+    makeRune(level, opts = {}) {
+      const RU = KData.runes, R = this.rand;
+      const pool = Object.keys(RU.types).filter(k => opts.type ? k === opts.type : !RU.types[k].rare);
+      const type = pool[(R() * pool.length) | 0];
+      const tier = opts.tier ?? RU.tierFor(level, R());
+      return { id: ((R() * 1e9) | 0).toString(36), type, tier, level: Math.max(1, level | 0) };
+    }
+    dropRune(x, y, rune) {
+      this.loot.push({ x, y, vx: (this.rand() - 0.5) * 60, vy: -90, rune, t: 0 });
+    }
+    // loose runestones fall, rest, and are picked up by touch
+    lootTick() {
+      const w = this.world, RU = KData.runes;
+      for (const L of this.loot) {
+        L.t += DT;
+        L.vy = Math.min(L.vy + 300 * DT, 200);
+        const nx = L.x + L.vx * DT, ny = L.y + L.vy * DT;
+        if (!SOLID[w.get(Math.round(nx), Math.round(ny))]) { L.x = nx; L.y = ny; }
+        else { L.vx *= -0.3; L.vy = 0; if (!SOLID[w.get(Math.round(L.x), Math.round(L.y) + 1)]) L.y += 0.5; }
+        L.vx *= Math.exp(-2 * DT);
+        if (L.t < 0.4) continue;
+        for (const p of this.players) {
+          if (p.dead || Math.abs(p.x - L.x) > 10 || Math.abs((p.y - p.h / 2) - L.y) > 14) continue;
+          if (p.inventory.length >= RU.bag) { if (!L.fullWarned) { this.events.push({ type: 'toast', text: 'Your bag of runestones is full. Break some at a Lodestone.' }); L.fullWarned = true; } continue; }
+          p.inventory.push(L.rune); L.taken = true;
+          const T = RU.types[L.rune.type];
+          this.events.push({ type: 'toast', kind: 'loot', text: `Found: ${T.name} · ${RU.tiers[L.rune.tier].name} · level ${L.rune.level}` });
+          this.events.push({ type: 'save' });
+          break;
+        }
+      }
+      this.loot = this.loot.filter(L => !L.taken);
+    }
+    equip(p, index) {
+      const r = p.inventory[index];
+      if (!r || !KData.runes.types[r.type]) return;
+      const slot = KData.runes.types[r.type].slot;
+      p.inventory.splice(index, 1);
+      if (p.runes[slot]) p.inventory.push(p.runes[slot]);
+      p.runes[slot] = r;
+      this.applyStats(p);
+    }
+    unequip(p, slot) {
+      if (!p.runes[slot] || p.inventory.length >= KData.runes.bag) return;
+      p.inventory.push(p.runes[slot]); p.runes[slot] = null;
+      this.applyStats(p);
+    }
+    has(a, trait) { return !!(a && a.traits && a.traits.has(trait)); }
+
     spendPoint(p, id) {
       if (p.points <= 0 || !KData.progression.stats.some(s => s.id === id)) return false;
       p.points--; p.alloc[id] = (p.alloc[id] || 0) + 1;
@@ -149,6 +212,7 @@ const KGame = (() => {
       for (const e of this.enemies) this.crawlerTick(e);
       for (const a of this.actors) if (!a.asleep) this.physics(a);
       this.lodestonesTick();
+      this.lootTick();
       for (const d of this.dummies) this.dummyTick(d);
       for (const f of this.fx) f.t += DT;
       this.fx = this.fx.filter(f => f.t < f.T);
@@ -183,9 +247,9 @@ const KGame = (() => {
 
       // run
       if (p.slowT > 0) p.slowT -= DT;
-      const muddy = p.inMud || p.slowT > 0;
+      const muddy = (p.inMud || p.slowT > 0) && !this.has(p, 'diver');
       const slow = muddy ? KData.materials[M.MUD].slows : 1;
-      const run = PD.run * slow;
+      const run = PD.run * slow * (p.speedMul || 1);
       const target = p.moveX * run;
       if (p.dashT <= 0) {
         const acc = (p.grounded ? PD.accel : PD.airAccel) * (muddy ? 0.5 : 1);
@@ -205,11 +269,11 @@ const KGame = (() => {
       p.jumpBuf = Math.max(0, p.jumpBuf - DT);
       let jumpedNow = false;
       if (p.jumpBuf > 0 && p.coyote > 0 && p.dashT <= 0) {
-        p.vy = -PD.jump * (muddy ? 0.55 : 1);
+        p.vy = -PD.jump * (muddy ? 0.55 : 1) * (this.has(p, 'spring') ? 1.3 : 1);
         p.jumpBuf = 0; p.coyote = 0; p.rising = true; p.grounded = false;
         p.jumpT = this.time; jumpedNow = true;
       }
-      if (p.inWater && a.jump && p.dashT <= 0 && !p.channels.move) p.vy = Math.max(p.vy - 520 * DT, -95);
+      if (p.inWater && a.jump && p.dashT <= 0 && !p.channels.move) p.vy = Math.max(p.vy - (this.has(p, 'diver') ? 900 : 520) * DT, this.has(p, 'diver') ? -160 : -95);
       if (!a.jump && p.rising && p.vy < 0) { p.vy *= 0.5; p.rising = false; }
       if (p.vy >= 0) p.rising = false;
       p.jumpHeld = a.jump;
@@ -252,12 +316,27 @@ const KGame = (() => {
         }
         if (mode === 'move' && sp.kind === 'slam' && p.slam) continue; // one slam at a time
         if (mode !== 'move' && p.lock > 0) continue;
-        if (p.mana < sp.cost) { if (pressed) p.manaFlash = 0.35; continue; }
+        let cost = sp.cost;
+        if (this.has(p, 'swift') && (sp.kind === 'blink' || sp.kind === 'dash' || sp.kind === 'blastdash')) cost *= 0.5;
+        if (p.mana < cost) { if (pressed) p.manaFlash = 0.35; continue; }
+        if (mode === 'shot' && this.has(p, 'thrifty') && ++p.shotCount % 4 === 0) cost = 0;
         p.cds[cdKey] = sp.cd;
         if (mode !== 'move') p.lock = 0.12;
-        this.spend(p, sp.cost);
+        this.spend(p, cost);
         this.alert(p, p.x, p.y, KData.enemies.crawler.hearing);
         this.cast(p, key, mode, sp);
+        if (mode === 'burst' && this.has(p, 'mudburst')) this.mireAround(p, 20, 1);
+      }
+    }
+
+    // turn the top of the ground around p into mud (not under p's own feet)
+    mireAround(p, radius, depth) {
+      const w = this.world;
+      for (let x = Math.round(p.x - radius); x <= p.x + radius; x++) {
+        if (Math.abs(x - p.x) < p.w / 2 + 2) continue;
+        let y = Math.floor(p.y - 12);
+        while (y < p.y + 20 && !KWorld.SOLID[w.get(x, y)]) y++;
+        for (let k = 0; k < depth; k++) { const m = w.get(x, y + k); if (m === M.DIRT || m === M.EARTH || m === M.MOSS) w.set(x, y + k, M.MUD); }
       }
     }
 
@@ -313,6 +392,7 @@ const KGame = (() => {
             if (m === M.EMPTY && R() < 0.7) w.set(x, y, M.FIRE);
             else if (m === M.MOSS) w.set(x, y, M.FIRE);
           }
+          if (this.has(p, 'melt')) w.meltRock(c.x, c.y, sp.radius);
           this.fx.push({ kind: 'ring', x: c.x, y: c.y, r0: 4, r1: sp.radius, t: 0, T: 0.25, color: sp.color });
           this.fx.push({ kind: 'flash', x: c.x, y: c.y, r: sp.radius * 2, t: 0, T: 0.2, color: sp.color });
           this.shake = Math.max(this.shake, 2);
@@ -436,6 +516,7 @@ const KGame = (() => {
         }
         case 'flare': {
           this.hitRadius(c.x, c.y, sp.radius, sp.power, sp.knock, p, p, key);
+          if (this.has(p, 'melt')) w.meltRock(c.x, c.y, sp.radius * 0.8);
           for (let k = 0; k < 40; k++) {
             const an = R() * Math.PI * 2, r = sp.radius * (0.6 + R() * 0.5);
             const x = Math.round(c.x + Math.cos(an) * r), y = Math.round(c.y + Math.sin(an) * r), m = w.get(x, y);
@@ -452,7 +533,7 @@ const KGame = (() => {
           p.vx = p.vx * 0.5 + (p.moveX || 0) * sp.impulse * 0.35; p.vy = -sp.impulse;
           p.grounded = false; p.rising = false;
           const bx = p.x, by = p.y + 2;
-          w.explode(bx, by, sp.radius, { fire: 0.5 });
+          w.explode(bx, by, sp.radius, { fire: 0.5, melt: this.has(p, 'melt') });
           this.hitRadius(bx, by, sp.radius + 9, sp.power, sp.knock, p, p, key);
           this.fx.push({ kind: 'ring', x: bx, y: by, r0: 2, r1: 12, t: 0, T: 0.22, color: [255, 170, 80] });
           this.fx.push({ kind: 'flash', x: bx, y: by, r: 24, t: 0, T: 0.16, color: [255, 150, 60] });
@@ -557,8 +638,16 @@ const KGame = (() => {
           if (!o._drillT || this.time - o._drillT > 0.3) { o._drillT = this.time; this.hurt(o, 12, md.x * 120, md.y * 120 - 40, 'drill', p, key); }
         }
       }
+      if ((sp.kind === 'thrust' || sp.kind === 'hover') && this.has(p, 'tidal') && this.nearWater(p)) drain = 0;
       if (drain) this.spend(p, drain * DT);
       if (p.mana <= 0) this.endChannel(p, mode);
+    }
+    // in water, or water within a dozen cells under the feet
+    nearWater(p) {
+      if (p.inWater) return true;
+      const w = this.world;
+      for (let k = 0; k < 14; k++) for (const dx of [-3, 0, 3]) if (w.get(Math.round(p.x + dx), Math.round(p.y + k)) === M.WATER) return true;
+      return false;
     }
     endChannel(p, mode) {
       const key = p.channels[mode];
@@ -670,7 +759,8 @@ const KGame = (() => {
       // jump on to nearby targets
       const hitSet = new Set([p, target]);
       let lx = ex, ly = ey;
-      for (let k = 0; k < (sp.chains || 0) && !water; k++) {
+      const chains = (sp.chains || 0) + (this.has(p, 'chain') ? 1 : 0);
+      for (let k = 0; k < chains && !water; k++) {
         let next = null, best = sp.chainRange;
         for (const a of this.actors) {
           if (hitSet.has(a) || a.dead) continue;
@@ -699,6 +789,7 @@ const KGame = (() => {
         const m = w.get(ix, iy);
         if (m === M.WATER) { w.set(ix, iy, M.STEAM); break; }
         if (BLOCKS(m)) {
+          if (m === M.ROCK && this.has(p, 'melt')) w.meltRock(ix, iy, 5);
           for (let k = 0; k < 6; k++) { const fx = ix + ((this.rand() - 0.5) * 6 | 0), fy = iy + ((this.rand() - 0.5) * 6 | 0), fm = w.get(fx, fy); if (fm === M.MOSS || (fm === M.EMPTY && this.rand() < 0.5)) w.set(fx, fy, M.FIRE); }
           break;
         }
@@ -763,8 +854,11 @@ const KGame = (() => {
       const w = this.world, sp = pr.sp;
       if (pr.kind === 'fireball') {
         const x = pr.x, y = pr.y;
-        w.explode(x, y, sp.radius, { fire: sp.ignite, boil: 0.5 });
-        this.hitRadius(x, y, sp.radius + 6, sp.power, sp.knock, null, pr.owner, pr.key);
+        w.explode(x, y, sp.radius * (pr.mini ? 0.55 : 1), { fire: sp.ignite, boil: 0.5, melt: this.has(pr.owner, 'melt') });
+        if (!pr.mini && this.has(pr.owner, 'split')) for (const an of [-2.2, -1.57, -0.9]) {
+          this.projectiles.push({ kind: 'fireball', mini: true, sp, key: pr.key, owner: pr.owner, x: px, y: py, vx: Math.cos(an) * 150, vy: Math.sin(an) * 150, g: 260, age: 0.2 });
+        }
+        this.hitRadius(x, y, (sp.radius + 6) * (pr.mini ? 0.6 : 1), sp.power * (pr.mini ? 0.4 : 1), sp.knock * (pr.mini ? 0.5 : 1), null, pr.owner, pr.key);
         this.fx.push({ kind: 'ring', x, y, r0: 3, r1: sp.radius + 4, t: 0, T: 0.25, color: [255, 190, 90] });
         this.fx.push({ kind: 'flash', x, y, r: 34, t: 0, T: 0.18, color: [255, 160, 70] });
         this.burst(x, y, 26, [[184, 140, 128], [132, 84, 100], [255, 170, 70]], 150);
@@ -891,6 +985,9 @@ const KGame = (() => {
     hurt(a, amount, kx, ky, kind, src, spell) {
       if (a.dead || amount <= 0) return;
       if (src && src.kind === 'player') { a.lastHitBy = src; a.lastHitAt = this.time; }
+      if (spell && spell.includes('earth') && this.has(src, 'quarry')) { kx = (kx || 0) * 1.6; ky = (ky || 0) * 1.6; }
+      if (this.has(a, 'anchor')) { kx = (kx || 0) * 0.25; ky = (ky || 0) * 0.25; }
+      if (kind !== 'burn' && spell && spell.includes('fire') && this.has(src, 'burn') && a !== src) { a.burnT = 3; a.burnBy = src; }
       amount = this.damage(src || null, a, amount, spell);
       a.hp -= amount; a.lastHurt = this.time;
       a.vx += kx || 0; a.vy += ky || 0;
@@ -910,6 +1007,10 @@ const KGame = (() => {
       if (a.kind !== 'player' && a.kind !== 'dummy' && a.lastHitBy && this.time - a.lastHitAt < 8 && !a.lastHitBy.dead)
         this.gainXp(a.lastHitBy, KData.progression.killXp(a.level || 1, a.elite ? 'elite' : a.kind), 'kill');
       if (a.kind === 'player') this.events.push({ type: 'died' });
+      else if (a.kind !== 'dummy' && a.lastHitBy && (a.elite || a.boss || this.rand() < KData.runes.dropChance)) {
+        const n = a.boss ? 2 : 1;
+        for (let k = 0; k < n; k++) this.dropRune(a.x, a.y - a.h / 2, this.makeRune(a.level || 1, a.boss ? { tier: Math.min(3, 2 + k) } : a.elite ? { tier: Math.max(1, KData.runes.tierFor(a.level, this.rand())) } : {}));
+      }
       a.respawnT = a.kind === 'player' ? PD.respawn : a.kind === 'crawler' ? KData.enemies.crawler.respawn : DD.respawn;
       const col = a.kind === 'player' ? [[240, 228, 206], [198, 178, 160], [44, 28, 36]] : a.kind === 'crawler' ? [[78, 72, 94], [112, 104, 128], [255, 70, 160]] : [[150, 140, 165], [200, 194, 214], [74, 58, 48]];
       if (a.kind === 'crawler') {
@@ -1059,14 +1160,14 @@ const KGame = (() => {
       // back home, but only while nobody is close enough to see it appear
       const E = KData.enemies.crawler;
       if (this.players.some(p => Math.hypot(p.x - e.home.x, p.y - e.home.y) < E.respawnClear)) { e.respawnT = 2; return; }
-      Object.assign(e, { x: e.home.x, y: this.world.floorBelow(e.home.x, e.home.y - 6), vx: 0, vy: 0, hp: e.maxHp, dead: false, state: 'patrol', t: 0, lastHurt: -9, lastSeen: -9, slowT: 0 });
+      Object.assign(e, { x: e.home.x, y: this.world.floorBelow(e.home.x, e.home.y - 6), vx: 0, vy: 0, hp: e.maxHp, dead: false, state: 'patrol', t: 0, lastHurt: -9, lastSeen: -9, slowT: 0, burnT: 0, lastHitBy: null });
     }
 
     respawn(p) {
       // back at the last Lodestone touched (the hub's at first)
       const l = this.world.lodestones[this.checkpoint] || this.world.lodestones[0];
       const s = l ? { x: l.x + 14, y: this.world.floorBelow(l.x + 14, l.y - 10) } : this.world.spawn;
-      Object.assign(p, { x: s.x, y: s.y, vx: 0, vy: 0, hp: p.maxHp, dead: false, mana: p.maxMana, manaWait: 0, dashT: 0, slam: null, lastHurt: -9 });
+      Object.assign(p, { x: s.x, y: s.y, vx: 0, vy: 0, hp: p.maxHp, dead: false, mana: p.maxMana, manaWait: 0, dashT: 0, slam: null, lastHurt: -9, burnT: 0, slowT: 0 });
       this.endAllChannels(p);
     }
 
@@ -1112,8 +1213,16 @@ const KGame = (() => {
       const area = a.w * a.h;
       a.inWater = counts[M.WATER] > area * 0.3;
       a.inMud = counts[M.MUD] > 4;
-      if (counts[M.FIRE]) this.hurt(a, PD.hurt.fire * DT * Math.min(1, counts[M.FIRE] / 4), 0, 0, 'fire');
-      if (counts[M.MAGMA]) this.hurt(a, PD.hurt.magma * DT * Math.min(1, counts[M.MAGMA] / 4), 0, 0, 'magma');
+      const proof = this.has(a, 'magmaproof');
+      if (counts[M.FIRE] && !proof) this.hurt(a, PD.hurt.fire * DT * Math.min(1, counts[M.FIRE] / 4), 0, 0, 'fire');
+      if (counts[M.MAGMA] && !proof) this.hurt(a, PD.hurt.magma * DT * Math.min(1, counts[M.MAGMA] / 4), 0, 0, 'magma');
+      if (a.burnT > 0) {
+        // burning (Ember visor): 6 a second for 3 s, from whoever set it
+        a.burnT -= DT;
+        this.hurt(a, 6 * DT, 0, 0, 'burn', a.burnBy && !a.burnBy.dead ? a.burnBy : null, 'fire+fire');
+        if (a.dead) return;
+        if (this.rand() < 0.3) this.burst(a.x + (this.rand() - 0.5) * a.w, a.y - this.rand() * a.h, 1, [[255, 150, 52], [255, 214, 120]], 30);
+      }
       if (charged) this.hurt(a, PD.hurt.charged * DT, 0, 0, 'shock');
       if (a.dead) return;
 
@@ -1133,8 +1242,8 @@ const KGame = (() => {
       } else {
         const water = a.inWater;
         if (!a.noGravity) a.vy += PD.gravity * DT * (water ? 0.28 : 1);
-        if (water) { a.vx *= Math.exp(-2.5 * DT); a.vy *= Math.exp(-3 * DT); }
-        if (a.inMud) { a.vx *= Math.exp(-7 * DT); a.vy *= Math.exp(-5 * DT); }
+        if (water && !this.has(a, 'diver')) { a.vx *= Math.exp(-2.5 * DT); a.vy *= Math.exp(-3 * DT); }
+        if (a.inMud && !this.has(a, 'diver')) { a.vx *= Math.exp(-7 * DT); a.vy *= Math.exp(-5 * DT); }
         if (!a.grounded && a.kind === 'player') a.vx *= Math.exp(-0.6 * DT);
         if (a.kind === 'dummy' && a.grounded) a.vx *= Math.exp(-10 * DT);
         if (!a.slam) a.vy = Math.min(a.vy, PD.maxFall);
