@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.53';
+  const VERSION = 'v0.54';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -49,7 +49,10 @@
   function fade() {
     const p = game.players[ME], s = stage.clientWidth / V.w;
     const css = `radial-gradient(circle at ${Math.round((p.x - R.cam.x + 0.5) * s)}px ${Math.round((p.y - 8 - R.cam.y) * s)}px, #0000 ${Math.round(SIGHT * s)}px, #000 ${Math.round(SIGHT_END * s)}px)`;
-    if (css !== fadeWas) { fadeWas = css; $('fade').style.background = css; }
+    // on a screen no wider or taller than the golem's sight there is nothing to fade: drop the layer altogether
+    const need = Math.hypot(V.w / 2, V.h / 2) > SIGHT + 4 || R.cam.x <= 0 || R.cam.y <= 0 || R.cam.x >= game.world.w - V.w || R.cam.y >= game.world.h - V.h;
+    if ($('fade').hidden === need) $('fade').hidden = !need;
+    if (need && css !== fadeWas) { fadeWas = css; $('fade').style.background = css; }
   }
   // F: full screen (where the browser allows it; an iPhone does not)
   addEventListener('keydown', e => {

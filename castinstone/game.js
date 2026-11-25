@@ -1058,7 +1058,7 @@ const KGame = (() => {
     step(actions) {
       this.time += DT; this.played += DT;
       for (const p of this.players) this.control(p, actions[p.id] || { move: 0, events: [], aim: p.aim });
-      this.world.step();
+      this.world.step(this.players.map(p => [p.x, p.y]));
       this.updateGrowths();
       this.updateWaves();
       if ((this._settleT = (this._settleT || 0) - DT) <= 0) { this._settleT = 0.5; this.world.settle(); }

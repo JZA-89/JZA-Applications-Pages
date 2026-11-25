@@ -150,24 +150,41 @@ const KWorld = (() => {
     }
 
     // ----- simulation -----
-    step() {
+    // One step of the sand. Only chunks that are awake are worked through, and of those only the ones
+    // within reach of a golem (`near`: [x, y] for each): what is further off waits, still awake, until
+    // someone comes close. Nothing can be seen there, and a far-off mud slide used to cost every step.
+    step(near) {
       this.tick = (this.tick + 1) & 255;
       if (this.tick === 0) this.tick = 1;
-      const nowAwake = this.awake.slice();
-      for (let k = 0; k < this.awake.length; k++) if (this.awake[k]) this.awake[k]--;
-      const { w, h, cs, cw } = this;
-      for (let y = h - 1; y >= 0; y--) {
-        const cy = y >> this.shift, ltr = ((y + this.tick) & 1) === 0;
-        for (let c = 0; c < cw; c++) {
-          const cx = ltr ? c : cw - 1 - c;
-          if (!nowAwake[cy * cw + cx]) continue;
-          const x0 = cx * cs, x1 = Math.min(w, x0 + cs);
-          if (ltr) { for (let x = x0; x < x1; x++) this.cell(x, y); }
-          else { for (let x = x1 - 1; x >= x0; x--) this.cell(x, y); }
+      const { w, h, cs, cw, ch, awake } = this, now = this._now || (this._now = new Uint8Array(awake.length)), rows = this._rows || (this._rows = new Uint8Array(ch));
+      const RX = World.REACH_X, RY = World.REACH_Y;
+      for (let cy = 0; cy < ch; cy++) {
+        let any = 0;
+        for (let cx = 0; cx < cw; cx++) {
+          const k = cy * cw + cx; let on = 0;
+          if (awake[k]) {
+            if (!near) on = 1;
+            else for (const p of near) if (Math.abs((p[0] >> this.shift) - cx) <= RX && Math.abs((p[1] >> this.shift) - cy) <= RY) { on = 1; break; }
+            if (on) { awake[k]--; any = 1; }
+          }
+          now[k] = on;
+        }
+        rows[cy] = any;
+      }
+      for (let cy = ch - 1; cy >= 0; cy--) {
+        if (!rows[cy]) continue;   // nothing awake in this band of the cave
+        for (let y = Math.min(h, (cy + 1) * cs) - 1; y >= cy * cs; y--) {
+          const ltr = ((y + this.tick) & 1) === 0;
+          for (let c = 0; c < cw; c++) {
+            const cx = ltr ? c : cw - 1 - c;
+            if (!now[cy * cw + cx]) continue;
+            const x0 = cx * cs, x1 = Math.min(w, x0 + cs);
+            if (ltr) { for (let x = x0; x < x1; x++) this.cell(x, y); }
+            else { for (let x = x1 - 1; x >= x0; x--) this.cell(x, y); }
+          }
         }
       }
     }
-
     cell(x, y) {
       const w = this.w, i = y * w + x, mat = this.mat, m = mat[i];
       if (m === M.EMPTY) return;
@@ -889,6 +906,7 @@ const KWorld = (() => {
     }
   }
 
+  World.REACH_X = 14; World.REACH_Y = 13;   // chunks either side of a golem that are simulated (448 x 416 cells: past the edge of any screen)
   World.MIN_PIECE = 48;   // a loose piece of dirt smaller than this (about 8 x 6) crumbles
   return { World, makeRng, ST, STATE, SOLID, CONDUCT };
 })();

@@ -656,6 +656,21 @@ The golem is one sprite, moved in parts by a pixel: the feet (bottom three rows,
 
 Pointing the mouse at something shows a small note in the bottom-left corner (`#look`, `describe()` in `main.js`): creatures with their health (and your own mana), or the material under the cursor with a one-line description (`desc` in each material; electrified water has its own). Hidden over empty space, with a controller, outside play, and on screens narrow enough to use the compact layout.
 
+## Performance audit (v0.54)
+
+Measured with scratchpad `pf.js` (times per function per frame in four situations at three screen sizes, one with the CPU slowed four times to stand in for a phone), `pf2.js`/`pf3.js` (what the sand is doing) and `pf4.js` (a CPU profile).
+
+**Found.** The sand step worked through every awake chunk in the whole cave, wherever the golem was. A mud slide or settling pool far away cost every step, and 30 to 60 chunks were awake at any time: 1.5 to 2.9 ms a step on the test machine, 23 ms a frame in the boss lair at phone speed (18 frames a second). The step also walked all 1,536 rows of the cave to find the awake ones.
+
+**Changed.**
+- `world.step(near)` simulates only awake chunks within 14 chunks sideways and 13 up or down of a golem (`World.REACH_X`, `REACH_Y`: 448 × 416 cells, past the edge of any screen). Chunks further off stay awake and wait; they settle when someone comes near. Both co-op devices pass both golems, so they still agree.
+- The step skips whole bands of the cave with nothing awake in them.
+- The sight fade layer is removed altogether on screens no larger than the golem's sight (most 16:9 screens), unless the view is against the edge of the cave.
+
+**After.** Standing still: the sand step 0.13 ms (was 2.6). Boss lair at phone speed: 34 frames a second (was 18), with the game's own code about 12 ms of each frame. In the CPU profile the game's code is about 13% of the time; `drawCells` (painting the cave) is the largest part of that at 7%. The rest is the browser putting the picture on the screen, which the test machine does without a graphics chip, so real devices should do better than these figures. Not measured on a real phone.
+
+**Left alone:** `drawCells` repaints every cell on screen each frame (0.5 to 2 ms on the test machine); the enemy loop visits all 230 creatures each step to see who is near (0.1 to 0.2 ms).
+
 ## Performance
 
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
