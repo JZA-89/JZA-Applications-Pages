@@ -432,10 +432,10 @@ Space is jump. **Keep holding it in the air and the loaded pair lifts you.** It 
 |---|---|---|
 | Fire + Fire | **Flame jet** 22/s | fire roars down from your feet: up to 125/s, burns enemies within 34 below you (22 a second) and leaves fire under you; about 5.8 s, about 690 up |
 | Water + Water | **Water jet** 8/s | slow rise at 48/s on jets of water, soaks what is below; about 12 s, the longest |
-| Earth + Earth | **Stone steps** 12 a step | each time you start to fall, an 11-wide step of dirt forms under your feet and you jump off it (165). The steps stay, so you build a way back. About 8 steps a bar |
+| Earth + Earth | **Earth spray** 11 a second | a spray of loose earth from the feet lifts you at 62 (water is 48); two cells of earth a step land below and stays as a heap. Push down to sink |
 | Lightning + Lightning | **Spark hops** 14 a hop | up to 3 extra jumps before you land, each throwing you 125 sideways if you press A/D and shocking what is under you (power 14) |
 | Fire + Water | **Steam flight** 16/s | steam blasts straight down: the strongest lift, up to 155/s; about 6.2 s, about 920 up |
-| Earth + Fire | **Ember steps** 16 a step | Stone steps that leap higher (200) and burst with heat under the step (power 16 within 16, fire below) |
+| Earth + Fire | **Cinder spray** 15 a second | Earth spray, hot: rises at 80, leaves some fire below and burns what is under you (30 a second within 40) |
 | Earth + Water | **Mud tower** 9/s | a 9-wide column of packed mud (dirt) grows under you and carries you up at 50/s; it stays as a pillar. About 11 s |
 | Lightning + Water | **Storm glide** 6/s | you fall at most 32/s and move 125 sideways; lightning strikes the nearest enemy below within 60 every 0.5 s (power 12). It cannot climb: jump off something high |
 | Earth + Lightning | **Magnet float** 9/s | you float about 26 above whatever is below (ground, water or magma) and move 120 sideways; over a deep drop you sink at 60/s. About 11 s. Crosses lakes and magma |
@@ -655,6 +655,8 @@ The golem is one sprite, moved in parts by a pixel: the feet (bottom three rows,
 ## Hover note
 
 Pointing the mouse at something shows a small note in the bottom-left corner (`#look`, `describe()` in `main.js`): creatures with their health (and your own mana), or the material under the cursor with a one-line description (`desc` in each material; electrified water has its own). Hidden over empty space, with a controller, outside play, and on screens narrow enough to use the compact layout.
+
+- **v0.55:** Jaisah: flying with earth should be a spray of dirt aimed down like water, not a platform. Stone steps and Ember steps (a step of stone under your feet each time you fell) are now Earth spray and Cinder spray, held jets like the Water jet. The step code is gone.
 
 ## Performance audit (v0.54)
 

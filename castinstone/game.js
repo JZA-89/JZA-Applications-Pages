@@ -1513,7 +1513,7 @@ const KGame = (() => {
     // Lift: hold Space in the air. Each pair lifts differently (data.js
     // spells[pair].lift): thrust (Flame jet, Steam flight, Plasma thrust),
     // a slow cheap rise (Water jet), steps you build and jump off (Stone and
-    // Ember steps), a mud column that carries you (Mud tower), extra hops
+    // Cinder spray), a mud column that carries you (Mud tower), extra hops
     // (Spark hops), a slow glide (Storm glide) and floating above the ground
     // (Magnet float). Lifts never hurt you.
     liftTick(p, a, key) {
@@ -1561,31 +1561,12 @@ const KGame = (() => {
         const target = p.moveY > 0 ? 60 : -sp.rise;
         p.vy += Math.sign(target - p.vy) * Math.min(Math.abs(target - p.vy), 1100 * DT);
         steer(sp.sideSpeed, 500);
-        for (let i = 0; i < sp.perTick; i++) this.parts.push({ x: p.x + (R() - 0.5) * 6, y: p.y, vx: (R() - 0.5) * 30, vy: 120 + R() * 60, g: 200, mat: M.WATER, life: 2, owner: p });
-      } else if (kind === 'lsteps') {
-        // when you start to fall, a step forms under your feet and you jump off it
-        if (p.vy > -10 && this.time - (p.stepT || -9) > sp.gap) {
-          if (p.mana < sp.cost) return noMana();
-          // a step is 5 thick and at least 11 wide, so it is never small enough to crumble
-          const half = Math.max(5, sp.width >> 1), y0 = Math.round(p.y) + 1;
-          let placed = 0;
-          for (let y = 0; y < 5; y++) for (let x = -half; x <= half; x++) {
-            const cx = Math.round(p.x + x), cy = y0 + y, m = w.get(cx, cy);
-            if ((m === M.EMPTY || m === M.STEAM || m === M.FIRE) && !this.actorAt(cx, cy, p)) { w.set(cx, cy, M.DIRT); placed++; }
-            else if (KWorld.SOLID[m]) placed++;
-          }
-          if (placed < 22) return;   // no room for a step here
-          this.spend(p, sp.cost);
-          p.stepT = this.time; p.vy = -sp.jump * (this.has(p, 'spring') ? 1.15 : 1); p.grounded = false;
-          this.alert(p, p.x, p.y, KData.enemies.crawler.hearing);
-          this.sfx('earth', p.x, p.y, 0.6);
-          this.burst(p.x, p.y + 2, 6, [[184, 140, 128], [132, 84, 100]], 50);
-          if (sp.hot) {
-            this.hitRadius(p.x, p.y + 10, 16, sp.power, 120, p, p, key);
-            for (let k = 0; k < 10; k++) { const x = Math.round(p.x + (R() - 0.5) * sp.width), y = y0 + 2 + Math.floor(R() * 6); if (w.get(x, y) === M.EMPTY) w.set(x, y, M.FIRE); }
-            this.fx.push({ kind: 'flash', x: p.x, y: p.y + 4, r: 18, t: 0, T: 0.15, color: [255, 150, 60] });
-            this.sfx('fireball', p.x, p.y, 0.6);
-          }
+        // a spray straight down from the feet: water, or loose earth for the Earth lifts (it lands and stays as a heap)
+        for (let i = 0; i < sp.perTick; i++) this.parts.push({ x: p.x + (R() - 0.5) * 6, y: p.y, vx: (R() - 0.5) * (sp.emit ? 56 : 30), vy: 120 + R() * 60, g: 200, mat: M[sp.emit] || M.WATER, life: 2, owner: p });
+        if (sp.emit && R() < 0.5) this.burst(p.x + (R() - 0.5) * 6, p.y + 3, 1, [[184, 140, 128], [132, 84, 100]], 55);   // dust round the spray
+        if (sp.hot) {   // Cinder spray: the earth is glowing, and burns whatever is under you
+          if (R() < 0.3) { const x = Math.round(p.x + (R() - 0.5) * 6), y = Math.round(p.y + 3 + R() * 8); if (w.get(x, y) === M.EMPTY) w.set(x, y, M.FIRE); }
+          for (const o of this.actors) { if (o === p || o.dead || o.kind === 'player') continue; const top = o.y - o.h; if (Math.abs(o.x - p.x) < 5 + o.w / 2 && top > p.y - 4 && top - p.y < sp.reach) this.hurt(o, sp.power * DT, 0, 50, 'burn', p, key); }
         }
       } else if (kind === 'lcolumn') {
         // a column of packed mud grows under your feet and lifts you
