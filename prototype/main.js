@@ -8,7 +8,7 @@
 
 (() => {
   const { elements, elementOrder, spells, spellKey, view: V, step: STEP } = KData;
-  const VERSION = 'v0.24';
+  const VERSION = 'v0.25';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -109,10 +109,12 @@
     document.body.dataset.mode = m;
     KInput.clearHeld();
     $('restWrap').hidden = m !== 'rest';
-    $('panelWrap').hidden = m === 'play' || m === 'rest';
+    $('mapWrap').hidden = m !== 'map';
+    $('panelWrap').hidden = m === 'play' || m === 'rest' || m === 'map';
     confirmNew = false; $('btnNewCave').textContent = 'New game';
     if (m === 'play') { view.focus({ preventScroll: true }); return; }
     if (m === 'rest') { buildRest(); $('btnLeave').focus({ preventScroll: true }); return; }
+    if (m === 'map') { drawBigMap(); $('btnMapClose').focus({ preventScroll: true }); return; }
     $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spell book' : `Prototype · one player · ${VERSION}`;
     $('btnGo').textContent = m === 'start' ? (hadSave ? 'Continue' : 'Start') : 'Resume';
     $('btnPanelReset').hidden = m === 'start';
@@ -156,6 +158,7 @@
     onClose: () => { if (mode !== 'start') resume(); },
     onPause: () => setMode(mode === 'play' ? 'pause' : 'play'),
     onHelp: () => setMode(mode === 'help' ? 'play' : 'help'),
+    onMap: () => { if (mode === 'play') setMode('map'); else if (mode === 'map') setMode('play'); },
     onReset: resetMap,
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) { save(); if (mode === 'play') setMode('pause'); } });
@@ -308,9 +311,11 @@
       }
     }
     // the boss's health while you fight it
-    const b = game.boss, showBoss = !!(b && !b.dead && b.engaged);
-    if (showBoss !== hud.boss) { hud.boss = showBoss; $('bossBar').hidden = !showBoss; if (showBoss) $('bossName').textContent = KData.bosses[b.type].name; }
-    if (showBoss) $('bossFill').style.transform = `scaleX(${Math.max(0, b.hp) / b.maxHp})`;
+    // the health of the boss, or of a champion that has noticed you
+    let b = game.boss; if (!(b && !b.dead && b.engaged)) b = game.championNear(p);
+    const bossName = b ? (b.champion || KData.bosses[b.type].name) : '';
+    if (bossName !== hud.boss) { hud.boss = bossName; $('bossBar').hidden = !b; $('bossName').textContent = bossName; }
+    if (b) $('bossFill').style.transform = `scaleX(${Math.max(0, b.hp) / b.maxHp})`;
     // the rest prompt next to a Lodestone
     const near = !!p.nearStone && mode === 'play';
     if (near !== hud.near) { hud.near = near; $('restPrompt').hidden = !near; $('restPrompt').innerHTML = pad ? 'D-pad up · Rest' : '<kbd>F</kbd> Rest'; }
@@ -355,32 +360,52 @@
   }
 
   // ---------- map of the explored cave, and the region you are in ----------
+  // The small map in the corner shows the cave around you (6 cells a pixel);
+  // Tab or a click on it opens the whole explored cave (4 cells a pixel).
   const mm = $('minimap'), mctx = mm.getContext('2d'), mimg = mctx.createImageData(mm.width, mm.height), mbuf = new Uint32Array(mimg.data.buffer);
+  const big = $('bigMap'), bctx = big.getContext('2d'), bimg = bctx.createImageData(big.width, big.height), bbuf = new Uint32Array(bimg.data.buffer);
   const pk = (r, g, b, a = 255) => (a << 24) | (b << 16) | (g << 8) | r;
   let mapTick = 0, regionText = '';
-  function updateMap() {
-    if (mapTick++ % 12) return;
-    const w = game.world, M = KData.M, sx = w.w / mm.width, sy = w.h / mm.height;
-    for (let y = 0; y < mm.height; y++) for (let x = 0; x < mm.width; x++) {
-      const wx = Math.floor((x + 0.5) * sx), wy = Math.floor((y + 0.5) * sy), o = y * mm.width + x;
-      if (!w.explored[(wy >> 5) * w.cw + (wx >> 5)]) { mbuf[o] = pk(8, 6, 12, 0); continue; }
+  // paint the explored cave from world point (x0, y0), s world cells to a pixel, into buf (W x H)
+  function paintMap(buf, W, H, x0, y0, s) {
+    const w = game.world, M = KData.M;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const wx = Math.floor(x0 + (x + 0.5) * s), wy = Math.floor(y0 + (y + 0.5) * s), o = y * W + x;
+      if (wx < 0 || wy < 0 || wx >= w.w || wy >= w.h || !w.explored[(wy >> 5) * w.cw + (wx >> 5)]) { buf[o] = pk(8, 6, 12, W === mm.width ? 0 : 255); continue; }
       const m = w.get(wx, wy), B = KData.biomes[w.biomeAt(wx, wy)].strata[0];
-      mbuf[o] = m === M.ROCK ? pk(52, 58, 84) : m === M.WATER ? pk(44, 90, 190) : m === M.MAGMA ? pk(230, 100, 40) : m === M.CRYSTAL ? pk(96, 224, 214)
+      buf[o] = m === M.ROCK ? pk(52, 58, 84) : m === M.WATER ? pk(44, 90, 190) : m === M.MAGMA ? pk(230, 100, 40) : m === M.CRYSTAL ? pk(96, 224, 214)
         : KWorld.SOLID[m] || m === M.MUD ? pk(B[0] * 0.75, B[1] * 0.75, B[2] * 0.75) : pk(24, 20, 34);
     }
-    const dot = (wx, wy, c, big) => {
-      const X = Math.floor(wx / sx), Y = Math.floor(wy / sy);
-      for (const [dx, dy] of big ? [[0, 0], [1, 0], [0, 1], [1, 1]] : [[0, 0]]) if (X + dx >= 0 && Y + dy >= 0 && X + dx < mm.width && Y + dy < mm.height) mbuf[(Y + dy) * mm.width + X + dx] = c;
+    const dot = (wx, wy, c, bigDot) => {
+      const X = Math.floor((wx - x0) / s), Y = Math.floor((wy - y0) / s), r = bigDot ? (W === mm.width ? 1 : 2) : 0;
+      for (let dy = -r + (r === 1 ? 1 : 0); dy <= r; dy++) for (let dx = -r + (r === 1 ? 1 : 0); dx <= r; dx++) if (X + dx >= 0 && Y + dy >= 0 && X + dx < W && Y + dy < H) buf[(Y + dy) * W + X + dx] = c;
     };
     for (const l of w.lodestones) {
       if (game.found.has(l.id)) dot(l.x, l.y - 4, pk(201, 182, 255), true);
       else if (w.explored[(l.y >> 5) * w.cw + (l.x >> 5)]) dot(l.x, l.y - 4, pk(120, 108, 150), true);
     }
     if (window.KLoot) window.KLoot.mapDots(game, dot, pk);
+    for (const e of game.enemies) if (e.champion && !e.dead && w.explored[(e.home.y >> 5) * w.cw + (e.home.x >> 5)]) dot(e.home.x, e.home.y - 6, pk(255, 110, 180), true);
     const L = w.lair;
-    if (L && !game.defeated.has(L.boss) && w.explored[(L.y >> 5) * w.cw + (L.x >> 5)]) { dot(L.x - 2, L.y, pk(255, 90, 40), true); dot(L.x + 2, L.y, pk(255, 90, 40), true); }
-    const p = game.players[0], px = Math.floor(p.x / sx), py = Math.floor((p.y - 8) / sy);
-    for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 0], [0, -1]]) { const X = px + dx, Y = py + dy; if (X >= 0 && Y >= 0 && X < mm.width && Y < mm.height) mbuf[Y * mm.width + X] = pk(255, 255, 255); }
+    if (L && !game.defeated.has(L.boss) && w.explored[(L.y >> 5) * w.cw + (L.x >> 5)]) { dot(L.x - 3 * s / 4, L.y, pk(255, 90, 40), true); dot(L.x + 3 * s / 4, L.y, pk(255, 90, 40), true); }
+    const p = game.players[0];
+    dot(p.x, p.y - 8, pk(255, 255, 255), true);
+    if (W !== mm.width) { const X = Math.floor((p.x - x0) / s), Y = Math.floor((p.y - 8 - y0) / s); for (const [dx, dy] of [[-4, 0], [4, 0], [0, -4], [0, 4], [-3, 0], [3, 0], [0, -3], [0, 3]]) if (X + dx >= 0 && Y + dy >= 0 && X + dx < W && Y + dy < H) buf[(Y + dy) * W + X + dx] = pk(255, 255, 255); }
+  }
+  function drawBigMap() {
+    const w = game.world, p = game.players[0];
+    paintMap(bbuf, big.width, big.height, 0, 0, w.w / big.width);
+    bctx.putImageData(bimg, 0, 0);
+    const found = game.found.size, all = w.lodestones.length;
+    $('mapInfo').textContent = `${KData.biomes[w.biomeAt(p.x, p.y - 8)].name} · Level ${w.levelAt(p.x, p.y)} · ${found} of ${all} Lodestones found`;
+  }
+  $('mapBox').addEventListener('click', () => { if (mode === 'play') setMode('map'); });
+  $('btnMapClose').addEventListener('click', () => setMode('play'));
+  function updateMap() {
+    if (mapTick++ % 12) return;
+    const w = game.world, p = game.players[0], S = 6;
+    const x0 = Math.max(0, Math.min(w.w - mm.width * S, p.x - mm.width * S / 2)), y0 = Math.max(0, Math.min(w.h - mm.height * S, p.y - mm.height * S / 2));
+    paintMap(mbuf, mm.width, mm.height, x0, y0, S);
     mctx.putImageData(mimg, 0, 0);
     const t = `${KData.biomes[w.biomeAt(p.x, p.y - 8)].name} · Level ${w.levelAt(p.x, p.y)}`;
     if (t !== regionText) { regionText = t; $('region').textContent = t; }

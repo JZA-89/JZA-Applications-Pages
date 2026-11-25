@@ -30,6 +30,7 @@ const KInput = (() => {
     addEventListener('keydown', e => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (hooks.blocked && hooks.blocked()) {
+        if (e.code === 'Tab') { e.preventDefault(); hooks.onMap && hooks.onMap(); }
         if (e.code === 'Escape' || e.code === 'KeyP' || e.code === 'KeyH') { e.preventDefault(); hooks.onClose && hooks.onClose(); }
         return;
       }
@@ -43,6 +44,7 @@ const KInput = (() => {
       else if (e.code === 'KeyF') events.push({ type: 'interact' });
       else if (e.code === 'Escape' || e.code === 'KeyP') hooks.onPause && hooks.onPause();
       else if (e.code === 'KeyH') hooks.onHelp && hooks.onHelp();
+      else if (e.code === 'Tab') hooks.onMap && hooks.onMap();
       else if (e.code === 'Backspace') hooks.onReset && hooks.onReset();
     });
     addEventListener('keyup', e => keys.delete(e.code));

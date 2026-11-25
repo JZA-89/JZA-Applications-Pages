@@ -281,6 +281,15 @@ const KData = (() => {
     muddy: { name: 'Muddy', boosts: 'fire', by: 1.4 },
     burning: { name: 'Burning', boosts: 'water', by: 1.4 },
   };
+  // Champions: one giant, named creature of each of these kinds, the
+  // highest-level one in the cave (at least `apart` from each other). They do
+  // not come back once beaten, and each gives a Legendary runestone, a tome,
+  // shards and a lot of experience.
+  const champions = {
+    kinds: { warden: 'The Slate Colossus', moth: 'The Lantern Queen', delver: 'Deepjaw' },
+    size: 1.8, hp: { warden: 4, moth: 20, delver: 10 },   // times an ordinary one's health: about 2,100 to 2,300 at level 8
+    attack: 1.25, xp: 8, shards: 30, apart: 500,
+  };
   const elites = { chance: 0.08, from: 2, hp: 1.8, attack: 1.3 };
 
   // ---------- Bosses ----------
@@ -321,6 +330,7 @@ const KData = (() => {
   // high in a ceiling, or inside rock). Crystal veins break into shards.
   const treasure = {
     cacheChance: 0.6,          // per chamber
+    tomeChance: 0.25,          // a cache teaches a special spell (about 10 tomes in a cave of 40 caches)
     kinds: { buried: 0.28, high: 0.45, pool: 0.7, rock: 0.4 },
     xp: L => 25 * L, shards: L => 12 * L,
     crucibleChance: L => L >= 5 ? 0.1 : 0,   // a deep cache may hold the Crucible
@@ -504,6 +514,6 @@ const KData = (() => {
       ] },
   ];
 
-  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, statuses, elites, bosses, modes, recipe, specials, biomes, cave, progression, runes, treasure,
+  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, statuses, elites, bosses, modes, recipe, specials, champions, biomes, cave, progression, runes, treasure,
     world: { w: 3072, h: 1536, chunk: 32 }, view: { w: 320, h: 180 }, step: 1 / 60 };
 })();

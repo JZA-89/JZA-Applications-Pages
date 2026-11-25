@@ -387,8 +387,9 @@ const KRender = (() => {
       const frames = ENEMY_ART[e.kind], C = ENEMY_COL[e.kind];
       const rows = frames.length > 1 ? frames[Math.floor(time * (e.state === 'swoop' ? 18 : 8) + e.id) & 1] : frames[0];
       const W = rows[0].length, H = rows.length, flip = (e.kind === 'spitter' ? e.face : e.facing) < 0;
+      const S = e.champion ? 2 : 1;   // champions are drawn at twice the size
       const lift = e.kind === 'warden' && e.state === 'windup' ? 1 : 0;
-      const ox = Math.round(e.x - this.cam.x) - (W >> 1), oy = Math.round(e.y - this.cam.y) - H - lift;
+      const ox = Math.round(e.x - this.cam.x) - ((W * S) >> 1), oy = Math.round(e.y - this.cam.y) - H * S - lift;
       const warn = (e.state === 'windup' || (e.kind === 'spitter' && e.charging)) ? 0.5 + 0.5 * Math.sin((e.t || time) * 40) : 0;
       const muddy = e.slowT > 0 || e.inMud;
       const a = e.ghost ? 0.45 : 1; // a delver inside the ground shows faintly
@@ -396,15 +397,16 @@ const KRender = (() => {
         const ch = rows[y][x];
         if (ch === '.') continue;
         let col = C[ch];
-        if (ch === 'e') col = e.elite ? [255, 200, 90] : warn ? [255, 170 + 85 * warn, 230] : col;
+        if (ch === 'e') col = e.elite || e.champion ? [255, 200, 90] : warn ? [255, 170 + 85 * warn, 230] : col;
         if ((ch === 'o' || ch === 'w') && warn) col = col.map(v => Math.min(255, v + 60 * warn));
         if (ch === 'p' && warn) col = col.map(v => Math.min(255, v + 70 * warn));
         if (muddy && ch !== 'e' && ch !== 'k') col = [col[0] * 0.55 + 96 * 0.45, col[1] * 0.55 + 84 * 0.45, col[2] * 0.55 + 104 * 0.45];
         if (e.flash > 0) col = [255, 246, 236];
-        this.plot(ox + (flip ? W - 1 - x : x), oy + y, col[0] | 0, col[1] | 0, col[2] | 0, a);
+        if (S === 1) this.plot(ox + (flip ? W - 1 - x : x), oy + y, col[0] | 0, col[1] | 0, col[2] | 0, a);
+        else for (let sy = 0; sy < S; sy++) for (let sx = 0; sx < S; sx++) this.plot(ox + (flip ? W - 1 - x : x) * S + sx, oy + y * S + sy, col[0] | 0, col[1] | 0, col[2] | 0, a);
       }
-      if (e.wetT > 0 && Math.random() < 0.3) this.plot(ox + Math.random() * W, oy + H, 120, 170, 255, 0.8);
-      if (e.hp < e.maxHp) {
+      if (e.wetT > 0 && Math.random() < 0.3) this.plot(ox + Math.random() * W * S, oy + H * S, 120, 170, 255, 0.8);
+      if (e.hp < e.maxHp && !e.champion) {
         const n = Math.ceil(13 * e.hp / e.maxHp), bx = ox + (W >> 1) - 6;
         for (let x = 0; x < 13; x++) this.plot(bx + x, oy - 3, ...(x < n ? (e.elite ? [255, 200, 90] : [255, 110, 180]) : [52, 46, 58]));
       }

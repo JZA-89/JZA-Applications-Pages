@@ -42,6 +42,36 @@ const KGame = (() => {
       this.bits = [];   // shards flying to a player
       this.dummies = this.world.dummySpots.map((s, i) => this.makeDummy(s, i));
       this.enemies = this.world.enemyHomes.map((home, i) => this.makeEnemy(home, i));
+      this.makeChampions();
+    }
+
+    // The highest-level warden, moth and delver become champions (see KData.champions).
+    makeChampions() {
+      const CH = KData.champions, picked = [];
+      for (const kind in CH.kinds) {
+        const c = this.enemies.filter(e => e.kind === kind && !picked.some(o => Math.hypot(o.x - e.x, o.y - e.y) < CH.apart))
+          .sort((a, b) => b.level - a.level || a.id - b.id)[0];
+        if (!c) continue;
+        const E = KData.enemies[kind];
+        c.champion = CH.kinds[kind]; c.elite = false;
+        c.w = Math.round(E.w * CH.size); c.h = Math.round(E.h * CH.size);
+        if (kind === 'warden') {
+          // it needs room to stand
+          // it needs room to stand: clear a space its size above the floor it stands on
+          const w = this.world, fy = w.floorBelow(c.home.x, c.home.y - 6);
+          for (let y = fy - c.h - 6; y <= fy; y++) for (let x = Math.round(c.home.x - c.w / 2 - 6); x <= c.home.x + c.w / 2 + 6; x++)
+            if (x > 10 && y > 10 && x < w.w - 10 && y < w.h - 10 && w.get(x, y) !== M.EMPTY) w.set(x, y, M.EMPTY);
+          c.home = { ...c.home, y: fy }; c.y = fy;
+        }
+        c.maxHp = c.hp = Math.round(E.hp * (1 + E.perLevel.hp * (c.level - 1)) * CH.hp[kind]);
+        c.stats.attack = (E.attack + E.perLevel.attack * (c.level - 1)) * CH.attack;
+        picked.push(c);
+      }
+    }
+    // a champion that has noticed a player (for the health bar at the top)
+    championNear(p) {
+      for (const e of this.enemies) if (e.champion && !e.dead && !e.asleep && this.time - e.lastSeen < 6 && Math.hypot(e.x - p.x, e.y - p.y) < 260) return e;
+      return null;
     }
 
     get actors() { const a = this.players.concat(this.dummies, this.enemies); if (this.boss && !this.boss.dead) a.push(this.boss); return a; }
@@ -168,7 +198,7 @@ const KGame = (() => {
       const rune = crucible ? this.makeRune(c.level, { type: 'crucible', tier: 2 }) : this.makeRune(c.level, { tier: Math.min(2, RU.tierFor(c.level, this.rand()) + 1) });
       if (p.inventory.length < RU.bag) p.inventory.push(rune); else this.dropRune(c.x, c.y - 6, rune);
       this.events.push({ type: 'toast', kind: 'loot', text: `Relic cache opened · ${RU.types[rune.type].name} (${RU.tiers[rune.tier].name}) · ${shards} shards` });
-      if (this.rand() < 0.7) this.tome(p);
+      if (this.rand() < KData.treasure.tomeChance) this.tome(p);
       this.gainXp(p, T.xp(c.level), 'cache');
       this.sfx('cache', c.x, c.y);
       this.burst(c.x, c.y - 4, 24, [[255, 211, 122], [255, 240, 200]], 120);
@@ -325,7 +355,8 @@ const KGame = (() => {
     loadExtra(x) {
       if (!x) return;
       if (Array.isArray(x.opened)) this.opened = new Set(x.opened.filter(Number.isInteger));
-      if (Array.isArray(x.defeated)) this.defeated = new Set(x.defeated.filter(id => KData.bosses[id]));
+      if (Array.isArray(x.defeated)) this.defeated = new Set(x.defeated.filter(id => KData.bosses[id] || (typeof id === 'string' && id.startsWith('champ:'))));
+      for (const e of this.enemies) if (e.champion && this.defeated.has('champ:' + e.kind)) { e.dead = true; e.hp = 0; }
       if (Array.isArray(x.cores)) this.cores = new Set(x.cores.filter(c => typeof c === 'string'));
       if (this.boss && this.defeated.has(this.boss.type)) this.boss = null;
     }
@@ -1729,7 +1760,18 @@ const KGame = (() => {
       a.dead = true; a.hp = 0;
       // experience to whoever hit it last (hazards a player caused count for 8 s)
       if (a.kind !== 'player' && a.kind !== 'dummy' && a.lastHitBy && this.time - a.lastHitAt < 8 && !a.lastHitBy.dead)
-        this.gainXp(a.lastHitBy, Math.max(1, Math.round(KData.progression.killXp(a.level || 1, a.kind, a.elite) * KData.progression.underLevel(a.lastHitBy.level - (a.level || 1)))), 'kill');
+        this.gainXp(a.lastHitBy, Math.max(1, Math.round(KData.progression.killXp(a.level || 1, a.kind, a.elite) * (a.champion ? KData.champions.xp : 1) * KData.progression.underLevel(a.lastHitBy.level - (a.level || 1)))), 'kill');
+      if (a.champion && a.lastHitBy) {
+        // a champion falls for good: a Legendary runestone, a tome and shards
+        const q = a.lastHitBy, RU = KData.runes, r = this.makeRune(a.level + 1, { tier: 3 });
+        this.defeated.add('champ:' + a.kind);
+        q.shards = (q.shards || 0) + KData.champions.shards * a.level;
+        if (q.inventory.length < RU.bag) q.inventory.push(r); else this.dropRune(a.x, a.y - a.h / 2, r);
+        this.events.push({ type: 'toast', kind: 'big', text: `${a.champion} has fallen · ${RU.types[r.type].name} (Legendary) · ${KData.champions.shards * a.level} shards` });
+        this.tome(q);
+        this.sfx('level', a.x, a.y, 1.2); this.shake = Math.max(this.shake, 5);
+        this.events.push({ type: 'save' });
+      }
       if (a.kind === 'player') this.events.push({ type: 'died' });
       else if (a.kind !== 'dummy' && a.lastHitBy && (a.elite || a.boss || this.rand() < KData.runes.dropChance)) {
         const n = a.boss ? 2 : 1;
@@ -2095,7 +2137,7 @@ const KGame = (() => {
     // Resting at a Lodestone (or dying) brings the cave's creatures back,
     // except any close enough to see appear. Nothing comes back on its own.
     reviveEnemies() {
-      for (const e of this.enemies) if (e.dead && !this.players.some(p => !p.dead && Math.hypot(p.x - e.home.x, p.y - e.home.y) < 170)) this.respawnCrawler(e);
+      for (const e of this.enemies) if (e.dead && !(e.champion && this.defeated.has('champ:' + e.kind)) && !this.players.some(p => !p.dead && Math.hypot(p.x - e.home.x, p.y - e.home.y) < 170)) this.respawnCrawler(e);
     }
     respawnCrawler(e) {
       const y = e.kind === 'crawler' || e.kind === 'warden' ? this.world.floorBelow(e.home.x, e.home.y - 6) : e.home.y;

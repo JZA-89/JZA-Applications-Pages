@@ -320,7 +320,7 @@ Jaisah's direction: typing combinations from memory is the skill (as in Magicka)
 
 ### Special spells (`KData.specials`, `game.castSpecial`)
 
-An exact sequence, order and all. While the recipe matches **and your mana bar could hold its cost**, the Shot becomes the special spell (gold in the HUD); with too small a bar nothing shows that it exists. Learned from **tomes** (70% of relic caches teach one of the three cheapest you do not know; the Emberwyrm teaches Cataclysm) or by typing one; known ones are listed in the spell book with their sequence and saved.
+An exact sequence, order and all. While the recipe matches **and your mana bar could hold its cost**, the Shot becomes the special spell (gold in the HUD); with too small a bar nothing shows that it exists. Learned from **tomes** (25% of relic caches teach one of the three cheapest you do not know, each champion teaches one, and the Emberwyrm teaches Cataclysm) or by typing one; known ones are listed in the spell book with their sequence and saved.
 
 | Spell | Sequence | Mana | What it does |
 |---|---|---|---|
@@ -353,6 +353,14 @@ Jaisah: this should take hours, not thirty minutes, and levelling must not run a
 - **Enemies come back only when you rest at a Lodestone or die** (`game.reviveEnemies`; they used to return after 25 s). A cleared tunnel stays cleared until you choose to rest, and experience cannot be farmed by standing still.
 - **Pace:** a full clear gives about 8,500 experience from kills and 5,000 from caches, which is about level 11. The enemies of each ring of the cave are worth about one level, so your level tracks the level of the area you are in.
 - **The Emberwyrm's arena** is 370 wide and about 95 tall above the lake (was 210 × 58, less than one screen), with ten ledges, at least 750 from the hub (level 5 to 7; its health scales with that, about 2,000 to 2,500). A bot standing still with Bolt at level 6 needs 95 to 150 s.
+
+## Champions (v0.25, `KData.champions`, `game.makeChampions`)
+
+The highest-level Slate warden, Glowmoth and Delver in the cave (at least 500 apart) become **The Slate Colossus**, **The Lantern Queen** and **Deepjaw**: drawn at twice the size (hit box ×1.8), with 4, 20 and 10 times an ordinary one's health (about 2,000 to 2,300 at level 7 to 8), ×1.25 attack and gold eyes. They use the same behaviour as their kind. Their health shows in the bar at the top once they notice you. Each gives 8 times the experience, 30 × level shards, a Legendary runestone and a tome, and **never returns** (saved as `champ:<kind>` in `defeated`). The Colossus gets a space cleared to stand in. A test bot at level 8 beats each in about a minute. Pink dots mark them on the maps once seen.
+
+## Maps (v0.25)
+
+The corner map shows the cave around you at 6 cells a pixel (the whole 3072-wide cave would be 24 cells a pixel there). **Tab**, or a click on it, opens the full map of the explored cave at 4 cells a pixel (`#mapWrap`, mode `map`, pauses), with Lodestones, relic caches and loose runestones, crystal, the lair, champions and you.
 
 ## Elements and spells
 
@@ -476,6 +484,11 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.22 (2026-11-26):** after any cast or failed cast, the next element typed starts a new recipe (Jaisah: a full recipe he could not afford left him stuck).
 - **v0.23 (2026-11-26):** trying a spell that costs more than the whole mana bar clears the recipe straight away (Jaisah).
 - **v0.24 (2026-11-26):** balance pass from measurements (earth digs best, fire no longer best at everything, Bursts worth their mana, single elements not the most efficient, explosions cannot delete magma), longer recipes look bigger, a cave more than twice the size with levels 1 to 8, enemies return only on rest, a much bigger Emberwyrm arena. Saves start again (`castinstone.save.v2`).
+- **v0.25 (2026-11-26):** three champions; a full map on Tab and a local corner map; relic caches teach a special spell 25% of the time (was 70%).
+
+## Checks run for v0.25
+
+Champions on three seeds (placed, not stuck); a bot fight with each (about a minute at level 8; rewards given; the bar shows; they stay beaten after resting and after reloading); the Colossus walking and slamming on four seeds; the map opening and closing on Tab.
 
 ## Checks run for v0.24
 
