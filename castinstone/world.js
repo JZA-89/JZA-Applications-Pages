@@ -74,8 +74,9 @@ const KWorld = (() => {
 
   class World {
     // lift: levels added everywhere in the cave (a deeper cave after the Emberwyrm falls: game.depth)
-    constructor(seed, lift = 0) {
-      this.lift = lift | 0;
+    // act: which act's regions and boss this cave has (KData.acts)
+    constructor(seed, lift = 0, act = 0) {
+      this.lift = lift | 0; this.act = act | 0; this.biomes = KData.acts[this.act].biomes;
       const { w, h, chunk } = KData.world;
       this.w = w; this.h = h; this.cs = chunk; this.shift = Math.log2(chunk);
       this.cw = Math.ceil(w / chunk); this.ch = Math.ceil(h / chunk);
@@ -447,7 +448,7 @@ const KWorld = (() => {
     meta() {
       const b64 = a => { let s = ''; for (let i = 0; i < a.length; i += 4096) s += String.fromCharCode.apply(null, a.subarray(i, i + 4096)); return btoa(s); };
       return { spawn: this.spawn, caches: this.caches, dummySpots: this.dummySpots, hub: this.hub, lair: this.lair, nodes: this.nodes, edges: this.edges, enemyHomes: this.enemyHomes, lodestones: this.lodestones,
-        broken: this.broken, cooled: this.cooled, bw: this.bw, lift: this.lift, biomeMap: b64(this.biomeMap), awake: b64(this.awake), changed: b64(this.changed) };
+        broken: this.broken, cooled: this.cooled, bw: this.bw, lift: this.lift, act: this.act, biomeMap: b64(this.biomeMap), awake: b64(this.awake), changed: b64(this.changed) };
     }
     adopt(m) {
       const put = (a, text) => { const s = atob(text); if (s.length === a.length) for (let i = 0; i < a.length; i++) a[i] = s.charCodeAt(i); };
@@ -505,7 +506,7 @@ const KWorld = (() => {
     generate() {
       const { w, h } = this, mat = this.mat, s = this.seed % 997, C = KData.cave;
       const R = makeRng(this.seed ^ 0x9e3779b9);
-      const BIOMES = KData.biomes;
+      const BIOMES = this.biomes;
 
       // 1. dirt everywhere, with large rock masses
       for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
@@ -653,7 +654,7 @@ const KWorld = (() => {
             if (ex * ex + ey * ey < 1 && mat[y * w + x] === M.EMPTY) mat[y * w + x] = M.DIRT;
           }
         }
-        this.lair = { x: n.x, y: n.y, rx: n.rx, ry: n.ry, surface: Math.floor(n.y + n.ry * 0.15), level: this.levelAt(n.x, n.y), boss: 'emberwyrm' };
+        this.lair = { x: n.x, y: n.y, rx: n.rx, ry: n.ry, surface: Math.floor(n.y + n.ry * 0.15), level: this.levelAt(n.x, n.y), boss: KData.acts[this.act].boss };
       }
 
       // 9. pools in chambers (water in the Drowned Galleries, magma in the Ember Veins)
@@ -741,7 +742,7 @@ const KWorld = (() => {
       const addCache = (x, y, kind, n) => this.caches.push({ id: this.caches.length, x: Math.round(x), y: Math.round(y), kind, level: this.levelAt(x, y) });
       for (const n of nodes) {
         if (n.hub || n.lair || R() > T.cacheChance) continue;
-        const B = KData.biomes[n.biome];
+        const B = this.biomes[n.biome];
         const kinds = Object.keys(T.kinds).filter(k => k !== 'pool' || (B.pool && n.pooled));
         shuffle(kinds, R);
         let placed = false;
@@ -856,7 +857,7 @@ const KWorld = (() => {
         const sp = spotIn(n, 12, 16);
         if (sp) this.lodestones.push({ id: this.lodestones.length, x: sp.x, y: sp.y });
       }
-      for (const l of this.lodestones) { l.region = KData.biomes[this.biomeAt(l.x, l.y - 8)].name; l.level = this.levelAt(l.x, l.y); }
+      for (const l of this.lodestones) { l.region = this.biomes[this.biomeAt(l.x, l.y - 8)].name; l.level = this.levelAt(l.x, l.y); }
       // specks left by the last steps (shelves under high caches are 13 cells and stay)
       { const keep = World.MIN_PIECE; World.MIN_PIECE = 10; this.cleanup(0, 0, w, h, M.EMPTY); World.MIN_PIECE = keep; }
       this.changed = new Uint8Array(this.cw * this.ch); // chunks changed since generation (for saving)

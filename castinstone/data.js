@@ -348,6 +348,18 @@ const KData = (() => {
     crawler: [[['slinger', 2, 30]], [['frog', 2, 45], ['slinger', 3, 15]], [['imp', 2, 40], ['slinger', 2, 18]]],
     moth: [[['wisp', 4, 25]], [['wisp', 3, 50]], [['wisp', 4, 25]]],
   };
+  // The second cave's creatures (the Sunless Deep). Like the four above, the generator never places them:
+  // the game turns the first cave's kinds into them (acts[1].remix).
+  Object.assign(enemies, {
+    shade: { name: 'Shade', desc: 'Fades out and steps out of the air behind you, then slashes. Watch for the shimmer where it will appear. Weak to fire.', w: 9, h: 13, hp: 46, attack: 13, defence: 6,
+      walk: 40, blinkEvery: 3.2, fade: 0.5, behind: 16, power: 20, knock: 170, affinity: { fire: 1.4, earth: 0.7 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
+    urchin: { name: 'Glass urchin', desc: 'Rolls slowly towards you, swells, and throws spines in every direction. Keep your distance or get under cover. Weak to water.', w: 11, h: 9, hp: 70, attack: 11, defence: 10,
+      roll: 20, trigger: 75, swell: 0.6, spikes: 8, speed: 150, power: 14, reach: 120, every: 2.6, affinity: { water: 1.5, earth: 0.5 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
+    wraith: { name: 'Ash wraith', desc: 'Drifts straight through rock towards you, slowly, and burns on touch. Walls will not save you; lightning will.', w: 11, h: 11, hp: 40, attack: 12, defence: 4,
+      fly: 38, power: 18, knock: 120, touchCd: 0.8, affinity: { lightning: 1.6, fire: 1.2, earth: 0.4 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
+    geode: { name: 'Geode', desc: 'Set in a wall. It glows, then fires three shards in a fan. Earth cracks it; lightning does little.', w: 11, h: 11, hp: 60, attack: 12, defence: 8,
+      glow: 0.7, every: 2.8, spread: 0.22, speed: 210, power: 15, range: 220, affinity: { earth: 1.6, lightning: 0.5 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
+  });
   // shared by every enemy kind
   for (const k in enemies) Object.assign(enemies[k], { sight: enemies.crawler.sight, sense: enemies.crawler.sense, hearing: enemies.crawler.hearing, forget: enemies.crawler.forget,
     respawn: 25, awake: 380, respawnClear: 300, perLevel: enemies.crawler.perLevel }, { ...enemies[k] });
@@ -362,12 +374,10 @@ const KData = (() => {
   // not come back once beaten, and each gives a Legendary runestone, a tome,
   // shards and a lot of experience.
   const champions = {
-    kinds: { warden: 'The Slate Colossus', moth: 'The Lantern Queen', delver: 'Deepjaw' },
-    size: 1.8, hp: { warden: 4, moth: 20, delver: 10 },   // times an ordinary one's health: about 2,100 to 2,300 at level 8
+    size: 1.8, hp: { warden: 4, moth: 20, delver: 10, shade: 12, urchin: 9, wraith: 16 },   // times an ordinary one's health: about 2,100 to 2,300 at level 8
     attack: 1.25, xp: 8, shards: 30, apart: 500,
     // One per region, in this order (Rose Hollows, Drowned Galleries, Ember Veins). Each has an attack of
     // its own (game.championTick): every `every` seconds, more of it (`rageCount`) below `rage` of its health.
-    order: ['warden', 'moth', 'delver'],
     sig: {
       warden: { every: 9, wind: 1.0, count: 6, rageCount: 10, rage: 0.4, gap: 0.3, power: 24, spread: 80 },      // Rockfall: boulders drop from the roof around you
       moth: { every: 7, wind: 0.9, count: 5, rageCount: 8, rage: 0.5, range: 170, power: 20 },                    // Lantern burst: lightning along lines you can see
@@ -390,6 +400,13 @@ const KData = (() => {
       affinity: { fire: 0, water: 1.6, lightning: 1.2 } },
   };
 
+  bosses.hollowking = { name: 'The Hollow King', region: 'deep', core: 'Hollow crown',
+    desc: 'Hangs in the air over its lake. A fan of shards, a pull that ends in a blast, and lightning that falls where a light marks the ground. Lightning hurts it most.',
+    hp: 1100, attack: 15, defence: 15, perLevel: { hp: 0.3, attack: 2, defence: 1 }, rageAt: 0.5, reset: 8, xpMul: 18, shardsMul: 50,
+    speed: 70, fanWind: 0.7, fanSpread: 0.2, fanPower: 16, fanSpeed: 200, wellTime: 2.2, pull: 260, blast: 62, blastPower: 34,
+    rainWarn: 0.7, rainGap: 0.55, rainCount: 4, rainPower: 22, contact: 20, knock: 200, touchCd: 0.9,
+    affinity: { lightning: 1.4, earth: 0.7 } };
+
   // ---------- Regions ----------
   // The cave spreads in every direction from the hub. Each region has its own
   // stone colours (strata), background, lichen, and pools in its chambers.
@@ -402,6 +419,23 @@ const KData = (() => {
       strata: [[72, 94, 108], [86, 108, 118], [60, 80, 98], [100, 122, 128], [54, 72, 90], [80, 100, 112]] },
     { id: 'ember', name: 'Ember Veins', bg: [34, 16, 24], lichen: 0.3, hang: 0.12, pool: 'MAGMA', poolFrom: 0.8, mud: 0,
       strata: [[112, 58, 52], [128, 70, 58], [88, 46, 48], [148, 88, 66], [74, 40, 44], [118, 64, 56]] },
+  ];
+  // the second cave's regions
+  const biomesDeep = [
+    { id: 'glass', name: 'Glass Warrens', bg: [22, 26, 40], lichen: 0.15, hang: 0.5, pool: null, mud: 0,
+      strata: [[96, 108, 150], [120, 130, 170], [78, 88, 132], [146, 156, 190], [66, 74, 116], [108, 118, 160]] },
+    { id: 'sunless', name: 'Sunless Sea', bg: [8, 14, 26], lichen: 0.1, hang: 0.25, pool: 'WATER', poolFrom: 0.25, mud: 0.5,
+      strata: [[40, 58, 74], [50, 70, 84], [32, 46, 64], [62, 84, 94], [26, 38, 56], [46, 64, 80]] },
+    { id: 'ashen', name: 'Ashen Maw', bg: [22, 18, 20], lichen: 0.05, hang: 0.1, pool: 'MAGMA', poolFrom: 0.5, mud: 0,
+      strata: [[92, 86, 84], [110, 102, 98], [72, 66, 68], [128, 118, 110], [58, 54, 58], [100, 92, 90]] },
+  ];
+  // The game in acts. Each cave you descend to is the next act: its own regions, creatures (which kinds
+  // the generator's five become, by region: [kind, from level, share of 100]), champions and last boss.
+  // Past the last act they come round again, eight levels higher each time.
+  const acts = [
+    { name: 'The Waking Cave', biomes, remix, boss: 'emberwyrm', order: ['warden', 'moth', 'delver'], champions: { warden: 'The Slate Colossus', moth: 'The Lantern Queen', delver: 'Deepjaw' } },
+    { name: 'The Sunless Deep', biomes: biomesDeep, boss: 'hollowking', order: ['shade', 'urchin', 'wraith'], champions: { shade: 'The Mirror', urchin: 'The Thousand Spines', wraith: 'The Pale Regent' },
+      remix: { crawler: [[['shade', 0, 45], ['urchin', 0, 30]], [['urchin', 0, 45], ['shade', 0, 30]], [['shade', 0, 40], ['urchin', 0, 35]]], moth: [[['wraith', 0, 55]], [['wraith', 0, 55]], [['wraith', 0, 70]]], spitter: [[['geode', 0, 85]], [['geode', 0, 85]], [['geode', 0, 60]]] } },
   ];
   const cave = { chambers: 104, spacing: 150, hubRadius: 320, regionDistance: 800, levelEvery: 200, depthLevels: 8,
     tunnel: [12, 17], plugChance: 0.16, loopChance: 0.55, lodestones: 15, stoneReach: 46, stoneUp: 30, stoneDown: 50,   // how near counts as at a Lodestone: sideways, above it, below it
@@ -604,6 +638,6 @@ const KData = (() => {
       ] },
   ];
 
-  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, statuses, elites, bosses, modes, recipe, specials, champions, remix, biomes, cave, progression, runes, treasure,
+  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, statuses, elites, bosses, modes, recipe, specials, champions, remix, acts, biomes, cave, progression, runes, treasure,
     world: { w: 3072, h: 1536, chunk: 32 }, view: { w: 320, h: 180 }, step: 1 / 60 };
 })();

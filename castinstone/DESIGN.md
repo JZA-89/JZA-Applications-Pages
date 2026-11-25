@@ -496,6 +496,30 @@ Two players, online, in the host's cave. Each keeps their own golem: a guest's l
 
 **Home screen:** `icon-180.png` (the Brute golem, also the page's tab icon), `manifest.webmanifest` and the `apple-mobile-web-app-*` tags in `index.html` give the game its icon, the name "Cast in Stone" and a full screen when added to a phone's home screen. On iPhone a home-screen web app keeps its own saves, separate from Safari's.
 
+## Acts: the second cave (v0.48, `KData.acts`)
+
+Jaisah: beating the Emberwyrm should lead to a second phase that is not the first one recycled: new areas, new enemy types, a new boss.
+
+The game is now a list of acts (`KData.acts`). Each cave you descend to is the next act: its own three regions, creatures, champions and last boss. `game.act = depth % acts.length`; past the last act they come round again, eight levels higher each time. A cave is built with its act (`new World(seed, lift, act)`, `world.biomes`), and co-op sends it.
+
+**Act 1, The Waking Cave** (levels 1 to 8): Rose Hollows, Drowned Galleries, Ember Veins; the Slate Colossus, the Lantern Queen, Deepjaw; the Emberwyrm.
+
+**Act 2, The Sunless Deep** (levels 9 to 16):
+- Regions: **Glass Warrens** (pale blue stone, dry), **Sunless Sea** (near-black, much more water, mud), **Ashen Maw** (grey ash, more magma).
+- Creatures (the generator still places its five kinds; `acts[1].remix` turns most of them into these):
+
+| Kind | Health · attack · defence (level 1 base) | What it does | Weak / strong |
+|---|---|---|---|
+| **Shade** (9 × 13) | 46 · 13 · 6 | every 3.2 s fades for 0.5 s and steps out of the air behind you (a shimmer shows where), then slashes (power 20) | fire ×1.4, earth ×0.7 |
+| **Glass urchin** (11 × 9) | 70 · 11 · 10 | rolls slowly at you; within 75 swells 0.6 s and throws 8 spines all round (power 14, reach 120) every 2.6 s | water ×1.5, earth ×0.5 |
+| **Ash wraith** (11 × 11, flies) | 40 · 12 · 4 | drifts straight through rock at 38 and burns on touch (power 18); walls do not stop it | lightning ×1.6, fire ×1.2, earth ×0.4 |
+| **Geode** (11 × 11, in a wall) | 60 · 12 · 8 | glows 0.7 s, then fires three shards in a fan (power 15, range 220) every 2.8 s | earth ×1.6, lightning ×0.5 |
+
+- Champions, one per region: **The Mirror** (a shade that blinks nearly twice as often), **The Thousand Spines** (an urchin that throws 16 spines, further and more often), **The Pale Regent** (a faster wraith).
+- **The Hollow King** (`kingTick`, `KData.bosses.hollowking`), one level above the cave: hangs in the air over its lake and uses three attacks in turn, each shown first. *Fan:* a glow, then 5 shards in a fan. *Well:* pulls every golem in the lair towards it for 2.2 s inside a ring, then blasts everything in the ring (radius 62). *Rain:* columns of light mark the ground, then lightning falls on them (4 strikes). Below half health: 9 shards twice, a wider ring, 7 strikes, and it moves faster. Lightning hurts it most. Its fall gives the Hollow crown (+40 mana) and Cataclysm.
+
+**Still thin, and said so to Jaisah:** two acts is a few hours, not ten to twenty; the second act's champions are stronger versions of its creatures without attacks of their own; the King's art is a first pass; none of act 2 has been balanced by play.
+
 ## Pacing and the seal fights (v0.47)
 
 Jaisah: scrutinise the game, not only lengthen it; mana should open the stronger spells at a sensible rate; the three seals should be three different fights.

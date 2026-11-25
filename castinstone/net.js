@@ -195,7 +195,7 @@ const KNet = (() => {
         setTimeout(() => {   // after the message is on screen: building takes a second or two
           if (my !== session) return;
           pend = { save: b.save, guest: b.guest, syncSeed: b.syncSeed | 0, delay: Math.max(2, Math.min(9, b.delay | 0)), epoch: b.epoch | 0 };
-          const w = new KWorld.World(b.save.seed, b.meta.lift | 0);
+          const w = new KWorld.World(b.save.seed, b.meta.lift | 0, (b.meta.act | 0) % KData.acts.length);
           w.adopt(b.meta);
           const theirsH = new Uint32Array(unb64(b.hashes).buffer), mineH = w.chunkHashes(), need = [];
           for (let k = 0; k < mineH.length; k++) if (mineH[k] !== theirsH[k]) need.push(k);

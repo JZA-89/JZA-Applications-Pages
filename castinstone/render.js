@@ -111,6 +111,27 @@ const KRender = (() => {
       ".kk...kk.",
     ]],
   });
+  // the second cave's creatures, and its king (drawn at twice the size)
+  Object.assign(ENEMY_ART, {
+    shade: [[
+      "...kkk...", "..kdddk..", "..kedek..", "..kdddk..", ".kkdmdkk.", "kdkmmmkdk", "kdkmmmkdk", ".k.kmk.k.", "...kmk...", "..kmkmk..", "..kd.dk..", "..kd.dk..", ".kk...kk.",
+    ]],
+    urchin: [[
+      "p....p....p", ".p..kkk..p.", "..kkmhmkk..", "pkmhmmmhmkp", ".kmmmemmmk.", "pkmmmmmmmkp", "..kkmmmkk..", ".p..kkk..p.", "p....p....p",
+    ]],
+    wraith: [[
+      "...kkkkk...", "..kwwwwwk..", ".kwwwwwwwk.", ".kwekwkewk.", ".kwwwwwwwk.", ".kwwkkkwwk.", ".kwwwwwwwk.", "..kwwwwwk..", "..kw.kw.k..", ".kw..kw..k.", ".k...k.....",
+    ], [
+      "...kkkkk...", "..kwwwwwk..", ".kwwwwwwwk.", ".kwekwkewk.", ".kwwwwwwwk.", ".kwwkkkwwk.", ".kwwwwwwwk.", "..kwwwwwk..", ".kw.kw..k..", "..k..kw..k.", ".....k...k.",
+    ]],
+    geode: [[
+      "....kkkkk..", "..kkmmmmhk.", ".kmmmhhmmhk", "kmmhooohmmk", "kmhooooohmk", "kmhooooohmk", "kmmhooohmmk", ".kmmmhhmmk.", "..kkmmmmk..", "....kkkk...", "...........",
+    ]],
+    hollowking: [[
+      "....g.g.g.g....", "....ggggggg....", "...kkkkkkkkk...", "..kbbbbbbbbbk..", "..kbkkbbbkkbk..", "..kbkekbkekbk..", "..kbbbbkbbbbk..", "..kbbkkkkkbbk..", "...kbbbbbbbk...", "..kkrrrkrrrkk..",
+      ".krrrrokorrrrk.", "krrkrrooorrkrrk", "krk.krrorrk.krk", "kk..krrrrrk..kk", "....krrrrrk....", "....krrkrrk....", "...krrk.krrk...", "...kk.....kk...",
+    ]],
+  });
   const ENEMY_COL = {
     moth: { w: [222, 196, 244], k: [40, 30, 50], b: [124, 104, 146], e: [255, 70, 160] },
     delver: { k: [24, 16, 20], m: [122, 98, 92], h: [154, 126, 112], d: [84, 66, 64], t: [240, 230, 210], e: [255, 70, 160] },
@@ -119,6 +140,11 @@ const KRender = (() => {
     wisp: { k: [20, 26, 60], w: [150, 190, 255], o: [80, 120, 230], e: [240, 250, 255] },
     frog: { k: [14, 28, 30], m: [70, 132, 110], h: [120, 180, 140], d: [44, 88, 84], e: [255, 220, 90] },
     imp: { k: [36, 12, 10], m: [150, 52, 36], d: [100, 34, 28], o: [255, 150, 50], e: [255, 230, 120] },
+    shade: { k: [14, 10, 26], d: [58, 44, 92], m: [88, 70, 132], e: [210, 170, 255] },
+    urchin: { k: [20, 28, 44], m: [110, 150, 190], h: [180, 215, 240], p: [200, 230, 255], e: [255, 90, 150] },
+    wraith: { k: [40, 34, 34], w: [176, 166, 160], e: [255, 120, 60] },
+    geode: { k: [26, 24, 34], m: [96, 92, 110], h: [140, 136, 156], o: [150, 110, 255] },
+    hollowking: { k: [12, 10, 18], g: [255, 211, 122], b: [214, 206, 190], r: [64, 50, 96], o: [170, 130, 255], e: [200, 170, 255] },
     warden: { k: [16, 14, 22], m: [112, 120, 142], p: [156, 162, 184], s: [72, 76, 94], f: [128, 134, 154], d: [72, 76, 94], e: [255, 70, 160] },
   };
   const SACK = { k: [44, 36, 56], s: [138, 128, 160], x: [206, 198, 226], p: [96, 70, 74] };
@@ -177,7 +203,7 @@ const KRender = (() => {
       const k = cky * 4096 + ckx;
       let c = this.cc.get(k);
       if (c) return c;
-      const world = this.world, BI = KData.biomes, h = world.h;
+      const world = this.world, BI = world.biomes, h = world.h;
       c = { bg: new Uint32Array(1024), dirt: new Uint32Array(1024), rock: new Uint32Array(1024) };
       for (let ly = 0; ly < 32; ly++) for (let lx = 0; lx < 32; lx++) {
         const x = ckx * 32 + lx, y = cky * 32 + ly, i = ly * 32 + lx, b4 = BAYER[(y & 3) * 4 + (x & 3)];
@@ -478,6 +504,7 @@ const KRender = (() => {
     // The Emberwyrm: a chain of basalt plates with glowing cracks, and a head
     // with jaws. Under the magma it shows faintly.
     drawBoss(b, game) {
+      if (b.type === 'hollowking') { const y = b.y; b.y = y + b.h / 2; this.drawEnemy(b, game.time); b.y = y; this.light(b.x, y, b.state === 'hover' ? 26 : 40, [170, 130, 255], 0.6); return; }
       const w = game.world, cx = this.cam.x, cy = this.cam.y;
       const disc = (x, y, r, col, a, crack) => {
         for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
@@ -510,15 +537,15 @@ const KRender = (() => {
     }
 
     drawEnemy(e, time) {
-      const frames = ENEMY_ART[e.kind], C = ENEMY_COL[e.kind];
+      const key = e.kind === 'boss' ? e.type : e.kind, frames = ENEMY_ART[key], C = ENEMY_COL[key];
       const rows = frames.length > 1 ? frames[Math.floor(time * (e.state === 'swoop' ? 18 : 8) + e.id) & 1] : frames[0];
-      const W = rows[0].length, H = rows.length, flip = (e.kind === 'spitter' ? e.face : e.facing) < 0;
-      const S = e.champion ? 2 : 1;   // champions are drawn at twice the size
+      const W = rows[0].length, H = rows.length, flip = (e.anchored ? e.face : e.facing) < 0;
+      const S = e.champion || e.boss ? 2 : 1;   // champions and the king are drawn at twice the size
       const lift = (e.kind === 'warden' && (e.state === 'windup' || e.state === 'throw') ? 1 : 0) - (e.kind === 'frog' && e.state === 'windup' ? 1 : 0);
       const ox = Math.round(e.x - this.cam.x) - ((W * S) >> 1), oy = Math.round(e.y - this.cam.y) - H * S - lift;
-      const warn = (e.state === 'windup' || e.state === 'throw' || (e.kind === 'spitter' && e.charging)) ? 0.5 + 0.5 * Math.sin((e.t || time) * 40) : 0;
+      const warn = (e.state === 'windup' || e.state === 'throw' || e.charging || (e.boss && e.state !== 'hover' && e.state !== 'idle')) ? 0.5 + 0.5 * Math.sin((e.t || time) * 40) : 0;
       const muddy = e.slowT > 0 || e.inMud;
-      const a = e.ghost ? 0.45 : 1; // a delver inside the ground shows faintly
+      const a = e.ghost || e.state === 'fade' ? 0.45 : e.kind === 'wraith' ? 0.8 : 1; // a delver inside the ground shows faintly
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
         const ch = rows[y][x];
         if (ch === '.') continue;
@@ -532,7 +559,7 @@ const KRender = (() => {
         else for (let sy = 0; sy < S; sy++) for (let sx = 0; sx < S; sx++) this.plot(ox + (flip ? W - 1 - x : x) * S + sx, oy + y * S + sy, col[0] | 0, col[1] | 0, col[2] | 0, a);
       }
       if (e.wetT > 0 && Math.random() < 0.3) this.plot(ox + Math.random() * W * S, oy + H * S, 120, 170, 255, 0.8);
-      if (e.hp < e.maxHp && !e.champion) {
+      if (e.hp < e.maxHp && !e.champion && !e.boss) {
         const n = Math.ceil(13 * e.hp / e.maxHp), bx = ox + (W >> 1) - 6;
         for (let x = 0; x < 13; x++) this.plot(bx + x, oy - 3, ...(x < n ? (e.elite ? [255, 200, 90] : [255, 110, 180]) : [52, 46, 58]));
       }

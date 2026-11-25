@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.47';
+  const VERSION = 'v0.48';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -209,7 +209,7 @@
     if (m === 'end') { buildEnd(); $('btnDescend').focus({ preventScroll: true }); return; }
     if (m === 'map') { drawBigMap(); $('btnMapClose').focus({ preventScroll: true }); return; }
     const p = game.players[ME], started = m !== 'start' || hadSave;
-    $('panelEyebrow').textContent = KNet.on ? 'Co-op · the game goes on while this is open' : (m === 'start' ? `Beta · ${VERSION}` : 'Paused') + (game.depth ? ` · Depth ${game.depth + 1}` : '');
+    $('panelEyebrow').textContent = KNet.on ? 'Co-op · the game goes on while this is open' : (m === 'start' ? `Beta · ${VERSION}` : 'Paused') + ` · ${KData.acts[game.act].name}`;
     $('btnNewCave').hidden = KNet.busy; if (KNet.busy) $('btnPanelReset').hidden = true;
     $('btnDeeper').hidden = !game.won || KNet.busy;
     $('btnGo').textContent = m === 'start' ? (hadSave ? 'Continue' : 'Start') : 'Resume';
@@ -225,7 +225,7 @@
       tile('rune', game.opened.size, w.caches.length, 'Relic caches', 'Runestones, tomes') +
       tile('book', game.read.size, game.tablets.length, 'Rune tablets', B.tabs ? `+${KData.treasure.boons.tablet.mana * B.tabs} mana so far` : 'A spell, +5 mana each') +
       tile('crown', B.champs, champs.length, 'Champions', B.champs ? `+${KData.treasure.boons.champion.hp * B.champs} health and mana so far` : '+20 health and mana each') +
-      tile('fire', B.cores, w.lair ? 1 : 0, 'The Emberwyrm', B.cores ? 'Ember core: +40 mana' : 'Guards the Ember core') +
+      tile('fire', B.cores, w.lair ? 1 : 0, w.lair ? KData.bosses[w.lair.boss].name : 'The last fight', w.lair ? (B.cores ? `${KData.bosses[w.lair.boss].core}: +40 mana` : `Guards the ${KData.bosses[w.lair.boss].core}`) : '') +
       tile('star', p.known.length, Object.keys(KData.specials).length, 'Special spells', 'Five circles');
     showPanelTab(m === 'help' ? 'book' : 'game');
     $('btnGo').focus({ preventScroll: true });
@@ -381,7 +381,7 @@
       if (!game.found.has(l.id)) continue;
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'trip';
-      const isHere = here && here.id === l.id, biome = KData.biomes.find(x => x.name === l.region);
+      const isHere = here && here.id === l.id, biome = game.world.biomes.find(x => x.name === l.region);
       if (biome) b.style.setProperty('--c', rgb(biome.strata[0]));
       const d = here ? Math.round(Math.hypot(l.x - here.x, l.y - here.y)) : 0;
       b.innerHTML = `<b>${l.hub ? 'The hub' : l.region}</b><span>Level ${l.level}</span><small>${isHere ? 'You are here' : d + ' away'}</small>`;
@@ -561,7 +561,7 @@
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const wx = Math.floor(x0 + (x + 0.5) * s), wy = Math.floor(y0 + (y + 0.5) * s), o = y * W + x;
       if (wx < 0 || wy < 0 || wx >= w.w || wy >= w.h || !w.explored[(wy >> 5) * w.cw + (wx >> 5)]) { buf[o] = pk(8, 6, 12, W === mm.width ? 0 : 255); continue; }
-      const m = w.get(wx, wy), B = KData.biomes[w.biomeAt(wx, wy)].strata[0];
+      const m = w.get(wx, wy), B = game.world.biomes[w.biomeAt(wx, wy)].strata[0];
       buf[o] = m === M.ROCK ? pk(52, 58, 84) : m === M.WATER ? pk(44, 90, 190) : m === M.MAGMA ? pk(230, 100, 40) : m === M.CRYSTAL ? pk(96, 224, 214)
         : KWorld.SOLID[m] || m === M.MUD ? pk(B[0] * 0.75, B[1] * 0.75, B[2] * 0.75) : pk(24, 20, 34);
     }
@@ -588,7 +588,7 @@
     bctx.putImageData(bimg, 0, 0);
     const found = game.found.size, all = w.lodestones.length;
     const champs = game.enemies.filter(e => e.champion), left = champs.filter(e => !e.dead).length;
-    $('mapInfo').innerHTML = chip('map', `${KData.biomes[w.biomeAt(p.x, p.y - 8)].name} · Level ${w.levelAt(p.x, p.y)}`) + chip('stone', `${found} of ${all} Lodestones`) + chip('crown', `${champs.length - left} of ${champs.length} champions beaten`);
+    $('mapInfo').innerHTML = chip('map', `${game.world.biomes[w.biomeAt(p.x, p.y - 8)].name} · Level ${w.levelAt(p.x, p.y)}`) + chip('stone', `${found} of ${all} Lodestones`) + chip('crown', `${champs.length - left} of ${champs.length} champions beaten`);
   }
   $('mapBox').addEventListener('click', () => { if (mode === 'play') setMode('map'); });
   $('btnMapClose').addEventListener('click', () => setMode('play'));
@@ -598,7 +598,7 @@
     const x0 = Math.max(0, Math.min(w.w - mm.width * S, p.x - mm.width * S / 2)), y0 = Math.max(0, Math.min(w.h - mm.height * S, p.y - mm.height * S / 2));
     paintMap(mbuf, mm.width, mm.height, x0, y0, S);
     mctx.putImageData(mimg, 0, 0);
-    const t = `${KData.biomes[w.biomeAt(p.x, p.y - 8)].name}|Level ${w.levelAt(p.x, p.y)}`;
+    const t = `${game.world.biomes[w.biomeAt(p.x, p.y - 8)].name}|Level ${w.levelAt(p.x, p.y)}`;
     if (t !== regionText) { regionText = t; $('region').textContent = t.split('|')[0]; $('regionLv').textContent = t.split('|')[1]; }
   }
 
@@ -717,20 +717,20 @@
   // ---------- the goal: what to do next, the ending, and going deeper ----------
   const DIRS = ['east', 'south-east', 'south', 'south-west', 'west', 'north-west', 'north', 'north-east'];
   const dirTo = (p, x, y) => DIRS[((Math.round(Math.atan2(y - p.y, x - p.x) / (Math.PI / 4)) % 8) + 8) % 8];
-  const regionOf = (x, y) => KData.biomes[game.world.biomeAt(x, y)].name;
+  const regionOf = (x, y) => game.world.biomes[game.world.biomeAt(x, y)].name;
   let objText = '', objTick = 0;
   function objective(dt) {
     if ((objTick -= dt) > 0) return;
     objTick = 0.5;
-    const p = game.players[ME], left = game.sealsLeft(), L = game.world.lair;
+    const p = game.players[ME], left = game.sealsLeft(), L = game.world.lair, bossName = L ? KData.bosses[L.boss].name : 'the last of them';
     let title, hint;
-    if (game.won) { title = 'The Emberwyrm has fallen'; hint = KNet.busy ? 'The cave is yours' : 'A deeper cave waits: open the menu to descend'; }
+    if (game.won) { title = `${bossName} has fallen`; hint = KNet.busy ? 'The cave is yours' : 'A deeper cave waits: open the menu to descend'; }
     else if (left > 0) {
       let c = null, bd = 1e9;
       for (const e of game.enemies) if (e.champion && !game.defeated.has('champ:' + e.kind)) { const d = Math.hypot(e.home.x - p.x, e.home.y - p.y); if (d < bd) { bd = d; c = e; } }
       title = `Break the seals · ${3 - left} of 3`;
       hint = c ? (bd < 260 ? `${c.champion} is close` : `${c.champion} waits to the ${dirTo(p, c.home.x, c.home.y)}, in the ${regionOf(c.home.x, c.home.y)}`) : '';
-    } else { title = 'Wake the Emberwyrm'; hint = L ? (Math.hypot(L.x - p.x, L.y - p.y) < 300 ? 'Its lake of magma is close' : `Its lair lies to the ${dirTo(p, L.x, L.y)}, in the ${regionOf(L.x, L.y)}`) : ''; }
+    } else { title = `Wake ${bossName}`; hint = L ? (Math.hypot(L.x - p.x, L.y - p.y) < 300 ? 'Its lair is close' : `Its lair lies to the ${dirTo(p, L.x, L.y)}, in the ${regionOf(L.x, L.y)}`) : ''; }
     if (title + hint !== objText) { objText = title + hint; $('objTitle').textContent = title; $('objHint').textContent = hint; }
   }
   // co-op: an arrow at the edge of the screen towards a friend who is out of sight, with how far
@@ -750,8 +750,11 @@
   const clock = s => { const h = Math.floor(s / 3600), mn = Math.floor(s % 3600 / 60); return h ? `${h} h ${mn} min` : `${mn} min`; };
   function buildEnd() {
     const p = game.players[ME], tile = (icon, big, name) => `<div class="jt done">${KIcon(icon)}<b>${big}</b><span>${name}</span></div>`;
-    $('endEyebrow').textContent = game.depth ? `Depth ${game.depth + 1} is won` : 'The cave is won';
-    $('endText').textContent = 'The three seals are broken, the wyrm is stone again, and its Ember core beats in your chest. Below this cave there is another, older and harder, and something in it is already awake.';
+    const A = KData.acts, B = KData.bosses[game.world.lair.boss], next = A[(game.depth + 1) % A.length], nb = KData.bosses[next.boss];
+    $('endEyebrow').textContent = `${A[game.act].name} is won` + (game.depth >= A.length ? ` · depth ${game.depth + 1}` : '');
+    $('endTitle').textContent = `${B.name} has fallen`;
+    $('endText').textContent = `The three seals are broken and the ${B.core} is yours. ` + (game.depth + 1 < A.length ? `Below lies ${next.name}: the ${next.biomes.map(b => b.name).join(', the ')}, creatures you have not met, three new champions and ${nb.name}.` : `The way down goes on. ${next.name} waits again, eight levels harder.`);
+    $('endNote').textContent = 'Everything below is eight levels stronger and the treasure is better. Your golem keeps its level, runestones, spells and shards. This cave is left behind for good.';
     $('endStats').innerHTML = tile('star', p.level, 'Level') + tile('stats', clock(game.played), 'Time in the cave') + tile('skull', game.kills, 'Creatures felled') + tile('heart', game.deaths, 'Times crumbled') + tile('book', `${p.known.length}<small> of ${Object.keys(KData.specials).length}</small>`, 'Special spells') + tile('stone', `${game.found.size}<small> of ${game.world.lodestones.length}</small>`, 'Lodestones');
     $('btnDescend').hidden = $('endNote').hidden = KNet.busy;
   }
@@ -763,7 +766,7 @@
     KSave.applyPlayer(game, game.players[0], mine);
     game.played = old.played; game.deaths = old.deaths; game.kills = old.kills;
     acc = 0; mapTick = 0; toasts.length = 0; objTick = 0; save(); resume();
-    toast(`Depth ${game.depth + 1} · everything here is ${game.depth * KData.cave.depthLevels} levels stronger`, 'big');
+    toast(`${KData.acts[game.act].name} · from level ${1 + game.depth * KData.cave.depthLevels}`, 'big');
   }
   $('btnDescend').addEventListener('click', descend);
   $('btnDeeper').addEventListener('click', descend);
