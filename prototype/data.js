@@ -81,7 +81,7 @@ const KData = (() => {
     'lightning+lightning': { name: 'Bolt', kind: 'bolt', cd: 0.55, cost: 16,
       desc: 'An instant bolt. Electrifies any water it touches.',
       range: 170, power: 30, knock: 90, charge: 70, chargeCells: 2200, color: [255, 246, 170] },
-    'fire+water': { name: 'Steam', kind: 'thrust', cd: 0, drain: 36, min: 6,
+    'fire+water': { name: 'Steam', kind: 'thrust', cd: 0, drain: 18, min: 6,
       desc: 'Hold to fly away from where you aim. Drains mana fast.',
       accel: 1050, maxSpeed: 190, steamPerTick: 2 },
     'earth+fire': { name: 'Magma', kind: 'lob', cd: 0.7, cost: 16,

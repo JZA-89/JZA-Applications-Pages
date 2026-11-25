@@ -115,7 +115,7 @@ Own spells hurt you (fireball blasts, fire, magma, shock). Flare's blast skips i
 
 ## Mana
 
-Every spell costs mana. Held spells (Steam, Water jet) drain it every moment they are held and stop when it runs out. You can fly with Steam, but a full bar lasts about 2.8 s; when it runs dry you fall and cannot attack until it refills. A spell needs its full cost to start (held spells need a small minimum); trying without enough flashes the mana bar.
+Every spell costs mana. Held spells (Steam, Water jet) drain it every moment they are held and stop when it runs out. You can fly with Steam, but a full bar lasts about 5.6 s (some areas will need flight to get around); when it runs dry you fall and cannot attack until it refills. A spell needs its full cost to start (held spells need a small minimum); trying without enough flashes the mana bar.
 
 ## Damage and stats
 
@@ -140,7 +140,7 @@ Load two elements (order does not matter), then cast. A third element pushes out
 | Water jet | Water + Water | held | 14/s | 3 water particles a step while held, 210/s, spread ±0.12 rad; each particle pushes an actor once (× 0.008 of its speed); recoil 70/s² in the air; cd 0.25 s after it ends. |
 | Earth pillar | Earth + Earth | growth | 16 | Finds the surface along the aim (range 70) and grows dirt out of it, opposite the aim, snapped to 8 directions: 26 rows, 7 wide, 70 rows/s. Pushes actors one cell per row. Aim down to rise. No surface in range: an 11 × 3 slab. cd 0.55 s. |
 | Bolt | Lightning + Lightning | instant | 16 | Range 170; stops at the first actor, water or solid. Power 30. Into water: electrifies it. Chains to one more target within 16 for half. Sets lichen alight. cd 0.55 s. |
-| Steam | Fire + Water | held thrust | 36/s | While held, accelerates you 1,050/s² away from the aim (top speed 190) and leaves steam behind. Aim down to rise, sideways to fly across. A full bar lasts about 2.8 s. |
+| Steam | Fire + Water | held thrust | 18/s | While held, accelerates you 1,050/s² away from the aim (top speed 190) and leaves steam behind. Aim down to rise, sideways to fly across. A full bar lasts about 5.6 s. |
 | Magma | Earth + Fire | lob | 16 | 175/s, gravity 380; lands as 38 magma cells; power 15 on a direct hit. cd 0.7 s. |
 | Mud | Earth + Water | spray | 12 | 50 mud particles, 190/s (× 0.7–1.2), spread ±0.32 rad, gravity 300. cd 0.6 s. |
 | Arc dash | Lightning + Water | movement | 22 | 310/s for 0.12 s (37 cells), 0.2 s (62 cells) when starting in water. Power 20 to each actor passed through. Keeps 40% speed after. Fresh press only. cd 0.35 s. |
@@ -173,8 +173,9 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.2 (2026-11-25):** own look. The character is a bottle kiln (door shows the elements, chimney smoke in their colours); dirt is layered strata, rock faceted slate, moss is now lichen, the cave is violet. Player hitbox 9 × 14 (was 7 × 12).
 
 - **v0.3 (2026-11-25):** the player is a rock golem, with four looks to choose from (Brute, Titan, Crystal, Sentinel; Jaisah: keep all four, the player picks). A mana bar replaces bursts (Jaisah: bursts did not make sense). Steam is now held, continuous thrust instead of a single burst (Jaisah). Damage now goes through a stat formula (Jaisah: damage should be RPG-like, from attack, defence, the move, buffs and debuffs, not a fixed number of hits); everyone starts equal. Decided by Jaisah: slots stay loaded after a cast; holding cast repeats. Hitbox 11 × 17; earth pillar 7 wide and 26 long, stone spear tunnels radius 3, so the bigger golem fits through.
+- **v0.4 (2026-11-25):** Steam drains 18 mana/s (was 36), so a full bar flies for about 5.6 s (Jaisah: at least 5 s; some parts of the game will need flight).
 
 ## Open questions to test
 
 - Should earth pillar keep some upward speed when it stops?
-- Is a 2.8 s steam flight on a full bar too long or too short? How fast should mana refill?
+- How fast should mana refill?
