@@ -59,9 +59,9 @@ const KData = (() => {
   // Xbox-style pad: A green-ish earth, B red fire, X blue water, Y yellow lightning).
   const elements = {
     fire:      { name: 'Fire',      color: [255, 122, 47],  css: '#ff7a2f', keys: ['KeyQ', 'Digit1'], label: 'Q', pad: 1 },
-    water:     { name: 'Water',     color: [63, 169, 255],  css: '#3fa9ff', keys: ['KeyE', 'Digit2'], label: 'E', pad: 2 },
-    earth:     { name: 'Earth',     color: [200, 154, 74],  css: '#c89a4a', keys: ['KeyR', 'Digit3'], label: 'R', pad: 0 },
-    lightning: { name: 'Lightning', color: [255, 242, 122], css: '#fff27a', keys: ['KeyF', 'Digit4'], label: 'F', pad: 3 },
+    water:     { name: 'Water',     color: [63, 169, 255],  css: '#3fa9ff', keys: ['KeyW', 'Digit2'], label: 'W', pad: 2 },
+    earth:     { name: 'Earth',     color: [200, 154, 74],  css: '#c89a4a', keys: ['KeyS', 'Digit3'], label: 'S', pad: 0 },
+    lightning: { name: 'Lightning', color: [255, 242, 122], css: '#fff27a', keys: ['KeyE', 'Digit4'], label: 'E', pad: 3 },
   };
   const elementOrder = ['fire', 'water', 'earth', 'lightning'];
 
@@ -70,7 +70,7 @@ const KData = (() => {
   // "fire+water") gives three spells:
   //   shot  (left click)  aimed at the cursor
   //   burst (right click) an area around you
-  //   move  (hold Space after jumping) moves you, in the direction you press
+  //   move  (Shift: tap, or hold for held moves) moves you; A/D steer
   // kind: the behaviour in game.js. cd: seconds before that spell again.
   // cost: mana per cast. drain/min: held spells use mana per second and need
   // min to start. power: base damage before stats (game.js damage()).
@@ -81,7 +81,7 @@ const KData = (() => {
         speed: 230, gravity: 70, radius: 9, power: 40, knock: 210, ignite: 0.55, color: [255, 150, 52] },
       burst: { name: 'Fire nova', kind: 'nova', cd: 0.4, cost: 26, desc: 'A ring of flame bursts out around you.',
         radius: 24, power: 26, knock: 220, color: [255, 150, 60] },
-      move: { name: 'Rocket jump', kind: 'rocket', cd: 0.45, cost: 16, dir: 'up', desc: 'Blasts under you throw you upwards (A and D lean sideways). They do not hurt you.',
+      move: { name: 'Rocket jump', kind: 'rocket', cd: 0.45, cost: 16, dir: 'up', desc: 'A blast under you throws you upwards (A and D lean sideways). It does not hurt you.',
         impulse: 250, radius: 5, power: 18, knock: 160 },
     },
     'water+water': {
@@ -89,7 +89,7 @@ const KData = (() => {
         speed: 210, spread: 0.12, perTick: 3, push: 0.008, recoil: 70 },
       burst: { name: 'Tidal wave', kind: 'wave', cd: 0.4, cost: 24, desc: 'Water surges out both sides and shoves enemies away.',
         reach: 42, power: 10, knock: 320, count: 56 },
-      move: { name: 'Hover', kind: 'hover', drain: 10, min: 4, dir: 'up', desc: 'Hold to rise gently on jets of water; S to sink. Slower than steam, but cheaper.',
+      move: { name: 'Hover', kind: 'hover', drain: 10, min: 4, dir: 'up', desc: 'Hold to rise gently on jets of water. Slower than steam, but cheaper.',
         rise: 45, sink: 14, perTick: 2 },
     },
     'earth+earth': {
@@ -105,7 +105,7 @@ const KData = (() => {
         range: 170, power: 30, knock: 90, chains: 1, chainRange: 16, charge: 70, chargeCells: 2200, color: [255, 246, 170] },
       burst: { name: 'Shock field', kind: 'field', cd: 0.4, cost: 26, desc: 'Shocks everything near you.',
         radius: 34, power: 28, knock: 80, charge: 60, color: [255, 246, 170] },
-      move: { name: 'Blink', kind: 'blink', cd: 0.5, cost: 20, dir: 'facing', desc: 'Jump through space in the direction you press.',
+      move: { name: 'Blink', kind: 'blink', cd: 0.5, cost: 20, dir: 'facing', desc: 'Jump through space the way you press (A or D), or the way you face.',
         dist: 36 },
     },
     'fire+water': {
@@ -113,7 +113,7 @@ const KData = (() => {
         range: 34, spread: 0.45, power: 32, perTick: 3 },
       burst: { name: 'Steam cloud', kind: 'cloud', cd: 0.4, cost: 20, desc: 'A thick cloud to hide in. Scalds anyone inside.',
         radius: 24, power: 14, fill: 0.6 },
-      move: { name: 'Steam flight', kind: 'thrust', drain: 18, min: 6, dir: 'up', desc: 'Hold Space to fly: steam blasts straight down. Steer with A and D; S to drop.',
+      move: { name: 'Steam flight', kind: 'thrust', drain: 18, min: 6, dir: 'up', desc: 'Hold to fly: steam blasts straight down. Steer with A and D.',
         accel: 900, maxSpeed: 150, sideSpeed: 95, sideAccel: 700, steamPerTick: 3 },
     },
     'earth+fire': {
@@ -129,7 +129,7 @@ const KData = (() => {
         speed: 220, spread: 0.28, count: 50, gravity: 220, mat: 'MUD' },
       burst: { name: 'Mire', kind: 'mire', cd: 0.5, cost: 22, desc: 'The ground around you turns to mud.',
         radius: 32, depth: 2 },
-      move: { name: 'Wall climb', kind: 'climb', drain: 8, min: 3, dir: 'up', desc: 'Hold next to a wall to climb it; S to slide down.',
+      move: { name: 'Wall climb', kind: 'climb', drain: 8, min: 3, dir: 'up', desc: 'Hold next to a wall to climb it.',
         speed: 55 },
     },
     'lightning+water': {
@@ -137,7 +137,7 @@ const KData = (() => {
         range: 140, power: 20, knock: 60, chains: 3, chainRange: 45, charge: 50, chargeCells: 1500, color: [190, 230, 255] },
       burst: { name: 'Storm', kind: 'storm', cd: 0.4, cost: 28, desc: 'Lightning arcs to every enemy near you.',
         range: 75, power: 22, knock: 90, color: [190, 230, 255] },
-      move: { name: 'Arc dash', kind: 'dash', cd: 0.35, cost: 22, dir: 'facing', desc: 'Dash in the direction you press. Further from water.',
+      move: { name: 'Arc dash', kind: 'dash', cd: 0.35, cost: 22, dir: 'facing', desc: 'Dash the way you press (A or D), or the way you face. Further from water.',
         speed: 310, time: 0.12, waterTime: 0.2, power: 20 },
     },
     'earth+lightning': {
@@ -145,7 +145,7 @@ const KData = (() => {
         speed: 380, bore: 3, boreLength: 90, power: 45, knock: 160, range: 260, color: [190, 196, 210] },
       burst: { name: 'Spikes', kind: 'spikes', cd: 0.45, cost: 26, desc: 'Stone spikes burst from the ground around you.',
         reach: 30, power: 30, knock: 240, height: 7 },
-      move: { name: 'Drill', kind: 'drill', drain: 24, min: 6, dir: 'facing', desc: 'Hold to bore through dirt in the direction you press.',
+      move: { name: 'Drill', kind: 'drill', drain: 24, min: 6, dir: 'facing', desc: 'Hold to bore through dirt the way you press (A or D), or the way you face.',
         speed: 110, radius: 10 },
     },
     'fire+lightning': {

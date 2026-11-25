@@ -488,8 +488,7 @@ const KGame = (() => {
         if (was !== l) this.events.push({ type: 'save' });
         p.hp = Math.min(p.maxHp, p.hp + C.stoneRepair * DT);
         p.mana = Math.min(p.maxMana, p.mana + C.stoneRepair * DT);
-        if (p.grounded && p.moveY < 0 && !p.restHeld) this.events.push({ type: 'rest', stone: l });
-        p.restHeld = p.moveY < 0;
+
       }
     }
     travel(p, id) {
@@ -583,8 +582,7 @@ const KGame = (() => {
         } else if (p.grounded) p.vx *= Math.exp(-PD.friction * DT);
       }
 
-      // jump: Space. A press on the ground jumps; holding it in the air (or a
-      // fresh press in the air) uses the loaded pair's Move.
+      // jump: Space, and only ever a jump (the Move has its own key, Shift)
       const jumpPressed = a.jump && !p.jumpHeld;
       if (jumpPressed) p.jumpBuf = PD.buffer;
       if (p.grounded) p.coyote = PD.coyote; else p.coyote = Math.max(0, p.coyote - DT);
@@ -599,11 +597,10 @@ const KGame = (() => {
       if (!a.jump && p.rising && p.vy < 0) { p.vy *= 0.5; p.rising = false; }
       if (p.vy >= 0) p.rising = false;
       p.jumpHeld = a.jump;
-      const airborne = !p.grounded || p.channels.move;
-      const moveActive = a.jump && airborne && !jumpedNow &&
-        (p.channels.move || (jumpPressed && !p.grounded) || (this.time - (p.jumpT ?? -9) > 0.15));
-      const movePressed = moveActive && !p.moveWas;
+      const moveActive = !!a.moveSpell, movePressed = moveActive && !p.moveWas;
       p.moveWas = moveActive;
+      if (p.safeT > 0) p.safeT -= DT;
+      for (const e of a.events) if (e.type === 'interact' && p.nearStone) this.events.push({ type: 'rest', stone: p.nearStone });
 
       // mana refills on its own, faster on the ground
       if (p.manaWait > 0) p.manaWait -= DT;
@@ -632,11 +629,13 @@ const KGame = (() => {
         if (sp.drain) {
           if (p.mana < sp.min) { if (pressed) { p.manaFlash = 0.35; this.sfx('nomana', p.x, p.y); } continue; }
           p.channels[mode] = key;
+          if (mode !== 'shot') p.safeT = 0.8;
           this.alert(p, p.x, p.y, KData.enemies.crawler.hearing);
           this.channelTick(p, mode);
           continue;
         }
-        if (mode === 'move' && sp.kind === 'slam' && p.slam) continue; // one slam at a time
+        if (mode === 'move' && sp.kind === 'slam' && (p.slam || p.grounded)) continue; // a slam needs air under you, one at a time
+        if (mode === 'move' && !pressed && !sp.drain) continue;                      // one-shot moves: once per press
         if (mode !== 'move' && p.lock > 0) continue;
         let cost = sp.cost;
         if (this.has(p, 'swift') && (sp.kind === 'blink' || sp.kind === 'dash' || sp.kind === 'blastdash')) cost *= 0.5;
@@ -646,6 +645,7 @@ const KGame = (() => {
         if (mode !== 'move') p.lock = 0.12;
         this.spend(p, cost);
         this.alert(p, p.x, p.y, KData.enemies.crawler.hearing);
+        if (mode !== 'shot') p.safeT = 0.8;   // your own Moves and Bursts never burn you
         this.cast(p, key, mode, sp);
         if (mode === 'burst' && this.has(p, 'mudburst')) this.mireAround(p, 20, 1);
       }
@@ -785,10 +785,11 @@ const KGame = (() => {
         }
         case 'eruption': {
           for (let i = 0; i < sp.count; i++) {
-            const x = p.x + (R() - 0.5) * 2 * sp.reach;
+            // the magma bursts out of the ground around you and falls away from you, never on you
+            const side = i % 2 ? 1 : -1, x = p.x + side * (p.w / 2 + 6 + R() * (sp.reach - p.w / 2 - 6));
             let y = Math.floor(p.y - 10);
             while (y < p.y + 24 && !KWorld.SOLID[w.get(Math.round(x), y)]) y++;
-            this.parts.push({ x, y: y - 1, vx: (R() - 0.5) * 40, vy: -120 - R() * 120, g: 380, mat: M.MAGMA, life: 3, owner: p });
+            this.parts.push({ x, y: y - 1, vx: side * (30 + R() * 50), vy: -120 - R() * 110, g: 380, mat: M.MAGMA, life: 3, owner: p });
           }
           for (const o of this.actors) {
             if (o === p || o.dead) continue;
@@ -859,7 +860,7 @@ const KGame = (() => {
           p.vx = p.vx * 0.5 + (p.moveX || 0) * sp.impulse * 0.35; p.vy = -sp.impulse;
           p.grounded = false; p.rising = false;
           const bx = p.x, by = p.y + 2;
-          w.explode(bx, by, sp.radius, { fire: 0.5, melt: this.has(p, 'melt') });
+          w.explode(bx, by, sp.radius, { melt: this.has(p, 'melt') });
           this.hitRadius(bx, by, sp.radius + 9, sp.power, sp.knock, p, p, key);
           this.fx.push({ kind: 'ring', x: bx, y: by, r0: 2, r1: 12, t: 0, T: 0.22, color: [255, 170, 80] });
           this.fx.push({ kind: 'flash', x: bx, y: by, r: 24, t: 0, T: 0.16, color: [255, 150, 60] });
@@ -913,6 +914,7 @@ const KGame = (() => {
       const key = p.channels[mode], sp = spells[key][mode], R = this.rand, w = this.world;
       const dx = Math.cos(p.aim), dy = Math.sin(p.aim), c = this.chest(p);
       let drain = sp.drain;
+      if (mode === 'move') p.safeT = Math.max(p.safeT || 0, 0.4);
       if (sp.kind === 'jet') {
         for (let i = 0; i < sp.perTick; i++) {
           const an = p.aim + (R() - 0.5) * 2 * sp.spread, s = sp.speed * (0.85 + R() * 0.3);
@@ -986,7 +988,10 @@ const KGame = (() => {
     slamImpact(p) {
       const { sp, key } = p.slam;
       p.slam = null;
-      this.fillBlob(Math.round(p.x), Math.round(p.y) - 1, M.MAGMA, sp.count);
+      // the magma splashes out to either side, not where you land
+      this.fillBlob(Math.round(p.x - p.w), Math.round(p.y) - 1, M.MAGMA, sp.count >> 1);
+      this.fillBlob(Math.round(p.x + p.w), Math.round(p.y) - 1, M.MAGMA, sp.count >> 1);
+      p.safeT = 1;
       this.hitRadius(p.x, p.y - 4, sp.radius, sp.power, sp.knock, p, p, key);
       this.fx.push({ kind: 'ring', x: p.x, y: p.y - 2, r0: 3, r1: sp.radius, t: 0, T: 0.25, color: [255, 140, 50] });
       this.fx.push({ kind: 'flash', x: p.x, y: p.y - 2, r: 34, t: 0, T: 0.2, color: [255, 120, 40] });
@@ -1806,7 +1811,7 @@ const KGame = (() => {
       const area = a.w * a.h;
       a.inWater = counts[M.WATER] > area * 0.3;
       a.inMud = counts[M.MUD] > 4;
-      const proof = this.has(a, 'magmaproof');
+      const proof = this.has(a, 'magmaproof') || a.safeT > 0;
       const fireMul = proof ? 0 : this.affinity(a, 'fire');
       if (counts[M.FIRE] && fireMul) { this.hurt(a, PD.hurt.fire * fireMul * DT * Math.min(1, counts[M.FIRE] / 4), 0, 0, 'fire'); if (a.kind !== 'player') a.burnT = Math.max(a.burnT || 0, 1.5); }
       if (counts[M.MAGMA] && fireMul) this.hurt(a, PD.hurt.magma * fireMul * DT * Math.min(1, counts[M.MAGMA] / 4), 0, 0, 'magma');

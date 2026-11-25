@@ -2,9 +2,10 @@
 /* Cast in Stone prototype — input.js
    Turns keyboard, mouse and controller into ACTIONS. The game never reads a
    device directly: each fixed step it receives one action object per player:
-     { move: -1..1, moveY: -1..1, jump: bool, cast: bool, burst: bool, aim: radians, events: [...] }
-   move/moveY: the direction keys (A/D, W/S). jump: Space. cast: left click
-   (Shot). burst: right click (Burst). Holding jump in the air is the Move.
+     { move: -1..1, moveY: -1..1, jump: bool, cast: bool, burst: bool, moveSpell: bool, aim: radians, events: [...] }
+   move: A/D. moveY: only a controller's stick (up/down). jump: Space. cast:
+   left click (Shot). burst: right click (Burst). moveSpell: Shift (Move).
+   events: load an element (Q W S E), clear (X), interact (F, rest at a Lodestone).
    events: { type: 'load', el: 'fire' } and { type: 'clear' }.
    A second player's actions will later arrive over the network in this same
    form, so nothing in the game has to change for online play. */
@@ -21,8 +22,8 @@ const KInput = (() => {
   const keyToEl = {};
   for (const el of elementOrder) for (const k of elements[el].keys) keyToEl[k] = el;
 
-  // controller: RT shot, LT burst, LB/RB jump (hold for Move), View clears, Menu pauses
-  const PAD = { jump: [4, 5], cast: [7], burst: [6], clear: [8], pause: 9 };
+  // controller: RT shot, LT burst, LB jump, RB Move, d-pad up rests, View clears, Menu pauses
+  const PAD = { jump: [4], move: [5], cast: [7], burst: [6], clear: [8], interact: [12], pause: 9 };
 
   function attach(target, h) {
     hooks = h;
@@ -33,11 +34,12 @@ const KInput = (() => {
         return;
       }
       device = 'kbm';
-      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Backspace', 'Tab'].includes(e.code)) e.preventDefault();
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Backspace', 'Tab', 'ShiftLeft', 'ShiftRight'].includes(e.code)) e.preventDefault();
       if (e.repeat) { keys.add(e.code); return; }
       keys.add(e.code);
       if (keyToEl[e.code]) events.push({ type: 'load', el: keyToEl[e.code] });
       else if (e.code === 'KeyX' || e.code === 'KeyC') events.push({ type: 'clear' });
+      else if (e.code === 'KeyF') events.push({ type: 'interact' });
       else if (e.code === 'Escape' || e.code === 'KeyP') hooks.onPause && hooks.onPause();
       else if (e.code === 'KeyH') hooks.onHelp && hooks.onHelp();
       else if (e.code === 'Backspace') hooks.onReset && hooks.onReset();
@@ -67,11 +69,11 @@ const KInput = (() => {
 
   // Called once per fixed step. origin(): the player's chest in client pixels.
   function sample(origin) {
-    const out = { move: 0, moveY: 0, jump: false, cast: false, burst: false, aim, events };
+    const out = { move: 0, moveY: 0, jump: false, cast: false, burst: false, moveSpell: false, aim, events };
     events = [];
 
     const pad = readPad();
-    let padMove = 0, padMoveY = 0, padJump = false, padCast = false, padBurst = false;
+    let padMove = 0, padMoveY = 0, padJump = false, padCast = false, padBurst = false, padMoveSpell = false;
     if (pad) {
       const now = pad.buttons.map((b, i) => btn(pad, i));
       const pressed = i => now[i] && !padPrev[i];
@@ -81,6 +83,7 @@ const KInput = (() => {
       if (device === 'pad') {
         for (const el of elementOrder) if (pressed(elements[el].pad)) out.events.push({ type: 'load', el });
         if (PAD.clear.some(pressed)) out.events.push({ type: 'clear' });
+        if (PAD.interact.some(pressed)) out.events.push({ type: 'interact' });
         if (pressed(PAD.pause)) hooks.onPause && hooks.onPause();
         const ly = pad.axes[1] || 0;
         padMove = Math.abs(lx) > 0.22 ? lx : 0;
@@ -90,6 +93,7 @@ const KInput = (() => {
         padJump = PAD.jump.some(i => now[i]);
         padCast = PAD.cast.some(i => now[i]);
         padBurst = PAD.burst.some(i => now[i]);
+        padMoveSpell = PAD.move.some(i => now[i]);
         if (Math.hypot(rx, ry) > 0.3) aim = Math.atan2(ry, rx);
         else if (Math.abs(lx) > 0.5) aim = lx > 0 ? 0 : Math.PI;
       }
@@ -97,13 +101,13 @@ const KInput = (() => {
     }
 
     if (device === 'pad') {
-      out.move = padMove; out.moveY = padMoveY; out.jump = padJump; out.cast = padCast; out.burst = padBurst;
+      out.move = padMove; out.moveY = padMoveY; out.jump = padJump; out.cast = padCast; out.burst = padBurst; out.moveSpell = padMoveSpell;
     } else {
       const L = keys.has('KeyA') || keys.has('ArrowLeft'), R = keys.has('KeyD') || keys.has('ArrowRight');
       out.move = (R ? 1 : 0) - (L ? 1 : 0);
-      const U = keys.has('KeyW') || keys.has('ArrowUp'), D = keys.has('KeyS') || keys.has('ArrowDown');
-      out.moveY = (D ? 1 : 0) - (U ? 1 : 0);
-      out.jump = keys.has('Space');
+      out.moveY = 0;
+      out.jump = keys.has('Space') || keys.has('ArrowUp');
+      out.moveSpell = keys.has('ShiftLeft') || keys.has('ShiftRight');
       out.cast = mouse.left;
       out.burst = mouse.right;
       if (mouse.moved) {

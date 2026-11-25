@@ -693,7 +693,9 @@ const KWorld = (() => {
           }
         }
       }
-      this.awake.fill(3);
+      // the generated cave starts at rest (pools drained, crumbs removed): nothing needs
+      // simulating until something touches it, which wakes its chunk
+      this.awake.fill(0);
       this.dirty.fill(1);
       this.explored = new Uint8Array(this.cw * this.ch);
 

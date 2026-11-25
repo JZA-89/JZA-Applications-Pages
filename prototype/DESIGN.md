@@ -174,7 +174,7 @@ Standing stones with a rune: one in the hub beside the start, seven more spread 
 - **Found:** the first touch lights the rune (+25 experience, a notice).
 - **Checkpoint:** the last one touched is where you rise after dying.
 - **Repair:** health and mana refill at 90 a second while you stand there.
-- **Rest:** W (d-pad up) on the ground opens the rest panel (play pauses): **Stats** to spend points, **Travel** to any found Lodestone. A prompt shows while you are near.
+- **Rest:** F (d-pad up) next to it opens the rest panel (play pauses): **Stats** to spend points, **Travel** to any found Lodestone. A prompt shows while you are near.
 
 ### Experience and levels (`KData.progression`)
 
@@ -308,9 +308,9 @@ Load two elements (order does not matter). Every pair gives **three spells**, on
 |---|---|---|
 | **Shot** | left click (hold to repeat), RT | aimed at the cursor; ranged pressure; cheapest |
 | **Burst** | right click, LT | an area around you; close-range defence; costs more, longer cooldown |
-| **Move** | jump, then keep holding Space (or press Space again in the air), LB | moves you in the direction you press (W A S D / left stick), so you can move one way and shoot another |
+| **Move** | Shift (tap; hold for held Moves), RB | moves you; Steam flight, Hover and Wall climb go up while held and A/D steer; Blink, Arc dash, Drill and Blast dash go the way you press (A/D) or the way the golem faces |
 
-A third element pushes out the first; slots stay loaded after a cast. **Every mode repeats while held** until mana runs out (Jaisah: mana is the limit, not cooldowns). Held spells (Water jet, Scald, Hover, Steam flight, Wall climb, Drill) drain mana while held; the rest cost a set amount and recast after a short gap (Bursts 0.4–0.5 s). **Moves never look at the mouse:** Rocket jump, Hover, Steam flight and Wall climb go up while Space is held (S drops or slides down) and A/D steer; Magma slam goes down; Blink, Arc dash, Drill and Blast dash go the way you press, or the way the golem faces when nothing is pressed (Jaisah: leave those as they are). **Mud blocks spells:** shots, bolts, beams and the spear stop at mud like at solid ground (you can still wade through it). Each spell has its own cooldown (`key:mode`). A Shot or Burst is followed by a 0.12 s lock on Shots and Bursts. One spell of each mode can run at once (you can fly and shoot). Every cast alerts enemies within 110. All numbers live in `KData.spells`; power is base damage before stats.
+**Space only ever jumps; Moves have their own key, Shift** (Jaisah, v0.18: jumping kept setting off the loaded Move, e.g. a Rocket jump blast under you). Moves work from the ground too. **Your own Moves and Bursts never hurt you:** they exclude you from their blasts, and for 0.8 s after casting one (and while holding a held Move) fire and magma do not burn you; Rocket jump leaves no fire, Magma slam splashes its magma to either side, and Eruption throws its magma away from you. Aimed Shots can still hurt you point-blank. A third element pushes out the first; slots stay loaded after a cast. **Every mode repeats while held** until mana runs out (Jaisah: mana is the limit, not cooldowns). Held spells (Water jet, Scald, Hover, Steam flight, Wall climb, Drill) drain mana while held; the rest cost a set amount and recast after a short gap (Bursts 0.4–0.5 s). **Moves never look at the mouse:** Rocket jump, Hover, Steam flight and Wall climb go up while Space is held (S drops or slides down) and A/D steer; Magma slam goes down; Blink, Arc dash, Drill and Blast dash go the way you press, or the way the golem faces when nothing is pressed (Jaisah: leave those as they are). **Mud blocks spells:** shots, bolts, beams and the spear stop at mud like at solid ground (you can still wade through it). Each spell has its own cooldown (`key:mode`). A Shot or Burst is followed by a 0.12 s lock on Shots and Bursts. One spell of each mode can run at once (you can fly and shoot). Every cast alerts enemies within 110. All numbers live in `KData.spells`; power is base damage before stats.
 
 | Pair | Shot | Burst | Move |
 |---|---|---|---|
@@ -334,18 +334,19 @@ Standing in mud, or being hit by mud spray, slows. A spray hit coats the target 
 | Action | Keyboard and mouse | Controller |
 |---|---|---|
 | Run | A / D (or arrows) | Left stick, d-pad |
-| Jump, swim up | Space | LB or RB |
+| Jump, swim up | Space (or up arrow) | LB |
 | Aim | Mouse | Right stick (or the left stick's direction) |
-| Load Fire / Water / Earth / Lightning | Q / E / R / F or 1–4 | B / X / A / Y |
+| Load Fire / Water / Lightning / Earth | **Q / W / E / S** (or 1–4: fire, water, earth, lightning) | B / X / Y / A |
 | Shot | Left click (hold repeats) | RT |
-| Burst | Right click | LT |
-| Move | Hold Space after jumping, or press it again in the air | Hold LB |
-| Move direction | W A S D (or arrows) | Left stick, d-pad |
+| Burst | Right click (hold repeats) | LT |
+| Move | **Shift**: tap for one-shot Moves, hold for held ones | RB |
 | Clear the elements | X | View |
-| Spells, pause | H, Esc or P | Menu |
+| Rest at a Lodestone | **F** | d-pad up |
+| Spell book, pause | H, Esc or P | Menu |
+| Sound on or off | M | — |
 | Reset the map | Backspace | — |
 
-The last device used takes over. Touch controls are not built yet.
+The last device used takes over. Touch controls are not built yet. (Jaisah, v0.18: W no longer jumps; Q W E S load the elements.)
 
 ## Menu
 
@@ -388,6 +389,7 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.15 (2026-11-26):** four new enemies (Glowmoth, Delver, Cinder spitter, Slate warden), element affinities, status effects (wet, muddy, burning), elites.
 - **v0.16 (2026-11-26):** the first boss, the Emberwyrm, in a magma-lake lair: breaches marked by bubbling, spit volleys, enrage with a rising lake, stranding when its lake is cooled; drops the Crucible and the Ember core. Large magma areas glow more softly.
 - **v0.17 (2026-11-26):** sound (all synthesized, with warning sounds for every wind-up), damage numbers, hit-stop.
+- **v0.18 (2026-11-26):** Q W E S load Fire, Water, Lightning, Earth; Space only jumps; Shift is the Move key; F rests; your own Moves and Bursts never hurt you (all Jaisah). The generated cave starts at rest instead of simulating every chunk for its first steps (removed a 60 ms stutter at the start).
 
 ## Open questions to test
 

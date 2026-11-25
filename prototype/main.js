@@ -8,7 +8,7 @@
 
 (() => {
   const { elements, elementOrder, spells, spellKey, view: V, step: STEP } = KData;
-  const VERSION = 'v0.17';
+  const VERSION = 'v0.18';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -42,7 +42,7 @@
 
   // ---------- spell book: ten pairs x three ways to cast ----------
   const book = $('book');
-  const MODE_LABEL = { shot: ['Shot', 'left click'], burst: ['Burst', 'right click'], move: ['Move', 'hold Space'] };
+  const MODE_LABEL = { shot: ['Shot', 'left click'], burst: ['Burst', 'right click'], move: ['Move', 'Shift'] };
   book.insertAdjacentHTML('beforeend', '<span></span>' + KData.modes.map(md => `<span class="hd">${MODE_LABEL[md][0]}<small>${MODE_LABEL[md][1]}</small></span>`).join(''));
   const showSpell = (btn, key, md) => {
     const [a, b] = key.split('+'), sp = spells[key][md];
@@ -280,7 +280,7 @@
       n.classList.toggle('idle', !set);
       if (!set) n.textContent = name.replace('#pad', '');
       else {
-        const keysFor = pad ? { shot: 'RT', burst: 'LT', move: 'LB' } : { shot: 'L', burst: 'R', move: 'Space' };
+        const keysFor = pad ? { shot: 'RT', burst: 'LT', move: 'RB' } : { shot: 'L', burst: 'R', move: 'Shift' };
         n.innerHTML = KData.modes.map(md => `<span class="mode"><kbd>${keysFor[md]}</kbd>${set[md].name}</span>`).join('');
       }
     }
@@ -290,7 +290,7 @@
     if (showBoss) $('bossFill').style.transform = `scaleX(${Math.max(0, b.hp) / b.maxHp})`;
     // the rest prompt next to a Lodestone
     const near = !!p.nearStone && mode === 'play';
-    if (near !== hud.near) { hud.near = near; $('restPrompt').hidden = !near; $('restPrompt').innerHTML = pad ? 'D-pad up · Rest' : '<kbd>W</kbd> Rest'; }
+    if (near !== hud.near) { hud.near = near; $('restPrompt').hidden = !near; $('restPrompt').innerHTML = pad ? 'D-pad up · Rest' : '<kbd>F</kbd> Rest'; }
   }
 
   // ---------- what is under the mouse (a note in the corner) ----------
@@ -309,7 +309,7 @@
     }
     const w = game.world, x = Math.floor(wx), y = Math.floor(wy);
     for (const l of w.lodestones) if (Math.abs(wx - l.x) < 5 && wy > l.y - 15 && wy < l.y + 1)
-      return [game.found.has(l.id) ? 'Lodestone' : 'Lodestone (not yet found)', 'Touch it to make it your checkpoint and repair. Stand by it and press W to rest: spend stat points and travel.'];
+      return [game.found.has(l.id) ? 'Lodestone' : 'Lodestone (not yet found)', 'Touch it to make it your checkpoint and repair. Stand by it and press F to rest: spend points, change runestones, travel.'];
     if (window.KLoot) { const d = window.KLoot.describe(game, wx, wy); if (d) return d; }
     if (!w.inb(x, y)) return null;
     const m = w.get(x, y);
