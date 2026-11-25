@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.46';
+  const VERSION = 'v0.47';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -657,6 +657,7 @@
     R.draw(game, { reticle, mark, reduced: reduced.matches, dt: mode === 'play' ? dt : 0 });
     fade();
     objective(dt);
+    friendMark();
     updateHud();
     updateLook();
     updateMap();
@@ -731,6 +732,20 @@
       hint = c ? (bd < 260 ? `${c.champion} is close` : `${c.champion} waits to the ${dirTo(p, c.home.x, c.home.y)}, in the ${regionOf(c.home.x, c.home.y)}`) : '';
     } else { title = 'Wake the Emberwyrm'; hint = L ? (Math.hypot(L.x - p.x, L.y - p.y) < 300 ? 'Its lake of magma is close' : `Its lair lies to the ${dirTo(p, L.x, L.y)}, in the ${regionOf(L.x, L.y)}`) : ''; }
     if (title + hint !== objText) { objText = title + hint; $('objTitle').textContent = title; $('objHint').textContent = hint; }
+  }
+  // co-op: an arrow at the edge of the screen towards a friend who is out of sight, with how far
+  function friendMark() {
+    const el = $('friend'), q = game.players.length > 1 ? game.players[1 - ME] : null;
+    if (!q || mode !== 'play') { el.hidden = true; return; }
+    const sx = q.x - R.cam.x, sy = q.y - 8 - R.cam.y;
+    if (sx > 4 && sy > 4 && sx < V.w - 4 && sy < V.h - 4) { el.hidden = true; return; }
+    const p = game.players[ME], s = stage.clientWidth / V.w, hud = el.parentElement, W = hud.clientWidth, H = hud.clientHeight;
+    const cx = (p.x - R.cam.x) * s - hud.offsetLeft, cy = (p.y - 8 - R.cam.y) * s, an = Math.atan2(q.y - p.y, q.x - p.x), m = 46, c = Math.cos(an), v = Math.sin(an);
+    // out from the golem along that direction until the edge of the HUD's frame
+    const kx = c > 0 ? (W - m - cx) / c : c < 0 ? (m - cx) / c : 1e9, ky = v > 0 ? (H - m - cy) / v : v < 0 ? (m - cy) / v : 1e9, k = Math.max(0, Math.min(kx, ky));
+    el.hidden = false; el.style.left = Math.round(cx + c * k) + 'px'; el.style.top = Math.round(cy + v * k) + 'px';
+    el.firstElementChild.style.transform = `rotate(${an}rad)`;
+    const d = String(Math.round(Math.hypot(q.x - p.x, q.y - p.y) / 10) * 10); if ($('friendDist').textContent !== d) $('friendDist').textContent = d;
   }
   const clock = s => { const h = Math.floor(s / 3600), mn = Math.floor(s % 3600 / 60); return h ? `${h} h ${mn} min` : `${mn} min`; };
   function buildEnd() {

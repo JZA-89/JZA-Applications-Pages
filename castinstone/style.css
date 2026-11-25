@@ -497,3 +497,8 @@ body[data-mode="start"] .objective { display: none; }
 .end-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; } .end-actions .btn.primary { min-height: 46px; padding: 0 24px; }
 @media (max-height: 520px) { .end-body { gap: 8px; padding: 8px 0; } .end-body .logo { font-size: 24px; } .end-body .eyebrow { display: block; } .objective { top: calc(var(--u) * 150px); } }
 @media (max-width: 640px) { .end-body .journey { grid-template-columns: repeat(3, 1fr); } }
+
+/* co-op: where a friend is when they are off the screen */
+.friend { position: absolute; z-index: 2; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 2px; pointer-events: none; }
+.friend i { width: calc(var(--u) * 26px); height: calc(var(--u) * 26px); min-width: 18px; min-height: 18px; background: #78e6ff; clip-path: polygon(100% 50%, 20% 8%, 36% 50%, 20% 92%); filter: drop-shadow(0 0 6px #78e6ff); }
+.friend span { font-size: max(10px, calc(var(--u) * 11px)); font-weight: 700; color: #bff3ff; text-shadow: 0 1px 3px #000; }

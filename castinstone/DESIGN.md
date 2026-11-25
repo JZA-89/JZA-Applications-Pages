@@ -496,6 +496,22 @@ Two players, online, in the host's cave. Each keeps their own golem: a guest's l
 
 **Home screen:** `icon-180.png` (the Brute golem, also the page's tab icon), `manifest.webmanifest` and the `apple-mobile-web-app-*` tags in `index.html` give the game its icon, the name "Cast in Stone" and a full screen when added to a phone's home screen. On iPhone a home-screen web app keeps its own saves, separate from Safari's.
 
+## Pacing and the seal fights (v0.47)
+
+Jaisah: scrutinise the game, not only lengthen it; mana should open the stronger spells at a sensible rate; the three seals should be three different fights.
+
+**What the numbers showed.** A new golem had 100 mana, and the third circle of special spells costs 80 to 110, so the strong spells were castable from the first minute; the fifth circle (240 to 300) was reachable by level 7 with points alone.
+
+**Changed.**
+- Starting mana 60 (was 100) and a Mana stat point gives 6 (was 10). The cave's own gifts are unchanged: +5 a tablet (9), +20 a champion (3), +40 the Ember core. So: recipes of two to four elements (14, 25, 43) and the first circle (25 to 35) from the start; the second circle (50 to 60) straight away with a point or two; the third (80 to 110) around levels 4 to 6 if you favour mana; the fourth (150 to 180) late in the first cave, once champions have fallen; the fifth (240 to 300) and seven-element recipes (230) in the second cave.
+- Tomes and tablets teach by the level of where they lie: circle 1 to level 3, 2 to level 6, 3 to level 9, 4 to level 12, 5 beyond (`treasure.tierFor`). The first cave's levels are 1 to 8, so its tomes teach circles 1 to 3; champions give one circle better; the wyrm gives the best of circle 4. Cataclysm is the second cave's prize.
+- A deeper cave is 8 levels higher (was 4), so the second cave runs from level 9.
+- **One champion per region** (`championHomes`): the Slate Colossus in the Rose Hollows, the Lantern Queen in the Drowned Galleries, Deepjaw in the Ember Veins, each at its region's highest-level floor. The Rose Hollows surround the hub, so the Colossus is low level and the natural first fight.
+- **Each has an attack of its own** (`championTick`, `KData.champions.sig`), shown before it lands, used every 7 to 9 s, and larger below 40 to 50% health. Colossus: Rockfall, boulders drop from the roof round you (6, then 10). Lantern Queen: Lantern burst, lightning along lines of light (5, then 8). Deepjaw: Eruption, it bursts up through the floor where you stood and throws rubble (once, then twice).
+- The Emberwyrm is one level above anything else in its cave (it was level 5 against level 8 champions).
+- Co-op: an arrow at the edge of the screen points to a friend who is out of sight, with the distance (`friendMark`).
+- Saves moved to `castinstone.save.v4`.
+
 ## Digging on a slope (v0.46, `game.digSlope`, `game.clawDig`)
 
 Jaisah: dig towards the mouse, up or down on an angle; on touch the left stick sets it. Walking into dirt still digs; the tunnel now slopes the way you point. `slope` is cells down per cell forward (negative is up): from the aim with a mouse or right stick, or from how far the run stick is pushed up or down on touch (`tilt` in the action, sent in co-op). Down goes to 45°. Up is limited to `dig.maxUp` 0.35 (about 18°): steeper than that the golem cannot climb the steps it leaves, and it made slower progress in tests. Holding jump still tips the tunnel up. Because the golem is nine cells wide, each stroke also clears over its head (up) or under its feet (down) across its width (`dig.lean`). Measured over 8 s of digging: level 110 across; up 89 across and 29 up; down at 45° aim 111 across and 69 down.

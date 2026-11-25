@@ -290,7 +290,7 @@ const KData = (() => {
     regenDelay: 3, regen: 12, respawn: 1.4,
     // mana: refills on its own, faster on the ground. Spending pauses the refill
     // briefly; running dry pauses it longer.
-    mana: 100, manaRegen: 16, manaGroundRegen: 30, manaDelay: 0.35, manaEmptyDelay: 0.9,
+    mana: 60, manaRegen: 16, manaGroundRegen: 30, manaDelay: 0.35, manaEmptyDelay: 0.9,
     // damage per second from touching these (before defence)
     hurt: { fire: 22, magma: 45, charged: 60 },
   };
@@ -365,6 +365,14 @@ const KData = (() => {
     kinds: { warden: 'The Slate Colossus', moth: 'The Lantern Queen', delver: 'Deepjaw' },
     size: 1.8, hp: { warden: 4, moth: 20, delver: 10 },   // times an ordinary one's health: about 2,100 to 2,300 at level 8
     attack: 1.25, xp: 8, shards: 30, apart: 500,
+    // One per region, in this order (Rose Hollows, Drowned Galleries, Ember Veins). Each has an attack of
+    // its own (game.championTick): every `every` seconds, more of it (`rageCount`) below `rage` of its health.
+    order: ['warden', 'moth', 'delver'],
+    sig: {
+      warden: { every: 9, wind: 1.0, count: 6, rageCount: 10, rage: 0.4, gap: 0.3, power: 24, spread: 80 },      // Rockfall: boulders drop from the roof around you
+      moth: { every: 7, wind: 0.9, count: 5, rageCount: 8, rage: 0.5, range: 170, power: 20 },                    // Lantern burst: lightning along lines you can see
+      delver: { every: 8, wind: 1.1, count: 1, rageCount: 2, rage: 0.4, gap: 0.9, radius: 30, power: 32 },        // Eruption: it bursts up through the floor where you stood
+    },
   };
   const elites = { chance: 0.08, from: 2, hp: 1.8, attack: 1.3 };
 
@@ -395,7 +403,7 @@ const KData = (() => {
     { id: 'ember', name: 'Ember Veins', bg: [34, 16, 24], lichen: 0.3, hang: 0.12, pool: 'MAGMA', poolFrom: 0.8, mud: 0,
       strata: [[112, 58, 52], [128, 70, 58], [88, 46, 48], [148, 88, 66], [74, 40, 44], [118, 64, 56]] },
   ];
-  const cave = { chambers: 104, spacing: 150, hubRadius: 320, regionDistance: 800, levelEvery: 200, depthLevels: 4,
+  const cave = { chambers: 104, spacing: 150, hubRadius: 320, regionDistance: 800, levelEvery: 200, depthLevels: 8,
     tunnel: [12, 17], plugChance: 0.16, loopChance: 0.55, lodestones: 15, stoneReach: 46, stoneUp: 30, stoneDown: 50,   // how near counts as at a Lodestone: sideways, above it, below it
     stoneRepair: 90 };
 
@@ -409,7 +417,7 @@ const KData = (() => {
     cacheChance: 0.6,          // per chamber
     tomeChance: 0.4,           // a cache teaches a special spell (about 16 tomes in a cave of 40 caches)
     // the highest tier of special spell a find of this level can teach
-    tierFor: L => L <= 2 ? 1 : L <= 4 ? 2 : L <= 6 ? 3 : L <= 7 ? 4 : 5,
+    tierFor: L => L <= 3 ? 1 : L <= 6 ? 2 : L <= 9 ? 3 : L <= 12 ? 4 : 5,   // the fourth and fifth circles are found in the second cave
     // lasting gifts for what you have done in the cave (game.boons)
     boons: { core: { mana: 40, regen: 0.15 }, champion: { mana: 20, hp: 20 }, tablet: { mana: 5 } },
     tablets: 9, tabletApart: 300,   // rune tablets: carved stones that each teach one special spell
@@ -435,7 +443,7 @@ const KData = (() => {
       { id: 'attack', name: 'Attack', desc: 'Every spell does more damage.', per: 1, show: v => 10 + v },
       { id: 'defence', name: 'Defence', desc: 'You take less damage.', per: 1, show: v => 10 + v },
       { id: 'vitality', name: 'Vitality', desc: '+10 maximum health.', per: 10, show: v => 100 + 10 * v },
-      { id: 'mana', name: 'Mana', desc: '+10 maximum mana.', per: 10, show: v => 100 + 10 * v },
+      { id: 'mana', name: 'Mana', desc: '+6 maximum mana.', per: 6, show: v => 60 + 6 * v },
       { id: 'focus', name: 'Focus', desc: 'Mana refills 8% faster.', per: 0.08, show: v => '+' + Math.round(8 * v) + '%' },
       { id: 'fire', name: 'Fire power', desc: 'Spells with fire hit 6% harder.', per: 0.06, show: v => '+' + Math.round(6 * v) + '%', el: 'fire' },
       { id: 'water', name: 'Water power', desc: 'Spells with water hit 6% harder.', per: 0.06, show: v => '+' + Math.round(6 * v) + '%', el: 'water' },

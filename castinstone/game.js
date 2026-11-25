@@ -45,7 +45,7 @@ const KGame = (() => {
       this.dummies = this.world.dummySpots.map((s, i) => this.makeDummy(s, i));
       this.waves = [];   // the wardens' ground waves (never saved)
       const champs = this.championHomes();
-      this.enemies = this.world.enemyHomes.map((home, i) => this.makeEnemy(home, i, champs.has(i)));
+      this.enemies = this.world.enemyHomes.map((home, i) => this.makeEnemy(home, i, champs.get(i)));
       this.makeChampions(champs);
       this.makeTablets();
     }
@@ -92,13 +92,15 @@ const KGame = (() => {
 
     // The highest-level warden, moth and delver become champions (see KData.champions).
     // which homes hold the champions: chosen from the cave's own list, before any home changes kind
+    // One champion in each region: at that region's highest-level piece of floor, away from the others and from the lair.
     championHomes() {
-      const CH = KData.champions, H = this.world.enemyHomes, picked = [], out = new Map();
-      for (const kind in CH.kinds) {
-        const i = H.map((h, k) => k).filter(k => (H[k].kind || 'crawler') === kind && !picked.some(o => Math.hypot(H[o].x - H[k].x, H[o].y - H[k].y) < CH.apart))
-          .sort((a, b) => H[b].level - H[a].level || a - b)[0];
+      const CH = KData.champions, H = this.world.enemyHomes, L = this.world.lair, picked = [], out = new Map();
+      CH.order.forEach((kind, biome) => {
+        const far = k => !picked.some(o => Math.hypot(H[o].x - H[k].x, H[o].y - H[k].y) < CH.apart) && !(L && Math.hypot(L.x - H[k].x, L.y - H[k].y) < 320);
+        const ground = k => { const t = H[k].kind || 'crawler'; return t === 'crawler' || t === 'warden'; };
+        const i = H.map((h, k) => k).filter(k => H[k].biome === biome && ground(k) && far(k)).sort((a, b) => H[b].level - H[a].level || a - b)[0];
         if (i != null) { picked.push(i); out.set(i, kind); }
-      }
+      });
       return out;
     }
     // Some crawler and moth homes hold a different creature, by region and level (KData.remix).
@@ -127,6 +129,7 @@ const KGame = (() => {
             if (x > 10 && y > 10 && x < w.w - 10 && y < w.h - 10 && w.get(x, y) !== M.EMPTY) w.set(x, y, M.EMPTY);
           c.home = { ...c.home, y: fy }; c.y = fy;
         }
+        if (kind === 'moth') { c.home = { ...c.home, y: c.home.y - 34 }; c.y = c.home.y; }   // she hangs in the air above the floor
         c.maxHp = c.hp = Math.round(E.hp * (1 + E.perLevel.hp * (c.level - 1)) * CH.hp[kind]);
         c.stats.attack = (E.attack + E.perLevel.attack * (c.level - 1)) * CH.attack;
       }
@@ -693,11 +696,13 @@ const KGame = (() => {
       const L = this.world.lair;
       this.boss = null;
       if (!L || this.defeated.has(L.boss)) return;
-      const B = KData.bosses[L.boss], lv = L.level - 1, stats = KData.baseStats();
+      // the wyrm is the cave's last fight: a level above anything else in it
+      const level = Math.max(L.level, 1 + this.world.enemyHomes.reduce((m, h) => Math.max(m, h.level), 0));
+      const B = KData.bosses[L.boss], lv = level - 1, stats = KData.baseStats();
       stats.attack = B.attack + B.perLevel.attack * lv; stats.defence = B.defence + B.perLevel.defence * lv;
       const hp = Math.round(B.hp * (1 + B.perLevel.hp * lv));
       const x = L.x, y = L.surface + 18;
-      this.boss = { kind: 'boss', type: L.boss, boss: true, level: L.level, x, y, vx: 0, vy: 0, w: 18, h: 12, segR: 6,
+      this.boss = { kind: 'boss', type: L.boss, boss: true, level, x, y, vx: 0, vy: 0, w: 18, h: 12, segR: 6,
         hp, maxHp: hp, stats, dead: false, state: 'swim', t: 0, flash: 0, engaged: false, awayT: 0, raged: false, touchT: 0,
         trail: Array.from({ length: 80 }, (_, i) => ({ x: x - i * 2, y })), facing: 1, lastHurt: -9 };
     }
@@ -917,7 +922,7 @@ const KGame = (() => {
       this.defeated.add(b.type); this.cores.add(B.region); for (const pl of this.players) this.applyStats(pl);
       this.gainXp(p, KData.progression.killXp(b.level, 'crawler', false) * B.xpMul, 'boss');
       p.shards = (p.shards || 0) + B.shardsMul * b.level;
-      this.tome(p, 'cataclysm');
+      if (this.depth > 0) this.tome(p, 'cataclysm'); else this.tome(p, null, 4, true);   // the greatest spell is the second cave's prize
       const first = this.hasRune(p, 'crucible') ? this.makeRune(b.level + 1, { tier: 3 }) : this.makeRune(b.level + 1, { type: 'crucible', tier: 3 });
       const second = this.makeRune(b.level + 1, { tier: 2 + (this.rand() < 0.4 ? 1 : 0) });
       // straight into the bag (it usually dies under the magma); dropped beside you only if the bag is full
@@ -1022,7 +1027,7 @@ const KGame = (() => {
     // An enemy lives in one chamber (its home) and is tougher further from the hub.
     // A few are elites: tougher, gold-eyed, and always drop a runestone.
     makeEnemy(home, i, champion) {
-      const kind = champion ? (home.kind || 'crawler') : this.kindFor(home, i), E = KData.enemies[kind], L = home.level - 1, EL = KData.elites;
+      const kind = champion || this.kindFor(home, i), E = KData.enemies[kind], L = home.level - 1, EL = KData.elites;
       const elite = home.level >= EL.from && this.rand() < EL.chance;
       const stats = KData.baseStats();
       stats.attack = (E.attack + E.perLevel.attack * L) * (elite ? EL.attack : 1);
@@ -2139,7 +2144,7 @@ const KGame = (() => {
         if (q.inventory.length < RU.bag) q.inventory.push(r); else this.dropRune(a.x, a.y - a.h / 2, r);
         this.events.push({ type: 'toast', kind: 'big', text: `${a.champion} has fallen · ${RU.types[r.type].name} (Legendary) · ${KData.champions.shards * a.level} shards` });
         this.events.push({ type: 'toast', kind: 'stone', text: `You are greater for it: +${KData.treasure.boons.champion.hp} maximum health and mana, for good` });
-        this.tome(q, null, 4, true);
+        this.tome(q, null, Math.min(4, KData.treasure.tierFor(a.level) + 1), true);
         this.sfx('level', a.x, a.y, 1.2); this.shake = Math.max(this.shake, 5);
         this.events.push({ type: 'save' });
       }
@@ -2195,7 +2200,66 @@ const KGame = (() => {
       if (!e.state || e.state === 'patrol') e.state = aware ? 'chase' : 'idle';
       if (e.slowT > 0) e.slowT -= DT;
       const slow = (e.inMud || e.slowT > 0) ? 0.35 : 1;
+      if (e.champion && this.championTick(e, p, aware, set, w)) return;
       this['tick_' + e.kind](e, E, p, aware, see, set, slow, w);
+    }
+
+    // ---------- the three seal-holders' own attacks ----------
+    // Each champion fights as its kind does, and every few seconds stops for an attack only it has. All
+    // three show what is coming before it lands. Returns true while one is under way.
+    championTick(e, p, aware, set, w) {
+      const S = KData.champions.sig[e.kind];
+      if (!S) return false;
+      if (!e.sig) {
+        if (!p || !aware) return false;
+        e.sigT = (e.sigT ?? S.every * 0.6) - DT;
+        if (e.sigT > 0 || ['windup', 'lunge', 'swoop', 'throw', 'leap'].includes(e.state)) return false;
+        e.sig = { t: 0, left: e.hp < e.maxHp * S.rage ? S.rageCount : S.count, next: S.wind, an: Math.atan2(p.y - e.y, p.x - e.x), x: p.x, y: w.floorBelow(Math.round(p.x), Math.round(p.y - 6)) };
+        set('windup'); this.sfx('stirs', e.x, e.y, 1.1); this.shake = Math.max(this.shake, 3);
+      }
+      const g = e.sig; g.t += DT; e.t += DT;
+      e.vx *= Math.exp(-8 * DT); if (e.flying) e.vy *= Math.exp(-8 * DT);
+      const done = () => { e.sig = null; e.sigT = S.every; set('recover'); };
+      if (e.kind === 'warden') {
+        // Rockfall: it roars, then boulders drop from the roof round whoever it is fighting
+        if (g.t < g.next) { if (this.rand() < 0.3) this.burst(e.x + (this.rand() - 0.5) * 30, e.y - e.h, 2, [[200, 190, 180], [150, 143, 138]], 80); return true; }
+        const q = p || e, x = q.x + (this.rand() - 0.5) * S.spread, hit = w.ray(x, q.y - 12, 0, -1, 150), y = (hit.hit ? hit.y : q.y - 150) + 4;
+        this.burst(x, y, 6, [[200, 190, 180], [150, 143, 138]], 60);
+        this.projectiles.push({ kind: 'boulder', sp: { power: S.power, knock: 200, dig: 3, rubble: 5, vis: 1.2 }, key: 'earth+earth', owner: e, x, y, vx: 0, vy: 40, g: 380, age: 0 });
+        this.sfx('earth', x, y, 0.6);
+        g.next = g.t + S.gap; if (--g.left <= 0) done();
+        return true;
+      }
+      if (e.kind === 'moth') {
+        // Lantern burst: lines of light show where the lightning will go, then it goes
+        const n = g.left, len = S.range, ends = [];
+        for (let k = 0; k < n; k++) { const a = g.an + k * Math.PI * 2 / n, dx = Math.cos(a), dy = Math.sin(a), hit = w.ray(e.x, e.y - e.h / 2, dx, dy, len); ends.push([dx, dy, hit.hit ? hit.dist : len]); }
+        if (g.t < g.next) {
+          if (((g.t * 16) | 0) !== (((g.t - DT) * 16) | 0)) for (const [dx, dy, d] of ends) this.fx.push({ kind: 'beam', x0: e.x, y0: e.y - e.h / 2, x1: e.x + dx * d, y1: e.y - e.h / 2 + dy * d, t: 0, T: 0.1, color: [150 + 100 * g.t / S.wind, 150 + 80 * g.t / S.wind, 255], wide: 0.7 });
+          return true;
+        }
+        for (const [dx, dy, d] of ends) {
+          this.fx.push({ kind: 'bolt', pts: this.jagged(e.x, e.y - e.h / 2, e.x + dx * d, e.y - e.h / 2 + dy * d), t: 0, T: 0.22, color: [220, 200, 255], wide: 1.6 });
+          for (const q of this.players) { if (q.dead) continue; const rx = q.x - e.x, ry = (q.y - q.h / 2) - (e.y - e.h / 2), along = rx * dx + ry * dy, off = Math.abs(rx * dy - ry * dx); if (along > 0 && along < d + 4 && off < 8) this.hurt(q, S.power, dx * 140, dy * 140 - 30, 'bolt', e, 'lightning+lightning'); }
+        }
+        this.sfx('bolt', e.x, e.y, 1); this.shake = Math.max(this.shake, 3);
+        done();
+        return true;
+      }
+      if (e.kind === 'delver') {
+        // Eruption: the floor where you stood shakes, then it bursts up through it
+        if (g.t < g.next) { if (this.rand() < 0.6) this.burst(g.x + (this.rand() - 0.5) * S.radius, g.y, 2, [[184, 140, 128], [132, 84, 100]], 90); this.shake = Math.max(this.shake, 1.5); return true; }
+        e.x = g.x; e.y = g.y - 2; e.vx = 0; e.vy = -210; e.ghost = false; e.grounded = false;
+        w.explode(g.x, g.y - 4, 10);
+        this.fx.push({ kind: 'ring', x: g.x, y: g.y - 4, r0: 4, r1: S.radius, t: 0, T: 0.3, color: [220, 180, 150] });
+        for (const q of this.players) { if (q.dead) continue; const d = Math.hypot(q.x - g.x, (q.y - q.h / 2) - (g.y - 6)); if (d < S.radius) this.hurt(q, S.power, Math.sign(q.x - g.x || 1) * 160, -230, 'slam', e, 'earth+earth'); }
+        for (const a of [-2.5, -2.0, -1.57, -1.14, -0.64]) this.projectiles.push({ kind: 'boulder', sp: { power: 14, knock: 120, dig: 2, rubble: 3, vis: 0.8 }, key: 'earth+earth', owner: e, x: g.x, y: g.y - 10, vx: Math.cos(a) * 130, vy: Math.sin(a) * 190, g: 380, age: 0 });
+        this.sfx('explosion', g.x, g.y, 0.9); this.shake = Math.max(this.shake, 5);
+        if (--g.left <= 0) { done(); return true; }
+        const q = p || e; g.x = q.x; g.y = w.floorBelow(Math.round(q.x), Math.round(q.y - 6)); g.next = g.t + S.gap;
+        return true;
+      }
+      return false;
     }
 
     // Glowmoth: drifts near home; aware, it hovers off to one side above you,
