@@ -7,7 +7,7 @@
    broken save never replaces a good one. */
 
 const KSave = (() => {
-  const KEY = 'castinstone.save.v1';
+  const KEY = 'castinstone.save.v2';   // v2: the larger cave (v0.24); older saves do not fit it
   const VERSION = 1;
 
   function serialize(game) {

@@ -26,7 +26,7 @@ const KRecipe = (() => {
   const { spells, spellKey, modes } = KData;
   const cache = new Map(), parsed = new Map();
   const ADJ = { fire: 'Burning', water: 'Soaking', earth: 'Heavy', lightning: 'Charged' };
-  const SIZE_FIELDS = ['radius', 'reach', 'count', 'rubble', 'cloud', 'width', 'height'];
+  const SIZE_FIELDS = ['radius', 'reach', 'count', 'rubble', 'cloud', 'width', 'height', 'dig', 'bore'];
 
   // counts of each element after the first
   function parse(key) {
@@ -53,11 +53,12 @@ const KRecipe = (() => {
     const extra = { ...P.other };
     if (B) extra[B]--;
     const sizeExtra = P.mods[A] - (B ? 0 : 1);
-    const size = Math.max(0.8, Math.min(RC.sizeMax, 1 + RC.sizeStep * sizeExtra));
+    const others = extra.fire + extra.water + extra.earth + extra.lightning;
+    const size = Math.max(0.8, Math.min(RC.sizeMax, 1 + RC.sizeStep * sizeExtra + RC.sizeOther * others));
     const steps = P.n - 2;
     const gentle = mode === 'lift' || mode === 'move';
-    const costMul = Math.pow(gentle ? RC.costStepGentle : RC.costStep, steps);
-    const powMul = Math.pow(RC.powerStep, steps);
+    const costMul = steps < 0 ? RC.single : Math.pow(gentle ? RC.costStepGentle : RC.costStep, steps);
+    const powMul = steps < 0 ? RC.single : Math.pow(RC.powerStep, steps);
     if (sp.power) sp.power *= powMul;
     for (const f of SIZE_FIELDS) if (sp[f]) sp[f] = f === 'count' || f === 'rubble' ? Math.round(sp[f] * size) : sp[f] * size;
     let cost = costMul;
@@ -80,6 +81,8 @@ const KRecipe = (() => {
     if (sp.cost) sp.cost = Math.round(sp.cost * cost);
     if (sp.drain) { sp.drain = Math.round(sp.drain * cost * 10) / 10; sp.min = Math.min(sp.min * cost, sp.drain * 0.4); }
     sp.mods = extra; sp.n = P.n; sp.size = size;
+    sp.vis = Math.max(0.7, 1 + RC.visStep * steps);   // drawn size: a longer recipe looks bigger
+    for (const el of KData.elementOrder) if (extra[el] > 0 && (!sp.tint || extra[el] > extra[sp.tint])) sp.tint = el;
     // a name: property words, a size word, the base name
     const words = [];
     for (const el of KData.elementOrder) if (extra[el] > 0) words.push(ADJ[el] + (extra[el] > 1 ? ' ×' + extra[el] : ''));

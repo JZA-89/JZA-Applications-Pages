@@ -197,7 +197,7 @@ const KGame = (() => {
       const w = this.world;
       let sy = y;
       for (let k = 0; k < 150 && sy > 4 && !BLOCKS(w.get(Math.round(x), Math.round(sy - 1))); k++) sy--;
-      const sp = { radius: S.radius, power: S.power, knock: 300, ignite: 0.6, color: [255, 150, 52] };
+      const sp = { radius: S.radius, power: S.power, knock: 300, ignite: 0.6, color: [255, 150, 52], vis: 2.3 };
       this.projectiles.push({ kind: 'fireball', sp, key: 'earth+fire', owner: p, x, y: sy + 3, vx: (this.rand() - 0.5) * 16, vy: 230, g: 220, age: 0 });
       this.fx.push({ kind: 'flash', x, y: sy + 3, r: 20, t: 0, T: 0.25, color: [255, 150, 60] });
     }
@@ -754,7 +754,7 @@ const KGame = (() => {
       const moveActive = !!a.moveSpell, movePressed = moveActive && !p.moveWas;
       p.moveWas = moveActive;
       if (p.safeT > 0) p.safeT -= DT;
-      for (const e of a.events) if (e.type === 'interact' && p.nearStone) this.events.push({ type: 'rest', stone: p.nearStone });
+      for (const e of a.events) if (e.type === 'interact' && p.nearStone) { this.events.push({ type: 'rest', stone: p.nearStone }); this.reviveEnemies(); }
 
       // mana refills on its own, faster on the ground
       if (p.manaWait > 0) p.manaWait -= DT;
@@ -1251,7 +1251,7 @@ const KGame = (() => {
       if (sp.kind === 'jet') {
         for (let i = 0; i < sp.perTick; i++) {
           const an = p.aim + (R() - 0.5) * 2 * sp.spread, s = sp.speed * (0.85 + R() * 0.3);
-          this.parts.push({ x: c.x + dx * 6, y: c.y + dy * 6, vx: Math.cos(an) * s, vy: Math.sin(an) * s, g: 170, mat: M.WATER, life: 3, owner: p, push: sp.push });
+          this.parts.push({ x: c.x + dx * 6, y: c.y + dy * 6, vx: Math.cos(an) * s, vy: Math.sin(an) * s, g: 170, mat: M.WATER, life: 3, owner: p, push: sp.push, dmg: (sp.power || 0) / (sp.perTick * 60), key });
         }
         if (!p.grounded) { p.vx -= dx * sp.recoil * DT; p.vy -= dy * sp.recoil * DT; }
       } else if (sp.kind === 'cone') {
@@ -1398,7 +1398,7 @@ const KGame = (() => {
           break;
         }
       }
-      this.fx.push({ kind: 'bolt', pts: this.jagged(c.x + dx * 3, c.y + dy * 3, ex, ey), t: 0, T: 0.16, color: sp.color });
+      this.fx.push({ kind: 'bolt', pts: this.jagged(c.x + dx * 3, c.y + dy * 3, ex, ey), t: 0, T: 0.16, color: sp.color, wide: sp.vis });
       if (target) this.hurt(target, sp.power, dx * sp.knock, dy * sp.knock - 30, 'bolt', p, key);
       this.landing(ex - dx * 2, ey - dy * 2, sp, p);
       if (water) {
@@ -1444,7 +1444,7 @@ const KGame = (() => {
         }
       }
       this.landing(ex - dx * 2, ey - dy * 2, sp, p);
-      this.fx.push({ kind: 'beam', x0: c.x + dx * 4, y0: c.y + dy * 4, x1: ex, y1: ey, t: 0, T: 0.14, color: sp.color });
+      this.fx.push({ kind: 'beam', x0: c.x + dx * 4, y0: c.y + dy * 4, x1: ex, y1: ey, t: 0, T: 0.14, color: sp.color, wide: sp.vis });
       this.fx.push({ kind: 'flash', x: ex, y: ey, r: 12, t: 0, T: 0.12, color: sp.color });
     }
 
@@ -1506,7 +1506,7 @@ const KGame = (() => {
       if (!pr.mini) this.landing(px, py, sp, pr.owner);
       if (pr.kind === 'fireball') {
         const x = pr.x, y = pr.y;
-        w.explode(x, y, sp.radius * (pr.mini ? 0.55 : 1), { fire: sp.ignite, boil: 0.5, melt: this.has(pr.owner, 'melt') });
+        w.explode(x, y, sp.radius * 0.78 * (pr.mini ? 0.55 : 1), { fire: sp.ignite, boil: 0.5, melt: this.has(pr.owner, 'melt') });
         if (!pr.mini && this.has(pr.owner, 'split')) for (const an of [-2.2, -1.57, -0.9]) {
           this.projectiles.push({ kind: 'fireball', mini: true, sp, key: pr.key, owner: pr.owner, x: px, y: py, vx: Math.cos(an) * 150, vy: Math.sin(an) * 150, g: 260, age: 0.2 });
         }
@@ -1571,7 +1571,7 @@ const KGame = (() => {
           }
           if (pt.push && !pt.pushed) {
             const a = this.actorAt(pt.x, pt.y, pt.owner);
-            if (a) { a.vx += pt.vx * pt.push; a.vy += pt.vy * pt.push * 0.6; pt.pushed = true; pt.vx *= 0.3; }
+            if (a) { a.vx += pt.vx * pt.push; a.vy += pt.vy * pt.push * 0.6; pt.pushed = true; pt.vx *= 0.3; if (pt.dmg) this.hurt(a, pt.dmg, 0, 0, 'jet', pt.owner, pt.key); }
           }
           if (pt.mat === M.WATER && m === M.FIRE) { w.set(ix, iy, M.STEAM); pt.life = 0; break; }
           if (pt.mat === M.MUD) {
@@ -1758,7 +1758,7 @@ const KGame = (() => {
       if (e.wetT > 0) e.wetT -= DT;
       e.asleep = !e.dead && !this.players.some(q => Math.abs(q.x - e.x) < E.awake && Math.abs(q.y - e.y) < E.awake * 0.7);
       if (e.asleep) return;
-      if (e.dead) { e.respawnT -= DT; if (e.respawnT <= 0) this.respawnCrawler(e); return; }
+      if (e.dead) return;   // the dead stay dead until you rest (reviveEnemies)
       if (e.kind === 'crawler') return this.crawlerTick(e);
       e.t = (e.t || 0) + DT;
       const w = this.world;
@@ -2092,10 +2092,12 @@ const KGame = (() => {
       for (const e of this.enemies) if (!e.dead && Math.hypot(e.x - x, e.y - y) < radius) { e.lastSeen = this.time; e.knownX = p.x; }
     }
 
+    // Resting at a Lodestone (or dying) brings the cave's creatures back,
+    // except any close enough to see appear. Nothing comes back on its own.
+    reviveEnemies() {
+      for (const e of this.enemies) if (e.dead && !this.players.some(p => !p.dead && Math.hypot(p.x - e.home.x, p.y - e.home.y) < 170)) this.respawnCrawler(e);
+    }
     respawnCrawler(e) {
-      // back home, but only while nobody is close enough to see it appear
-      const E = KData.enemies[e.kind];
-      if (this.players.some(p => Math.hypot(p.x - e.home.x, p.y - e.home.y) < E.respawnClear)) { e.respawnT = 2; return; }
       const y = e.kind === 'crawler' || e.kind === 'warden' ? this.world.floorBelow(e.home.x, e.home.y - 6) : e.home.y;
       Object.assign(e, { x: e.home.x, y, vx: 0, vy: 0, hp: e.maxHp, dead: false, state: e.kind === 'crawler' ? 'patrol' : 'idle', t: 0, lastHurt: -9, lastSeen: -9, slowT: 0, burnT: 0, wetT: 0, lastHitBy: null,
         anchored: e.kind === 'spitter', ghost: e.kind === 'delver' });
@@ -2107,6 +2109,7 @@ const KGame = (() => {
       const s = l ? { x: l.x + 14, y: this.world.floorBelow(l.x + 14, l.y - 10) } : this.world.spawn;
       Object.assign(p, { x: s.x, y: s.y, vx: 0, vy: 0, hp: p.maxHp, dead: false, mana: p.maxMana, manaWait: 0, dashT: 0, slam: null, lastHurt: -9, burnT: 0, slowT: 0 });
       this.endAllChannels(p);
+      this.reviveEnemies();
     }
 
     dummyTick(d) {

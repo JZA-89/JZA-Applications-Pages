@@ -266,7 +266,7 @@ const KWorld = (() => {
           const i = y * this.w + x, m = this.mat[i];
           if (d2 <= r2) {
             if (m === M.ROCK && opts.melt && d2 <= r2 * 0.6 && x >= 8 && y >= 8 && x < this.w - 8 && y < this.h - 8) { this.put(i, M.MAGMA); removed++; continue; }
-            if (m === M.EMPTY || HARD[m]) continue;
+            if (m === M.EMPTY || HARD[m] || m === M.MAGMA) continue;   // magma cannot be blasted away, only cooled
             if (m === M.WATER) { if (R() < (opts.boil || 0)) this.put(i, M.STEAM); continue; }
             const edge = d2 > (r - 2) * (r - 2);
             if (m === M.CRYSTAL) this.broken.push(x, y);
@@ -538,11 +538,11 @@ const KWorld = (() => {
       this.bw = bw;
 
       // 8b. the Emberwyrm's lair: the biggest far Ember chamber becomes a great hall with a magma lake
-      const lairNode = nodes.filter(n => n.biome === 2 && n.dist > 420).sort((a, b) => b.rx * b.ry - a.rx * a.ry)[0];
+      const lairNode = nodes.filter(n => n.biome === 2 && n.dist > 750).sort((a, b) => b.rx * b.ry - a.rx * a.ry)[0];
       this.lair = null;
       if (lairNode) {
         const n = lairNode;
-        n.lair = true; n.rx = Math.max(n.rx, 105); n.ry = Math.max(n.ry, 50);
+        n.lair = true; n.rx = Math.max(n.rx, 185); n.ry = Math.max(n.ry, 82);
         n.x = Math.max(n.rx + 30, Math.min(w - n.rx - 30, n.x)); n.y = Math.max(n.ry + 40, Math.min(h - n.ry * 2 - 30, n.y));
         for (let y = Math.floor(n.y - n.ry * 1.2); y <= n.y + n.ry * 1.9; y++) for (let x = Math.floor(n.x - n.rx * 1.2); x <= n.x + n.rx * 1.2; x++) {
           if (x < 12 || y < 12 || x >= w - 12 || y >= h - 12) continue;
@@ -568,7 +568,7 @@ const KWorld = (() => {
           if (nearMagma) mat[i] = M.ROCK;
         }
         // ledges above the lake to fight from
-        for (const [fx, fy, fr] of [[-0.62, -0.25, 15], [0, -0.55, 17], [0.62, -0.25, 15], [-0.3, -0.12, 6], [0.3, -0.12, 6]]) {
+        for (const [fx, fy, fr] of [[-0.72, -0.2, 16], [-0.4, -0.5, 17], [0, -0.25, 18], [0.4, -0.5, 17], [0.72, -0.2, 16], [0, -0.72, 15], [-0.2, -0.06, 7], [0.2, -0.06, 7], [-0.55, -0.02, 7], [0.55, -0.02, 7]]) {
           const lx = n.x + fx * n.rx, ly = n.y + fy * n.ry;
           for (let y = Math.floor(ly - 4); y <= ly + 4; y++) for (let x = Math.floor(lx - fr - 2); x <= lx + fr + 2; x++) {
             const ex = (x - lx) / fr, ey = (y - ly) / 3.5;

@@ -482,22 +482,30 @@ const KRender = (() => {
       }
     }
 
+    // Projectiles are drawn bigger the longer the recipe (sp.vis), with a
+    // fleck of the strongest modifier's colour circling them (sp.tint).
     drawProjectiles(game) {
+      const TINT = { fire: [255, 190, 90], water: [110, 170, 255], earth: [150, 110, 96], lightning: [255, 250, 190] };
       for (const pr of game.projectiles) {
         const x = pr.x - this.cam.x, y = pr.y - this.cam.y, sp = Math.hypot(pr.vx, pr.vy) || 1;
-        const ux = pr.vx / sp, uy = pr.vy / sp;
+        const ux = pr.vx / sp, uy = pr.vy / sp, v = (pr.sp.vis || 1) * (pr.mini ? 0.6 : 1);
+        const disc = (r, col) => { const R = Math.ceil(r); for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) { const d = Math.hypot(dx, dy); if (d <= r + 0.3) { const c = col(d / (r + 0.3), dx, dy); this.plot(x + dx, y + dy, c[0], c[1], c[2]); } } };
         if (pr.kind === 'fireball') {
-          for (let k = 1; k <= 4; k++) this.plot(x - ux * k * 1.5, y - uy * k * 1.5, 255, 140 - k * 18, 40, 0.9 - k * 0.18);
-          for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) this.plot(x + dx, y + dy, 255, dx || dy ? 170 : 245, dx || dy ? 70 : 200);
+          const r = 1.1 * v, n = Math.round(3 + 2 * v);
+          for (let k = 1; k <= n; k++) this.plot(x - ux * k * 1.5, y - uy * k * 1.5, 255, 140 - k * (72 / n), 40, 0.9 - k * (0.72 / n));
+          disc(r, t => t < 0.45 ? [255, 245, 200] : [255, 170 - t * 40, 70]);
         } else if (pr.kind === 'blob') {
-          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) this.plot(x + dx, y + dy, 255, dx || dy ? 120 : 190, dx || dy ? 40 : 90);
+          disc(1.3 * v, t => t < 0.4 ? [255, 190, 90] : [255, 120, 40]);
         } else if (pr.kind === 'boulder') {
-          const B = [[0, -1], [-1, 0], [0, 0], [1, 0], [-1, 1], [0, 1], [1, 1], [0, 2], [1, -1], [2, 0], [2, 1]];
-          for (const [dx, dy] of B) { const lit = dy < 1 && dx < 1; this.plot(x + dx - 0.5, y + dy - 0.5, lit ? 196 : 130, lit ? 186 : 120, lit ? 176 : 118); }
+          disc(1.5 * v, (t, dx, dy) => dx + dy < 0 ? [196, 186, 176] : [130, 120, 118]);
         } else if (pr.kind === 'spear') {
-          this.line(x - ux * 5, y - uy * 5, x, y, [150, 156, 170]);
+          const len = 5 * v;
+          this.line(x - ux * len, y - uy * len, x, y, [150, 156, 170]);
+          if (v > 1.4) this.line(x - ux * len - uy, y - uy * len + ux, x - uy, y + ux, [120, 126, 140]);
           this.plot(x, y, 255, 252, 230); this.plot(x + ux, y + uy, 230, 232, 240);
         }
+        const tc = TINT[pr.sp.tint];
+        if (tc) for (let k = 0; k < 2; k++) { const an = game.time * 14 + k * Math.PI, rr = 1.6 * v + 1.2; this.plot(x + Math.cos(an) * rr, y + Math.sin(an) * rr, tc[0], tc[1], tc[2]); }
       }
     }
 
@@ -530,13 +538,16 @@ const KRender = (() => {
             }
           }
         } else if (f.kind === 'beam') {
-          this.line(f.x0 - this.cam.x, f.y0 - this.cam.y, f.x1 - this.cam.x, f.y1 - this.cam.y, [255, 240, 200], Math.min(1, a * 1.5));
-          this.line(f.x0 - this.cam.x, f.y0 - this.cam.y + 1, f.x1 - this.cam.x, f.y1 - this.cam.y + 1, f.color, a * 0.8);
+          // thicker for a longer recipe
+          const half = Math.max(0, Math.round(((f.wide || 1) - 1) * 1.6));
+          for (let o = -half; o <= half + 1; o++) this.line(f.x0 - this.cam.x, f.y0 - this.cam.y + o, f.x1 - this.cam.x, f.y1 - this.cam.y + o, o === 0 ? [255, 240, 200] : f.color, o === 0 ? Math.min(1, a * 1.5) : a * 0.8);
         } else if (f.kind === 'bolt' || f.kind === 'trail') {
           const core = f.kind === 'bolt' ? [255, 255, 245] : f.color;
           for (let i = 1; i < f.pts.length; i++) {
             const p0 = f.pts[i - 1], p1 = f.pts[i];
             this.line(p0.x - this.cam.x, p0.y - this.cam.y, p1.x - this.cam.x, p1.y - this.cam.y, core, f.kind === 'bolt' ? Math.min(1, a * 1.6) : a * 0.7);
+            if (f.wide > 1.25) this.line(p0.x - this.cam.x, p0.y - this.cam.y + 1, p1.x - this.cam.x, p1.y - this.cam.y + 1, f.color, a);
+            if (f.wide > 1.8) this.line(p0.x - this.cam.x + 1, p0.y - this.cam.y - 1, p1.x - this.cam.x + 1, p1.y - this.cam.y - 1, f.color, a * 0.8);
           }
         }
       }
@@ -564,14 +575,15 @@ const KRender = (() => {
       for (const c of game.world.caches) if (!game.opened.has(c.id)) this.light(c.x, c.y - 4, 16, [255, 200, 110], 0.38 + 0.12 * Math.sin(game.time * 2 + c.id));
       for (let k = 0; k < game.bits.length; k += 3) this.light(game.bits[k].x, game.bits[k].y, 5, [140, 240, 230], 0.5);
       for (const pr of game.projectiles) {
-        if (pr.kind === 'fireball') this.light(pr.x, pr.y, 16, [255, 150, 60], 0.85);
-        else if (pr.kind === 'blob') this.light(pr.x, pr.y, 12, [255, 120, 40], 0.7);
+        const v = Math.min(2.6, pr.sp.vis || 1);
+        if (pr.kind === 'fireball') this.light(pr.x, pr.y, 12 + 6 * v, [255, 150, 60], 0.85);
+        else if (pr.kind === 'blob') this.light(pr.x, pr.y, 8 + 5 * v, [255, 120, 40], 0.7);
         else if (pr.kind === 'spear') this.light(pr.x, pr.y, 6, [220, 225, 240], 0.5);
       }
       for (const f of game.fx) {
         const a = 1 - f.t / f.T;
         if (f.kind === 'flash') this.light(f.x, f.y, f.r, f.color, a);
-        else if (f.kind === 'bolt') for (let i = 0; i < f.pts.length; i += 2) this.light(f.pts[i].x, f.pts[i].y, 11, [255, 246, 190], a * 0.7);
+        else if (f.kind === 'bolt') for (let i = 0; i < f.pts.length; i += 2) this.light(f.pts[i].x, f.pts[i].y, 8 + 4 * Math.min(2.6, f.wide || 1), [255, 246, 190], a * 0.7);
         else if (f.kind === 'trail') for (let i = 0; i < f.pts.length; i += 3) this.light(f.pts[i].x, f.pts[i].y, 7, f.color, a * 0.35);
         else if (f.kind === 'beam') for (let k = 0; k <= 6; k++) this.light(f.x0 + (f.x1 - f.x0) * k / 6, f.y0 + (f.y1 - f.y0) * k / 6, 9, f.color, a * 0.6);
       }

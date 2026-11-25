@@ -333,6 +333,27 @@ An exact sequence, order and all. While the recipe matches **and your mana bar c
 | Thunderstorm | Water Water Lightning Water Lightning | 90 | 6 s where you aim: rain soaks, a bolt (power 34) every 0.35 s onto an enemy within 80 |
 | Cataclysm | Fire Earth Fire Earth Lightning Fire Earth | 240 | seven meteors around where you aim |
 
+## Balance pass (v0.24)
+
+Measured with a bot holding each recipe on a target for 10 s (damage a second, mana a second, damage per mana, dirt dug a second; scratchpad `a1.js`, `a2.js`). What it showed and what changed. **Where these numbers differ from the tables further down, these are the current ones** (`data.js` is always the truth).
+
+- **Fireball was the best damage and by far the best digger** (321 cells a second; Boulder 5). Now: Fireball power 34 (was 40), blast radius 7 (was 9), and it digs 78% of its blast radius. Boulder power 44 (was 32), digs radius 8 (was 3), leaves 10 rubble (was 18). Dug per second now: Boulder about 190, Stone spear 140, Fireball 140. Earth digs, fire burns.
+- **Explosions no longer delete magma** (only water cools it). A bot could blast the Emberwyrm's lake away.
+- **Bursts gave a third of a Shot's damage per mana.** Costs down about 20% and power up about 30%: Fire nova 20 mana / power 34, Tidal wave 18 / 16, Stone shell 16, Shock field 20 / 34, Steam cloud 16 / 20, Eruption 22 / 32, Mire 16, Storm 22 / 28, Spikes 20 / 38, Flare 20 / 38. Bursts now give about 1.3 to 2 damage per mana against one target (Shots 2.5 to 3.1) and hit everything around you.
+- **Bolt** power 34, cost 14 (was 30, 16). **Arc** 22, cost 16. **Ember lance** 28. **Scald** 40 a second. **Water jet** now does a little damage (22 a second if every drop hits) on top of pushing and soaking.
+- **One element alone was the most efficient spell.** It now gives 65% of the power for 65% of the cost (was 71% for 57%).
+- **A longer recipe is visibly bigger.** Every modifier adds 7% size (the form's own element still 20%, at most ×2.2), and projectiles, bolts and beams are drawn 30% bigger per element after the second (`sp.vis`), with a fleck of the strongest modifier's colour circling a projectile (`sp.tint`).
+- Runestone drop chance 10% (was 14%): the cave has three times the enemies.
+
+## The larger cave (v0.24)
+
+Jaisah: this should take hours, not thirty minutes, and levelling must not run ahead of the game.
+
+- **The cave is 3072 × 1536** (was 2048 × 1024), with 104 chambers (was 46), 15 Lodestones (was 8), a level every 200 cells from the hub (was 250). Over five seeds: about 210 to 250 enemies of level 1 to 8, about 40 relic caches, generated in 0.7 to 1.7 s. Saves moved to `castinstone.save.v2`; older saves do not fit the new cave and are not loaded.
+- **Enemies come back only when you rest at a Lodestone or die** (`game.reviveEnemies`; they used to return after 25 s). A cleared tunnel stays cleared until you choose to rest, and experience cannot be farmed by standing still.
+- **Pace:** a full clear gives about 8,500 experience from kills and 5,000 from caches, which is about level 11. The enemies of each ring of the cave are worth about one level, so your level tracks the level of the area you are in.
+- **The Emberwyrm's arena** is 370 wide and about 95 tall above the lake (was 210 × 58, less than one screen), with ten ledges, at least 750 from the hub (level 5 to 7; its health scales with that, about 2,000 to 2,500). A bot standing still with Bolt at level 6 needs 95 to 150 s.
+
 ## Elements and spells
 
 *(The tables below give each hand-made spell's numbers. Since v0.21 a pair here means "first element, then modifier" as listed under Recipes; same-element pairs are the forms.)*
@@ -454,6 +475,11 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.21 (2026-11-26):** recipes. No slots: type up to seven elements, limited by mana (Jaisah: five slots would copy Magicka; mana as the limit is more fluid and grows with you). The first element is the form, the rest are modifiers in any order; cost rises faster than power; the recipe stays loaded. Special spells are exact sequences, hidden until your mana bar can hold them, learned from tomes or by typing. C/Z takes off the last element.
 - **v0.22 (2026-11-26):** after any cast or failed cast, the next element typed starts a new recipe (Jaisah: a full recipe he could not afford left him stuck).
 - **v0.23 (2026-11-26):** trying a spell that costs more than the whole mana bar clears the recipe straight away (Jaisah).
+- **v0.24 (2026-11-26):** balance pass from measurements (earth digs best, fire no longer best at everything, Bursts worth their mana, single elements not the most efficient, explosions cannot delete magma), longer recipes look bigger, a cave more than twice the size with levels 1 to 8, enemies return only on rest, a much bigger Emberwyrm arena. Saves start again (`castinstone.save.v2`).
+
+## Checks run for v0.24
+
+Damage, mana and digging per recipe measured before and after; five seeds generated and counted (enemies by level, caches, experience available); a bot fighting the Emberwyrm on three seeds for up to 150 s (it breaches, spits, strands and recovers; the lake keeps its magma; no errors); all 340 recipe casts and eight special spells again; three minutes of random play (worst step 16 ms, in the lair); typing, casting, saving and reloading with real keys.
 
 ## Checks run for v0.21
 
