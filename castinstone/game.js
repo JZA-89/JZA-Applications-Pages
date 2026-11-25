@@ -131,7 +131,7 @@ const KGame = (() => {
             if (x > 10 && y > 10 && x < w.w - 10 && y < w.h - 10 && w.get(x, y) !== M.EMPTY) w.set(x, y, M.EMPTY);
           c.home = { ...c.home, y: fy }; c.y = fy;
         }
-        if (kind === 'moth' || kind === 'wraith') { c.home = { ...c.home, y: c.home.y - 34 }; c.y = c.home.y; }   // she hangs in the air above the floor
+        if (kind === 'moth' || kind === 'wraith' || kind === 'mender') { c.home = { ...c.home, y: c.home.y - 34 }; c.y = c.home.y; }   // she hangs in the air above the floor
         c.maxHp = c.hp = Math.round(E.hp * (1 + E.perLevel.hp * (c.level - 1)) * CH.hp[kind]);
         c.stats.attack = (E.attack + E.perLevel.attack * (c.level - 1)) * CH.attack;
       }
@@ -703,7 +703,7 @@ const KGame = (() => {
       const B = KData.bosses[L.boss], lv = level - 1, stats = KData.baseStats();
       stats.attack = B.attack + B.perLevel.attack * lv; stats.defence = B.defence + B.perLevel.defence * lv;
       const hp = Math.round(B.hp * (1 + B.perLevel.hp * lv));
-      if (L.boss === 'hollowking') {   // it hangs in the air over the lake; x, y are its middle
+      if (L.boss !== 'emberwyrm') {   // the King and the Heartroot hang in the air over the lake; x, y are their middle
         const x = L.x, y = L.surface - 44;
         this.boss = { kind: 'boss', type: L.boss, boss: true, level, x, y, vx: 0, vy: 0, w: 30, h: 36, segR: 16, home: { x, y }, hp, maxHp: hp, stats, dead: false, state: 'idle', t: 0, flash: 0,
           engaged: false, awayT: 0, touchT: 0, cd: 2, n: 0, strikes: [], trail: [{ x, y }], facing: 1, lastHurt: -9 };
@@ -737,6 +737,7 @@ const KGame = (() => {
       const b = this.boss;
       if (!b || b.dead) return;
       if (b.type === 'hollowking') return this.kingTick(b);
+      if (b.type === 'heartroot') return this.heartTick(b);
       const B = KData.bosses[b.type], L = this.world.lair, w = this.world;
       b.flash = Math.max(0, b.flash - DT); b.t += DT; b.touchT = Math.max(0, b.touchT - DT);
       if (b.wetT > 0) b.wetT -= DT;
@@ -931,7 +932,8 @@ const KGame = (() => {
       this.defeated.add(b.type); this.cores.add(B.region); for (const pl of this.players) this.applyStats(pl);
       this.gainXp(p, KData.progression.killXp(b.level, 'crawler', false) * B.xpMul, 'boss');
       p.shards = (p.shards || 0) + B.shardsMul * b.level;
-      if (this.depth > 0) this.tome(p, 'cataclysm'); else this.tome(p, null, 4, true);   // the greatest spell is the second cave's prize
+      // each cave's last fight teaches something: the best of the fourth circle, then Cataclysm, then the best you do not yet know
+      if (this.depth === 1) this.tome(p, 'cataclysm'); else this.tome(p, null, this.depth ? 5 : 4, true);
       const first = this.hasRune(p, 'crucible') ? this.makeRune(b.level + 1, { tier: 3 }) : this.makeRune(b.level + 1, { type: 'crucible', tier: 3 });
       const second = this.makeRune(b.level + 1, { tier: 2 + (this.rand() < 0.4 ? 1 : 0) });
       // straight into the bag (it usually dies under the magma); dropped beside you only if the bag is full
@@ -1043,7 +1045,7 @@ const KGame = (() => {
       stats.defence = E.defence + E.perLevel.defence * L;
       const hp = Math.round(E.hp * (1 + E.perLevel.hp * L) * (elite ? EL.hp : 1));
       return { kind, id: i, home, level: home.level, elite, x: home.x, y: home.y, vx: 0, vy: 0, w: E.w, h: E.h,
-        flying: kind === 'moth' || kind === 'wisp' || kind === 'wraith', noclip: kind === 'wraith', anchored: kind === 'spitter' || kind === 'geode', ghost: kind === 'delver', face: home.face || 1, fireT: 1 + this.rand() * 2,
+        flying: kind === 'moth' || kind === 'wisp' || kind === 'wraith' || kind === 'mender', noclip: kind === 'wraith', anchored: kind === 'spitter' || kind === 'geode', ghost: kind === 'delver', face: home.face || 1, fireT: 1 + this.rand() * 2,
         hp, maxHp: hp, stats, grounded: false, dead: false, respawnT: 0, lastHurt: -9, flash: 0, asleep: true,
         facing: i % 2 ? 1 : -1, dir: i % 2 ? 1 : -1, state: 'patrol', t: 0, lastSeen: -9, hit: false };
     }
@@ -2063,6 +2065,7 @@ const KGame = (() => {
     hurt(a, amount, kx, ky, kind, src, spell) {
       if (a.dead || amount <= 0 || a.away) return;
       if (a.kind === 'boss' && this.sealsLeft() > 0) return;   // sealed
+      if (a.kind === 'boss' && a.shut) amount *= KData.bosses[a.type].shut;   // the Heartroot, closed
       if (a.kind === 'player' && src && src.kind === 'player' && src !== a) amount *= 0.3;   // co-op: a friend's spell hurts, but much less
       if (src && src.kind === 'player') { a.lastHitBy = src; a.lastHitAt = this.time; }
       if (spell && spell.includes('earth') && this.has(src, 'quarry')) { kx = (kx || 0) * 1.6; ky = (ky || 0) * 1.6; }
@@ -2302,6 +2305,152 @@ const KGame = (() => {
       }
     }
 
+    // ---------- the third cave's creatures ----------
+    // Rootboar: paws the ground (the warning), then charges flat out until it hits something; a wall dazes it.
+    tick_boar(e, E, p, aware, see, set, slow, w) {
+      e.fireT = (e.fireT ?? 1) - DT * slow;
+      switch (e.state) {
+        case 'idle': if (e.grounded) e.vx *= Math.exp(-10 * DT); if (aware) set('chase'); break;
+        case 'chase':
+          if (!aware || !p) { set('idle'); break; }
+          e.dir = Math.sign(p.x - e.x) || 1;
+          if (e.grounded) e.vx += (e.dir * E.walk * slow - e.vx) * Math.min(1, 5 * DT);
+          if (see && e.grounded && e.fireT <= 0 && Math.abs(p.y - e.y) < 18 && Math.abs(p.x - e.x) < E.see) { set('windup'); this.sfx('warnWarden', e.x, e.y, 0.8); }
+          break;
+        case 'windup':
+          e.vx *= Math.exp(-12 * DT);
+          if (this.rand() < 0.3) this.burst(e.x - e.dir * 5, e.y, 1, [[184, 140, 128]], 50);
+          if (e.t > E.paw / Math.sqrt(slow)) { e.hit = false; e.vx = e.dir * E.charge * slow; set('lunge'); }
+          break;
+        case 'lunge':
+          this.contactHit(e, E);
+          if (e.grounded) e.vx = e.dir * E.charge * slow;
+          if (e.t > 0.12 && Math.abs(e.vx) < 60 || SOLID[w.get(Math.round(e.x + e.dir * (e.w / 2 + 2)), Math.round(e.y - 4))]) {
+            // it has run into something: dirt gives way a little, and it is dazed either way
+            w.explode(e.x + e.dir * (e.w / 2 + 2), e.y - 5, 5); this.shake = Math.max(this.shake, 2.5); this.sfx('earth', e.x, e.y, 0.7);
+            e.vx = -e.dir * 40; e.vy = -70; e.fireT = E.every; set('recover');
+          } else if (e.t > E.chargeTime) { e.fireT = E.every; set('chase'); }
+          break;
+        case 'recover': e.vx *= Math.exp(-6 * DT); if (e.t > E.daze) set('chase'); break;
+        default: set('idle');
+      }
+      e.facing = e.dir || 1;
+    }
+    // Bloomwisp: keeps its distance and mends the most hurt creature near it. (The Gardener, its champion, also shoots.)
+    tick_mender(e, E, p, aware, see, set, slow, w) {
+      const steer = (tx, ty, speed) => { const dx = tx - e.x, dy = ty - e.y, d = Math.hypot(dx, dy) || 1; e.vx += (dx / d * speed - e.vx) * Math.min(1, 2.5 * DT); e.vy += (dy / d * speed - e.vy) * Math.min(1, 2.5 * DT); };
+      let ally = null, worst = 0.999;
+      for (const o of this.enemies) if (o !== e && !o.dead && !o.asleep && o.hp < o.maxHp && Math.hypot(o.x - e.x, o.y - e.y) < E.reach) { const f = o.hp / o.maxHp; if (f < worst) { worst = f; ally = o; } }
+      if (ally) {
+        ally.hp = Math.min(ally.maxHp, ally.hp + ally.maxHp * E.mend * DT * (ally.champion ? 0.25 : 1));
+        if (((this.time * 7) | 0) !== (((this.time - DT) * 7) | 0)) this.fx.push({ kind: 'beam', x0: e.x, y0: e.y - e.h / 2, x1: ally.x, y1: ally.y - ally.h / 2, t: 0, T: 0.16, color: [130, 240, 150], wide: 0.7 });
+      }
+      e.state = aware && p ? 'chase' : 'idle';
+      if (!aware || !p) { steer(e.home.x + Math.sin(this.time * 0.6 + e.id) * 22, e.home.y + Math.cos(this.time * 0.8 + e.id) * 10, E.fly * 0.5); return; }
+      const dx = e.x - p.x, d = Math.hypot(dx, e.y - p.y) || 1;
+      // away from you, towards whoever it is mending, and off the floor
+      const tx = d < E.keep ? e.x + dx / d * 40 : ally ? ally.x : e.x, ty = Math.min(p.y - 44, ally ? ally.y - 30 : e.y);
+      steer(tx, ty, E.fly * slow);
+      if (e.champion && see) { e.fireT = (e.fireT ?? 1) - DT * slow; if (e.fireT <= 0) { e.fireT = E.shotEvery; this.shard(e, e.x, e.y - e.h / 2, Math.atan2(p.y - p.h / 2 - (e.y - e.h / 2), p.x - e.x), 170, E.shot, 240); this.sfx('spear', e.x, e.y, 0.5); } }
+      e.facing = p.x < e.x ? -1 : 1;
+    }
+    // Lasher: throws out a vine (the warning: it rears) and drags you to its mouth.
+    tick_lasher(e, E, p, aware, see, set, slow, w) {
+      e.fireT = (e.fireT ?? 1) - DT * slow;
+      const my = e.y - e.h * 0.7;
+      switch (e.state) {
+        case 'idle': if (e.grounded) e.vx *= Math.exp(-10 * DT); if (aware) set('chase'); break;
+        case 'chase': {
+          if (!aware || !p) { set('idle'); break; }
+          e.dir = Math.sign(p.x - e.x) || 1;
+          if (e.grounded) e.vx += (e.dir * E.walk * slow - e.vx) * Math.min(1, 5 * DT);
+          if (see && e.fireT <= 0 && Math.hypot(p.x - e.x, p.y - e.y) < E.reach) { set('windup'); this.sfx('warnCrawler', e.x, e.y, 0.9); }
+          break;
+        }
+        case 'windup': e.vx *= Math.exp(-12 * DT); if (e.t > E.wind / Math.sqrt(slow)) { e.target = p; set('pull'); this.sfx('whoosh', e.x, e.y, 0.7); } break;
+        case 'pull': {
+          const q = e.target; e.vx *= Math.exp(-12 * DT);
+          if (!q || q.dead || !see || e.t > E.pullTime) { e.fireT = E.every; set('chase'); break; }
+          const dx = e.x - q.x, dy = my - (q.y - q.h / 2), d = Math.hypot(dx, dy) || 1;
+          q.vx += dx / d * E.pull * DT; if (!q.grounded) q.vy += dy / d * E.pull * 0.5 * DT;
+          if (((e.t * 12) | 0) !== (((e.t - DT) * 12) | 0)) this.fx.push({ kind: 'beam', x0: e.x, y0: my, x1: q.x, y1: q.y - q.h / 2, t: 0, T: 0.1, color: [110, 200, 110], wide: 0.9 });
+          if (d < 15) { this.hurt(q, E.power, -Math.sign(dx || 1) * E.knock, -90, 'bite', e, null); e.fireT = E.every; set('recover'); }
+          break;
+        }
+        case 'recover': e.vx *= Math.exp(-8 * DT); if (e.t > 0.6) set('chase'); break;
+        default: set('idle');
+      }
+      e.facing = e.dir || 1;
+    }
+
+    // ---------- the Heartroot (the third cave's last fight) ----------
+    // It hangs over its lake, shut: shut, it takes under a third of any damage. It uses three attacks in
+    // turn, each shown first: seeds lobbed to burst round you; a vine that lashes the whole width of the
+    // lair at the height it marks (jump it, or be elsewhere); and a pulse that throws everyone near it
+    // away. After each attack it opens for a few seconds, and that is when it can really be hurt.
+    heartTick(b) {
+      const B = KData.bosses[b.type], L = this.world.lair, w = this.world;
+      b.flash = Math.max(0, b.flash - DT); b.t += DT; b.touchT = Math.max(0, b.touchT - DT);
+      for (const k of ['wetT', 'slowT', 'burnT']) if (b[k] > 0) b[k] -= DT;
+      const inLair = q => { const ax = (q.x - L.x) / (L.rx * 1.15), ay = (q.y - L.y) / (L.ry * 1.5); return ax * ax + ay * ay < 1; };
+      const near = this.players.filter(q => !q.dead && inLair(q));
+      let p = null, best = 1e9;
+      for (const q of near) { const d = Math.hypot(q.x - b.x, q.y - b.y); if (d < best) { best = d; p = q; } }
+      if (!p) { b.awayT += DT; if (b.engaged && b.awayT > B.reset) { b.engaged = false; b.hp = b.maxHp; b.state = 'idle'; b.shut = true; b.lash = null; } return; }
+      b.awayT = 0;
+      const seals = this.sealsLeft();
+      if (seals > 0) { if (this.time - (b.sealSaid ?? -99) > 25) { b.sealSaid = this.time; this.events.push({ type: 'toast', kind: 'big', text: `${B.name} sleeps under its seals. ${seals === 1 ? 'One champion still stands' : seals + ' champions still stand'}.` }); } return; }
+      const set = s => { b.state = s; b.t = 0; };
+      if (!b.engaged) { b.engaged = true; b.shut = true; this.events.push({ type: 'toast', kind: 'big', text: `${B.name} begins to beat` }); this.sfx('stirs', b.x, b.y, 1.4); set('hover'); b.cd = 1.8; }
+      const rage = b.hp < b.maxHp * B.rageAt;
+      b.facing = 1;
+      b.y = b.home.y + Math.sin(this.time * 1.4) * 3;
+      const open = () => { b.shut = false; set('open'); this.sfx('whoosh', b.x, b.y, 0.8); };
+      switch (b.state) {
+        case 'hover': b.shut = true; if ((b.cd -= DT) <= 0) { b.n++; set(['seeds', 'lash', 'pulse'][b.n % 3]); b.sent = 0; this.sfx('warnWarden', b.x, b.y, 1.1); } break;
+        case 'seeds': {
+          const n = B.seeds + (rage ? 3 : 0);
+          if (b.sent < n && b.t > 0.5 + b.sent * 0.28) {
+            b.sent++; const q = near[b.sent % near.length] || p, tx = q.x + (this.rand() - 0.5) * 70 + q.vx * 0.4, v = this.lobAt(b.x, b.y, tx, q.y - 4, 190, 380);
+            this.projectiles.push({ kind: 'boulder', sp: { power: B.seedPower, knock: 180, dig: 3, rubble: 0, vis: 1, splash: 14 }, key: 'earth+fire', owner: b, x: b.x, y: b.y, vx: v.vx, vy: v.vy, g: 380, age: 0 });
+            this.sfx('earth', b.x, b.y, 0.5);
+          }
+          if (b.sent >= n && b.t > 0.5 + n * 0.28 + 0.6) open();
+          break;
+        }
+        case 'lash': {
+          // the vine: a line right across the lair at the height of whoever it is fighting, then it strikes
+          const count = rage ? 3 : 2;
+          if (!b.lash && b.sent < count) { b.lash = { y: p.y - 6, t: B.lashWarn }; b.sent++; }
+          if (b.lash) {
+            const s = b.lash, x0 = L.x - L.rx * 1.1, x1 = L.x + L.rx * 1.1; s.t -= DT;
+            if (s.t > 0) { if (((s.t * 12) | 0) !== (((s.t + DT) * 12) | 0)) this.fx.push({ kind: 'beam', x0, y0: s.y, x1, y1: s.y, t: 0, T: 0.12, color: [110, 200, 110], wide: 0.6 }); }
+            else {
+              this.fx.push({ kind: 'beam', x0, y0: s.y, x1, y1: s.y, t: 0, T: 0.22, color: [200, 255, 190], wide: 2.6 });
+              for (const q of near) if (Math.abs((q.y - q.h / 2) - s.y) < B.lashHalf + q.h / 2) this.hurt(q, B.lashPower, Math.sign(q.x - b.x || 1) * 200, -120, 'slam', b, 'earth+earth');
+              this.sfx('whoosh', b.x, s.y, 1); this.shake = Math.max(this.shake, 4); b.lash = null; b.lashGap = 0.35;
+            }
+          } else if (b.sent >= count) open();
+          break;
+        }
+        case 'pulse': {
+          const R = B.pulseRadius * (rage ? 1.25 : 1);
+          if (((b.t * 6) | 0) !== (((b.t - DT) * 6) | 0)) this.fx.push({ kind: 'ring', x: b.x, y: b.y, r0: R, r1: R, t: 0, T: 0.2, color: [255, 120, 110] });
+          if (b.t > B.pulseWind) {
+            for (const q of this.players) { if (q.dead) continue; const dx = q.x - b.x, dy = (q.y - q.h / 2) - b.y, d = Math.hypot(dx, dy) || 1; if (d < R) this.hurt(q, B.pulsePower, dx / d * B.pulseKnock, dy / d * B.pulseKnock * 0.5 - 120, 'explosion', b, 'fire+fire'); }
+            this.fx.push({ kind: 'ring', x: b.x, y: b.y, r0: 8, r1: R, t: 0, T: 0.3, color: [255, 170, 150] });
+            this.sfx('explosion', b.x, b.y, 1); this.shake = Math.max(this.shake, 5);
+            open();
+          }
+          break;
+        }
+        case 'open': if (b.t > B.openTime * (rage ? 0.75 : 1)) { b.shut = true; b.cd = rage ? 0.8 : 1.4; set('hover'); } break;
+        default: set('hover');
+      }
+      b.trail[0].x = b.x; b.trail[0].y = b.y;
+      if (b.touchT <= 0) for (const q of this.players) if (!q.dead && Math.abs(q.x - b.x) < (q.w + b.w) / 2 - 3 && Math.abs((q.y - q.h / 2) - b.y) < (q.h + b.h) / 2 - 3) { this.hurt(q, B.contact, Math.sign(q.x - b.x || 1) * B.knock, -120, 'bite', b, null); b.touchT = B.touchCd; }
+    }
+
     // ---------- the Hollow King (the second cave's last fight) ----------
     // It hangs in the air over its lake and uses three attacks in turn, each shown before it lands:
     // a fan of shards; a pull towards it that ends in a blast (get out of the ring); and lightning
@@ -2440,6 +2589,42 @@ const KGame = (() => {
         this.sfx('explosion', g.x, g.y, 0.9); this.shake = Math.max(this.shake, 5);
         if (--g.left <= 0) { done(); return true; }
         const q = p || e; g.x = q.x; g.y = w.floorBelow(Math.round(q.x), Math.round(q.y - 6)); g.next = g.t + S.gap;
+        return true;
+      }
+      if (e.kind === 'boar') {
+        // Stampede: it paws, charges, turns and charges again
+        if (g.t < g.next) { if (g.run > 0) { g.run -= DT; e.vx = e.dir * S.speed; if (!e.hit) for (const q of this.players) if (!q.dead && Math.abs(q.x - e.x) < (q.w + e.w) / 2 && Math.abs((q.y - q.h / 2) - (e.y - e.h / 2)) < (q.h + e.h) / 2) { this.hurt(q, S.power, e.dir * 260, -110, 'bite', e, null); e.hit = true; } } else e.state = 'windup'; return true; }
+        if (g.left <= 0) { done(); return true; }
+        const q = p || e; e.dir = Math.sign(q.x - e.x) || e.dir || 1; e.hit = false; g.run = S.time; e.state = 'lunge'; this.sfx('whoosh', e.x, e.y, 0.8);
+        g.left--; g.next = g.t + S.time + S.gap;
+        return true;
+      }
+      if (e.kind === 'lasher') {
+        // Thrash: a line shows where the vine will strike, then it strikes; several in a row
+        const my = e.y - e.h * 0.7;
+        if (!g.line) { const q = p || e, dx = q.x - e.x, dy = (q.y - q.h / 2) - my, d = Math.hypot(dx, dy) || 1; g.line = [dx / d, dy / d]; }
+        const [dx, dy] = g.line, hit = w.ray(e.x, my, dx, dy, S.range), len = hit.hit ? hit.dist : S.range;
+        if (g.t < g.next) { if (((g.t * 16) | 0) !== (((g.t - DT) * 16) | 0)) this.fx.push({ kind: 'beam', x0: e.x, y0: my, x1: e.x + dx * len, y1: my + dy * len, t: 0, T: 0.1, color: [110, 200, 110], wide: 0.6 }); return true; }
+        this.fx.push({ kind: 'beam', x0: e.x, y0: my, x1: e.x + dx * len, y1: my + dy * len, t: 0, T: 0.18, color: [200, 255, 190], wide: 2.2 });
+        for (const q of this.players) { if (q.dead) continue; const rx = q.x - e.x, ry = (q.y - q.h / 2) - my, along = rx * dx + ry * dy, off = Math.abs(rx * dy - ry * dx); if (along > 0 && along < len + 4 && off < 8) this.hurt(q, S.power, dx * 170, dy * 120 - 60, 'slam', e, 'earth+earth'); }
+        this.sfx('whoosh', e.x, e.y, 0.9);
+        g.line = null; g.next = g.t + S.gap + S.wind * 0.6; if (--g.left <= 0) done();
+        return true;
+      }
+      if (e.kind === 'mender') {
+        // Bloom: it gathers itself for a while, mending. Hurt it enough in that time and it breaks off, dazed; if not, it bursts
+        const cy = e.y - e.h / 2;
+        if (g.hp0 == null) g.hp0 = e.hp;
+        if (g.hp0 - e.hp > e.maxHp * S.breakAt) { this.burst(e.x, cy, 14, [[130, 240, 150], [255, 255, 255]], 120); this.sfx('crumble', e.x, e.y, 0.8); e.sig = null; e.sigT = S.every; e.open = S.open; set('recover'); return true; }
+        if (g.t < g.next) {
+          e.hp = Math.min(e.maxHp, e.hp + e.maxHp * S.heal / S.wind * DT); g.hp0 = Math.min(e.maxHp, g.hp0 + e.maxHp * S.heal / S.wind * DT);
+          if (((g.t * 6) | 0) !== (((g.t - DT) * 6) | 0)) this.fx.push({ kind: 'ring', x: e.x, y: cy, r0: S.radius, r1: S.radius * (1 - g.t / S.wind) + 6, t: 0, T: 0.2, color: [130, 240, 150] });
+          return true;
+        }
+        for (const q of this.players) { if (q.dead) continue; const dx = q.x - e.x, dy = (q.y - q.h / 2) - cy, d = Math.hypot(dx, dy) || 1; if (d < S.radius) this.hurt(q, S.power, dx / d * 220, dy / d * 150 - 60, 'explosion', e, 'earth+earth'); }
+        this.fx.push({ kind: 'ring', x: e.x, y: cy, r0: 6, r1: S.radius, t: 0, T: 0.3, color: [190, 255, 200] });
+        this.sfx('explosion', e.x, e.y, 0.8); this.shake = Math.max(this.shake, 4);
+        e.sig = null; e.sigT = S.every; set('recover');
         return true;
       }
       if (e.kind === 'shade') {

@@ -496,6 +496,22 @@ Two players, online, in the host's cave. Each keeps their own golem: a guest's l
 
 **Home screen:** `icon-180.png` (the Brute golem, also the page's tab icon), `manifest.webmanifest` and the `apple-mobile-web-app-*` tags in `index.html` give the game its icon, the name "Cast in Stone" and a full screen when added to a phone's home screen. On iPhone a home-screen web app keeps its own saves, separate from Safari's.
 
+## Act 3: the Root of the World (v0.52)
+
+Levels 17 to 24. Regions: **Verdant Hollow** (green, mossy, some water and mud), **Bone Orchard** (pale stone, dry), **Heartwood** (deep red, magma).
+
+| Kind | Health · attack · defence (level 1 base) | What it does | Weak / strong |
+|---|---|---|---|
+| **Rootboar** (15 × 9) | 110 · 13 · 9 | paws the ground 0.6 s, then charges at 230 until it hits something (power 24); a wall dazes it for 1.4 s and it knocks a hole in dirt | lightning ×1.5, earth ×0.6 |
+| **Bloomwisp** (9 × 9, flies) | 60 · 8 · 4 | harmless; keeps 115 away and mends the most hurt creature within 115 by 6% of its health a second along a green thread (champions a quarter of that) | fire ×1.7, water ×0.6 |
+| **Lasher** (9 × 13) | 95 · 13 · 8 | barely moves; within 100 it rears 0.5 s, then drags you towards it for up to 1.1 s and bites if you arrive (power 24). Breaking its line of sight ends the pull | fire ×1.5, water ×0.7 |
+
+Geodes, delvers and wardens also live here.
+
+- Champions: **The Tusk** (Stampede: three charges back and forth, five when hurt), **The Strangler** (Thrash: four vine strikes along lines shown first, six when hurt), **The Gardener** (a Bloomwisp that shoots; Bloom: it gathers itself for 2.6 s, mending 14% of its health, then bursts within 70, unless you take 5% of its health off it first, which breaks the bloom and leaves it dazed for 3 s).
+- **The Heartroot** (`heartTick`, `KData.bosses.heartroot`): hangs over its lake, shut, and shut it takes 30% of any damage. Three attacks in turn, each shown first. *Seeds:* four lobbed to burst round you. *Lash:* a line across the whole lair at your height, then the vine strikes along it: jump it or be elsewhere (twice, three times when hurt). *Pulse:* a ring (95) shows, then everyone inside is thrown away from it. After each attack it opens for 2.4 s and takes full damage. Fire hurts it most. Its fall gives the Heartseed (+40 mana) and the best special spell you do not know.
+- After the third act the three come round again, eight levels higher each time.
+
 ## Balance by bot, and the second cave's champions (v0.50)
 
 Measured with scratchpad `bal.js`: a simple bot at the creature's own level (points spread 40% attack, 30% mana, 30% vitality, no runestones) in an open room keeps 45 to 120 away, jumps on a wind-up and casts a two-element shot. With Lightning, Lightning (which lands at once) it now kills ordinary creatures in 2 to 6 s (they were 1 to 4 s, so several had their health raised about 40%: crawler 85, moth 50, slinger 62, wisp 42, mirehopper 70, imp 36, shade 74, wraith 68), a warden in about 30 s, and champions in 36 to 82 s. An open room flatters the bot; the caves are harder.

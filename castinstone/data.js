@@ -360,6 +360,15 @@ const KData = (() => {
     geode: { name: 'Geode', desc: 'Set in a wall. It glows, then fires three shards in a fan. Earth cracks it; lightning does little.', w: 11, h: 11, hp: 60, attack: 12, defence: 8,
       glow: 0.75, every: 2.8, spread: 0.22, speed: 190, power: 13, range: 220, affinity: { earth: 1.6, lightning: 0.5 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
   });
+  // The third cave's creatures (the Root of the World).
+  Object.assign(enemies, {
+    boar: { name: 'Rootboar', desc: 'Paws the ground, then charges flat out and does not stop until it hits something. Jump it; when it hits a wall it is dazed. Weak to lightning.', w: 15, h: 9, hp: 110, attack: 13, defence: 9,
+      walk: 28, see: 170, paw: 0.6, charge: 230, chargeTime: 1.6, daze: 1.4, every: 3, power: 24, knock: 260, affinity: { lightning: 1.5, earth: 0.6 }, xp: 1.4, spawn: { weights: [0, 0, 0], from: 99 } },
+    mender: { name: 'Bloomwisp', desc: 'Harmless itself. It keeps away from you and mends any hurt creature near it along a green thread. Kill it first. Weak to fire.', w: 9, h: 9, hp: 60, attack: 8, defence: 4,
+      fly: 60, keep: 115, reach: 115, mend: 0.06, shot: 14, shotEvery: 1.7, affinity: { fire: 1.7, water: 0.6 }, xp: 1.4, spawn: { weights: [0, 0, 0], from: 99 } },
+    lasher: { name: 'Lasher', desc: 'Barely moves. It throws out a vine and drags you to its mouth. Get out of its sight, or kill it while it pulls. Weak to fire.', w: 9, h: 13, hp: 95, attack: 13, defence: 8,
+      walk: 12, reach: 100, wind: 0.5, pullTime: 1.1, pull: 420, every: 3.5, power: 24, knock: 140, affinity: { fire: 1.5, water: 0.7 }, xp: 1.4, spawn: { weights: [0, 0, 0], from: 99 } },
+  });
   // shared by every enemy kind
   for (const k in enemies) Object.assign(enemies[k], { sight: enemies.crawler.sight, sense: enemies.crawler.sense, hearing: enemies.crawler.hearing, forget: enemies.crawler.forget,
     respawn: 25, awake: 380, respawnClear: 300, perLevel: enemies.crawler.perLevel }, { ...enemies[k] });
@@ -374,7 +383,7 @@ const KData = (() => {
   // not come back once beaten, and each gives a Legendary runestone, a tome,
   // shards and a lot of experience.
   const champions = {
-    size: 1.8, hp: { warden: 4, moth: 14, delver: 9, shade: 8, urchin: 6, wraith: 10 },   // times an ordinary one's health   // times an ordinary one's health: about 2,100 to 2,300 at level 8
+    size: 1.8, hp: { warden: 4, moth: 14, delver: 9, shade: 8, urchin: 6, wraith: 10, boar: 6, lasher: 7, mender: 12 },   // times an ordinary one's health   // times an ordinary one's health: about 2,100 to 2,300 at level 8
     attack: 1.25, xp: 8, shards: 30, apart: 500,
     // One per region, in this order (Rose Hollows, Drowned Galleries, Ember Veins). Each has an attack of
     // its own (game.championTick): every `every` seconds, more of it (`rageCount`) below `rage` of its health.
@@ -382,6 +391,10 @@ const KData = (() => {
       warden: { every: 9, wind: 1.0, count: 6, rageCount: 10, rage: 0.4, gap: 0.3, power: 24, spread: 80, open: 1.5 },      // Rockfall: boulders drop from the roof around you
       moth: { every: 7, wind: 0.9, count: 5, rageCount: 8, rage: 0.5, range: 170, power: 20, open: 1.5 },                    // Lantern burst: lightning along lines you can see
       delver: { every: 8, wind: 1.1, count: 1, rageCount: 2, rage: 0.4, gap: 0.9, radius: 28, power: 26, open: 2.6 },   // Eruption: it bursts up through the floor where you stood
+      // the third cave's three
+      boar: { every: 7, wind: 0.5, count: 3, rageCount: 5, rage: 0.4, gap: 0.5, speed: 270, time: 0.7, power: 26, open: 2.2 },   // Stampede: charge after charge, back and forth
+      lasher: { every: 6, wind: 0.4, count: 4, rageCount: 6, rage: 0.4, gap: 0.3, range: 130, power: 20, open: 1.8 },          // Thrash: its vine strikes along lines you can see
+      mender: { every: 9, wind: 2.6, count: 1, rageCount: 1, rage: 0.4, heal: 0.14, breakAt: 0.05, radius: 70, power: 28, open: 3 },   // Bloom: it mends itself, then bursts, unless you hurt it enough first
       // the second cave's three
       shade: { every: 7, wind: 0.4, count: 3, rageCount: 5, rage: 0.4, gap: 0.45, power: 22, open: 1.8 },          // Reflections: it steps out of the air again and again, slashing each time
       urchin: { every: 8, wind: 0.9, count: 3, rageCount: 5, rage: 0.4, gap: 0.4, spikes: 12, power: 13, open: 2.0 },  // Spiral: volley after volley of spines, each turned a little
@@ -411,6 +424,12 @@ const KData = (() => {
     rainWarn: 0.7, rainGap: 0.55, rainCount: 4, rainPower: 22, contact: 20, knock: 200, touchCd: 0.9,
     affinity: { lightning: 1.4, earth: 0.7 } };
 
+  bosses.heartroot = { name: 'The Heartroot', region: 'root', core: 'Heartseed',
+    desc: 'The cave\'s own heart, hanging over its lake. Shut, it shrugs off most of what you throw. After each attack it opens for a few seconds: that is when to hit it. Fire hurts it most.',
+    hp: 1250, attack: 16, defence: 16, perLevel: { hp: 0.3, attack: 2, defence: 1 }, rageAt: 0.5, reset: 8, xpMul: 20, shardsMul: 60,
+    shut: 0.3, openTime: 2.4, seeds: 4, seedPower: 22, lashWarn: 0.85, lashPower: 26, lashHalf: 7, pulseWind: 1.1, pulseRadius: 95, pulsePower: 18, pulseKnock: 330,
+    contact: 22, knock: 220, touchCd: 0.9, affinity: { fire: 1.5, water: 0.7 } };
+
   // ---------- Regions ----------
   // The cave spreads in every direction from the hub. Each region has its own
   // stone colours (strata), background, lichen, and pools in its chambers.
@@ -433,6 +452,15 @@ const KData = (() => {
     { id: 'ashen', name: 'Ashen Maw', bg: [22, 18, 20], lichen: 0.05, hang: 0.1, pool: 'MAGMA', poolFrom: 0.5, mud: 0,
       strata: [[92, 86, 84], [110, 102, 98], [72, 66, 68], [128, 118, 110], [58, 54, 58], [100, 92, 90]] },
   ];
+  // the third cave's regions
+  const biomesRoot = [
+    { id: 'verdant', name: 'Verdant Hollow', bg: [14, 26, 22], lichen: 0.9, hang: 0.6, pool: 'WATER', poolFrom: 0.7, mud: 0.4,
+      strata: [[70, 104, 84], [86, 120, 92], [58, 88, 76], [104, 138, 100], [48, 74, 66], [78, 110, 88]] },
+    { id: 'bone', name: 'Bone Orchard', bg: [26, 24, 26], lichen: 0.2, hang: 0.3, pool: null, mud: 0,
+      strata: [[150, 142, 128], [170, 160, 142], [128, 120, 112], [188, 178, 156], [108, 102, 98], [158, 150, 134]] },
+    { id: 'heartwood', name: 'Heartwood', bg: [30, 12, 18], lichen: 0.5, hang: 0.4, pool: 'MAGMA', poolFrom: 0.7, mud: 0,
+      strata: [[120, 56, 60], [138, 68, 66], [98, 44, 54], [156, 84, 72], [80, 36, 48], [128, 62, 62]] },
+  ];
   // The game in acts. Each cave you descend to is the next act: its own regions, creatures (which kinds
   // the generator's five become, by region: [kind, from level, share of 100]), champions and last boss.
   // Past the last act they come round again, eight levels higher each time.
@@ -441,6 +469,8 @@ const KData = (() => {
     { name: 'The Sunless Deep', biomes: biomesDeep, boss: 'hollowking', order: ['shade', 'urchin', 'wraith'], champions: { shade: 'The Mirror', urchin: 'The Thousand Spines', wraith: 'The Pale Regent' },
       // nothing of the first cave's crawlers, moths or spitters is left down here; delvers and wardens live in both
       remix: { crawler: [[['shade', 0, 60], ['urchin', 0, 40]], [['urchin', 0, 60], ['shade', 0, 40]], [['shade', 0, 50], ['urchin', 0, 50]]], moth: [[['wraith', 0, 50], ['shade', 0, 25], ['urchin', 0, 25]], [['wraith', 0, 50], ['urchin', 0, 30], ['shade', 0, 20]], [['wraith', 0, 60], ['shade', 0, 20], ['urchin', 0, 20]]], spitter: [[['geode', 0, 100]], [['geode', 0, 100]], [['geode', 0, 100]]] } },
+    { name: 'The Root of the World', biomes: biomesRoot, boss: 'heartroot', order: ['boar', 'mender', 'lasher'], champions: { boar: 'The Tusk', mender: 'The Gardener', lasher: 'The Strangler' },
+      remix: { crawler: [[['boar', 0, 45], ['lasher', 0, 55]], [['boar', 0, 60], ['lasher', 0, 40]], [['lasher', 0, 50], ['boar', 0, 50]]], moth: [[['mender', 0, 45], ['lasher', 0, 30], ['boar', 0, 25]], [['mender', 0, 40], ['boar', 0, 35], ['lasher', 0, 25]], [['mender', 0, 45], ['boar', 0, 30], ['lasher', 0, 25]]], spitter: [[['geode', 0, 100]], [['geode', 0, 100]], [['geode', 0, 100]]] } },
   ];
   const cave = { chambers: 104, spacing: 150, hubRadius: 320, regionDistance: 800, levelEvery: 200, depthLevels: 8,
     tunnel: [12, 17], plugChance: 0.16, loopChance: 0.55, lodestones: 15, stoneReach: 46, stoneUp: 30, stoneDown: 50,   // how near counts as at a Lodestone: sideways, above it, below it

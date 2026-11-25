@@ -131,6 +131,13 @@ const KRender = (() => {
       "...g...g.g...g...", "...g..ggggg..g...", "...ggggggggggg...", "...gkgggkgggkg...", "..kkkkkkkkkkkkk..", ".kbbbbbbbbbbbbbk.", ".kbbkkkbbbkkkbbk.", ".kbkkekkbkkekkbk.", ".kbbkkkbbbkkkbbk.", ".kbbbbbbkbbbbbbk.", "..kbbkbkbkbkbbk..", "...kkbkbkbkbkk...", "..krrkkkkkkkrrk..", ".krrrrrrorrrrrrk.", "krrrkrroooorkrrrk", "krrk.krrorrk.krrk", "kbk..krrrrrk..kbk", ".....krrkrrk.....", "....krrk.krrk....", "....kr.....rk....",
     ]],
   });
+  // the third cave's creatures and its heart
+  Object.assign(ENEMY_ART, {
+    boar: [["....kk.........", "...kmmkkkkkk...", "..kmmmmmmmmmkk.", ".kmhmmmmmmmmmek", "kmmmmmmmmmmmmtt", "kmmmmmmmmmmmkt.", ".kdmmddmmmddk..", ".kdk.kdk.kdkk..", ".kk..kk..kk...."]],
+    mender: [["....o....", "..okgko..", ".okgggko.", "okggeggko", ".okgggko.", "..okgko..", "...kok...", "....k....", "....o...."]],
+    lasher: [["...ggg...", "..gkkkg..", ".gktttkg.", ".gktttkg.", "..gkkkg..", "...gdg...", "..gdgdg..", "...gdg...", "..gdgdg..", "...gdg...", "..gdddg..", ".gddgddg.", "gdg...gdg"]],
+    heartroot: [["......kdk.kdk....", "......kdk.kdk....", ".....kddkkddk....", "...kkkrrrrrrkkk..", "..krrrrrrrrrrrrk.", ".krrhrrrrrrrrhrrk", ".krrrrrkkkrrrrrrk", "krrrrrkoookrrrrrk", "krrrrkoooookrrrrk", "krrrrkoooookrrrrk", "krrrrrkoookrrrrrk", ".krrrrrkkkrrrrrk.", ".krrhrrrrrrrhrrk.", "..krrrrrrrrrrrk..", "...kkrrrrrrrkk...", ".....kkrrrkk.....", ".......kdk.......", "......kd.dk......"]],
+  });
   const ENEMY_COL = {
     moth: { w: [222, 196, 244], k: [40, 30, 50], b: [124, 104, 146], e: [255, 70, 160] },
     delver: { k: [24, 16, 20], m: [122, 98, 92], h: [154, 126, 112], d: [84, 66, 64], t: [240, 230, 210], e: [255, 70, 160] },
@@ -144,6 +151,10 @@ const KRender = (() => {
     wraith: { k: [40, 34, 34], w: [176, 166, 160], e: [255, 120, 60] },
     geode: { k: [26, 24, 34], m: [96, 92, 110], h: [140, 136, 156], o: [150, 110, 255] },
     hollowking: { k: [12, 10, 18], g: [255, 211, 122], b: [214, 206, 190], r: [64, 50, 96], o: [170, 130, 255], e: [200, 170, 255] },
+    boar: { k: [24, 16, 14], m: [128, 92, 70], h: [170, 130, 98], d: [84, 58, 50], t: [236, 226, 200], e: [255, 80, 80] },
+    mender: { k: [14, 40, 26], g: [90, 200, 120], o: [170, 255, 190], e: [255, 255, 255] },
+    lasher: { k: [16, 30, 18], g: [70, 140, 80], d: [48, 96, 58], t: [240, 230, 210] },
+    heartroot: { k: [28, 8, 14], r: [170, 50, 62], h: [220, 96, 100], d: [84, 58, 50], o: [255, 190, 120] },
     warden: { k: [16, 14, 22], m: [112, 120, 142], p: [156, 162, 184], s: [72, 76, 94], f: [128, 134, 154], d: [72, 76, 94], e: [255, 70, 160] },
   };
   const SACK = { k: [44, 36, 56], s: [138, 128, 160], x: [206, 198, 226], p: [96, 70, 74] };
@@ -503,7 +514,7 @@ const KRender = (() => {
     // The Emberwyrm: a chain of basalt plates with glowing cracks, and a head
     // with jaws. Under the magma it shows faintly.
     drawBoss(b, game) {
-      if (b.type === 'hollowking') { const y = b.y; b.y = y + b.h / 2; this.drawEnemy(b, game.time); b.y = y; this.light(b.x, y, b.state === 'hover' ? 26 : 40, [170, 130, 255], 0.6); return; }
+      if (b.type !== 'emberwyrm') { const y = b.y; b.y = y + b.h / 2; this.drawEnemy(b, game.time); b.y = y; this.light(b.x, y, b.state === 'hover' ? 26 : 40, b.type === 'heartroot' ? [255, 120, 110] : [170, 130, 255], 0.6); return; }
       const w = game.world, cx = this.cam.x, cy = this.cam.y;
       const disc = (x, y, r, col, a, crack) => {
         for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
@@ -549,6 +560,7 @@ const KRender = (() => {
         const ch = rows[y][x];
         if (ch === '.') continue;
         let col = C[ch];
+        if (e.shut && ch === 'o') col = [70, 30, 36];   // the Heartroot, closed
         if (ch === 'e') col = e.elite || e.champion ? [255, 200, 90] : warn ? [255, 170 + 85 * warn, 230] : col;
         if ((ch === 'o' || ch === 'w') && warn) col = col.map(v => Math.min(255, v + 60 * warn));
         if (ch === 'p' && warn) col = col.map(v => Math.min(255, v + 70 * warn));
