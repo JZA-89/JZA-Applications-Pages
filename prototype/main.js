@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.31';
+  const VERSION = 'v0.32';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -159,8 +159,19 @@
     $('panelEyebrow').textContent = m === 'start' ? `Prototype · one player · ${VERSION}` : 'Paused';
     $('btnGo').textContent = m === 'start' ? (hadSave ? 'Continue' : 'Start') : 'Resume';
     $('btnPanelReset').hidden = m === 'start';
-    $('saveLine').innerHTML = !started ? '' : chip('star', `Level ${p.level}`) + chip('stone', `${game.found.size} of ${game.world.lodestones.length} Lodestones`) +
-      chip('book', `${p.known.length} of ${Object.keys(KData.specials).length} special spells`) + (p.shards ? chip('shard', `${p.shards} shards`, 'teal') : '');
+    $('saveLine').innerHTML = !started ? '' : chip('star', `Level ${p.level}`) + (p.shards ? chip('shard', `${p.shards} shards`, 'teal') : '');
+    $('panelLede').hidden = started;
+    // the journey: what there is to find in this cave, and what it has given you
+    const w = game.world, B = game.boons(), champs = game.enemies.filter(e => e.champion);
+    const tile = (icon, n, of, name, note) => `<div class="jt${n >= of ? ' done' : ''}">${KIcon(icon)}<b>${n}<small> of ${of}</small></b><span>${name}</span><i>${note}</i></div>`;
+    $('journeyTitle').hidden = $('journey').hidden = !started;
+    if (started) $('journey').innerHTML =
+      tile('stone', game.found.size, w.lodestones.length, 'Lodestones', 'Rest, travel') +
+      tile('rune', game.opened.size, w.caches.length, 'Relic caches', 'Runestones, tomes') +
+      tile('book', game.read.size, game.tablets.length, 'Rune tablets', B.tabs ? `+${KData.treasure.boons.tablet.mana * B.tabs} mana so far` : 'A spell, +5 mana each') +
+      tile('crown', B.champs, champs.length, 'Champions', B.champs ? `+${KData.treasure.boons.champion.hp * B.champs} health and mana so far` : '+20 health and mana each') +
+      tile('fire', B.cores, w.lair ? 1 : 0, 'The Emberwyrm', B.cores ? 'Ember core: +40 mana' : 'Guards the Ember core') +
+      tile('star', p.known.length, Object.keys(KData.specials).length, 'Special spells', 'Five circles');
     showPanelTab(m === 'help' ? 'book' : 'game');
     $('btnGo').focus({ preventScroll: true });
   }

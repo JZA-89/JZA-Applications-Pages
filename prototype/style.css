@@ -173,7 +173,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 @keyframes slabIn { from { opacity: 0; transform: translateY(8px) scale(.985); } }
 .shell-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 26px 34px 14px; }
 .eyebrow { margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--gold); }
-.logo { margin: 0; font: 600 46px/1 var(--serif); letter-spacing: .14em; color: #f4ead9; text-shadow: 0 1px 0 #fff2, 0 -1px 0 #000, 0 3px 0 #0a0710, 0 10px 26px #000; }
+.logo { margin: 0; white-space: nowrap; font: 600 46px/1 var(--serif); letter-spacing: .14em; color: #f4ead9; text-shadow: 0 1px 0 #fff2, 0 -1px 0 #000, 0 3px 0 #0a0710, 0 10px 26px #000; }
 .logo span { font-size: .52em; letter-spacing: .3em; color: var(--gold); vertical-align: .32em; margin: 0 .1em; }
 .title { margin: 0; font: 600 32px/1.05 var(--serif); letter-spacing: .06em; color: #f4ead9; text-shadow: 0 2px 0 #0a0710; }
 .lede { margin: 0 0 16px; max-width: 70ch; font-size: 14px; line-height: 1.6; color: var(--muted); }
@@ -339,3 +339,14 @@ h2.rule::before, h2.rule::after { content: ''; flex: 1; height: 1px; background:
 /* special spells by circle */
 h3.circle { display: flex; align-items: baseline; gap: 10px; margin: 16px 0 8px; font: 600 14px/1 var(--serif); letter-spacing: .06em; color: var(--ink); }
 h3.circle small { margin-left: auto; font: 700 11.5px/1 "Avenir Next", system-ui, sans-serif; letter-spacing: .04em; color: var(--gold); }
+
+/* the journey: what the cave holds and what you have found */
+.journey { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 8px; }
+.jt { display: grid; justify-items: center; gap: 4px; padding: 12px 6px 10px; border-radius: 12px; text-align: center; background: #0b0810; box-shadow: inset 0 0 0 1px var(--line); }
+.jt svg { width: 20px; height: 20px; color: var(--dim); }
+.jt b { font: 600 20px/1 var(--serif); color: var(--ink); } .jt b small { font: 600 11.5px/1 "Avenir Next", system-ui, sans-serif; color: var(--dim); }
+.jt span { font: 600 12.5px/1.2 var(--serif); letter-spacing: .04em; color: var(--muted); }
+.jt i { font-style: normal; font-size: 11px; line-height: 1.3; color: var(--dim); }
+.jt.done { box-shadow: inset 0 0 0 1px var(--gold-deep), 0 0 14px #ffd37a26; } .jt.done svg, .jt.done b { color: var(--gold); }
+@media (max-width: 760px) { .journey { grid-template-columns: repeat(3, 1fr); } }
+h2.rule.first { margin-top: 0; }

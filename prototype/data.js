@@ -378,7 +378,9 @@ const KData = (() => {
     tomeChance: 0.4,           // a cache teaches a special spell (about 16 tomes in a cave of 40 caches)
     // the highest tier of special spell a find of this level can teach
     tierFor: L => L <= 2 ? 1 : L <= 4 ? 2 : L <= 6 ? 3 : L <= 7 ? 4 : 5,
-    tablets: 9, tabletApart: 380,   // rune tablets: carved stones that each teach one special spell
+    // lasting gifts for what you have done in the cave (game.boons)
+    boons: { core: { mana: 40, regen: 0.15 }, champion: { mana: 20, hp: 20 }, tablet: { mana: 5 } },
+    tablets: 9, tabletApart: 300,   // rune tablets: carved stones that each teach one special spell
     kinds: { buried: 0.28, high: 0.45, pool: 0.7, rock: 0.4 },
     xp: L => 25 * L, shards: L => 12 * L,
     crucibleChance: L => L >= 5 ? 0.1 : 0,   // a deep cache may hold the Crucible

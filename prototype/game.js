@@ -55,12 +55,18 @@ const KGame = (() => {
       this.tablets = []; this.read = this.read || new Set();
       const homes = this.enemies.filter(e => (e.kind === 'crawler' || e.kind === 'warden') && !e.champion).map(e => e.home);
       for (let i = homes.length - 1; i > 0; i--) { const j = (R() * (i + 1)) | 0; [homes[i], homes[j]] = [homes[j], homes[i]]; }
-      for (const h of homes) {
+      // the three deepest spots are tried first, so every cave has tablets that can teach the highest circles
+      const deep = homes.slice().sort((a, b) => b.level - a.level).slice(0, 12);
+      let fromDeep = 0;
+      for (const [k, h] of deep.concat(homes).entries()) {
         if (this.tablets.length >= T.tablets) break;
+        if (k < deep.length && fromDeep >= 3) continue;
         if (h.level < 2 || this.tablets.some(t => Math.hypot(t.x - h.x, t.y - h.y) < T.tabletApart)) continue;
         if (w.lodestones.some(l => Math.hypot(l.x - h.x, l.y - h.y) < 60) || w.caches.some(c => Math.hypot(c.x - h.x, c.y - h.y) < 40)) continue;
-        const sp = w.standSpot(h.x + (R() < 0.5 ? 16 : -16), h.y - 4, 14);
-        if (sp) this.tablets.push({ id: this.tablets.length, x: sp.x, y: sp.y, level: h.level });
+        // beside the creature's home, wherever there is room to stand a slab
+        let sp = null;
+        for (const dx of [16, -16, 8, -8, 26, -26, 0]) { sp = w.standSpot(h.x + dx, h.y - 4, 12) || w.standSpot(h.x + dx, h.y - 14, 12); if (sp) break; }
+        if (sp && !this.tablets.some(t => Math.hypot(t.x - sp.x, t.y - sp.y) < T.tabletApart)) { this.tablets.push({ id: this.tablets.length, x: sp.x, y: sp.y, level: h.level }); if (k < deep.length) fromDeep++; }
       }
     }
     tabletsTick() {
@@ -68,10 +74,11 @@ const KGame = (() => {
         if (this.read.has(t.id)) continue;
         for (const p of this.players) {
           if (p.dead || Math.abs(p.x - t.x) > 10 || Math.abs(p.y - t.y) > 14) continue;
-          this.read.add(t.id);
+          this.read.add(t.id); this.applyStats(p);
           const got = this.tome(p, null, KData.treasure.tierFor(t.level), true);
           if (!got) { const n = 20 * t.level; p.shards = (p.shards || 0) + n; this.events.push({ type: 'toast', kind: 'shard', text: `A rune tablet you can already read · ${n} shards` }); }
           this.sfx('cache', t.x, t.y); this.gainXp(p, 15 * t.level, 'tablet');
+          this.events.push({ type: 'toast', kind: 'stone', text: `Rune tablet read · +${KData.treasure.boons.tablet.mana} maximum mana, for good` });
           this.fx.push({ kind: 'flash', x: t.x, y: t.y - 6, r: 30, t: 0, T: 0.5, color: [150, 240, 230] });
           this.events.push({ type: 'save' });
           break;
@@ -148,11 +155,19 @@ const KGame = (() => {
       p.stats.defence = 10 + v('defence');
       for (const el of KData.elementOrder) p.stats.power[el] = 1 + 0.06 * v(el);
       const hpFrac = p.hp / p.maxHp, mFrac = p.mana / p.maxMana;
-      p.maxHp = PD.hp + 10 * v('vitality');
-      p.maxMana = PD.mana + 10 * v('mana');
+      const B = this.boons();
+      p.maxHp = PD.hp + 10 * v('vitality') + B.hp;
+      p.maxMana = PD.mana + 10 * v('mana') + B.mana;
       p.hp = Math.min(p.maxHp, Math.max(1, hpFrac * p.maxHp));
       p.mana = Math.min(p.maxMana, mFrac * p.maxMana);
-      p.regenMul = 1 + 0.08 * v('focus');
+      p.regenMul = 1 + 0.08 * v('focus') + B.regen;
+    }
+    // Lasting gifts from the cave: each boss core, each champion beaten and each
+    // rune tablet read makes the golem a little greater for good (KData.treasure.boons).
+    boons() {
+      const T = KData.treasure.boons, cores = this.cores ? this.cores.size : 0, tabs = this.read ? this.read.size : 0;
+      let champs = 0; if (this.defeated) for (const d of this.defeated) if (String(d).startsWith('champ:')) champs++;
+      return { mana: T.core.mana * cores + T.champion.mana * champs + T.tablet.mana * tabs, hp: T.champion.hp * champs, regen: T.core.regen * cores, cores, champs, tabs };
     }
     // ---------- runestones ----------
     makeRune(level, opts = {}) {
@@ -595,6 +610,7 @@ const KGame = (() => {
       for (const e of this.enemies) if (e.champion && this.defeated.has('champ:' + e.kind)) { e.dead = true; e.hp = 0; }
       if (Array.isArray(x.cores)) this.cores = new Set(x.cores.filter(c => typeof c === 'string'));
       if (this.boss && this.defeated.has(this.boss.type)) this.boss = null;
+      for (const pl of this.players) this.applyStats(pl);
     }
 
     // ---------- the Emberwyrm ----------
@@ -817,7 +833,7 @@ const KGame = (() => {
     bossDefeated(b) {
       const B = KData.bosses[b.type], RU = KData.runes, p = b.lastHitBy && !b.lastHitBy.dead ? b.lastHitBy : this.players[0];
       b.dead = true; b.hp = 0;
-      this.defeated.add(b.type); this.cores.add(B.region);
+      this.defeated.add(b.type); this.cores.add(B.region); for (const pl of this.players) this.applyStats(pl);
       this.gainXp(p, KData.progression.killXp(b.level, 'crawler', false) * B.xpMul, 'boss');
       p.shards = (p.shards || 0) + B.shardsMul * b.level;
       this.tome(p, 'cataclysm');
@@ -833,6 +849,7 @@ const KGame = (() => {
       this.shake = Math.max(this.shake, 4); this.hitStop = 0.25;
       this.sfx('bigboom', b.x, b.y, 1.5); this.sfx('level', b.x, b.y);
       this.events.push({ type: 'toast', kind: 'big', text: `${B.name} falls · ${B.core} claimed · ${B.shardsMul * b.level} shards` });
+      this.events.push({ type: 'toast', kind: 'big', text: `The ${B.core} beats in your chest: +${KData.treasure.boons.core.mana} maximum mana, and mana refills faster` });
       this.events.push({ type: 'save' });
     }
 
@@ -2027,10 +2044,11 @@ const KGame = (() => {
       if (a.champion && a.lastHitBy) {
         // a champion falls for good: a Legendary runestone, a tome and shards
         const q = a.lastHitBy, RU = KData.runes, r = this.makeRune(a.level + 1, { tier: 3 });
-        this.defeated.add('champ:' + a.kind);
+        this.defeated.add('champ:' + a.kind); for (const pl of this.players) this.applyStats(pl);
         q.shards = (q.shards || 0) + KData.champions.shards * a.level;
         if (q.inventory.length < RU.bag) q.inventory.push(r); else this.dropRune(a.x, a.y - a.h / 2, r);
         this.events.push({ type: 'toast', kind: 'big', text: `${a.champion} has fallen · ${RU.types[r.type].name} (Legendary) · ${KData.champions.shards * a.level} shards` });
+        this.events.push({ type: 'toast', kind: 'stone', text: `You are greater for it: +${KData.treasure.boons.champion.hp} maximum health and mana, for good` });
         this.tome(q, null, 4, true);
         this.sfx('level', a.x, a.y, 1.2); this.shake = Math.max(this.shake, 5);
         this.events.push({ type: 'save' });
