@@ -496,6 +496,16 @@ Two players, online, in the host's cave. Each keeps their own golem: a guest's l
 
 **Home screen:** `icon-180.png` (the Brute golem, also the page's tab icon), `manifest.webmanifest` and the `apple-mobile-web-app-*` tags in `index.html` give the game its icon, the name "Cast in Stone" and a full screen when added to a phone's home screen. On iPhone a home-screen web app keeps its own saves, separate from Safari's.
 
+## Menus (v0.44)
+
+Jaisah: the menus should be as polished as MORPHOS's and fit the screen without scrolling or being cut off. Each menu (pause, rest, map) is now a full-screen page: one bar across the top holds what it is, its tabs (a pill row), a few facts as chips, and the button that returns to the game; the open tab fills the rest. There is no footer.
+
+- **One layout, enlarged.** Pages are laid out for 1280 × 720 or smaller. On anything bigger the whole page is scaled up as one piece (`--m` = the smaller of width / 1280 and height / 720, never under 1; `transform: scale` on `.shell`), so a large monitor shows the same page, larger. Content keeps to a 1200-wide column.
+- **Short screens** (520 px tall or less, a phone on its side): a 50 px bar, tighter rows, descriptions that are not needed dropped (stat descriptions, journey notes). Every tab fits 844 × 390 without scrolling except the two long lists (two-element recipes, special spells), which scroll.
+- **Narrow screens:** under 1000 px the rest bar drops the words beside the level gem; under 760 px tabs show only their icon unless open; under 640 px (a phone upright) the bar wraps and each tab becomes one scrolling column.
+- **Pages inside a tab** (`.seg` buttons showing one `.segview`): Spell book has Elements, Two elements and Special spells; Controls has Keyboard and mouse, Controller and Touch, and opens on the device in your hands.
+- Golem tab: Reset the cave and New game sit at its foot. Runestones: the picked stone's card is beside the golem, not under it. Forge is two columns. The map fills the page with its key beside it.
+
 ## Screen shapes (v0.43, `fit` and `fade` in main.js)
 
 The view takes the screen's shape: 16:9 shows 320 × 180 cells; wider keeps 180 high and shows up to 640 across; taller keeps 320 across and shows up to 720 high. Nobody sees further for it: the picture is clear to 186 cells from the golem (the corner of a 16:9 view) and black by 250 (`#fade`, a radial gradient that follows the golem). The HUD scales with `--u` (the smaller of width / 1280 and height / 720, between 0.55 and 1.5) and keeps to a 16:9 frame in the middle of the screen (`--hx` each side), except on screens 600 px tall or less, which use the full width. A phone held upright puts the gauges under the map.
@@ -608,6 +618,8 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.42:** co-op (Jaisah: "OK Go ahead"). Chose both devices running the game and swapping presses, rather than the host streaming the world: the sand simulation changes thousands of cells a second, which is too much to send, while presses are a few bytes. Jaisah: do not keep code for carrying old saves over; early development, starting again is fine. So one way of building a cave, and a new save key.
 
 - **v0.43:** Jaisah: fill the screen on everything from a phone to an ultrawide as MORPHOS does, fade to black rather than let a wide screen see further, fan the touch elements round the buttons, F for full screen. Rest moved to R rather than Alt: browsers use Alt themselves (the menu bar on Windows; Alt with D or the arrow keys moves the address bar or the page), and D is the run key. The cast plates now say LMB and RMB so R is not read as the right mouse button.
+
+- **v0.44:** menus rebuilt as full-screen pages (see Menus). Checked by screenshot at 844 × 390, 1180 × 820 and 1600 × 900 for every tab.
 
 ## Checks run for v0.42
 

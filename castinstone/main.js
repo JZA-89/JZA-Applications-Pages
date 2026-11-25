@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.43';
+  const VERSION = 'v0.44';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -37,6 +37,8 @@
     // The HUD keeps to a 16:9 frame in the middle (--hx is the margin each side), so on a very wide
     // monitor it is not out in the corners. A phone is too short to give any width away.
     stage.style.setProperty('--u', Math.max(0.55, Math.min(1.5, Math.min(w / 1280, h / 720))).toFixed(3));
+    // menus are laid out for 1280 x 720 or smaller and enlarged as one piece on anything bigger
+    document.documentElement.style.setProperty('--m', Math.max(1, Math.min(W / 1280, H / 720)).toFixed(3));
     stage.style.setProperty('--hx', (h <= 600 ? 0 : Math.max(0, Math.round((w - h * 16 / 9) / 2))) + 'px');
     R.resize(w, h);
   }
@@ -108,7 +110,7 @@
   // special spells: the ones you know show their sequence; the rest stay hidden
   function renderSpecials() {
     const known = game.players[ME].known, S = KData.specials, ids = Object.keys(S);
-    $('specialsTitle').textContent = `Special spells · ${known.length} of ${ids.length} known`;
+    $('specialsTitle').textContent = `Special spells · ${known.length} of ${ids.length}`;
     // by tier: the number of elements tells you how long an unknown one is
     const TIER = ['', 'First circle · three elements', 'Second circle · four elements', 'Third circle · five elements', 'Fourth circle · six elements', 'Fifth circle · seven elements'];
     let html = '<p class="note" style="margin:0 0 4px">Type one in its exact order, then left click. Tomes in relic caches, rune tablets, champions and the Emberwyrm teach them; the deeper the cave, the higher the circle.</p>';
@@ -124,7 +126,7 @@
   // ---------- controls, as key caps ----------
   const K = (t, cls = '') => `<kbd class="${cls}">${t}</kbd>`, EK = el => `<kbd style="--c:${elements[el].css}">${elements[el].label}</kbd>`;
   const KEYCARDS = [
-    ['golem', 'Move', [[K('A') + K('D'), 'Run. Keep walking into dirt to dig through it (hold Space too to dig upwards)'], [K('Space', 'w'), 'Jump. Keep holding in the air to Lift'], [K('Shift', 'w'), 'Move: a dash, a blink, a climb'], [K('R'), 'Rest at a Lodestone']]],
+    ['golem', 'Move', [[K('A') + K('D'), 'Run. Walk into dirt to dig (hold Space too, to dig upwards)'], [K('Space', 'w'), 'Jump. Keep holding in the air to Lift'], [K('Shift', 'w'), 'Move: a dash, a blink, a climb'], [K('R'), 'Rest at a Lodestone']]],
     ['shot', 'Cast', [[KIcon('mouse'), 'Aim with the mouse'], [K('Left', 'w'), 'Shot, aimed where you point'], [K('Right', 'w'), 'Burst, around you'], ['', 'Hold any of them to keep casting']]],
     ['rune', 'Recipe', [[elementOrder.map(EK).join(''), 'Add Fire, Water, Earth or Lightning'], [K('C'), 'Take off the last element'], [K('X'), 'Clear the recipe'], ['', 'After a cast, the next element starts a new recipe']]],
     ['keys', 'Menus', [[K('Tab', 'w'), 'Map'], [K('H'), 'Spell book'], [K('M') + K('N'), 'All sound · music, on or off'], [K('F'), 'Full screen'], [K('Esc', 'w'), 'Pause']]],
@@ -135,7 +137,14 @@
     ['keys', 'Controller: the rest', [[K('D-pad', 'w'), 'Up rest · down take off the last element · left map · right spell book'], [K('View', 'w') + K('Menu', 'w'), 'Clear the recipe · pause'],
       [K('D-pad', 'w') + K('A') + K('B'), 'In a menu: move, press, go back'], [K('LB') + K('RB'), 'In a menu: change tab']]],
   ];
-  $('keygrid').innerHTML = KEYCARDS.map(([ic, title, rows]) => `<div class="keycard"><h3>${KIcon(ic)}${title}</h3>` + rows.map(([k, t]) => `<div class="keyrow"><span class="k">${k}</span><span>${t}</span></div>`).join('') + '</div>').join('');
+  const keycards = list => list.map(([ic, title, rows]) => `<div class="keycard"><h3>${KIcon(ic)}${title}</h3>` + rows.map(([k, t]) => `<div class="keyrow"><span class="k">${k}</span><span>${t}</span></div>`).join('') + '</div>').join('');
+  $('keysKbm').innerHTML = keycards(KEYCARDS.slice(0, 4)); $('keysTouch').innerHTML = keycards(KEYCARDS.slice(4, 5)); $('keysPad').innerHTML = keycards(KEYCARDS.slice(5));
+  // pages inside a tab: a row of buttons (.seg), each showing one .segview
+  const showSeg = (view, name) => {
+    for (const b of view.querySelectorAll('.seg button')) b.setAttribute('aria-pressed', b.dataset.seg === name ? 'true' : 'false');
+    for (const v of view.querySelectorAll('.segview')) v.hidden = v.dataset.segview !== name;
+  };
+  for (const b of document.querySelectorAll('.seg button')) b.addEventListener('click', () => showSeg(b.closest('.view'), b.dataset.seg));
 
   // ---------- golem picker (the look; also kept in the save) ----------
   let skin = game.players[ME].skin || 0;
@@ -183,6 +192,7 @@
     for (const b of document.querySelectorAll('#panelTabs .tab')) b.setAttribute('aria-selected', b.dataset.tab === t ? 'true' : 'false');
     for (const v of document.querySelectorAll('#panel .view')) v.hidden = v.dataset.view !== t;
     if (t === 'book') renderSpecials();
+    if (t === 'controls') showSeg($('viewControls'), KInput.device);   // the controls for what is in your hands
   }
   for (const b of document.querySelectorAll('#panelTabs .tab')) b.addEventListener('click', () => showPanelTab(b.dataset.tab));
   function setMode(m) {
@@ -337,7 +347,7 @@
     $('restLevel').textContent = p.level;
     $('restGem').style.setProperty('--pct', Math.min(100, 100 * p.xp / P.xpFor(p.level)).toFixed(1));
     $('restXp').textContent = `${Math.floor(p.xp)} of ${P.xpFor(p.level)} experience to level ${p.level + 1}`;
-    $('restChips').innerHTML = chip('star', p.points ? `${p.points} stat point${p.points === 1 ? '' : 's'} to spend` : 'No stat points', p.points ? 'gold' : '') + chip('shard', `${p.shards || 0} shards`, 'teal');
+    $('restChips').innerHTML = chip('star', p.points ? `${p.points} stat point${p.points === 1 ? '' : 's'}` : 'No stat points', p.points ? 'gold' : '') + chip('shard', `${p.shards || 0} shards`, 'teal');
     for (const t of document.querySelectorAll('.rest-tab')) {
       t.setAttribute('aria-selected', t.dataset.tab === restTab ? 'true' : 'false');
       const dot = t.querySelector('.dot'); if (dot) dot.remove();
