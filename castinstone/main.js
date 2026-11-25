@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.42';
+  const VERSION = 'v0.43';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -27,13 +27,34 @@
 
   // ---------- layout: the HUD scales with the stage (--u = stage width / 1280) ----------
   function fit() {
-    const s = Math.min(innerWidth / V.w, innerHeight / V.h);
-    const w = Math.floor(V.w * s), h = Math.floor(V.h * s);
+    // The view takes the screen's shape. A 16:9 screen shows 320 x 180 cells; a wider one keeps the
+    // 180 and shows more to the sides, a taller one keeps the 320 and shows more above and below.
+    // Nobody sees further for it: past SIGHT cells from the golem the picture fades to black (fade()).
+    const W = innerWidth, H = innerHeight, wide = W / H >= 16 / 9;
+    R.setView(wide ? Math.min(640, Math.round(180 * W / H)) : 320, wide ? 180 : Math.min(720, Math.round(320 * H / W)));
+    const s = Math.min(W / V.w, H / V.h), w = Math.floor(V.w * s), h = Math.floor(V.h * s);
     stage.style.width = w + 'px'; stage.style.height = h + 'px';
-    stage.style.setProperty('--u', Math.max(0.55, Math.min(1.5, w / 1280)).toFixed(3));
+    // The HUD keeps to a 16:9 frame in the middle (--hx is the margin each side), so on a very wide
+    // monitor it is not out in the corners. A phone is too short to give any width away.
+    stage.style.setProperty('--u', Math.max(0.55, Math.min(1.5, Math.min(w / 1280, h / 720))).toFixed(3));
+    stage.style.setProperty('--hx', (h <= 600 ? 0 : Math.max(0, Math.round((w - h * 16 / 9) / 2))) + 'px');
     R.resize(w, h);
   }
   addEventListener('resize', fit);
+  // how far the golem sees: clear to SIGHT cells (the corner of a 16:9 screen), black by SIGHT_END
+  const SIGHT = 186, SIGHT_END = 250;
+  let fadeWas = '';
+  function fade() {
+    const p = game.players[ME], s = stage.clientWidth / V.w;
+    const css = `radial-gradient(circle at ${Math.round((p.x - R.cam.x + 0.5) * s)}px ${Math.round((p.y - 8 - R.cam.y) * s)}px, #0000 ${Math.round(SIGHT * s)}px, #000 ${Math.round(SIGHT_END * s)}px)`;
+    if (css !== fadeWas) { fadeWas = css; $('fade').style.background = css; }
+  }
+  // F: full screen (where the browser allows it; an iPhone does not)
+  addEventListener('keydown', e => {
+    if (e.code !== 'KeyF' || e.repeat || e.metaKey || e.ctrlKey || e.altKey || (e.target && e.target.tagName === 'INPUT')) return;
+    const d = document;
+    try { if (d.fullscreenElement) d.exitFullscreen(); else if (d.documentElement.requestFullscreen) d.documentElement.requestFullscreen().catch(() => {}); } catch (x) {}
+  });
   fit();
 
   // ---------- the four element keys ----------
@@ -103,10 +124,10 @@
   // ---------- controls, as key caps ----------
   const K = (t, cls = '') => `<kbd class="${cls}">${t}</kbd>`, EK = el => `<kbd style="--c:${elements[el].css}">${elements[el].label}</kbd>`;
   const KEYCARDS = [
-    ['golem', 'Move', [[K('A') + K('D'), 'Run. Keep walking into dirt to dig through it (hold Space too to dig upwards)'], [K('Space', 'w'), 'Jump. Keep holding in the air to Lift'], [K('Shift', 'w'), 'Move: a dash, a blink, a climb'], [K('F'), 'Rest at a Lodestone']]],
+    ['golem', 'Move', [[K('A') + K('D'), 'Run. Keep walking into dirt to dig through it (hold Space too to dig upwards)'], [K('Space', 'w'), 'Jump. Keep holding in the air to Lift'], [K('Shift', 'w'), 'Move: a dash, a blink, a climb'], [K('R'), 'Rest at a Lodestone']]],
     ['shot', 'Cast', [[KIcon('mouse'), 'Aim with the mouse'], [K('Left', 'w'), 'Shot, aimed where you point'], [K('Right', 'w'), 'Burst, around you'], ['', 'Hold any of them to keep casting']]],
     ['rune', 'Recipe', [[elementOrder.map(EK).join(''), 'Add Fire, Water, Earth or Lightning'], [K('C'), 'Take off the last element'], [K('X'), 'Clear the recipe'], ['', 'After a cast, the next element starts a new recipe']]],
-    ['keys', 'Menus', [[K('Tab', 'w'), 'Map'], [K('H'), 'Spell book'], [K('M') + K('N'), 'All sound · music, on or off'], [K('Esc', 'w'), 'Pause']]],
+    ['keys', 'Menus', [[K('Tab', 'w'), 'Map'], [K('H'), 'Spell book'], [K('M') + K('N'), 'All sound · music, on or off'], [K('F'), 'Full screen'], [K('Esc', 'w'), 'Pause']]],
     ['golem', 'Touch', [['Left thumb', 'A stick appears where you touch: run, and push into dirt to dig'], ['Shot', 'Hold to cast. The golem aims at the nearest creature; drag from the button to aim yourself'], ['Jump · Move · Burst', 'The three buttons round Shot. Hold Jump in the air to Lift'],
       ['Elements', 'The four buttons above; the arrow takes off the last one'], ['', 'Tap the Lodestone notice to rest; the map and the round buttons at the top open the menus']]],
     ['move', 'Controller: play', [[K('L stick', 'w') + K('R stick', 'w'), 'Run (push into dirt to dig) · aim'], [K('LT') + K('RT'), 'Jump and Lift · Shot'], [K('LB') + K('RB'), 'Move (dash) · Burst'],
@@ -450,7 +471,7 @@
     const name = p.queue.join('+') + specs.map((sp, i) => !sp ? '-' : (sp.special ? 'S' : '') + (p.mana >= (sp.drain ? sp.min : sp.cost) ? 1 : 0) + (p.channels[KData.modes[i]] ? 'L' : '')).join('') + (pad ? '#pad' : '');
     if (name !== hud.name) {
       hud.name = name;
-      const keysFor = pad ? { shot: 'RT', burst: 'RB', lift: 'LT', move: 'LB' } : { shot: 'L', burst: 'R', lift: 'Spc', move: 'Shft' };
+      const keysFor = pad ? { shot: 'RT', burst: 'RB', lift: 'LT', move: 'LB' } : { shot: 'LMB', burst: 'RMB', lift: 'Spc', move: 'Shft' };
       $('plates').innerHTML = KData.modes.map((md, i) => {
         const sp = specs[i];
         if (!sp) return `<div class="plate idle"><span class="pi">${KIcon(md)}</span><span class="pn">${MODE_LABEL[md][0]}</span><span class="pc"><kbd>${keysFor[md]}</kbd></span></div>`;
@@ -470,7 +491,7 @@
     if (b) $('bossFill').style.transform = `scaleX(${Math.max(0, b.hp) / b.maxHp})`;
     // the rest prompt next to a Lodestone
     const near = !!p.nearStone && mode === 'play';
-    if ((near ? (pad ? 2 : tch ? 3 : 1) : 0) !== hud.near) { hud.near = near ? (pad ? 2 : tch ? 3 : 1) : 0; $('restPrompt').hidden = !near; $('restPrompt').innerHTML = tch ? `${KIcon('stone')}Tap to rest at the Lodestone` : pad ? `${KIcon('stone')}D-pad up · Rest at the Lodestone` : '<kbd>F</kbd>Rest at the Lodestone'; }
+    if ((near ? (pad ? 2 : tch ? 3 : 1) : 0) !== hud.near) { hud.near = near ? (pad ? 2 : tch ? 3 : 1) : 0; $('restPrompt').hidden = !near; $('restPrompt').innerHTML = tch ? `${KIcon('stone')}Tap to rest at the Lodestone` : pad ? `${KIcon('stone')}D-pad up · Rest at the Lodestone` : '<kbd>R</kbd>Rest at the Lodestone'; }
   }
 
   // ---------- what is under the mouse (a note in the corner) ----------
@@ -618,6 +639,7 @@
     let mark = null;
     if (mode === 'play' && !p.dead && p.recipe) { const sp = game.spec(p, 'shot'); if (sp && sp.special && p.mana >= sp.cost) mark = game.specialTarget(p, sp.id); }
     R.draw(game, { reticle, mark, reduced: reduced.matches, dt: mode === 'play' ? dt : 0 });
+    fade();
     updateHud();
     updateLook();
     updateMap();

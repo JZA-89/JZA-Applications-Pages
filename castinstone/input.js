@@ -10,7 +10,7 @@
 
    Keyboard and mouse: A/D run, Space jump and Lift, Shift Move, left click
    Shot, right click Burst, Q W E S elements, C or Z take off the last, X
-   clear, F rest, Tab map, H spell book, Esc pause.
+   clear, R rest, F full screen (main.js), Tab map, H spell book, Esc pause.
 
    Controller (standard layout, named as on an Xbox pad):
      left stick run · right stick aim · LT jump and Lift · RT Shot · LB Move
@@ -86,7 +86,7 @@ const KInput = (() => {
       if (keyToEl[e.code]) events.push({ type: 'load', el: keyToEl[e.code] });
       else if (e.code === 'KeyX') events.push({ type: 'clear' });
       else if (e.code === 'KeyC' || e.code === 'KeyZ') events.push({ type: 'undo' });
-      else if (e.code === 'KeyF') events.push({ type: 'interact' });
+      else if (e.code === 'KeyR') events.push({ type: 'interact' });
       else if (e.code === 'Escape' || e.code === 'KeyP') hooks.onPause && hooks.onPause();
       else if (e.code === 'KeyH') hooks.onHelp && hooks.onHelp();
       else if (e.code === 'Tab') hooks.onMap && hooks.onMap();

@@ -209,6 +209,17 @@ const KRender = (() => {
       return c;
     }
 
+    // How much of the cave is drawn, in cells. main.js picks it to match the screen's shape.
+    setView(w, h) {
+      if (w === V.w && h === V.h && this.img.width === w) return;
+      V.w = w; V.h = h;
+      this.base.width = w; this.base.height = h;
+      this.img = this.ctx.createImageData(w, h);
+      this.buf = new Uint32Array(this.img.data.buffer);
+      this.gw = Math.ceil(w / 8); this.gh = Math.ceil(h / 8);
+      this.heat = new Float32Array(this.gw * this.gh);
+      this.spark = new Float32Array(this.gw * this.gh);
+    }
     resize(cssW, cssH) {
       const k = Math.min(1, 640 / cssW); // glow is soft, half resolution is plenty
       this.glow.width = Math.max(1, Math.round(cssW * k)); this.glow.height = Math.max(1, Math.round(cssH * k));

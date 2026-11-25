@@ -176,7 +176,7 @@ Standing stones with a rune: one in the hub beside the start, seven more spread 
 - **Found:** the first touch lights the rune (+25 experience, a notice).
 - **Checkpoint:** the last one touched is where you rise after dying.
 - **Repair:** health and mana refill at 90 a second while you stand there.
-- **Rest:** F (d-pad up) next to it opens the rest panel (play pauses): **Stats** to spend points, **Travel** to any found Lodestone. A prompt shows while you are near.
+- **Rest:** R (d-pad up) next to it opens the rest panel (play pauses): **Stats** to spend points, **Travel** to any found Lodestone. A prompt shows while you are near.
 
 ### Experience and levels (`KData.progression`)
 
@@ -475,7 +475,8 @@ Standing in mud, or being hit by mud spray, slows. A spray hit coats the target 
 | Burst | Right click (hold repeats) | LT |
 | Move | **Shift**: tap for one-shot Moves, hold for held ones | RB |
 | Clear the elements | X | View |
-| Rest at a Lodestone | **F** | d-pad up |
+| Rest at a Lodestone | **R** | d-pad up |
+| Full screen | **F** | |
 | Spell book, pause | H, Esc or P | Menu |
 | Sound on or off | M | — |
 | Reset the map | Backspace | — |
@@ -495,12 +496,16 @@ Two players, online, in the host's cave. Each keeps their own golem: a guest's l
 
 **Home screen:** `icon-180.png` (the Brute golem, also the page's tab icon), `manifest.webmanifest` and the `apple-mobile-web-app-*` tags in `index.html` give the game its icon, the name "Cast in Stone" and a full screen when added to a phone's home screen. On iPhone a home-screen web app keeps its own saves, separate from Safari's.
 
+## Screen shapes (v0.43, `fit` and `fade` in main.js)
+
+The view takes the screen's shape: 16:9 shows 320 × 180 cells; wider keeps 180 high and shows up to 640 across; taller keeps 320 across and shows up to 720 high. Nobody sees further for it: the picture is clear to 186 cells from the golem (the corner of a 16:9 view) and black by 250 (`#fade`, a radial gradient that follows the golem). The HUD scales with `--u` (the smaller of width / 1280 and height / 720, between 0.55 and 1.5) and keeps to a 16:9 frame in the middle of the screen (`--hx` each side), except on screens 600 px tall or less, which use the full width. A phone held upright puts the gauges under the map.
+
 ## Touch (v0.41, `touch.js`, `KInput.touch`)
 
 A third input device, `'touch'`, taken on any finger press (keyboard, mouse and controller take over as before). `touch.js` builds the on-screen controls in `#touch` (shown only in play) and writes what is held into `KInput.touch`; the game still receives plain actions.
 
 - **Left:** the lower-left 44% × 70% of the screen is the run stick; it appears where the thumb lands. Sideways past 22% runs; up or down past 60% sets `moveY`.
-- **Right:** Shot (large, gold) in the corner with Jump, Move and Burst round it; above them the four elements and a button that takes off the last one. Button width `--t` is 14% of the screen's shorter side, between 46 and 80 px.
+- **Right:** Shot (large, gold) in the corner with Jump, Move and Burst round it; the four elements and the button that takes off the last one fan round those on a second arc (centred on Shot, 2.7 button-widths out, 19° apart). Button width `--t` is 14% of the screen's shorter side, between 46 and 80 px.
 - **Aim:** with no finger aiming, the golem aims at the nearest creature within 185 it can see (`autoAim` in main.js), else the way it runs. Pressing Shot and dragging more than 30% of the button's width from its middle aims by hand: drag direction is the aim, drag length sets how far a targeted special lands (36 to 186).
 - The cockpit hides the element keys and the four cast plates; the Lodestone notice is tapped to rest.
 
@@ -601,6 +606,8 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.41:** touch controls (Jaisah: "Yep, add it"). Shot doubles as the aim so one thumb can fire and aim; automatic aim covers the moments that thumb is on Jump or an element.
 
 - **v0.42:** co-op (Jaisah: "OK Go ahead"). Chose both devices running the game and swapping presses, rather than the host streaming the world: the sand simulation changes thousands of cells a second, which is too much to send, while presses are a few bytes. Jaisah: do not keep code for carrying old saves over; early development, starting again is fine. So one way of building a cave, and a new save key.
+
+- **v0.43:** Jaisah: fill the screen on everything from a phone to an ultrawide as MORPHOS does, fade to black rather than let a wide screen see further, fan the touch elements round the buttons, F for full screen. Rest moved to R rather than Alt: browsers use Alt themselves (the menu bar on Windows; Alt with D or the arrow keys moves the address bar or the page), and D is the run key. The cast plates now say LMB and RMB so R is not read as the right mouse button.
 
 ## Checks run for v0.42
 

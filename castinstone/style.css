@@ -32,12 +32,13 @@ kbd { font: 700 11px/1 ui-monospace, Menlo, monospace; display: inline-grid; pla
 svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 [hidden] { display: none !important; }
 
-/* ---------- stage: 16:9, scaled to fit ---------- */
+/* ---------- stage: fills the screen; the HUD keeps to a 16:9 frame in its middle (--hx each side) ---------- */
 #stage { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 960px; height: 540px; overflow: hidden; background: #14101f; }
 #stage > canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #view { image-rendering: pixelated; image-rendering: crisp-edges; cursor: none; touch-action: none; }
 #glow { pointer-events: none; mix-blend-mode: screen; }
-.hud { position: absolute; inset: 0; pointer-events: none; font-size: max(10px, calc(var(--u) * 12px)); }
+#fade { position: absolute; inset: 0; pointer-events: none; }   /* black beyond the golem's sight (main.js fade) */
+.hud { position: absolute; top: 0; bottom: 0; left: max(var(--hx, 0px), env(safe-area-inset-left, 0px)); right: max(var(--hx, 0px), env(safe-area-inset-right, 0px)); pointer-events: none; font-size: max(10px, calc(var(--u) * 12px)); }
 .hud button { pointer-events: auto; }
 
 /* ---------- top left: the corner map ---------- */
@@ -387,10 +388,11 @@ body[data-device="touch"][data-mode="play"] #touch { display: block; }
 .t-jump { right: calc(var(--t) * 1.6); bottom: 0; }
 .t-dash { right: calc(var(--t) * 1.22); bottom: calc(var(--t) * 1.2); }
 .t-burst { right: calc(var(--t) * .1); bottom: calc(var(--t) * 1.62); }
-.t-els { position: absolute; right: var(--sr); bottom: calc(var(--sb) + var(--t) * 2.95); display: flex; gap: calc(var(--t) * .12); }
-.t-el { position: static; width: calc(var(--t) * .82); height: calc(var(--t) * .82); color: var(--c, #cfc6dc); box-shadow: inset 0 1px 0 #ffffff2e, inset 0 0 0 2px color-mix(in srgb, var(--c, #fff) 55%, transparent), 0 4px 14px #0009; }
+/* the elements fan round the other buttons: an arc centred on Shot, 2.7 buttons out, 19 degrees apart */
+.t-els { position: absolute; right: var(--sr); bottom: var(--sb); width: 0; height: 0; }
+.t-el { position: absolute; width: calc(var(--t) * .82); height: calc(var(--t) * .82); color: var(--c, #cfc6dc); box-shadow: inset 0 1px 0 #ffffff2e, inset 0 0 0 2px color-mix(in srgb, var(--c, #fff) 55%, transparent), 0 4px 14px #0009; }
 .t-el.on { background: color-mix(in srgb, var(--c, #fff) 45%, #17121f); }
-.t-undo { --c: #cfc6dc; margin-left: calc(var(--t) * .1); }
+.t-undo { --c: #cfc6dc; }
 /* with fingers on the screen the cockpit keeps only what must be read: health, the recipe, mana and level */
 body[data-device="touch"] .ck-els, body[data-device="touch"] .plates, body[data-device="touch"] .mapbox kbd, body[data-device="touch"] .look { display: none; }
 body[data-device="touch"] .rest-prompt { bottom: calc(var(--u) * 118px); pointer-events: auto; padding: calc(var(--u) * 10px) calc(var(--u) * 16px); }
@@ -412,3 +414,14 @@ html, body { touch-action: manipulation; }   /* no double-tap zoom while tapping
 #viewCoop a { color: var(--gold); }
 .net-wait { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); padding: calc(var(--u) * 10px) calc(var(--u) * 18px); border-radius: 999px; font: 600 max(12px, calc(var(--u) * 15px))/1 var(--serif); letter-spacing: .05em;
   color: #efe6ff; background: #120e19e6; box-shadow: inset 0 1px 0 #ffffff1c, 0 0 0 1px #8f7ad0, 0 0 22px #b79cff40; }
+.t-els > :nth-child(1) { right: calc(var(--t) * 2.995); bottom: calc(var(--t) * 0.644); }
+.t-els > :nth-child(2) { right: calc(var(--t) * 2.742); bottom: calc(var(--t) * 1.499); }
+.t-els > :nth-child(3) { right: calc(var(--t) * 2.224); bottom: calc(var(--t) * 2.224); }
+.t-els > :nth-child(4) { right: calc(var(--t) * 1.499); bottom: calc(var(--t) * 2.742); }
+.t-els > :nth-child(5) { right: calc(var(--t) * 0.644); bottom: calc(var(--t) * 2.995); }
+/* a phone held upright: the thumbs have the bottom of the screen, so the gauges go under the map and the notices sit above the buttons */
+@media (orientation: portrait) {
+  body[data-device="touch"] .cockpit { bottom: auto; top: calc(var(--u) * 150px); }
+  body[data-device="touch"] .rest-prompt { bottom: 31%; }
+  body[data-device="touch"] .buffs { bottom: 36%; }
+}
