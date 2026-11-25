@@ -48,6 +48,14 @@ const KRender = (() => {
   ];
   const CRAWLER_LEGS = ['.d.d..d.d..d.d.', '..d.d..d.d..d.d'];
   const SHALE = { k: [14, 10, 20], h: [154, 144, 174], m: [108, 100, 128], d: [72, 64, 88], s: [50, 42, 62], e: [255, 70, 160] };
+  // the other enemies, facing right (frames for animation where there are two)
+  const ENEMY_ART = {"moth": [[".www.....www.", "wwwww...wwwww", "wwwwwkbkwwwww", ".wwwkbbbekww.", "..wwkbbbkww..", ".....kbk....."], [".............", ".....kbk.....", "..wwkbbbekw..", ".wwwkbbbkwww.", "wwwwwkbkwwwww", ".www.....www."]], "delver": [["....kkkkk....", "..kkmmmmmkk..", ".kmmhhhhhmmk.", "kmmhmmmmmhmek", "kmmmmmmmmmmtk", ".kmmmmmmmmmk.", "..kddddddk...", "...kk.kk....."]], "spitter": [["...kkkkk...", "..kmmmmmk..", ".kmhhmmmmk.", "kmhmmmmoook", "kmmmmmmooo.", "kmmmmmmoook", "kmmmmmmmmk.", ".kmmdmmmk..", "..kddddk...", "...kkkk...."]], "warden": [["......kkkkk......", ".....kmmmmmk.....", ".....kmememk.....", "..kkkkmmmmmkkkk..", ".kpppkkkkkkkpppk.", "kpppkmmmmmmmkpppk", "kmmkmmmmmmmmmkmmk", "kmmkmmmssmmmmkmmk", "kmmkmmmmmmmmmkmmk", "kffkmmmmmmmmmkffk", "kffkkmmmmmmmkkffk", ".kk..kmmmmmk..kk.", ".....kmmkmmk.....", ".....kmmkmmk.....", "....kddk.kddk....", "....kkkk.kkkk...."]]};
+  const ENEMY_COL = {
+    moth: { w: [222, 196, 244], k: [40, 30, 50], b: [124, 104, 146], e: [255, 70, 160] },
+    delver: { k: [24, 16, 20], m: [122, 98, 92], h: [154, 126, 112], d: [84, 66, 64], t: [240, 230, 210], e: [255, 70, 160] },
+    spitter: { k: [24, 14, 18], m: [92, 62, 60], h: [134, 92, 82], d: [60, 40, 42], o: [255, 140, 50] },
+    warden: { k: [16, 14, 22], m: [112, 120, 142], p: [156, 162, 184], s: [72, 76, 94], f: [128, 134, 154], d: [72, 76, 94], e: [255, 70, 160] },
+  };
   const SACK = { k: [44, 36, 56], s: [138, 128, 160], x: [206, 198, 226], p: [96, 70, 74] };
   const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + 0.5) / 16);
   function hash(i, j, s) {
@@ -203,7 +211,7 @@ const KRender = (() => {
       this.drawCells(world, game.time);
       this.drawLodestones(game, game.time);
       for (const d of game.dummies) this.drawDummy(d);
-      for (const e of game.enemies) if (!e.asleep) this.drawCrawler(e, game.time);
+      for (const e of game.enemies) if (!e.asleep && !e.dead) { if (e.kind === 'crawler') this.drawCrawler(e, game.time); else this.drawEnemy(e, game.time); }
       for (const pl of game.players) this.drawGolem(pl);
       this.drawCaches(game);
       this.drawLoot(game);
@@ -338,6 +346,33 @@ const KRender = (() => {
       this.plotGolem(p.skin, ox, oy, p.facing < 0, p.slots, { chipped, flash: p.flash > 0, flashSlots });
     }
 
+    drawEnemy(e, time) {
+      const frames = ENEMY_ART[e.kind], C = ENEMY_COL[e.kind];
+      const rows = frames.length > 1 ? frames[Math.floor(time * (e.state === 'swoop' ? 18 : 8) + e.id) & 1] : frames[0];
+      const W = rows[0].length, H = rows.length, flip = (e.kind === 'spitter' ? e.face : e.facing) < 0;
+      const lift = e.kind === 'warden' && e.state === 'windup' ? 1 : 0;
+      const ox = Math.round(e.x - this.cam.x) - (W >> 1), oy = Math.round(e.y - this.cam.y) - H - lift;
+      const warn = (e.state === 'windup' || (e.kind === 'spitter' && e.charging)) ? 0.5 + 0.5 * Math.sin((e.t || time) * 40) : 0;
+      const muddy = e.slowT > 0 || e.inMud;
+      const a = e.ghost ? 0.45 : 1; // a delver inside the ground shows faintly
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const ch = rows[y][x];
+        if (ch === '.') continue;
+        let col = C[ch];
+        if (ch === 'e') col = e.elite ? [255, 200, 90] : warn ? [255, 170 + 85 * warn, 230] : col;
+        if ((ch === 'o' || ch === 'w') && warn) col = col.map(v => Math.min(255, v + 60 * warn));
+        if (ch === 'p' && warn) col = col.map(v => Math.min(255, v + 70 * warn));
+        if (muddy && ch !== 'e' && ch !== 'k') col = [col[0] * 0.55 + 96 * 0.45, col[1] * 0.55 + 84 * 0.45, col[2] * 0.55 + 104 * 0.45];
+        if (e.flash > 0) col = [255, 246, 236];
+        this.plot(ox + (flip ? W - 1 - x : x), oy + y, col[0] | 0, col[1] | 0, col[2] | 0, a);
+      }
+      if (e.wetT > 0 && Math.random() < 0.3) this.plot(ox + Math.random() * W, oy + H, 120, 170, 255, 0.8);
+      if (e.hp < e.maxHp) {
+        const n = Math.ceil(13 * e.hp / e.maxHp), bx = ox + (W >> 1) - 6;
+        for (let x = 0; x < 13; x++) this.plot(bx + x, oy - 3, ...(x < n ? (e.elite ? [255, 200, 90] : [255, 110, 180]) : [52, 46, 58]));
+      }
+    }
+
     drawCrawler(e, time) {
       if (e.dead) return;
       const flip = e.facing < 0, W = 15;
@@ -352,6 +387,7 @@ const KRender = (() => {
         if (ch === '.') continue;
         let col = SHALE[ch];
         if (ch === 'e' && warn) col = [255, 170 + 85 * warn, 230];
+        if (ch === 'e' && e.elite) col = [255, 200, 90];
         if ((e.slowT > 0 || e.inMud) && ch !== 'e' && ch !== 'k') col = [col[0] * 0.55 + 96 * 0.45, col[1] * 0.55 + 84 * 0.45, col[2] * 0.55 + 104 * 0.45]; // coated in mud
         if (e.flash > 0 || e.state === 'stagger' && e.t < 0.08) col = [255, 246, 236];
         this.plot(ox + (flip ? W - 1 - x : x), oy + y + (y === rows.length - 1 ? rear : 0), col[0], col[1], col[2]);
@@ -494,8 +530,11 @@ const KRender = (() => {
       for (const l of game.world.lodestones) if (game.found.has(l.id)) this.light(l.x, l.y - 8, 18, [201, 182, 255], 0.5 + 0.12 * Math.sin(game.time * 2.5 + l.x));
       for (const e of game.enemies) {
         if (e.dead || e.asleep) continue;
-        const ex = e.x + e.facing * 6, ey = e.y - 5;
-        this.light(ex, ey, e.state === 'windup' ? 14 : 6, [255, 70, 160], e.state === 'windup' ? 0.75 : 0.35);
+        const col = e.elite ? [255, 200, 90] : e.kind === 'spitter' ? [255, 140, 50] : e.kind === 'moth' ? [222, 196, 244] : [255, 70, 160];
+        const hot = e.state === 'windup' || (e.kind === 'spitter' && e.charging) || e.state === 'swoop';
+        const ex = e.x + (e.kind === 'spitter' ? e.face : e.facing) * (e.w / 2 - 1), ey = e.y - e.h * 0.6;
+        this.light(ex, ey, hot ? 14 : e.kind === 'moth' ? 10 : 6, col, (hot ? 0.75 : 0.35) * (e.ghost ? 0.4 : 1));
+        if (e.elite) this.light(e.x, e.y - e.h / 2, 16, [255, 200, 90], 0.25);
       }
       for (const p of game.players) {
         if (p.dead) continue;

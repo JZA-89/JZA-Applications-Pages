@@ -35,7 +35,7 @@ const KGame = (() => {
       else { this.found = new Set([0]); this.opened = new Set(); this.checkpoint = 0; }
       this.bits = [];   // shards flying to a player
       this.dummies = this.world.dummySpots.map((s, i) => this.makeDummy(s, i));
-      this.enemies = this.world.crawlerHomes.map((home, i) => this.makeCrawler(home, i));
+      this.enemies = this.world.enemyHomes.map((home, i) => this.makeEnemy(home, i));
     }
 
     get actors() { return this.players.concat(this.dummies, this.enemies); }
@@ -271,12 +271,17 @@ const KGame = (() => {
         stats: KData.baseStats() };
     }
 
-    // A crawler lives in one chamber (its home) and is tougher further from the hub.
-    makeCrawler(home, i) {
-      const E = KData.enemies.crawler, L = home.level - 1;
-      const stats = KData.baseStats(); stats.attack = E.attack + E.perLevel.attack * L; stats.defence = E.defence + E.perLevel.defence * L;
-      const hp = Math.round(E.hp * (1 + E.perLevel.hp * L));
-      return { kind: 'crawler', id: i, home, level: home.level, x: home.x, y: home.y, vx: 0, vy: 0, w: E.w, h: E.h,
+    // An enemy lives in one chamber (its home) and is tougher further from the hub.
+    // A few are elites: tougher, gold-eyed, and always drop a runestone.
+    makeEnemy(home, i) {
+      const kind = home.kind || 'crawler', E = KData.enemies[kind], L = home.level - 1, EL = KData.elites;
+      const elite = home.level >= EL.from && this.rand() < EL.chance;
+      const stats = KData.baseStats();
+      stats.attack = (E.attack + E.perLevel.attack * L) * (elite ? EL.attack : 1);
+      stats.defence = E.defence + E.perLevel.defence * L;
+      const hp = Math.round(E.hp * (1 + E.perLevel.hp * L) * (elite ? EL.hp : 1));
+      return { kind, id: i, home, level: home.level, elite, x: home.x, y: home.y, vx: 0, vy: 0, w: E.w, h: E.h,
+        flying: kind === 'moth', anchored: kind === 'spitter', ghost: kind === 'delver', face: home.face || 1, fireT: 1 + this.rand() * 2,
         hp, maxHp: hp, stats, grounded: false, dead: false, respawnT: 0, lastHurt: -9, flash: 0, asleep: true,
         facing: i % 2 ? 1 : -1, dir: i % 2 ? 1 : -1, state: 'patrol', t: 0, lastSeen: -9, hit: false };
     }
@@ -289,7 +294,7 @@ const KGame = (() => {
       this.updateGrowths();
       this.updateParticles();
       this.updateProjectiles();
-      for (const e of this.enemies) this.crawlerTick(e);
+      for (const e of this.enemies) this.enemyTick(e);
       for (const a of this.actors) if (!a.asleep) this.physics(a);
       this.lodestonesTick();
       this.lootTick();
@@ -1059,8 +1064,25 @@ const KGame = (() => {
       const atk = src && src.stats ? src.stats.attack : ts.defence;
       let pow = 1;
       if (src && src.stats && spell) { const [e1, e2] = spell.split('+'); pow = (src.stats.power[e1] + src.stats.power[e2]) / 2; }
-      const mods = 1; // buffs and debuffs go here
+      // the target's element affinity (averaged over the spell's two elements) and status combos
+      let mods = 1;
+      if (spell) {
+        const [e1, e2] = spell.split('+'), S = KData.statuses;
+        mods = (this.affinity(target, e1) + this.affinity(target, e2)) / 2;
+        const els = [e1, e2];
+        if (target.wetT > 0 && els.includes(S.wet.boosts)) mods *= S.wet.by;
+        if ((target.slowT > 0 || target.inMud) && els.includes(S.muddy.boosts)) mods *= S.muddy.by;
+        if (target.burnT > 0 && els.includes(S.burning.boosts)) mods *= S.burning.by;
+      }
       return base * pow * (2 * atk / (atk + ts.defence)) * mods;
+    }
+    affinity(a, el) { const E = KData.enemies[a.kind]; return E && E.affinity && E.affinity[el] != null ? E.affinity[el] : 1; }
+    statusText(a) {
+      const t = [];
+      if (a.wetT > 0) t.push('Wet: lightning hits it 50% harder.');
+      if (a.slowT > 0 || a.inMud) t.push('Muddy: slowed, and fire hits it 40% harder.');
+      if (a.burnT > 0) t.push('Burning: water hits it 40% harder.');
+      return t.length ? ' ' + t.join(' ') : '';
     }
 
     hurt(a, amount, kx, ky, kind, src, spell) {
@@ -1070,6 +1092,7 @@ const KGame = (() => {
       if (this.has(a, 'anchor')) { kx = (kx || 0) * 0.25; ky = (ky || 0) * 0.25; }
       if (kind !== 'burn' && spell && spell.includes('fire') && this.has(src, 'burn') && a !== src) { a.burnT = 3; a.burnBy = src; }
       amount = this.damage(src || null, a, amount, spell);
+      if (spell && spell.includes('water')) { if (a.burnT > 0) { a.burnT = 0; this.burst(a.x, a.y - a.h / 2, 6, [[204, 206, 230]], 50); } a.wetT = KData.statuses.wet.time; }
       a.hp -= amount; a.lastHurt = this.time;
       a.vx += kx || 0; a.vy += ky || 0;
       if (amount >= 4) {
@@ -1077,8 +1100,10 @@ const KGame = (() => {
         const col = a.kind === 'player' ? [[240, 228, 206], [198, 178, 160]] : a.kind === 'crawler' ? [[78, 72, 94], [112, 104, 128]] : [[150, 140, 165], [200, 194, 214]];
         this.burst(a.x, a.y - a.h / 2, Math.min(14, 2 + amount / 5), col, 80);
       }
-      if (a.kind === 'crawler' && src && src.kind === 'player') { a.lastSeen = this.time; a.knownX = src.x; }
+      if (a.kind !== 'player' && a.kind !== 'dummy' && src && src.kind === 'player') { a.lastSeen = this.time; a.knownX = src.x; }
       if (a.kind === 'crawler' && amount >= KData.enemies.crawler.staggerAt && a.hp > 0) { a.state = 'stagger'; a.t = 0; }
+      if (a.kind === 'moth' && amount >= 10 && a.hp > 0 && a.state === 'windup') { a.state = 'recover'; a.t = 0; }
+      if (a.kind === 'warden' && amount >= 40 && a.hp > 0 && a.state === 'windup') { a.state = 'recover'; a.t = 0; }
       if (a.hp <= 0) this.kill(a);
     }
 
@@ -1086,15 +1111,15 @@ const KGame = (() => {
       a.dead = true; a.hp = 0;
       // experience to whoever hit it last (hazards a player caused count for 8 s)
       if (a.kind !== 'player' && a.kind !== 'dummy' && a.lastHitBy && this.time - a.lastHitAt < 8 && !a.lastHitBy.dead)
-        this.gainXp(a.lastHitBy, KData.progression.killXp(a.level || 1, a.elite ? 'elite' : a.kind), 'kill');
+        this.gainXp(a.lastHitBy, KData.progression.killXp(a.level || 1, a.kind, a.elite), 'kill');
       if (a.kind === 'player') this.events.push({ type: 'died' });
       else if (a.kind !== 'dummy' && a.lastHitBy && (a.elite || a.boss || this.rand() < KData.runes.dropChance)) {
         const n = a.boss ? 2 : 1;
         for (let k = 0; k < n; k++) this.dropRune(a.x, a.y - a.h / 2, this.makeRune(a.level || 1, a.boss ? { tier: Math.min(3, 2 + k) } : a.elite ? { tier: Math.max(1, KData.runes.tierFor(a.level, this.rand())) } : {}));
       }
       a.respawnT = a.kind === 'player' ? PD.respawn : a.kind === 'crawler' ? KData.enemies.crawler.respawn : DD.respawn;
-      const col = a.kind === 'player' ? [[240, 228, 206], [198, 178, 160], [44, 28, 36]] : a.kind === 'crawler' ? [[78, 72, 94], [112, 104, 128], [255, 70, 160]] : [[150, 140, 165], [200, 194, 214], [74, 58, 48]];
-      if (a.kind === 'crawler') {
+      const col = a.kind === 'player' ? [[240, 228, 206], [198, 178, 160], [44, 28, 36]] : a.kind === 'dummy' ? [[150, 140, 165], [200, 194, 214], [74, 58, 48]] : [[78, 72, 94], [112, 104, 128], [255, 70, 160]];
+      if (a.kind === 'crawler' || a.kind === 'warden' || a.kind === 'delver') {
         // it crumbles into loose earth
         const w = this.world;
         for (let k = 0; k < 14; k++) {
@@ -1106,19 +1131,224 @@ const KGame = (() => {
       if (a.kind === 'player') { this.endAllChannels(a); a.slam = null; a.dashT = 0; this.shake = Math.max(this.shake, 3); }
     }
 
+    // ---------- enemies ----------
+    // Shared by every kind: sleeping when far away, coming back after death,
+    // noticing players. Then each kind's own behaviour.
+    enemyTick(e) {
+      const E = KData.enemies[e.kind];
+      e.flash = Math.max(0, e.flash - DT);
+      if (e.wetT > 0) e.wetT -= DT;
+      e.asleep = !e.dead && !this.players.some(q => Math.abs(q.x - e.x) < E.awake && Math.abs(q.y - e.y) < E.awake * 0.7);
+      if (e.asleep) return;
+      if (e.dead) { e.respawnT -= DT; if (e.respawnT <= 0) this.respawnCrawler(e); return; }
+      if (e.kind === 'crawler') return this.crawlerTick(e);
+      e.t = (e.t || 0) + DT;
+      const w = this.world;
+      let p = null, best = 1e9;
+      for (const q of this.players) if (!q.dead) { const dd = Math.hypot(q.x - e.x, q.y - e.y); if (dd < best) { best = dd; p = q; } }
+      let see = false;
+      if (p) {
+        // look from the eyes (a spitter's mouth sticks out of its wall)
+        const ex = e.x + (e.kind === 'spitter' ? e.face * 7 : 0), ey = e.y - (e.kind === 'spitter' ? 7 : e.h / 2);
+        const dx = p.x - ex, dy = (p.y - p.h / 2) - ey, dist = Math.hypot(dx, dy);
+        if (dist < E.sight + (e.kind === 'spitter' ? 60 : 0)) see = !w.ray(ex, ey, dx / dist, dy / dist, dist).hit;
+        // delvers feel footsteps through the ground
+        if (see || dist < E.sense || (e.kind === 'delver' && dist < 150)) { e.lastSeen = this.time; e.knownX = p.x; }
+      }
+      const aware = p && this.time - (e.lastSeen ?? -9) < E.forget;
+      const set = s => { e.state = s; e.t = 0; };
+      if (!e.state || e.state === 'patrol') e.state = aware ? 'chase' : 'idle';
+      if (e.slowT > 0) e.slowT -= DT;
+      const slow = (e.inMud || e.slowT > 0) ? 0.35 : 1;
+      this['tick_' + e.kind](e, E, p, aware, see, set, slow, w);
+    }
+
+    // Glowmoth: drifts near home; aware, it hovers off to one side above you,
+    // glows (the warning), swoops, then flutters away.
+    tick_moth(e, E, p, aware, see, set, slow, w) {
+      const steer = (tx, ty, speed, rate) => {
+        const dx = tx - e.x, dy = ty - e.y, d = Math.hypot(dx, dy) || 1;
+        e.vx += (dx / d * speed - e.vx) * Math.min(1, rate * DT); e.vy += (dy / d * speed - e.vy) * Math.min(1, rate * DT);
+      };
+      switch (e.state) {
+        case 'idle':
+          steer(e.home.x + Math.sin(this.time * 0.7 + e.id) * 20, e.home.y + Math.cos(this.time * 0.9 + e.id) * 10, E.fly * 0.5 * slow, 2);
+          if (aware) set('chase');
+          break;
+        case 'chase': {
+          if (!aware) { set('idle'); break; }
+          const side = e.x < p.x ? -1 : 1, tx = p.x + side * 40, ty = p.y - p.h - 28;
+          steer(tx, ty, E.fly * slow, 3);
+          if (see && Math.hypot(e.x - tx, e.y - ty) < 16 && e.t > 0.6) set('windup');
+          break;
+        }
+        case 'windup':
+          e.vx *= Math.exp(-6 * DT); e.vy *= Math.exp(-6 * DT);
+          if (e.t > E.windup / Math.sqrt(slow)) {
+            const dx = p.x - e.x, dy = (p.y - p.h / 2) - e.y, d = Math.hypot(dx, dy) || 1;
+            e.vx = dx / d * E.swoop * Math.sqrt(slow); e.vy = dy / d * E.swoop * Math.sqrt(slow); e.hit = false; set('swoop');
+          }
+          break;
+        case 'swoop':
+          this.contactHit(e, E);
+          if (e.t > E.swoopTime) set('recover');
+          break;
+        case 'recover':
+          steer(e.x + (e.x < (p ? p.x : e.x) ? -30 : 30), e.y - 40, E.fly * slow, 2.5);
+          if (e.t > E.recover) set(aware ? 'chase' : 'idle');
+          break;
+        default: set('idle');
+      }
+      e.facing = e.vx >= 0 ? 1 : -1;
+    }
+
+    // Delver: inside dirt it swims towards you (no collision); close by it
+    // bursts out, winds up and bites, then dives back into the ground.
+    tick_delver(e, E, p, aware, see, set, slow, w) {
+      const inDirt = this.inDiggable(e);
+      switch (e.state) {
+        case 'idle':
+        case 'chase': {
+          e.ghost = true;
+          if (!aware) { e.vx *= 0.9; e.vy *= 0.9; break; }
+          // head for a spot just under the ground beside you, on the side it is coming from
+          const side = e.x < (e.knownX ?? p.x) ? -1 : 1;
+          const tx = (e.knownX ?? p.x) + side * 26, ty = p.y + 7, dx = tx - e.x, dy = ty - e.y, d = Math.hypot(dx, dy) || 1;
+          let vx = dx / d * E.dig * slow, vy = dy / d * E.dig * slow;
+          // stay inside the ground until close
+          const nx = e.x + vx * DT * 4, ny = e.y + vy * DT * 4;
+          if (!this.diggableAt(nx, ny - e.h / 2) && d > E.emergeRange) { vx *= 0.2; vy = this.diggableAt(e.x, e.y - e.h / 2 + 4) ? 20 : vy; }
+          e.vx = vx; e.vy = vy;
+          if (d < 10 && p && Math.abs(p.x - e.x) < E.emergeRange + 10) set('emerge');
+          if (!inDirt && e.t > 0.5) { e.ghost = false; set('out'); }
+          break;
+        }
+        case 'emerge': {
+          // burst up out of the ground and stand on it
+          w.explode(e.x, e.y - e.h / 2, 7);
+          let y = Math.round(e.y);
+          for (let k = 0; k < 30 && this.collides(e, e.x, y); k++) y--;
+          e.y = y;
+          this.burst(e.x, e.y - e.h / 2, 16, [[184, 140, 128], [132, 84, 100]], 120);
+          e.ghost = false; e.vx = 0; e.vy = -80; this.shake = Math.max(this.shake, 1.5);
+          set('windup');
+          break;
+        }
+        case 'windup':
+          e.vx *= Math.exp(-10 * DT);
+          if (p && e.t > E.windup / Math.sqrt(slow)) {
+            const dx = p.x - e.x, dy = (p.y - p.h / 2) - (e.y - e.h / 2), d = Math.hypot(dx, dy) || 1;
+            e.dir = Math.sign(dx) || 1; e.vx = dx / d * E.lunge * Math.sqrt(slow); e.vy = Math.min(-90, dy / d * E.lunge); e.hit = false; set('lunge');
+          }
+          break;
+        case 'lunge':
+          this.contactHit(e, E);
+          if (e.t > 0.45) set('out');
+          break;
+        case 'out':
+          // above ground: head down into the nearest dirt and dive back in
+          e.ghost = false;
+          if (e.grounded && this.diggableAt(e.x, e.y + 3)) { if (e.t > E.surface) { e.ghost = true; e.vy = 40; set('chase'); } }
+          else if (e.grounded && p) e.vx = Math.sign(p.x - e.x) * 30 * slow;
+          if (e.t > 6) { e.ghost = true; set('chase'); }
+          break;
+        default: set('chase');
+      }
+      e.facing = e.vx >= 0 ? 1 : -1;
+    }
+    diggableAt(x, y) { const m = this.world.get(Math.round(x), Math.round(y)); return m === M.DIRT || m === M.EARTH || m === M.MOSS || m === M.MUD || m === M.CRYSTAL; }
+    inDiggable(e) { return this.diggableAt(e.x, e.y - e.h / 2) || this.diggableAt(e.x - 4, e.y - 2) || this.diggableAt(e.x + 4, e.y - 2); }
+
+    // Cinder spitter: set in a wall; when it sees you in range it glows, then
+    // lobs a glob of magma on an arc that lands on you. If its wall is dug
+    // away, it falls.
+    tick_spitter(e, E, p, aware, see, set, slow, w) {
+      if (e.anchored) {
+        e.vx = e.vy = 0;
+        let held = false;
+        for (let k = -6; k <= 6 && !held; k += 2) if (SOLID[w.get(Math.round(e.x - e.face * 7), Math.round(e.y - 5 + k))] || SOLID[w.get(Math.round(e.x), Math.round(e.y + 1))]) held = true;
+        if (!held) e.anchored = false;
+      }
+      if (p) e.face = Math.sign(p.x - e.x) || e.face;
+      e.fireT -= DT * slow;
+      e.charging = e.fireT < 0.5;
+      if (e.fireT <= 0) {
+        e.fireT = E.every;
+        if (!p || !see || Math.hypot(p.x - e.x, p.y - e.y) > E.range) return;
+        const mx = e.x + e.face * 5, my = e.y - 7;
+        const dx = p.x - mx, dy = (p.y - 6) - my, g = 380, v = E.speed;
+        // aim on a falling arc: the lower of the two angles that reach the target
+        const disc = v ** 4 - g * (g * dx * dx + 2 * dy * v * v);
+        let an;
+        if (disc >= 0) an = Math.atan2(v * v - Math.sqrt(disc), g * Math.abs(dx));
+        else an = Math.PI / 4;
+        const vx = Math.cos(an) * v * Math.sign(dx || 1), vy = -Math.sin(an) * v;
+        const sp = { power: E.power, count: E.glob, mat: 'MAGMA' };
+        this.projectiles.push({ kind: 'blob', sp, key: 'earth+fire', owner: e, x: mx, y: my, vx, vy, g, age: 0 });
+        this.burst(mx, my, 6, [[255, 168, 64], [255, 120, 40]], 60);
+      }
+    }
+
+    // Slate warden: walks to you, raises its arms (the warning), slams the
+    // ground: a shockwave around it. Big hits barely stagger it.
+    tick_warden(e, E, p, aware, see, set, slow, w) {
+      const toward = (v, target, rate) => v + Math.sign(target - v) * Math.min(Math.abs(target - v), rate * DT);
+      switch (e.state) {
+        case 'idle':
+          if (e.grounded) e.vx = toward(e.vx, 0, 200);
+          if (aware) set('chase');
+          break;
+        case 'chase':
+          if (!aware) { set('idle'); break; }
+          e.dir = Math.sign((e.knownX ?? p.x) - e.x) || 1;
+          if (e.grounded) {
+            e.vx = toward(e.vx, e.dir * E.walk * slow, 300);
+            const fx = Math.round(e.x + e.dir * (e.w / 2 + 1));
+            if (SOLID[w.get(fx, Math.round(e.y - 3))] && SOLID[w.get(fx, Math.round(e.y - 6))] && this.time - (e.jumpedAt || -9) > 0.6) { e.vy = -150; e.jumpedAt = this.time; }
+          }
+          if (p && e.grounded && Math.abs(p.x - e.x) < E.slamRange && Math.abs(p.y - e.y) < 24) set('windup');
+          break;
+        case 'windup':
+          e.vx *= Math.exp(-10 * DT);
+          if (e.t > E.windup / Math.sqrt(slow)) {
+            // the slam
+            for (const a of this.actors) {
+              if (a === e || a.dead || a.kind !== 'player') continue;
+              const d = Math.hypot(a.x - e.x, (a.y - a.h / 2) - (e.y - 4));
+              if (d < E.radius) this.hurt(a, E.power * (1 - d / E.radius * 0.5), Math.sign(a.x - e.x) * E.knock * 0.6, -E.knock, 'slam', e, 'earth+earth');
+            }
+            w.explode(e.x, e.y + 2, 4);
+            this.fx.push({ kind: 'ring', x: e.x, y: e.y - 2, r0: 4, r1: E.radius, t: 0, T: 0.3, color: [200, 190, 180] });
+            this.burst(e.x, e.y - 2, 20, [[150, 143, 138], [184, 140, 128]], 140);
+            this.shake = Math.max(this.shake, 3);
+            set('recover');
+          }
+          break;
+        case 'recover':
+          e.vx *= Math.exp(-8 * DT);
+          if (e.t > E.recover) set(aware ? 'chase' : 'idle');
+          break;
+        default: set('idle');
+      }
+      e.facing = e.dir || 1;
+    }
+
+    // one touch hit during a swoop or a lunge
+    contactHit(e, E) {
+      if (e.hit) return;
+      for (const q of this.players) {
+        if (q.dead) continue;
+        if (Math.abs(q.x - e.x) < (q.w + e.w) / 2 && Math.abs((q.y - q.h / 2) - (e.y - e.h / 2)) < (q.h + e.h) / 2) {
+          this.hurt(q, E.power, Math.sign(q.x - e.x || 1) * E.knock, -80, 'bite', e, null);
+          e.hit = true;
+        }
+      }
+    }
+
     // ---------- Shale crawler ----------
     crawlerTick(e) {
       const E = KData.enemies.crawler, w = this.world;
-      e.flash = Math.max(0, e.flash - DT);
-      // far from everyone it sleeps (not simulated) until a player comes near
-      e.asleep = !e.dead && !this.players.some(q => Math.abs(q.x - e.x) < E.awake && Math.abs(q.y - e.y) < E.awake * 0.7);
-      if (e.asleep) return;
       e.t += DT;
-      if (e.dead) {
-        e.respawnT -= DT;
-        if (e.respawnT <= 0) this.respawnCrawler(e);
-        return;
-      }
       const set = s => { e.state = s; e.t = 0; };
       if (e.slowT > 0) e.slowT -= DT;
       const slow = (e.inMud || e.slowT > 0) ? MUD_SLOW : 1;
@@ -1239,9 +1469,11 @@ const KGame = (() => {
 
     respawnCrawler(e) {
       // back home, but only while nobody is close enough to see it appear
-      const E = KData.enemies.crawler;
+      const E = KData.enemies[e.kind];
       if (this.players.some(p => Math.hypot(p.x - e.home.x, p.y - e.home.y) < E.respawnClear)) { e.respawnT = 2; return; }
-      Object.assign(e, { x: e.home.x, y: this.world.floorBelow(e.home.x, e.home.y - 6), vx: 0, vy: 0, hp: e.maxHp, dead: false, state: 'patrol', t: 0, lastHurt: -9, lastSeen: -9, slowT: 0, burnT: 0, lastHitBy: null });
+      const y = e.kind === 'crawler' || e.kind === 'warden' ? this.world.floorBelow(e.home.x, e.home.y - 6) : e.home.y;
+      Object.assign(e, { x: e.home.x, y, vx: 0, vy: 0, hp: e.maxHp, dead: false, state: e.kind === 'crawler' ? 'patrol' : 'idle', t: 0, lastHurt: -9, lastSeen: -9, slowT: 0, burnT: 0, wetT: 0, lastHitBy: null,
+        anchored: e.kind === 'spitter', ghost: e.kind === 'delver' });
     }
 
     respawn(p) {
@@ -1289,14 +1521,23 @@ const KGame = (() => {
     physics(a) {
       if (a.dead) return;
       const w = this.world;
+      if (a.anchored) return;                 // a spitter in its wall
+      if (a.ghost) {                          // a delver inside the ground: no collision
+        a.x += a.vx * DT; a.y += a.vy * DT;
+        a.x = Math.max(12, Math.min(w.w - 12, a.x)); a.y = Math.max(20, Math.min(w.h - 12, a.y));
+        if (this.rand() < 0.15) this.burst(a.x + (this.rand() - 0.5) * a.w, a.y - this.rand() * a.h, 1, [[184, 140, 128]], 20);
+        return;
+      }
       this.unstick(a);
       const charged = w.sample(a.x - a.w / 2, a.y - a.h, a.x + a.w / 2, a.y, counts);
       const area = a.w * a.h;
       a.inWater = counts[M.WATER] > area * 0.3;
       a.inMud = counts[M.MUD] > 4;
       const proof = this.has(a, 'magmaproof');
-      if (counts[M.FIRE] && !proof) this.hurt(a, PD.hurt.fire * DT * Math.min(1, counts[M.FIRE] / 4), 0, 0, 'fire');
-      if (counts[M.MAGMA] && !proof) this.hurt(a, PD.hurt.magma * DT * Math.min(1, counts[M.MAGMA] / 4), 0, 0, 'magma');
+      const fireMul = proof ? 0 : this.affinity(a, 'fire');
+      if (counts[M.FIRE] && fireMul) { this.hurt(a, PD.hurt.fire * fireMul * DT * Math.min(1, counts[M.FIRE] / 4), 0, 0, 'fire'); if (a.kind !== 'player') a.burnT = Math.max(a.burnT || 0, 1.5); }
+      if (counts[M.MAGMA] && fireMul) this.hurt(a, PD.hurt.magma * fireMul * DT * Math.min(1, counts[M.MAGMA] / 4), 0, 0, 'magma');
+      if (a.inWater) { a.wetT = KData.statuses.wet.time; a.burnT = 0; }
       if (a.burnT > 0) {
         // burning (Ember visor): 6 a second for 3 s, from whoever set it
         a.burnT -= DT;
@@ -1322,11 +1563,12 @@ const KGame = (() => {
         if (a.dashT <= 0) { a.vx *= 0.4; a.vy *= 0.4; }
       } else {
         const water = a.inWater;
-        if (!a.noGravity) a.vy += PD.gravity * DT * (water ? 0.28 : 1);
+        if (a.flying) { a.vx *= Math.exp(-0.8 * DT); a.vy *= Math.exp(-0.8 * DT); }
+        else if (!a.noGravity) a.vy += PD.gravity * DT * (water ? 0.28 : 1);
         if (water && !this.has(a, 'diver')) { a.vx *= Math.exp(-2.5 * DT); a.vy *= Math.exp(-3 * DT); }
         if (a.inMud && !this.has(a, 'diver')) { a.vx *= Math.exp(-7 * DT); a.vy *= Math.exp(-5 * DT); }
         if (!a.grounded && a.kind === 'player') a.vx *= Math.exp(-0.6 * DT);
-        if (a.kind === 'dummy' && a.grounded) a.vx *= Math.exp(-10 * DT);
+        if ((a.kind === 'dummy' || (a.kind === 'spitter' && !a.anchored)) && a.grounded) a.vx *= Math.exp(-10 * DT);
         if (!a.slam) a.vy = Math.min(a.vy, PD.maxFall);
       }
 

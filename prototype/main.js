@@ -8,7 +8,7 @@
 
 (() => {
   const { elements, elementOrder, spells, spellKey, view: V, step: STEP } = KData;
-  const VERSION = 'v0.14';
+  const VERSION = 'v0.15';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -289,7 +289,7 @@
     for (const a of game.actors) {
       if (a.dead || a.asleep || !game.inBox(a, wx, wy, pad)) continue;
       const hp = `Health ${Math.max(0, Math.ceil(a.hp))} of ${a.maxHp}`;
-      const status = (a.slowT > 0 || a.inMud ? ' Slowed by mud.' : '') + (window.KStatus ? window.KStatus.describe(a) : '');
+      const status = game.statusText(a);
       if (a.kind === 'player') return [`You (${KData.golems[a.skin].name}) · Level ${a.level}`, `${hp}. Mana ${Math.round(a.mana)} of ${a.maxMana}.`];
       if (a.kind === 'dummy') return ['Training dummy', `${hp}. Heals when left alone.`];
       const E = KData.enemies[a.kind];

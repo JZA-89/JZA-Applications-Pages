@@ -240,6 +240,31 @@ One ongoing world per browser (`localStorage` key `castinstone.save.v1`). A save
 
 The start panel says Continue when a save exists. **New game** (pause or start panel) asks for a second press, then starts a new random cave and progress. **Reset map** rebuilds the cave from its seed but keeps the golem's progress.
 
+### The other enemies (`KData.enemies`, `game.tick_<kind>`)
+
+All enemies share: a home chamber, levels (+30% health, +2 attack, +1 defence a level), sleeping when no player is near, coming home 25 s after death while nobody is within 300, noticing you (sight 130, closeness 50, being hurt, spell noise within 110; forgetting after 4 s), and an **affinity** per element (a spell averages its two elements). Each chamber gets 1–4 enemies, picked by region weights (Rose, Drowned, Ember) and the lowest level each appears at.
+
+| Enemy | Health · attack · defence | Behaviour | Affinity | Where (weights R/D/E, from level) |
+|---|---|---|---|---|
+| **Glowmoth** (13 × 7, flies) | 36 · 9 · 6 | drifts near home; aware, hovers 40 to one side and 28 above you, **glows for 0.55 s**, swoops at 230 for 0.45 s (power 14, one hit), flutters away for 0.9 s. A hit of 10+ during its glow cancels the swoop. | lightning ×1.6, earth ×0.8 | 0.5 / 0.8 / 0.4, from 1; placed in open air |
+| **Delver** (13 × 9) | 70 · 12 · 9 | inside dirt it swims at 48 with no collision (shown faint, throwing crumbs) towards a spot under the ground 26 to your side; feels you within 150 without sight; **bursts out** (digs a hole), winds up 0.4 s, leaps at you (power 22); then dives back into the nearest dirt after 1.6 s on it | water ×1.6, earth ×0.4 | 0.35 / 0.35 / 0.3, from 2 |
+| **Cinder spitter** (11 × 10) | 55 · 10 · 10 | set into a chamber wall facing in; looks from its mouth (sight 190); every 2.4 s, **its mouth glows for 0.5 s**, then it lobs a magma glob on an arc aimed to land on you (power 14, 10 magma cells). If its wall is dug away it falls and keeps spitting. | fire ×0, water ×1.8, lightning ×1.1 | 0.15 / 0.1 / 0.7, from 1 |
+| **Slate warden** (17 × 16) | 170 · 14 · 18 | walks at 22, jumps low walls; close (30), **raises its shoulders for 0.9 s**, then slams: power 30 (less towards the edge) within 30, knock 260 up; 1.1 s to recover. Only a hit of 40+ during its wind-up cancels the slam. | fire ×0.4, lightning ×0.4, earth ×1.6, water ×1.3 | 0.15 / 0.25 / 0.25, from 3; one per chamber |
+
+**Elites:** 8% of enemies from level 2: ×1.8 health, ×1.3 attack, gold eyes and a gold glow, a gold health bar; always drop a runestone and give triple experience. Experience per kill also scales by kind (warden ×2.5, delver ×1.3, spitter ×1.2).
+
+### Status effects (`KData.statuses`)
+
+| Status | Comes from | Effect |
+|---|---|---|
+| **Wet** (4 s) | any spell with water, or being in water | lightning hits ×1.5 |
+| **Muddy** | standing in mud, or a Mud hit (2.5 s) | slowed, and fire hits ×1.4 |
+| **Burning** | the Ember visor (3 s), touching fire (1.5 s, enemies) | 6 damage a second; water hits ×1.4 and puts it out |
+
+Shown on the enemy (drips when wet, muddy tint, burning flecks) and in its hover note. Hazards respect fire affinity (a spitter stands in magma unharmed).
+
+Tested in a cleared arena (player standing still, 10 s): crawler 6 hits, moth 4, delver 3, spitter 2, warden 1 (slow on purpose). On a whole cave (one seed): 23 moths, 21 spitters, 17 crawlers, 8 delvers, 3 wardens, plus 3–5 elites.
+
 ## Mana
 
 Every spell costs mana. Held spells (Steam, Water jet) drain it every moment they are held and stop when it runs out. You can fly with Steam, but a full bar lasts about 5.6 s (some areas will need flight to get around); when it runs dry you fall and cannot attack until it refills. A spell needs its full cost to start (held spells need a small minimum); trying without enough flashes the mana bar.
@@ -334,6 +359,7 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.12 (2026-11-26):** Lodestones (checkpoint, repair, rest panel with stats and travel) replace mana wells; experience, levels and stat points; one ongoing world saved in the browser (Jaisah: an ongoing world; all four elements from the start; upgrades that reach further come with runestones).
 - **v0.13 (2026-11-26):** runestones: four slots, 15 stones with stats and traits (including the Crucible, whose fire melts rock, Jaisah's idea for reaching further), drops, a bag, breaking into shards.
 - **v0.14 (2026-11-26):** crystal veins and shards, relic caches sealed in five ways, the Forge.
+- **v0.15 (2026-11-26):** four new enemies (Glowmoth, Delver, Cinder spitter, Slate warden), element affinities, status effects (wet, muddy, burning), elites.
 
 ## Open questions to test
 

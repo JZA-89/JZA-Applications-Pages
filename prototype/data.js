@@ -180,6 +180,8 @@ const KData = (() => {
   // ---------- Enemies ----------
   // Shale crawler: patrols, chases what it can see, winds up (rears and its eyes
   // flare), lunges, then needs a moment to recover. Big hits stagger it.
+  // affinity: damage multiplier by element (a spell averages its two elements).
+  // spawn: weight per region (rose, drowned, ember) and the lowest level it appears at.
   const enemies = {
     crawler: { name: 'Shale crawler', desc: 'Winds up, then lunges. A hard hit staggers it.', w: 13, h: 8, hp: 60, attack: 10, defence: 8,
       walk: 22, run: 50, sight: 130, sense: 50, hearing: 110, forget: 4, jump: 165,
@@ -187,8 +189,31 @@ const KData = (() => {
       power: 18, knock: 170, staggerAt: 12, stagger: 0.35,
       respawn: 25, awake: 380, respawnClear: 300,
       // tougher further from the hub: per level above 1
-      perLevel: { hp: 0.3, attack: 2, defence: 1 } },
+      perLevel: { hp: 0.3, attack: 2, defence: 1 },
+      affinity: {}, xp: 1, spawn: { weights: [1, 1, 1], from: 1 } },
+    moth: { name: 'Glowmoth', desc: 'Flies. Hovers and glows, then swoops at you. Weak to lightning.', w: 13, h: 7, hp: 36, attack: 9, defence: 6,
+      fly: 60, swoop: 230, windup: 0.55, swoopTime: 0.45, recover: 0.9, range: 70, power: 14, knock: 130,
+      affinity: { lightning: 1.6, earth: 0.8 }, xp: 1, spawn: { weights: [0.5, 0.8, 0.4], from: 1 } },
+    delver: { name: 'Delver', desc: 'Swims through dirt and bursts out to bite. Weak to water; earth barely hurts it.', w: 13, h: 9, hp: 70, attack: 12, defence: 9,
+      dig: 48, emergeRange: 34, windup: 0.4, lunge: 200, power: 22, knock: 160, surface: 1.6,
+      affinity: { water: 1.6, earth: 0.4 }, xp: 1.3, spawn: { weights: [0.35, 0.35, 0.3], from: 2 } },
+    spitter: { name: 'Cinder spitter', desc: 'Sits in a wall and lobs magma. Fire does nothing to it; water hurts it badly.', w: 11, h: 11, hp: 55, attack: 10, defence: 10,
+      range: 190, every: 2.4, speed: 175, power: 14, glob: 10,
+      affinity: { fire: 0, water: 1.8, lightning: 1.1 }, xp: 1.2, spawn: { weights: [0.15, 0.1, 0.7], from: 1 } },
+    warden: { name: 'Slate warden', desc: 'Armoured. Slow, but its ground slam hits hard. Fire and lightning glance off; earth and water crack it.', w: 17, h: 16, hp: 170, attack: 14, defence: 18,
+      walk: 22, slamRange: 30, windup: 0.9, radius: 30, power: 30, knock: 260, recover: 1.1,
+      affinity: { fire: 0.4, lightning: 0.4, earth: 1.6, water: 1.3 }, xp: 2.5, spawn: { weights: [0.15, 0.25, 0.25], from: 3 } },
   };
+  // shared by every enemy kind
+  for (const k in enemies) Object.assign(enemies[k], { sight: enemies.crawler.sight, sense: enemies.crawler.sense, hearing: enemies.crawler.hearing, forget: enemies.crawler.forget,
+    respawn: 25, awake: 380, respawnClear: 300, perLevel: enemies.crawler.perLevel }, { ...enemies[k] });
+  // status effects: a status makes one element hit harder
+  const statuses = {
+    wet: { name: 'Wet', boosts: 'lightning', by: 1.5, time: 4 },
+    muddy: { name: 'Muddy', boosts: 'fire', by: 1.4 },
+    burning: { name: 'Burning', boosts: 'water', by: 1.4 },
+  };
+  const elites = { chance: 0.08, from: 2, hp: 1.8, attack: 1.3 };
 
   // ---------- Regions ----------
   // The cave spreads in every direction from the hub. Each region has its own
@@ -227,7 +252,7 @@ const KData = (() => {
   const progression = {
     xpFor: L => Math.round(50 + 30 * (L - 1) + 6 * (L - 1) * (L - 1)),
     pointsPerLevel: 3,
-    killXp: (level, kind) => Math.round((kind === 'elite' ? 3 : 1) * (8 + 6 * level)),
+    killXp: (level, kind, elite) => Math.round((elite ? 3 : 1) * ((enemies[kind] && enemies[kind].xp) || 1) * (8 + 6 * level)),
     lodestoneXp: 25,
     // per point spent
     stats: [
@@ -395,6 +420,6 @@ const KData = (() => {
       ] },
   ];
 
-  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, modes, biomes, cave, progression, runes, treasure,
+  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, statuses, elites, modes, biomes, cave, progression, runes, treasure,
     world: { w: 2048, h: 1024, chunk: 32 }, view: { w: 320, h: 180 }, step: 1 / 60 };
 })();

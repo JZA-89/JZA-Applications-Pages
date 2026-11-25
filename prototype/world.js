@@ -675,14 +675,41 @@ const KWorld = (() => {
         const sp = spotIn(hub, 1, 16, false);
         if (sp && Math.abs(sp.x - this.spawn.x) > 24 && this.dummySpots.every(d => Math.abs(d.x - sp.x) > 20)) this.dummySpots.push(sp);
       }
-      this.crawlerHomes = [];
+      // enemies: a few per chamber (more further out), chosen by region and level
+      this.enemyHomes = [];
+      const EN = KData.enemies;
       for (const n of nodes) {
         if (n.hub) continue;
         const level = this.levelAt(n.x, n.y);
         const count = Math.min(4, 1 + Math.floor(n.dist / 420) + (R() < 0.5 ? 1 : 0));
+        let wardens = 0;
         for (let k = 0; k < count; k++) {
-          const sp = spotIn(n, 8, 10);
-          if (sp && this.get(sp.x, sp.y - 2) === M.EMPTY) this.crawlerHomes.push({ x: sp.x, y: sp.y, level });
+          const pool = Object.keys(EN).filter(id => EN[id].spawn.from <= level && !(id === 'warden' && wardens));
+          const total = pool.reduce((t, id) => t + EN[id].spawn.weights[n.biome], 0);
+          let r = R() * total, kind = pool[0];
+          for (const id of pool) { r -= EN[id].spawn.weights[n.biome]; if (r <= 0) { kind = id; break; } }
+          let home = null;
+          if (kind === 'moth') {
+            // somewhere open in the upper part of the chamber
+            for (let t = 0; t < 10 && !home; t++) {
+              const x = Math.round(n.x + (R() - 0.5) * n.rx), y = Math.round(n.y - n.ry * (0.1 + R() * 0.4));
+              let clear = true;
+              for (let yy = y - 8; yy <= y + 8 && clear; yy += 2) for (let xx = x - 8; xx <= x + 8; xx += 2) if (SOLID[this.get(xx, yy)] || this.get(xx, yy) === M.WATER) { clear = false; break; }
+              if (clear) home = { x, y };
+            }
+          } else if (kind === 'spitter') {
+            // set into a side wall, facing into the chamber
+            const side = R() < 0.5 ? 1 : -1, an = (side > 0 ? 0 : Math.PI) + (R() - 0.5) * 0.6;
+            let x = n.x, y = n.y, t = 0;
+            while (t++ < 200 && !SOLID[this.get(Math.round(x), Math.round(y))]) { x += Math.cos(an); y += Math.sin(an); }
+            if (t < 200 && this.get(Math.round(x), Math.round(y)) !== M.WATER) home = { x: Math.round(x + side * 2), y: Math.round(y + 5), face: -side };
+          } else {
+            home = spotIn(n, 8, kind === 'warden' ? 18 : 10);
+            if (home && this.get(home.x, home.y - 2) !== M.EMPTY) home = null;
+          }
+          if (!home) continue;
+          if (kind === 'warden') wardens++;
+          this.enemyHomes.push({ ...home, level, kind, biome: n.biome });
         }
       }
       const far = nodes.filter(n => !n.hub && n.dist > 220);
