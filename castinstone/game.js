@@ -466,6 +466,17 @@ const KGame = (() => {
           else if (d < S.chainRadius) { this.hurt(o, S.chainPower, 0, -60, 'bolt', p, 'lightning+lightning+fire'); this.fx.push({ kind: 'bolt', pts: this.jagged(t.x, t.y - 4, o.x, o.y - o.h / 2), t: 0, T: 0.3, color: [255, 246, 170], wide: 1.4 }); }
         }
         this.sfx('bigboom', t.x, t.y, 1.6); this.sfx('bolt', t.x, t.y, 1.4); this.shake = Math.max(this.shake, 9); this.hitStop = Math.max(this.hitStop || 0, 0.12);
+      } else if (id === 'meltdown') {
+        // at the pointer, or the face of the first wall on the way: the rock there melts
+        const t = aimAt(), x = t.x + dx * 6, y = t.y + dy * 6;
+        const n = w.meltRock(x, y, S.radius);
+        this.hitRadius(x, y, S.radius + 4, S.power, 160, p, p, 'fire+earth+fire');
+        p.safeT = Math.max(p.safeT || 0, 1.5);
+        this.fx.push({ kind: 'ring', x, y, r0: 3, r1: S.radius + 2, t: 0, T: 0.4, color: [255, 150, 60] });
+        this.fx.push({ kind: 'flash', x, y, r: 46, t: 0, T: 0.5, color: [255, 150, 60] });
+        this.burst(x, y, 26, [[255, 190, 90], [255, 120, 40]], 130);
+        if (!n) this.events.push({ type: 'toast', text: 'Meltdown found no rock to melt there' });
+        this.sfx('bigboom', x, y, 1); this.sfx('magma', x, y, 1.2); this.shake = Math.max(this.shake, 5);
       } else if (id === 'worldbreaker') {
         for (const o of this.actors) {
           if (o === p || o.dead || o.kind === 'player') continue;

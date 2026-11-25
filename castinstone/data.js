@@ -260,6 +260,8 @@ const KData = (() => {
       desc: 'For 60 seconds, a blow that would break you instead restores half your health in a burst of flame. Once.', time: 60, power: 90, radius: 60 },
     titan: { tier: 4, name: 'Titan', seq: [E, F, E, L, E, E], cost: 180, cd: 2,
       desc: 'For 15 seconds your spells hit 60% harder, blows barely move you and you take a quarter less damage.', time: 15, damage: 1.6, reduce: 0.25 },
+    meltdown: { tier: 4, name: 'Meltdown', seq: [F, E, F, F, E, F], cost: 165, cd: 2,
+      desc: 'Rock at your pointer melts into magma, which cools into dirt you can dig. The only spell that opens rock without the Crucible.', power: 70, radius: 14, range: 150, air: true },
     // ----- tier 5: seven elements -----
     cataclysm: { tier: 5, name: 'Cataclysm', seq: [F, E, F, E, L, F, E], cost: 240, cd: 2,
       desc: 'Nine great meteors rain down around the ground under your pointer.', power: 135, radius: 20, range: 220, count: 9, spread: 62 },

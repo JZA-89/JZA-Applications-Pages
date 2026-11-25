@@ -265,7 +265,8 @@ h2.rule::before, h2.rule::after { content: ''; flex: 1; height: 1px; background:
 
 /* ---------- resting at a Lodestone ---------- */
 /* the rest and start panels keep one height whatever tab is open; the body scrolls */
-.shell.rest, #panel { height: min(680px, 100%); }
+.shell.rest, #panel { height: min(720px, 100%); }
+.shell.rest .shell-body { padding-top: 14px; }
 .rest-id { display: flex; align-items: center; gap: 18px; }
 .xp-line { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
 /* general stats fill the left column, the four elements the right */
@@ -281,26 +282,33 @@ h2.rule::before, h2.rule::after { content: ''; flex: 1; height: 1px; background:
 .plus:disabled { color: var(--dim); background: #1b1624; box-shadow: inset 0 0 0 1px var(--line); cursor: default; }
 
 /* runestones: the golem with its four sockets, the bag, and the stone you picked */
-.doll { display: grid; grid-template-columns: 300px 1fr; gap: 18px; }
-.figure { position: relative; height: 320px; border-radius: 14px; background: radial-gradient(ellipse at 50% 45%, #b79cff1f, transparent 62%), #0b0810; box-shadow: inset 0 0 0 1px var(--line); }
+/* the golem in the middle, a station for each socket round it, the picked stone's card below */
+.ring { position: relative; display: grid; grid-template-columns: 1fr 170px 1fr; grid-template-rows: auto 112px auto auto; gap: 4px 14px; align-items: center;
+  grid-template-areas: "head head head" "arms golem core" "legs legs legs" "card card card"; }
+.figure { grid-area: golem; position: relative; align-self: stretch; border-radius: 50%; background: radial-gradient(circle at 50% 45%, #b79cff24, transparent 66%); box-shadow: inset 0 0 0 1px var(--line-2), 0 0 0 9px #0b081080, 0 0 0 10px var(--line); width: 112px; justify-self: center; }
 .figure canvas { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); image-rendering: pixelated; filter: drop-shadow(0 8px 10px #000a); }
-.rsock { --t: #6a5f78; position: absolute; width: 62px; display: grid; justify-items: center; gap: 4px; border: 0; background: none; padding: 0; }
+.station { display: flex; align-items: center; gap: 10px; min-width: 0; }
+/* Head and Legs: the socket sits on the centre line, above and below the golem, with its spares to the right */
+.station[data-slot="head"], .station[data-slot="legs"] { display: grid; grid-template-columns: 1fr auto 1fr; }
+.station[data-slot="head"] { grid-area: head; } .station[data-slot="legs"] { grid-area: legs; }
+.station[data-slot="head"] .rsock, .station[data-slot="legs"] .rsock { grid-column: 2; } .station[data-slot="head"] .spares, .station[data-slot="legs"] .spares { grid-column: 3; }
+.station[data-slot="legs"] .rsock small { order: -1; }
+.station[data-slot="arms"] { grid-area: arms; flex-direction: row-reverse; } .station[data-slot="core"] { grid-area: core; }
+.rsock { --t: #6a5f78; display: grid; justify-items: center; gap: 4px; flex: none; }
 .rsock .gemtile { width: 50px; height: 50px; }
-.rsock small { font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
-.rsock[data-slot="head"] { left: 50%; top: 10px; transform: translateX(-50%); } .rsock[data-slot="arms"] { left: 14px; top: 112px; } .rsock[data-slot="core"] { right: 14px; top: 112px; } .rsock[data-slot="legs"] { left: 50%; bottom: 8px; transform: translateX(-50%); }
+.rsock small { font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); }
+.spares { display: flex; flex-wrap: wrap; gap: 5px; align-content: center; min-width: 0; }
+.station[data-slot="arms"] .spares { justify-content: flex-end; }
+.spares .gemtile { width: 38px; height: 38px; } .spares .gemtile .lv { right: 5px; bottom: 3px; font-size: 9.5px; }
+.spares.none i { font-style: normal; font-size: 11.5px; color: #5d5468; }
+.bagcount { position: absolute; right: 0; top: 0; display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; letter-spacing: .04em; color: var(--dim); } .bagcount svg { width: 14px; height: 14px; color: var(--gold); }
+.ring .rune-card { grid-area: card; margin-top: 4px; min-height: 100px; }
 .gemtile { --t: #6a5f78; position: relative; width: 46px; height: 46px; border: 0; padding: 0; display: grid; place-items: center; color: var(--t); clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%); background: var(--t); }
 .gemtile::before { content: ''; position: absolute; inset: 2px; clip-path: inherit; background: radial-gradient(circle at 38% 28%, color-mix(in srgb, var(--t) 34%, #1b1624), #0b0810 80%); }
 .gemtile svg { position: relative; width: 52%; height: 52%; filter: drop-shadow(0 0 5px var(--t)); }
 .gemtile.empty { background: #2a2334; color: #3a3249; }
 .gemtile.sel { background: #fff; filter: drop-shadow(0 0 8px var(--t)); }
 .gemtile .lv { position: absolute; right: 7px; bottom: 5px; font-size: 10px; font-weight: 800; color: var(--ink); text-shadow: 0 1px 2px #000; }
-.bagside h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font: 600 13px/1 var(--serif); letter-spacing: .16em; text-transform: uppercase; color: var(--gold); } .bagside h3 small { margin-left: auto; font: 700 11.5px/1 "Avenir Next", system-ui, sans-serif; letter-spacing: .04em; color: var(--dim); }
-.bag { display: grid; border-radius: 12px; background: #0b0810; box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
-.bagrow { display: grid; grid-template-columns: 58px 1fr; align-items: center; gap: 10px; padding: 7px 10px; border-top: 1px solid #ffffff0d; }
-.bagrow:first-child { border-top: 0; }
-.bagrow > small { font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); }
-.bagrow > div { display: flex; flex-wrap: wrap; gap: 6px; min-height: 46px; align-items: center; }
-.bagrow.none > small { color: var(--dim); } .bagrow.none > div { min-height: 22px; } .bagrow i { font-style: normal; font-size: 12px; color: #5d5468; }
 .rune-card { --t: #6a5f78; margin-top: 10px; min-height: 126px; padding: 12px 14px; border-radius: 12px; background: linear-gradient(180deg, color-mix(in srgb, var(--t) 12%, #120e19), #0b0810 70%); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--t) 45%, transparent); display: grid; gap: 5px; align-content: start; }
 .rune-card .rn { font: 600 17px/1.1 var(--serif); letter-spacing: .04em; color: var(--t); }
 .rune-card .rm { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
@@ -331,7 +339,7 @@ h2.rule::before, h2.rule::after { content: ''; flex: 1; height: 1px; background:
   .logo { font-size: 30px; } .title { font-size: 24px; }
   .tabs { padding: 0 14px; } .shell-body { padding: 16px 20px 6px; } .shell-foot { padding: 12px 20px 18px; flex-wrap: wrap; } .map-frame { margin: 0 20px; } .map-key { padding: 10px 20px 0; }
   .golems, .forms, .mods { grid-template-columns: repeat(2, 1fr); } .keygrid, .stats, .specials { grid-template-columns: 1fr; } .stats { grid-template-rows: none; grid-auto-flow: row; } .trips { grid-template-columns: repeat(2, 1fr); }
-  .doll { grid-template-columns: 1fr; } .figure { height: 260px; }
+  .ring { grid-template-columns: 1fr; grid-template-rows: none; grid-template-areas: "golem" "head" "arms" "core" "legs" "card"; } .figure { height: 150px; } .station { flex-direction: row !important; } .station .spares { justify-content: flex-start !important; } .bagcount { position: static; }
   .book { grid-template-columns: auto repeat(2, 1fr); } .book .hd:nth-child(n+4), .book button:nth-of-type(4n+3), .book button:nth-of-type(4n) { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
