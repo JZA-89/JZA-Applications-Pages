@@ -123,6 +123,10 @@ MORPHOS is Jaisah's HTML game, not an App Store app, so it has **no About or Sup
 - **Friendly fire (v26.0)** is always on in co-op: a player's Jab, Bite, Command pulse, Surge, shots and Pounce hurt the other players they touch (`_ff`, message `ff`). The attacker's device decides the hit; the victim's device takes the damage through its own defences. Rams, poison and broodlings do not hurt friends. A friendly hit is capped at 34% of the victim's maximum health, does not give the victim general invulnerability (a separate 0.6 s `ffGuard`), and does not land while the victim is away (paused, evolving).
 - A co-op pond is saved separately from a solo life (`localStorage` key `morphos.coop.v1`), so it also depends on the URL staying the same.
 
+### KILN prototype (new game, working title)
+
+`prototype/` holds a one-player prototype of Jaisah's next game (jza.app/prototype/): a falling-sand cave where a small clay figure loads two of four elements (Fire, Water, Earth, Lightning) and casts one of ten spells. It is unlisted (no links, `noindex`). The plan is an online two-player game with PvP (loser picks a card, endless rounds) and co-op modes. **Read `prototype/DESIGN.md` first**: it has the rules, every number, the controls, the multiplayer plan and the decision log; update it with every change. Like MORPHOS, it doesn't use `site.css`, `dock.js` or `main.js`; its files load as plain scripts with `?v=<version>` (bump them all with the `<title>`). Keep input as actions (`input.js` → `game.step(actions)`), randomness seeded, and drawing separate from rules, so online play can be added without a rewrite. No grappling rope and no free flight: movement comes from the elements.
+
 ## Checking your work
 
 - Run it locally with `python3 -m http.server` from this folder, then open `http://localhost:8000`.
