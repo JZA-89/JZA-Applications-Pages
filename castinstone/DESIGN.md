@@ -496,6 +496,18 @@ Two players, online, in the host's cave. Each keeps their own golem: a guest's l
 
 **Home screen:** `icon-180.png` (the Brute golem, also the page's tab icon), `manifest.webmanifest` and the `apple-mobile-web-app-*` tags in `index.html` give the game its icon, the name "Cast in Stone" and a full screen when added to a phone's home screen. On iPhone a home-screen web app keeps its own saves, separate from Safari's.
 
+## Balance by bot, and the second cave's champions (v0.50)
+
+Measured with scratchpad `bal.js`: a simple bot at the creature's own level (points spread 40% attack, 30% mana, 30% vitality, no runestones) in an open room keeps 45 to 120 away, jumps on a wind-up and casts a two-element shot. With Lightning, Lightning (which lands at once) it now kills ordinary creatures in 2 to 6 s (they were 1 to 4 s, so several had their health raised about 40%: crawler 85, moth 50, slinger 62, wisp 42, mirehopper 70, imp 36, shade 74, wraith 68), a warden in about 30 s, and champions in 36 to 82 s. An open room flatters the bot; the caves are harder.
+
+- **An opening after every champion's attack** (`sig.open`, 1.5 to 2.6 s): it stands or hangs still, and Deepjaw stays above ground. This is the moment to hit it.
+- **The second cave's champions have attacks of their own.** The Mirror: Reflections, it steps out of the air three times in a row (five when hurt), slashing each time. The Thousand Spines: Spiral, three volleys of twelve spines (five when hurt), each turned a little. The Pale Regent: Ash bloom, a ring of embers shows its reach (60), then everything inside burns; it also flies nearly twice as fast as a wraith.
+- Champion health multipliers lowered now that the base health is higher (moth 14, delver 9, shade 8, urchin 6, wraith 10). Deepjaw's eruption does 26 (was 32).
+- Urchin spines reach 100 (was 120) every 3 s; geode shards are a little slower and weaker.
+- The Hollow King was redrawn as a crowned skull in a robe.
+- **First minutes:** until a first golem has cast a spell, the line under the map says how to cast on the device in use ("Shape a spell").
+- Known and left alone for now: Lightning, Lightning is the easy answer to almost everything because it cannot miss.
+
 ## Acts: the second cave (v0.48, `KData.acts`)
 
 Jaisah: beating the Emberwyrm should lead to a second phase that is not the first one recycled: new areas, new enemy types, a new boss.

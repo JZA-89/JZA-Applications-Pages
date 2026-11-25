@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.49';
+  const VERSION = 'v0.50';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -724,6 +724,11 @@
     objTick = 0.5;
     const p = game.players[ME], left = game.sealsLeft(), L = game.world.lair, bossName = L ? KData.bosses[L.boss].name : 'the last of them';
     let title, hint;
+    // the first minutes of a first golem: how to cast, in the same place the goal will be
+    if (p.level === 1 && !game.depth && game.kills === 0 && game.played < 180 && !p.used && !p.lastSpell) {
+      title = 'Shape a spell';
+      hint = KInput.device === 'touch' ? 'Tap two element buttons, then hold the gold button to cast' : KInput.device === 'pad' ? 'Press two of B X A Y, then hold RT to cast' : 'Press two of Q W E S, then hold the left mouse button to cast';
+    } else
     if (game.won) { title = `${bossName} has fallen`; hint = KNet.busy ? 'The cave is yours' : 'A deeper cave waits: open the menu to descend'; }
     else if (left > 0) {
       let c = null, bd = 1e9;

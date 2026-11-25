@@ -302,7 +302,7 @@ const KData = (() => {
   // affinity: damage multiplier by element (a spell averages its two elements).
   // spawn: weight per region (rose, drowned, ember) and the lowest level it appears at.
   const enemies = {
-    crawler: { name: 'Shale crawler', desc: 'Winds up, then lunges. A hard hit staggers it.', w: 13, h: 8, hp: 60, attack: 10, defence: 8,
+    crawler: { name: 'Shale crawler', desc: 'Winds up, then lunges. A hard hit staggers it.', w: 13, h: 8, hp: 85, attack: 10, defence: 8,
       walk: 22, run: 50, sight: 130, sense: 50, hearing: 110, forget: 4, jump: 165,
       lungeRange: 34, windup: 0.45, lungeSpeed: 215, lungeLift: 90, lungeTime: 0.35, recover: 0.7,
       power: 18, knock: 170, staggerAt: 12, stagger: 0.35,
@@ -310,7 +310,7 @@ const KData = (() => {
       // tougher further from the hub: per level above 1
       perLevel: { hp: 0.3, attack: 2, defence: 1 },
       affinity: {}, xp: 1, spawn: { weights: [1, 1, 1], from: 1 } },
-    moth: { name: 'Glowmoth', desc: 'Flies. Hovers and glows, then swoops at you. Weak to lightning.', w: 13, h: 7, hp: 36, attack: 9, defence: 6,
+    moth: { name: 'Glowmoth', desc: 'Flies. Hovers and glows, then swoops at you. Weak to lightning.', w: 13, h: 7, hp: 50, attack: 9, defence: 6,
       fly: 60, swoop: 230, windup: 0.55, swoopTime: 0.45, recover: 0.9, range: 70, power: 14, knock: 130,
       affinity: { lightning: 1.6, earth: 0.8 }, xp: 1, spawn: { weights: [0.5, 0.8, 0.4], from: 1 } },
     delver: { name: 'Delver', desc: 'Swims through dirt and bursts out to bite. Weak to water; earth barely hurts it.', w: 13, h: 9, hp: 70, attack: 12, defence: 9,
@@ -327,16 +327,16 @@ const KData = (() => {
   // crawler and moth homes into them by region and level (KData.remix, game.kindFor), so the
   // cave and old saves stay the same.
   Object.assign(enemies, {
-    slinger: { name: 'Shard slinger', desc: 'Keeps its distance and hurls stone shards on an arc. Get close or burn it: it is weak to fire.', w: 11, h: 12, hp: 44, attack: 10, defence: 6,
+    slinger: { name: 'Shard slinger', desc: 'Keeps its distance and hurls stone shards on an arc. Get close or burn it: it is weak to fire.', w: 11, h: 12, hp: 62, attack: 10, defence: 6,
       walk: 36, near: 60, far: 115, range: 175, windup: 0.6, every: 2.3, speed: 165, power: 16, knock: 130,
       affinity: { fire: 1.4, earth: 0.6 }, xp: 1.2, spawn: { weights: [0, 0, 0], from: 99 } },
-    wisp: { name: 'Stormwisp', desc: 'Hovers out of reach, takes aim along a line, then fires lightning down it. Step off the line. Earth shatters it.', w: 9, h: 9, hp: 30, attack: 11, defence: 5,
+    wisp: { name: 'Stormwisp', desc: 'Hovers out of reach, takes aim along a line, then fires lightning down it. Step off the line. Earth shatters it.', w: 9, h: 9, hp: 42, attack: 11, defence: 5,
       fly: 55, keep: 86, aim: 0.8, every: 2.8, range: 210, power: 18, knock: 110,
       affinity: { earth: 1.7, lightning: 0.3, water: 1.2 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
-    frog: { name: 'Mirehopper', desc: 'Crouches, then leaps at you. Where it lands it spatters mud that slows you. Weak to lightning.', w: 13, h: 8, hp: 50, attack: 10, defence: 7,
+    frog: { name: 'Mirehopper', desc: 'Crouches, then leaps at you. Where it lands it spatters mud that slows you. Weak to lightning.', w: 13, h: 8, hp: 70, attack: 10, defence: 7,
       crouch: 0.35, hop: 95, lift: 175, rest: 0.6, power: 16, knock: 150, mud: 8,
       affinity: { lightning: 1.5, water: 0.5, fire: 1.2 }, xp: 1.1, spawn: { weights: [0, 0, 0], from: 99 } },
-    imp: { name: 'Cinder imp', desc: 'Runs straight at you, flares, and bursts. Kill it before it reaches you, or get clear. Fire does nothing to it; water snuffs it.', w: 9, h: 10, hp: 26, attack: 12, defence: 4,
+    imp: { name: 'Cinder imp', desc: 'Runs straight at you, flares, and bursts. Kill it before it reaches you, or get clear. Fire does nothing to it; water snuffs it.', w: 9, h: 10, hp: 36, attack: 12, defence: 4,
       run: 84, fuseRange: 17, fuse: 0.55, radius: 26, power: 30, knock: 220,
       affinity: { fire: 0, water: 1.9 }, xp: 1.1, spawn: { weights: [0, 0, 0], from: 99 } },
   });
@@ -351,14 +351,14 @@ const KData = (() => {
   // The second cave's creatures (the Sunless Deep). Like the four above, the generator never places them:
   // the game turns the first cave's kinds into them (acts[1].remix).
   Object.assign(enemies, {
-    shade: { name: 'Shade', desc: 'Fades out and steps out of the air behind you, then slashes. Watch for the shimmer where it will appear. Weak to fire.', w: 9, h: 13, hp: 46, attack: 13, defence: 6,
+    shade: { name: 'Shade', desc: 'Fades out and steps out of the air behind you, then slashes. Watch for the shimmer where it will appear. Weak to fire.', w: 9, h: 13, hp: 74, attack: 13, defence: 6,
       walk: 40, blinkEvery: 3.2, fade: 0.5, behind: 16, power: 20, knock: 170, affinity: { fire: 1.4, earth: 0.7 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
     urchin: { name: 'Glass urchin', desc: 'Rolls slowly towards you, swells, and throws spines in every direction. Keep your distance or get under cover. Weak to water.', w: 11, h: 9, hp: 70, attack: 11, defence: 10,
-      roll: 20, trigger: 75, swell: 0.6, spikes: 8, speed: 150, power: 14, reach: 120, every: 2.6, affinity: { water: 1.5, earth: 0.5 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
-    wraith: { name: 'Ash wraith', desc: 'Drifts straight through rock towards you, slowly, and burns on touch. Walls will not save you; lightning will.', w: 11, h: 11, hp: 40, attack: 12, defence: 4,
+      roll: 20, trigger: 75, swell: 0.6, spikes: 8, speed: 150, power: 13, reach: 100, every: 3.0, affinity: { water: 1.5, earth: 0.5 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
+    wraith: { name: 'Ash wraith', desc: 'Drifts straight through rock towards you, slowly, and burns on touch. Walls will not save you; lightning will.', w: 11, h: 11, hp: 68, attack: 12, defence: 4,
       fly: 38, power: 18, knock: 120, touchCd: 0.8, affinity: { lightning: 1.6, fire: 1.2, earth: 0.4 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
     geode: { name: 'Geode', desc: 'Set in a wall. It glows, then fires three shards in a fan. Earth cracks it; lightning does little.', w: 11, h: 11, hp: 60, attack: 12, defence: 8,
-      glow: 0.7, every: 2.8, spread: 0.22, speed: 210, power: 15, range: 220, affinity: { earth: 1.6, lightning: 0.5 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
+      glow: 0.75, every: 2.8, spread: 0.22, speed: 190, power: 13, range: 220, affinity: { earth: 1.6, lightning: 0.5 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
   });
   // shared by every enemy kind
   for (const k in enemies) Object.assign(enemies[k], { sight: enemies.crawler.sight, sense: enemies.crawler.sense, hearing: enemies.crawler.hearing, forget: enemies.crawler.forget,
@@ -374,14 +374,18 @@ const KData = (() => {
   // not come back once beaten, and each gives a Legendary runestone, a tome,
   // shards and a lot of experience.
   const champions = {
-    size: 1.8, hp: { warden: 4, moth: 20, delver: 10, shade: 12, urchin: 9, wraith: 16 },   // times an ordinary one's health: about 2,100 to 2,300 at level 8
+    size: 1.8, hp: { warden: 4, moth: 14, delver: 9, shade: 8, urchin: 6, wraith: 10 },   // times an ordinary one's health   // times an ordinary one's health: about 2,100 to 2,300 at level 8
     attack: 1.25, xp: 8, shards: 30, apart: 500,
     // One per region, in this order (Rose Hollows, Drowned Galleries, Ember Veins). Each has an attack of
     // its own (game.championTick): every `every` seconds, more of it (`rageCount`) below `rage` of its health.
     sig: {
-      warden: { every: 9, wind: 1.0, count: 6, rageCount: 10, rage: 0.4, gap: 0.3, power: 24, spread: 80 },      // Rockfall: boulders drop from the roof around you
-      moth: { every: 7, wind: 0.9, count: 5, rageCount: 8, rage: 0.5, range: 170, power: 20 },                    // Lantern burst: lightning along lines you can see
-      delver: { every: 8, wind: 1.1, count: 1, rageCount: 2, rage: 0.4, gap: 0.9, radius: 30, power: 32 },        // Eruption: it bursts up through the floor where you stood
+      warden: { every: 9, wind: 1.0, count: 6, rageCount: 10, rage: 0.4, gap: 0.3, power: 24, spread: 80, open: 1.5 },      // Rockfall: boulders drop from the roof around you
+      moth: { every: 7, wind: 0.9, count: 5, rageCount: 8, rage: 0.5, range: 170, power: 20, open: 1.5 },                    // Lantern burst: lightning along lines you can see
+      delver: { every: 8, wind: 1.1, count: 1, rageCount: 2, rage: 0.4, gap: 0.9, radius: 28, power: 26, open: 2.6 },   // Eruption: it bursts up through the floor where you stood
+      // the second cave's three
+      shade: { every: 7, wind: 0.4, count: 3, rageCount: 5, rage: 0.4, gap: 0.45, power: 22, open: 1.8 },          // Reflections: it steps out of the air again and again, slashing each time
+      urchin: { every: 8, wind: 0.9, count: 3, rageCount: 5, rage: 0.4, gap: 0.4, spikes: 12, power: 13, open: 2.0 },  // Spiral: volley after volley of spines, each turned a little
+      wraith: { every: 7, wind: 1.1, count: 1, rageCount: 2, rage: 0.5, gap: 0.8, radius: 60, power: 26, open: 1.6 },  // Ash bloom: a ring shows, then everything inside it burns
     },
   };
   const elites = { chance: 0.08, from: 2, hp: 1.8, attack: 1.3 };

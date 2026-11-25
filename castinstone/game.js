@@ -2266,10 +2266,10 @@ const KGame = (() => {
         case 'windup':
           e.vx *= Math.exp(-10 * DT);
           if (e.t > E.swell / Math.sqrt(slow)) {
-            const n = E.spikes * (e.champion ? 2 : 1), turn = (e.volley = (e.volley || 0) + 1) * 0.2;
-            for (let k = 0; k < n; k++) { const a = turn + k * Math.PI * 2 / n; this.shard(e, e.x + Math.cos(a) * (e.w / 2 + 1), e.y - e.h / 2 + Math.sin(a) * (e.h / 2 + 1), a, E.speed, E.power, E.reach * (e.champion ? 1.5 : 1)); }
+            const n = E.spikes + (e.champion ? 4 : 0), turn = (e.volley = (e.volley || 0) + 1) * 0.2;
+            for (let k = 0; k < n; k++) { const a = turn + k * Math.PI * 2 / n; this.shard(e, e.x + Math.cos(a) * (e.w / 2 + 1), e.y - e.h / 2 + Math.sin(a) * (e.h / 2 + 1), a, E.speed, E.power, E.reach * (e.champion ? 1.3 : 1)); }
             this.sfx('spear', e.x, e.y, 0.8);
-            e.fireT = E.every * (e.champion ? 0.6 : 1); set('chase');
+            e.fireT = E.every * (e.champion ? 0.8 : 1); set('chase');
           }
           break;
         default: set('idle');
@@ -2282,7 +2282,7 @@ const KGame = (() => {
       e.touchT = Math.max(0, (e.touchT || 0) - DT);
       if (!aware || !p) { e.state = 'idle'; steer(e.home.x + Math.sin(this.time * 0.5 + e.id) * 20, e.home.y + Math.cos(this.time * 0.7 + e.id) * 10, E.fly * 0.5); e.facing = e.vx < 0 ? -1 : 1; return; }
       e.state = 'chase';
-      steer(p.x, p.y - p.h / 2 + e.h / 2, E.fly * slow * (e.champion ? 1.4 : 1));
+      steer(p.x, p.y - p.h / 2 + e.h / 2, E.fly * slow * (e.champion ? 1.8 : 1));
       if (e.touchT <= 0) for (const q of this.players) {
         if (q.dead || Math.abs(q.x - e.x) > (q.w + e.w) / 2 || Math.abs((q.y - q.h / 2) - (e.y - e.h / 2)) > (q.h + e.h) / 2) continue;
         this.hurt(q, E.power, Math.sign(q.x - e.x || 1) * E.knock, -60, 'burn', e, 'fire+fire'); e.touchT = E.touchCd;
@@ -2391,6 +2391,8 @@ const KGame = (() => {
     championTick(e, p, aware, set, w) {
       const S = KData.champions.sig[e.kind];
       if (!S) return false;
+      // after its attack it is spent for a moment: it stands (or hangs) still, and this is when to hit it
+      if (e.open > 0) { e.open -= DT; e.vx *= Math.exp(-8 * DT); if (e.flying) e.vy *= Math.exp(-8 * DT); if (e.kind === 'delver') e.ghost = false; return true; }
       if (!e.sig) {
         if (!p || !aware) return false;
         e.sigT = (e.sigT ?? S.every * 0.6) - DT;
@@ -2400,7 +2402,7 @@ const KGame = (() => {
       }
       const g = e.sig; g.t += DT; e.t += DT;
       e.vx *= Math.exp(-8 * DT); if (e.flying) e.vy *= Math.exp(-8 * DT);
-      const done = () => { e.sig = null; e.sigT = S.every; set('recover'); };
+      const done = () => { e.sig = null; e.sigT = S.every; e.open = S.open || 0; set('recover'); };
       if (e.kind === 'warden') {
         // Rockfall: it roars, then boulders drop from the roof round whoever it is fighting
         if (g.t < g.next) { if (this.rand() < 0.3) this.burst(e.x + (this.rand() - 0.5) * 30, e.y - e.h, 2, [[200, 190, 180], [150, 143, 138]], 80); return true; }
@@ -2438,6 +2440,36 @@ const KGame = (() => {
         this.sfx('explosion', g.x, g.y, 0.9); this.shake = Math.max(this.shake, 5);
         if (--g.left <= 0) { done(); return true; }
         const q = p || e; g.x = q.x; g.y = w.floorBelow(Math.round(q.x), Math.round(q.y - 6)); g.next = g.t + S.gap;
+        return true;
+      }
+      if (e.kind === 'shade') {
+        // Reflections: a shimmer beside you, it is there, it slashes; and again from the other side
+        if (g.t < g.next) { if (g.to && this.rand() < 0.6) this.burst(g.to.x, g.to.y - 6, 1, [[190, 150, 255], [120, 90, 200]], 40); if (!g.to) { const q = p || e, side = g.left % 2 ? 1 : -1; g.to = w.standSpot(q.x + side * 15, q.y - 4, e.h + 2) || w.standSpot(q.x - side * 15, q.y - 4, e.h + 2) || { x: e.x, y: e.y }; e.state = 'fade'; } return true; }
+        e.x = g.to.x; e.y = g.to.y; e.vx = e.vy = 0; e.state = 'windup'; g.to = null;
+        for (const q of this.players) if (!q.dead && Math.abs(q.x - e.x) < 20 && Math.abs(q.y - e.y) < 18) this.hurt(q, S.power, Math.sign(q.x - e.x || 1) * 150, -70, 'bite', e, null);
+        this.sfx('whoosh', e.x, e.y, 0.7);
+        g.next = g.t + S.gap; if (--g.left <= 0) done();
+        return true;
+      }
+      if (e.kind === 'urchin') {
+        // Spiral: it swells, then throws ring after ring of spines, each turned a little from the last
+        if (g.t < g.next) return true;
+        const E = KData.enemies.urchin;
+        for (let k = 0; k < S.spikes; k++) { const a = g.left * 0.26 + k * Math.PI * 2 / S.spikes; this.shard(e, e.x + Math.cos(a) * (e.w / 2 + 1), e.y - e.h / 2 + Math.sin(a) * (e.h / 2 + 1), a, E.speed, S.power, 170); }
+        this.sfx('spear', e.x, e.y, 0.9);
+        g.next = g.t + S.gap; if (--g.left <= 0) done();
+        return true;
+      }
+      if (e.kind === 'wraith') {
+        // Ash bloom: a ring of embers shows how far it will reach, then everything inside burns
+        const cy = e.y - e.h / 2;
+        if (g.t < g.next) { if (((g.t * 6) | 0) !== (((g.t - DT) * 6) | 0)) this.fx.push({ kind: 'ring', x: e.x, y: cy, r0: S.radius, r1: S.radius, t: 0, T: 0.2, color: [255, 150, 70] }); return true; }
+        for (const q of this.players) { if (q.dead) continue; const dx = q.x - e.x, dy = (q.y - q.h / 2) - cy, d = Math.hypot(dx, dy) || 1; if (d < S.radius) this.hurt(q, S.power, dx / d * 200, dy / d * 140 - 60, 'burn', e, 'fire+fire'); }
+        this.fx.push({ kind: 'ring', x: e.x, y: cy, r0: 6, r1: S.radius, t: 0, T: 0.3, color: [255, 190, 110] });
+        this.fx.push({ kind: 'flash', x: e.x, y: cy, r: S.radius + 14, t: 0, T: 0.22, color: [255, 160, 80] });
+        this.burst(e.x, cy, 26, [[255, 200, 120], [200, 190, 180]], 150);
+        this.sfx('explosion', e.x, e.y, 0.9); this.shake = Math.max(this.shake, 4);
+        g.next = g.t + S.gap; if (--g.left <= 0) done();
         return true;
       }
       return false;

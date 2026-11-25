@@ -128,8 +128,7 @@ const KRender = (() => {
       "....kkkkk..", "..kkmmmmhk.", ".kmmmhhmmhk", "kmmhooohmmk", "kmhooooohmk", "kmhooooohmk", "kmmhooohmmk", ".kmmmhhmmk.", "..kkmmmmk..", "....kkkk...", "...........",
     ]],
     hollowking: [[
-      "....g.g.g.g....", "....ggggggg....", "...kkkkkkkkk...", "..kbbbbbbbbbk..", "..kbkkbbbkkbk..", "..kbkekbkekbk..", "..kbbbbkbbbbk..", "..kbbkkkkkbbk..", "...kbbbbbbbk...", "..kkrrrkrrrkk..",
-      ".krrrrokorrrrk.", "krrkrrooorrkrrk", "krk.krrorrk.krk", "kk..krrrrrk..kk", "....krrrrrk....", "....krrkrrk....", "...krrk.krrk...", "...kk.....kk...",
+      "...g...g.g...g...", "...g..ggggg..g...", "...ggggggggggg...", "...gkgggkgggkg...", "..kkkkkkkkkkkkk..", ".kbbbbbbbbbbbbbk.", ".kbbkkkbbbkkkbbk.", ".kbkkekkbkkekkbk.", ".kbbkkkbbbkkkbbk.", ".kbbbbbbkbbbbbbk.", "..kbbkbkbkbkbbk..", "...kkbkbkbkbkk...", "..krrkkkkkkkrrk..", ".krrrrrrorrrrrrk.", "krrrkrroooorkrrrk", "krrk.krrorrk.krrk", "kbk..krrrrrk..kbk", ".....krrkrrk.....", "....krrk.krrk....", "....kr.....rk....",
     ]],
   });
   const ENEMY_COL = {
