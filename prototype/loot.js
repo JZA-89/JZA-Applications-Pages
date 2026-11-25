@@ -61,6 +61,7 @@
 
   // ---------- the Runestones tab ----------
   let picked = null;   // { slot } for a worn stone or { bag: index }
+  let refocus = null;  // with a controller: what to put the cursor on after the tab is redrawn
   window.KRest = {
     build(game, p, tab) {
       if (tab === 'forge') return this.forge(game, p);
@@ -97,13 +98,17 @@
       const c = $('dollGolem');
       KRender.preview(c, p.skin, p.slots);
       c.style.width = (c.width * 6) + 'px'; c.style.height = (c.height * 6) + 'px';
+      // with a controller the cursor follows what you did: onto the card's button after picking a
+      // stone, onto the socket after equipping, back to the bag after taking off or breaking
+      if (refocus && document.body.dataset.device === 'pad') { const f = view.querySelector(refocus) || view.querySelector('[data-bag], [data-worn]'); if (f) f.focus({ preventScroll: true }); }
+      refocus = null;
       const rebuild = () => { window.cis.save(); this.build(game, p, 'runes'); };
-      view.querySelectorAll('[data-worn]').forEach(b => b.addEventListener('click', () => { picked = { slot: b.dataset.worn }; this.build(game, p, 'runes'); }));
-      view.querySelectorAll('[data-bag]').forEach(b => b.addEventListener('click', () => { picked = { bag: +b.dataset.bag }; this.build(game, p, 'runes'); }));
+      view.querySelectorAll('[data-worn]').forEach(b => b.addEventListener('click', () => { picked = { slot: b.dataset.worn }; refocus = '[data-off]'; this.build(game, p, 'runes'); }));
+      view.querySelectorAll('[data-bag]').forEach(b => b.addEventListener('click', () => { picked = { bag: +b.dataset.bag }; refocus = '[data-equip]'; this.build(game, p, 'runes'); }));
       const on = (sel, fn) => { const b = view.querySelector(sel); if (b) b.addEventListener('click', fn); };
-      on('[data-equip]', () => { const slot = RU.types[stone.type].slot; game.equip(p, picked.bag); picked = { slot }; rebuild(); });
-      on('[data-off]', () => { game.unequip(p, picked.slot); picked = null; rebuild(); });
-      on('[data-break]', () => { p.inventory.splice(picked.bag, 1); p.shards = (p.shards || 0) + shardValue(stone); picked = null; rebuild(); window.cis.rest(); });
+      on('[data-equip]', () => { const slot = RU.types[stone.type].slot; game.equip(p, picked.bag); picked = { slot }; refocus = `[data-worn="${slot}"]`; rebuild(); });
+      on('[data-off]', () => { game.unequip(p, picked.slot); picked = null; refocus = '[data-bag]'; rebuild(); });
+      on('[data-break]', () => { p.inventory.splice(picked.bag, 1); p.shards = (p.shards || 0) + shardValue(stone); picked = null; refocus = '[data-bag]'; window.cis.save(); window.cis.rest(); });
     },
   };
 

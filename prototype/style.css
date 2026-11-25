@@ -350,3 +350,9 @@ h3.circle small { margin-left: auto; font: 700 11.5px/1 "Avenir Next", system-ui
 .jt.done { box-shadow: inset 0 0 0 1px var(--gold-deep), 0 0 14px #ffd37a26; } .jt.done svg, .jt.done b { color: var(--gold); }
 @media (max-width: 760px) { .journey { grid-template-columns: repeat(3, 1fr); } }
 h2.rule.first { margin-top: 0; }
+
+/* with a controller, whatever it is on is ringed in gold */
+body[data-device="pad"] button:focus { outline: 2px solid var(--gold); outline-offset: 2px; }
+body[data-device="pad"] .gemtile:focus { outline: 0; background: #fff; filter: drop-shadow(0 0 6px var(--gold)); }
+body[data-device="pad"] .tab:focus { outline-offset: -2px; }
+.keyrow .k { flex-wrap: wrap; }

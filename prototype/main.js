@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.33';
+  const VERSION = 'v0.34';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -105,6 +105,10 @@
     ['shot', 'Cast', [[KIcon('mouse'), 'Aim with the mouse'], [K('Left', 'w'), 'Shot, aimed where you point'], [K('Right', 'w'), 'Burst, around you'], ['', 'Hold any of them to keep casting']]],
     ['rune', 'Recipe', [[elementOrder.map(EK).join(''), 'Add Fire, Water, Earth or Lightning'], [K('C'), 'Take off the last element'], [K('X'), 'Clear the recipe'], ['', 'After a cast, the next element starts a new recipe']]],
     ['keys', 'Menus', [[K('Tab', 'w'), 'Map'], [K('H'), 'Spell book'], [K('M') + K('N'), 'All sound · music, on or off'], [K('Esc', 'w'), 'Pause']]],
+    ['move', 'Controller: play', [[K('L stick', 'w') + K('R stick', 'w'), 'Run · aim'], [K('LT') + K('RT'), 'Jump and Lift · Shot'], [K('LB') + K('RB'), 'Move (dash) · Burst'],
+      [`<kbd style="--c:${elements.fire.css}">B</kbd><kbd style="--c:${elements.water.css}">X</kbd><kbd style="--c:${elements.earth.css}">A</kbd><kbd style="--c:${elements.lightning.css}">Y</kbd>`, 'Fire, Water, Earth, Lightning']]],
+    ['keys', 'Controller: the rest', [[K('D-pad', 'w'), 'Up rest · down take off the last element · left map · right spell book'], [K('View', 'w') + K('Menu', 'w'), 'Clear the recipe · pause'],
+      [K('D-pad', 'w') + K('A') + K('B'), 'In a menu: move, press, go back'], [K('LB') + K('RB'), 'In a menu: change tab']]],
   ];
   $('keygrid').innerHTML = KEYCARDS.map(([ic, title, rows]) => `<div class="keycard"><h3>${KIcon(ic)}${title}</h3>` + rows.map(([k, t]) => `<div class="keyrow"><span class="k">${k}</span><span>${t}</span></div>`).join('') + '</div>').join('');
 
@@ -215,15 +219,50 @@
     onReset: () => {},
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) { save(); if (mode === 'play') setMode('pause'); } });
-  // a controller's Menu button resumes from a panel (in play, input.js pauses on it). The
-  // button's real state is tracked all the time, so the press that paused does not also resume.
-  let padMenuPrev = false;
-  function pollPadMenu() {
-    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
-    const p = [...pads].find(x => x && x.connected);
-    const down = !!(p && p.buttons[9] && p.buttons[9].pressed);
-    if (mode !== 'play' && mode !== 'start' && down && !padMenuPrev) resume();
-    padMenuPrev = down;
+  // ---------- a controller in the menus ----------
+  // The d-pad or left stick moves to the nearest button in that direction, A
+  // presses it, B or Menu goes back to the game, LB and RB change tab.
+  const openWrap = () => mode === 'rest' ? $('restWrap') : mode === 'map' ? $('mapWrap') : $('panelWrap');
+  const shown = e => !e.disabled && e.offsetParent !== null;
+  function padMenu(a) {
+    if (mode === 'play') return;
+    const wrap = openWrap();
+    if (a.pause || a.back) { if (mode !== 'start') resume(); return; }
+    if (a.tab) {
+      const tabs = [...wrap.querySelectorAll('.tab')].filter(shown);
+      if (!tabs.length) return;
+      const i = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true'), n = tabs[(i + a.tab + tabs.length) % tabs.length];
+      n.click(); n.focus({ preventScroll: true });
+      return;
+    }
+    const list = [...wrap.querySelectorAll('button')].filter(shown);
+    if (!list.length) return;
+    let cur = document.activeElement;
+    if (!wrap.contains(cur) || !shown(cur)) cur = null;
+    const first = () => { const f = [...wrap.querySelectorAll('.shell-body button')].filter(shown)[0] || list[0]; f.focus({ preventScroll: true }); f.scrollIntoView({ block: 'nearest' }); };
+    if (a.accept) {
+      if (!cur) return first();
+      cur.click();
+      // the press may have redrawn the panel: keep the cursor somewhere sensible
+      const f = document.activeElement;
+      if (mode !== 'play' && !(openWrap().contains(f) && shown(f))) { if (document.contains(cur) && shown(cur)) cur.focus({ preventScroll: true }); else first(); }
+      return;
+    }
+    if (!cur) return first();
+    // the nearest button in the direction pressed; one in line with this one beats one off to the side
+    const r = cur.getBoundingClientRect();
+    let best = null, bs = 1e9;
+    for (const c of list) {
+      if (c === cur) continue;
+      const q = c.getBoundingClientRect();
+      let along, across;
+      if (a.dx) { along = a.dx > 0 ? q.left - r.right : r.left - q.right; across = q.bottom < r.top ? r.top - q.bottom : q.top > r.bottom ? q.top - r.bottom : 0; }
+      else { along = a.dy > 0 ? q.top - r.bottom : r.top - q.bottom; across = q.right < r.left ? r.left - q.right : q.left > r.right ? q.left - r.right : 0; }
+      if (along < -2) continue;
+      const score = along + across * 1.2;
+      if (score < bs) { bs = score; best = c; }
+    }
+    if (best) { best.focus({ preventScroll: true }); best.scrollIntoView({ block: 'nearest' }); }
   }
 
   // ---------- rest at a Lodestone: stats, runestones, the forge, travel ----------
@@ -368,7 +407,7 @@
     const name = p.queue.join('+') + specs.map((sp, i) => !sp ? '-' : (sp.special ? 'S' : '') + (p.mana >= (sp.drain ? sp.min : sp.cost) ? 1 : 0) + (p.channels[KData.modes[i]] ? 'L' : '')).join('') + (pad ? '#pad' : '');
     if (name !== hud.name) {
       hud.name = name;
-      const keysFor = pad ? { shot: 'RT', burst: 'LT', lift: 'LB', move: 'RB' } : { shot: 'L', burst: 'R', lift: 'Spc', move: 'Shft' };
+      const keysFor = pad ? { shot: 'RT', burst: 'RB', lift: 'LT', move: 'LB' } : { shot: 'L', burst: 'R', lift: 'Spc', move: 'Shft' };
       $('plates').innerHTML = KData.modes.map((md, i) => {
         const sp = specs[i];
         if (!sp) return `<div class="plate idle"><span class="pi">${KIcon(md)}</span><span class="pn">${MODE_LABEL[md][0]}</span><span class="pc"><kbd>${keysFor[md]}</kbd></span></div>`;
@@ -388,7 +427,7 @@
     if (b) $('bossFill').style.transform = `scaleX(${Math.max(0, b.hp) / b.maxHp})`;
     // the rest prompt next to a Lodestone
     const near = !!p.nearStone && mode === 'play';
-    if (near !== hud.near) { hud.near = near; $('restPrompt').hidden = !near; $('restPrompt').innerHTML = pad ? `${KIcon('stone')}D-pad up · Rest at the Lodestone` : '<kbd>F</kbd>Rest at the Lodestone'; }
+    if ((near ? (pad ? 2 : 1) : 0) !== hud.near) { hud.near = near ? (pad ? 2 : 1) : 0; $('restPrompt').hidden = !near; $('restPrompt').innerHTML = pad ? `${KIcon('stone')}D-pad up · Rest at the Lodestone` : '<kbd>F</kbd>Rest at the Lodestone'; }
   }
 
   // ---------- what is under the mouse (a note in the corner) ----------
@@ -487,7 +526,8 @@
   const origin = () => { const p = game.players[0]; const c = game.chest(p), q = R.worldToClient(c.x, c.y); q.scale = view.getBoundingClientRect().width / V.w; return q; };
   function frame(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
-    pollPadMenu();
+    const padAct = KInput.poll(mode === 'play', now);
+    if (padAct) padMenu(padAct);
     if (mode === 'play') {
       if (game.hitStop > 0) { game.hitStop -= dt; acc = 0; }   // a brief freeze on heavy blows
       else acc += dt;
