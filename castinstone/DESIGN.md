@@ -493,6 +493,8 @@ Two players, online, in the host's cave. Each keeps their own golem: a guest's l
 - **Rules that differ in co-op:** the game never pauses; with a panel open your golem is `away` (stands still, cannot be hurt). Menu choices (`cis.act`: spend a point, equip, break, forge, travel) travel with the presses as `ui` events and run inside the step on both devices. Each golem has its own checkpoint. Resting or dying returns only enemies more than 420 from the other golem. A kill gives its experience to both golems within 420. A friend's spells do 30% damage. Events carry `p` (the golem they are for) so each screen shows only its own notices.
 - **Not done yet:** more than two players, PvP, a marker pointing to an off-screen friend, sharing the map each has explored, choosing a golem look during co-op.
 
+**Home screen:** `icon-180.png` (the Brute golem, also the page's tab icon), `manifest.webmanifest` and the `apple-mobile-web-app-*` tags in `index.html` give the game its icon, the name "Cast in Stone" and a full screen when added to a phone's home screen. On iPhone a home-screen web app keeps its own saves, separate from Safari's.
+
 ## Touch (v0.41, `touch.js`, `KInput.touch`)
 
 A third input device, `'touch'`, taken on any finger press (keyboard, mouse and controller take over as before). `touch.js` builds the on-screen controls in `#touch` (shown only in play) and writes what is held into `KInput.touch`; the game still receives plain actions.
