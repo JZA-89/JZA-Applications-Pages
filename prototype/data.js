@@ -124,7 +124,7 @@ const KData = (() => {
   // flare), lunges, then needs a moment to recover. Big hits stagger it.
   const enemies = {
     crawler: { name: 'Shale crawler', w: 13, h: 8, hp: 60, attack: 10, defence: 8,
-      walk: 22, run: 50, sight: 130, forget: 3, jump: 150,
+      walk: 22, run: 50, sight: 130, sense: 50, hearing: 110, forget: 4, jump: 165,
       lungeRange: 34, windup: 0.45, lungeSpeed: 215, lungeLift: 90, lungeTime: 0.35, recover: 0.7,
       power: 18, knock: 170, staggerAt: 12, stagger: 0.35,
       count: 3, spots: [214, 338, 480], respawn: 7 },

@@ -164,6 +164,7 @@ const KGame = (() => {
       const c = this.chest(p), ox = c.x + dx * 4, oy = c.y + dy * 4;
       p.cds[key] = sp.cd; p.lock = 0.12; p.lastSpell = key;
       if (sp.cost) this.spend(p, sp.cost);
+      this.alert(p, p.x, p.y, KData.enemies.crawler.hearing);
       const R = this.rand;
       switch (sp.kind) {
         case 'projectile':
@@ -505,6 +506,7 @@ const KGame = (() => {
         const col = a.kind === 'player' ? [[240, 228, 206], [198, 178, 160]] : a.kind === 'crawler' ? [[78, 72, 94], [112, 104, 128]] : [[150, 140, 165], [200, 194, 214]];
         this.burst(a.x, a.y - a.h / 2, Math.min(14, 2 + amount / 5), col, 80);
       }
+      if (a.kind === 'crawler' && src && src.kind === 'player') { a.lastSeen = this.time; a.knownX = src.x; }
       if (a.kind === 'crawler' && amount >= KData.enemies.crawler.staggerAt && a.hp > 0) { a.state = 'stagger'; a.t = 0; }
       if (a.hp <= 0) this.kill(a);
     }
@@ -545,7 +547,10 @@ const KGame = (() => {
         const dist = Math.hypot(dx, dy);
         if (dist < E.sight) see = !w.ray(e.x, e.y - e.h + 1, dx / dist, dy / dist, dist).hit;
       }
-      if (see) e.lastSeen = this.time;
+      // it notices you by sight, by being close, by being hurt or by hearing a spell (alert())
+      if (see || (p && Math.hypot(dx, dy) < E.sense)) { e.lastSeen = this.time; e.knownX = p.x; }
+      const aware = this.time - e.lastSeen < E.forget;
+      if (p && aware && !see) dx = (e.knownX ?? p.x) - e.x;
       const fx = dir => Math.round(e.x + dir * (e.w / 2 + 1));
       const wallAhead = dir => w.solid(fx(dir), Math.round(e.y - 2)) && w.solid(fx(dir), Math.round(e.y - 4));
       const ledgeAhead = dir => !w.solid(fx(dir), Math.round(e.y + 1)) && !w.solid(fx(dir), Math.round(e.y + 5));
@@ -556,20 +561,37 @@ const KGame = (() => {
           break;
         case 'patrol':
           if (e.grounded) {
-            if (wallAhead(e.dir) || ledgeAhead(e.dir)) e.dir = -e.dir;
+            if (ledgeAhead(e.dir) || (wallAhead(e.dir) && e.stuckT >= 1)) { e.dir = -e.dir; e.stuckT = 0; }
+            else if (wallAhead(e.dir)) this.crawlerJump(e, 1);
             e.vx = toward(e.vx, e.dir * E.walk, 300);
           }
-          if (see) set('chase');
+          this.crawlerStuck(e, true);
+          if (aware) set('chase');
           break;
-        case 'chase':
-          if (!p || this.time - e.lastSeen > E.forget) { set('patrol'); break; }
+        case 'chase': {
+          if (!p || !aware) { set('patrol'); break; }
           if (Math.abs(dx) > 2) e.dir = Math.sign(dx);
+          // you are above it and something is overhead: walk out to the side first
+          const above = dy < -14;
+          const roof = above && w.ray(e.x, e.y - e.h, 0, -1, Math.min(60, -dy + 6)).hit;
+          if (roof && e.grounded && !(e.flankT > 0)) { e.flankT = 1.1; e.flankDir = Math.abs(dx) < 4 ? e.dir : -Math.sign(dx); }
+          let moveDir = e.dir;
+          if (e.flankT > 0) { e.flankT -= DT; moveDir = e.flankDir; if (!roof) e.flankT = 0; }
           if (e.grounded) {
-            e.vx = toward(e.vx, e.dir * E.run, 500);
-            if (wallAhead(e.dir)) { e.vy = -E.jump; e.grounded = false; }
+            e.vx = toward(e.vx, moveDir * E.run, 500);
+            // jump at walls, onto ledges you stand on, and across gaps towards you
+            // (after a second of no progress it stops jumping and chews instead)
+            if (e.stuckT >= 1) { /* chewing: see crawlerStuck */ }
+            else if (wallAhead(moveDir)) this.crawlerJump(e, 1);
+            else if (above && !roof && Math.abs(dx) < 70) this.crawlerJump(e, Math.min(1.4, Math.sqrt(2 * PD.gravity * (-dy + 10)) / E.jump));
+            else if (ledgeAhead(moveDir) && Math.abs(dx) > 16 && dy < 30) this.crawlerJump(e, 0.9);
+          } else {
+            e.vx = toward(e.vx, e.dir * E.run, 160); // steer a little in the air
           }
+          this.crawlerStuck(e, false);
           if (see && e.grounded && Math.abs(dx) < E.lungeRange && Math.abs(dy) < 18) set('windup');
           break;
+        }
         case 'windup':
           // the warning: it stops, rears up and its eyes flare
           e.vx *= Math.exp(-12 * DT);
@@ -592,6 +614,41 @@ const KGame = (() => {
           break;
       }
       e.facing = e.dir;
+    }
+
+    crawlerJump(e, k) {
+      if (!e.grounded || this.time - (e.jumpedAt || -9) < 0.35) return;
+      e.vy = -KData.enemies.crawler.jump * k; e.grounded = false; e.jumpedAt = this.time;
+    }
+
+    // Trying to get somewhere but not making progress (jumps included):
+    // after half a second jump high, after one second chew through dirt.
+    crawlerStuck(e, patrolling) {
+      e.progT = (e.progT || 0) + DT;
+      if (e.progX === undefined) e.progX = e.x;
+      if (e.progT >= 0.5) {
+        if (Math.abs(e.x - e.progX) < 3) e.stuckT = (e.stuckT || 0) + e.progT; else e.stuckT = 0;
+        e.progT = 0; e.progX = e.x;
+      }
+      if (!e.stuckT) return;
+      if (e.stuckT >= 0.5 && e.stuckT < 1) this.crawlerJump(e, 1.35);
+      if (!patrolling && e.stuckT >= 1 && e.grounded) {
+        // chew the dirt in front (never rock)
+        const w = this.world, x0 = Math.round(e.x + e.dir * (e.w / 2 + 1));
+        let chewed = 0;
+        for (let cx = x0; cx !== x0 + e.dir * 3; cx += e.dir)
+          for (let cy = Math.floor(e.y - e.h); cy < e.y; cy++) {
+            const m = w.get(cx, cy);
+            if (KWorld.SOLID[m] && !w.isHard(m) && this.rand() < 0.35) { w.set(cx, cy, M.EMPTY); chewed++; }
+          }
+        if (chewed && this.rand() < 0.5) this.burst(x0, e.y - 4, 2, [[132, 84, 100], [184, 140, 128]], 50);
+        if (e.stuckT > 5) { e.dir = -e.dir; e.stuckT = 0; } // rock or worse: try the other way
+      }
+    }
+
+    // Something drew the enemies' attention to player p (a hit, or a spell nearby).
+    alert(p, x, y, radius) {
+      for (const e of this.enemies) if (!e.dead && Math.hypot(e.x - x, e.y - y) < radius) { e.lastSeen = this.time; e.knownX = p.x; }
     }
 
     respawnCrawler(e) {

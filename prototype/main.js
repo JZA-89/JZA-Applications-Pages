@@ -74,7 +74,7 @@
     document.body.dataset.mode = m;
     KInput.clearHeld();
     if (m === 'play') { view.focus({ preventScroll: true }); return; }
-    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spells and controls' : 'Prototype · one player · v0.6';
+    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spells and controls' : 'Prototype · one player · v0.7';
     $('btnGo').textContent = m === 'start' ? 'Start' : 'Resume';
     $('btnPanelReset').hidden = m === 'start';
     $('panelLede').hidden = m === 'help';

@@ -123,8 +123,9 @@ The first enemy, for testing combat. A plated, beetle-like crawler of dark shale
 |---|---|
 | Health, stats | 60; attack 10, defence 8 (so player spells do ×1.11) |
 | Patrol | walks at 22, turns at walls and ledges |
-| Sees you | within 130 with a clear line (a ray through the world); forgets you 3 s after losing sight |
-| Chase | runs at 50 towards you, jumps (150) at walls |
+| Notices you | sees you within 130 with a clear line (a ray through the world); or you are within 50 (no line needed); or you hurt it; or you cast within 110 of it (spells make noise). Forgets you 4 s after the last of these; meanwhile it heads for where it last knew you were. |
+| Getting to you | jumps (165) at walls; when you are above and something is overhead it walks out to the side for up to 1.1 s, then jumps up to your height (up to ×1.4); jumps gaps towards you; steers in the air. Progress is checked every 0.5 s: no progress for 0.5 s → a high jump; for 1 s → it stops jumping and chews through dirt in front (never rock), turning back after 5 s. |
+| Chase | runs at 50 towards you |
 | Wind-up (the warning) | within 34 sideways and 18 up or down: stops, rears up 2 pixels, eyes flash, glow grows; 0.45 s |
 | Lunge | 215 forward, 90 up; first touch does power 18 (through the damage formula) and knocks back 170 |
 | Recover (the opening) | 0.7 s, slowing to a stop |
@@ -196,6 +197,7 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.4 (2026-11-25):** Steam drains 18 mana/s (was 36), so a full bar flies for about 5.6 s (Jaisah: at least 5 s; some parts of the game will need flight).
 - **v0.5 (2026-11-25):** renamed from KILN to Cast in Stone (Jaisah). The golem choice is now stored as `castinstone.golem` (the old `kiln.golem` is still read). The URL stays `/prototype/`.
 - **v0.6 (2026-11-25):** first enemy, the Shale crawler (patrol, chase, wind-up, lunge, recover; staggered by big hits; respawns). Jaisah asked for an enemy to test combat.
+- **v0.7 (2026-11-25):** crawlers no longer get stuck (Jaisah): they notice you by closeness, hits and spell noise as well as sight; walk out from under ledges and jump up; and chew through dirt when nothing else works. Tested: on a ledge above it, behind the rock spur, and sealed behind a dirt wall, it reaches and hits you.
 
 ## Open questions to test
 
