@@ -2451,7 +2451,7 @@ const KGame = (() => {
 
     // One stroke of digging: clears dirt, lichen and loose earth just ahead of the golem, as tall
     // as its body plus a little. Holding jump as well digs a step higher each stroke, which makes
-    // a ramp upwards. Rock and crystal stop it. Returns whether anything was dug.
+    // a ramp upwards. Crystal breaks into shards. Only rock stops it. Returns whether anything was dug.
     clawDig(a, dir) {
       const w = this.world, D = PD.dig, up = a.jumpHeld ? D.rise : 0;
       const top = Math.floor(a.y - a.h) - D.room - up, bottom = Math.floor(a.y - 0.001) - up;
@@ -2462,7 +2462,8 @@ const KGame = (() => {
         let rock = false;
         for (let cy = top; cy <= bottom; cy++) {
           const m = w.get(cx, cy);
-          if (m === M.DIRT || m === M.MOSS || m === M.EARTH) {
+          if (m === M.DIRT || m === M.MOSS || m === M.EARTH || m === M.CRYSTAL) {
+            if (m === M.CRYSTAL) w.broken.push(cx, cy);   // crystal breaks into shards, as it does for a digging spell
             w.set(cx, cy, M.EMPTY); dug++; x0 = Math.min(x0, cx); x1 = Math.max(x1, cx);
             if (this.rand() < 0.12) this.parts.push({ x: cx + 0.5, y: cy, vx: -dir * (20 + this.rand() * 50), vy: -30 - this.rand() * 50, g: 380, mat: M.EARTH, life: 2, owner: a });
           } else if (SOLID[m]) rock = true;
@@ -2611,7 +2612,20 @@ const KGame = (() => {
       if (a.kind === 'player') {
         if (a.pushDir && (a.moveX || 0) * a.pushDir > 0.5 && a.dashT <= 0 && !a.slam) {
           a.digDir = a.pushDir; a.digT = (a.digT || 0) + DT;
-          if (a.digT >= PD.dig.wait) { a.digT = this.clawDig(a, a.pushDir) ? PD.dig.wait - PD.dig.every : 0; }
+          if (a.digT >= PD.dig.wait) {
+            if (this.clawDig(a, a.pushDir)) a.digT = PD.dig.wait - PD.dig.every;
+            else {
+              // nothing it can dig: sparks at whatever is in the way (rock), so you can see what blocks you
+              a.digT = PD.dig.wait - 0.5;
+              const w2 = this.world, cx = a.pushDir > 0 ? Math.floor(a.x + a.w / 2 + 0.6) : Math.floor(a.x - a.w / 2 - 0.6);
+              for (let cy = Math.floor(a.y - a.h); cy <= Math.floor(a.y - 0.001); cy++) if (SOLID[w2.get(cx, cy)]) {
+                this.burst(cx + 0.5, cy + 0.5, 5, [[255, 240, 200], [150, 156, 190]], 70);
+                this.fx.push({ kind: 'flash', x: cx + 0.5, y: cy + 0.5, r: 7, t: 0, T: 0.18, color: [200, 206, 255] });
+                this.sfx('hit', cx, cy, 0.3);
+                break;
+              }
+            }
+          }
         } else if (!((a.moveX || 0) * (a.digDir || 0) > 0.5)) a.digT = 0;   // it keeps its rhythm while you keep pushing the same way
         a.pushDir = 0;
       }
