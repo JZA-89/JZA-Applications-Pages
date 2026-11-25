@@ -225,14 +225,14 @@ const KGame = (() => {
           const cx = Math.round(hit.x + x), cy = Math.round(hit.y + y);
           if (w.get(cx, cy) === M.EMPTY && !this.actorAt(cx, cy)) w.set(cx, cy, M.DIRT);
         }
-        this.burst(hit.x, hit.y, 8, [[140, 106, 66]], 40);
+        this.burst(hit.x, hit.y, 8, [[184, 140, 128]], 40);
         return;
       }
       // start in the open cell next to the surface
       let sx = Math.floor(hit.lx), sy = Math.floor(hit.ly);
       if (gx === 0 && gy === -1) sy = Math.floor(hit.y) - 1;
       this.growths.push({ x: sx + 0.5, y: sy + 0.5, gx, gy, left: sp.length, acc: 0, rate: sp.growRate, half: (sp.width - 1) / 2 });
-      this.burst(hit.x, hit.y, 10, [[140, 106, 66], [104, 75, 53]], 60);
+      this.burst(hit.x, hit.y, 10, [[184, 140, 128], [132, 84, 100]], 60);
     }
 
     updateGrowths() {
@@ -332,7 +332,7 @@ const KGame = (() => {
             if (SOLID[m]) {
               w.explode(pr.x, pr.y, pr.sp.bore);
               pr.bore -= sp * DT / n;
-              if (this.rand() < 0.25) this.burst(pr.x, pr.y, 1, [[140, 106, 66]], 40);
+              if (this.rand() < 0.25) this.burst(pr.x, pr.y, 1, [[184, 140, 128]], 40);
               if (pr.bore <= 0) { pr.dead = true; break; }
             }
             if (pr.travelled > pr.sp.range) pr.dead = true;
@@ -361,7 +361,7 @@ const KGame = (() => {
         this.hitRadius(x, y, sp.radius + 6, sp.damage, sp.knock, null);
         this.fx.push({ kind: 'ring', x, y, r0: 3, r1: sp.radius + 4, t: 0, T: 0.25, color: [255, 190, 90] });
         this.fx.push({ kind: 'flash', x, y, r: 34, t: 0, T: 0.18, color: [255, 160, 70] });
-        this.burst(x, y, 26, [[140, 106, 66], [104, 75, 53], [255, 170, 70]], 150);
+        this.burst(x, y, 26, [[184, 140, 128], [132, 84, 100], [255, 170, 70]], 150);
         this.shake = Math.max(this.shake, 3);
       } else if (pr.kind === 'blob') {
         if (hit) this.hurt(hit, sp.damage, pr.vx * 0.3, -40, 'magma');
@@ -461,7 +461,7 @@ const KGame = (() => {
       a.vx += kx || 0; a.vy += ky || 0;
       if (amount >= 4) {
         a.flash = 0.1;
-        const col = a.kind === 'player' ? [[230, 218, 198], [185, 168, 146]] : [[150, 140, 165], [200, 194, 214]];
+        const col = a.kind === 'player' ? [[240, 228, 206], [198, 178, 160]] : [[150, 140, 165], [200, 194, 214]];
         this.burst(a.x, a.y - a.h / 2, Math.min(14, 2 + amount / 5), col, 80);
       }
       if (a.hp <= 0) this.kill(a);
@@ -470,7 +470,7 @@ const KGame = (() => {
     kill(a) {
       a.dead = true; a.hp = 0;
       a.respawnT = a.kind === 'player' ? PD.respawn : DD.respawn;
-      const col = a.kind === 'player' ? [[230, 218, 198], [185, 168, 146], [90, 75, 62]] : [[150, 140, 165], [200, 194, 214], [74, 58, 48]];
+      const col = a.kind === 'player' ? [[240, 228, 206], [198, 178, 160], [44, 28, 36]] : [[150, 140, 165], [200, 194, 214], [74, 58, 48]];
       this.burst(a.x, a.y - a.h / 2, 40, col, 140);
       if (a.kind === 'player') { this.endJet(a); a.dashT = 0; this.shake = Math.max(this.shake, 3); }
     }

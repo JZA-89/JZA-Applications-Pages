@@ -19,24 +19,24 @@ const KData = (() => {
   const materials = [];
   materials[M.EMPTY] = { name: 'Empty', state: 'empty', density: 0 };
   materials[M.ROCK]  = { name: 'Rock', state: 'static', solid: true, hard: true, density: 99,
-    colors: [[52, 58, 72], [58, 64, 80], [46, 51, 64], [63, 69, 86], [49, 55, 69]] };
+    colors: [[42, 48, 74], [50, 58, 88]] };  // drawn as faceted slate by position (render.js)
   materials[M.DIRT]  = { name: 'Dirt', state: 'static', solid: true, density: 99,
-    colors: [[92, 64, 46], [99, 70, 50], [85, 59, 43], [104, 75, 53], [88, 62, 45]] };
+    colors: [[132, 84, 100], [142, 92, 96]] };  // drawn as layered strata by position (render.js)
   materials[M.EARTH] = { name: 'Loose earth', state: 'powder', solid: true, density: 6, slide: 0.9,
-    colors: [[140, 106, 66], [150, 114, 72], [131, 99, 62], [158, 121, 77]] };
+    colors: [[184, 140, 128], [172, 128, 118], [194, 152, 136], [178, 134, 124]] };
   materials[M.WATER] = { name: 'Water', state: 'liquid', density: 3, flow: 5, conducts: true, alpha: 0.78,
-    colors: [[38, 104, 196], [42, 112, 206], [35, 98, 188]] };
+    colors: [[44, 86, 196], [48, 92, 204], [40, 80, 188]] };
   materials[M.STEAM] = { name: 'Steam', state: 'gas', density: 1, life: [90, 170], condense: 0.06,
-    colors: [[196, 208, 222], [212, 222, 233], [184, 198, 214]] };
+    colors: [[204, 206, 230], [218, 218, 238], [190, 192, 220]] };
   materials[M.FIRE]  = { name: 'Fire', state: 'fire', density: 0.5, life: [14, 34], glow: true, burns: 22,
     colors: [[255, 214, 120], [255, 150, 52], [232, 84, 30], [150, 40, 20]] };
   materials[M.MUD]   = { name: 'Mud', state: 'powder', density: 5, slide: 0.25, moveChance: 0.45, slows: 0.38,
-    colors: [[84, 77, 71], [76, 70, 65], [92, 84, 77], [80, 74, 70]] };
+    colors: [[96, 84, 104], [88, 76, 96], [104, 92, 112], [92, 80, 100]] };
   materials[M.MAGMA] = { name: 'Magma', state: 'liquid', density: 7, flow: 1, moveChance: 0.35, glow: true,
     burns: 45, life: [200, 255], coolsTo: M.DIRT,
     colors: [[255, 120, 40], [255, 168, 64], [236, 84, 28], [255, 196, 96]] };
-  materials[M.MOSS]  = { name: 'Moss', state: 'static', solid: true, flammable: true, density: 99,
-    colors: [[58, 104, 58], [66, 116, 62], [50, 94, 52], [74, 124, 66]] };
+  materials[M.MOSS]  = { name: 'Lichen', state: 'static', solid: true, flammable: true, density: 99,
+    colors: [[118, 168, 146], [104, 154, 134], [132, 182, 156], [110, 160, 140]] };
 
   // ---------- Reactions ----------
   // When a cell of material a touches b, with this chance per tick, a becomes ra
@@ -103,7 +103,7 @@ const KData = (() => {
 
   // ---------- Actors ----------
   const player = {
-    w: 7, h: 12, hp: 100, run: 72, accel: 900, airAccel: 520, friction: 14,
+    w: 9, h: 14, hp: 100, run: 72, accel: 900, airAccel: 520, friction: 14,
     jump: 168, gravity: 480, maxFall: 330, coyote: 0.1, buffer: 0.12,
     bursts: 2, regenDelay: 3, regen: 12, respawn: 1.4,
     // damage per second from touching these

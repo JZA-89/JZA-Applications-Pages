@@ -1,15 +1,15 @@
 /* KILN prototype — style.css
-   Dark cave, fired-clay interface. The only strong colours are the four
+   Violet cave, fired-clay interface. The only strong colours are the four
    elements; everything else is clay and ash so the elements always read. */
 :root {
   color-scheme: dark;
-  --bg: #0c0b0e;
+  --bg: #0d0a14;
   --ink: #efe6d8;      /* fired clay, light */
   --muted: #b8ac9a;
   --dim: #8a7f71;
-  --line: #e6dac624;
-  --panel: #17141399;
-  --panel-solid: #1a1614f2;
+  --line: #d9cce824;
+  --panel: #17121f99;
+  --panel-solid: #191422f2;
   --ember: #2a1812;
   --fire: #ff7a2f; --water: #3fa9ff; --earth: #c89a4a; --lightning: #fff27a;
   font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
@@ -23,7 +23,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 [hidden] { display: none !important; }
 
 /* ---------- stage: 16:9, scaled to fit ---------- */
-#stage { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 960px; height: 540px; overflow: hidden; background: #111014; }
+#stage { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 960px; height: 540px; overflow: hidden; background: #14101f; }
 #stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #view { image-rendering: pixelated; image-rendering: crisp-edges; cursor: none; touch-action: none; }
 #glow { pointer-events: none; mix-blend-mode: screen; }

@@ -51,7 +51,7 @@
     document.body.dataset.mode = m;
     KInput.clearHeld();
     if (m === 'play') { view.focus({ preventScroll: true }); return; }
-    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spells and controls' : 'Prototype · one player · v0.1';
+    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spells and controls' : 'Prototype · one player · v0.2';
     $('btnGo').textContent = m === 'start' ? 'Start' : 'Resume';
     $('btnPanelReset').hidden = m === 'start';
     $('panelLede').hidden = m === 'help';
@@ -137,7 +137,7 @@
       if (KInput.device === 'pad') { const c = game.chest(p); reticle = { x: c.x + Math.cos(p.aim) * 26, y: c.y + Math.sin(p.aim) * 26 }; }
       else if (KInput.mouse.moved) reticle = R.clientToWorld(KInput.mouse.x, KInput.mouse.y);
     }
-    R.draw(game, { reticle, reduced: reduced.matches });
+    R.draw(game, { reticle, reduced: reduced.matches, dt: mode === 'play' ? dt : 0 });
     updateHud();
     requestAnimationFrame(frame);
   }

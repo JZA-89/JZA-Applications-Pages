@@ -9,24 +9,27 @@
 const KRender = (() => {
   const { M, materials, elements, view: V } = KData;
 
-  // The clay character, facing right. k outline, o clay, d clay shade,
-  // s kiln opening (element slot), c crack that glows when both slots are loaded.
+  // The character: a small bottle kiln, facing right, 11 x 15.
+  // k soot outline, o glazed body, d body shade, a door arch,
+  // L / M / R the furnace door (left slot, mix, right slot). Eyes are drawn on top.
   const KILN = [
-    '..kkkkk..',
-    '.koooodk.',
-    '.koooodk.',
-    '.koooodk.',
-    '..koodk..',
-    '.koooodk.',
-    'koooooodk',
-    'koososodk',
-    'koososodk',
-    'koocooodk',
-    'koooocodk',
-    '.koooodk.',
-    '.kok.kdk.',
-    '.kkk.kkk.',
+    '...kkkkk...',
+    '....kod....',
+    '....kod....',
+    '...koodk...',
+    '..koooodk..',
+    '.koooooodk.',
+    'koooooooodk',
+    'koooooooodk',
+    'koooaaaoodk',
+    'kooaLMRaodk',
+    'kooaLMRaodk',
+    'kooaLMRaodk',
+    '.kdddddddk.',
+    '.kok...kok.',
+    '.kkk...kkk.',
   ];
+  const KW = 11, KH = KILN.length;
   const DUMMY = [
     '.kkkkk.',
     'ksssssk',
@@ -42,11 +45,25 @@ const KRender = (() => {
     '..ppp..',
     '.ppppp.',
   ];
-  const CLAY = { o: [230, 218, 198], d: [190, 175, 152], k: [92, 76, 64], c: [92, 76, 64], e: [255, 244, 214], s: [40, 24, 18] };
-  const SACK = { k: [60, 52, 70], s: [140, 132, 158], x: [205, 198, 220], p: [88, 68, 52] };
+  const CLAY = { o: [240, 228, 206], d: [198, 178, 160], k: [44, 28, 36], a: [86, 44, 40], e: [40, 22, 30], door: [58, 26, 24] };
+  const SACK = { k: [44, 36, 56], s: [138, 128, 160], x: [206, 198, 226], p: [96, 70, 74] };
   // body pixels that can chip off, in a fixed shuffled order
   const kilnBody = [];
-  KILN.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === 'o' || ch === 'd') kilnBody.push(y * 9 + x); }));
+  KILN.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === 'o' || ch === 'd') kilnBody.push(y * KW + x); }));
+  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + 0.5) / 16);
+  function hash(i, j, s) { const v = Math.sin(i * 127.1 + j * 311.7 + s * 74.7) * 43758.5453; return v - Math.floor(v); }
+  function noise(x, y, scale, s) {
+    x /= scale; y /= scale;
+    const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j;
+    const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+    const a = hash(i, j, s), b = hash(i + 1, j, s), c = hash(i, j + 1, s), d = hash(i + 1, j + 1, s);
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+  }
+  // Dirt is layered: bands of dusky rose, plum and sand that follow a gentle
+  // wave, blended into each other with an ordered dot pattern.
+  const STRATA = [[124, 76, 92], [142, 92, 96], [104, 64, 90], [160, 114, 104], [92, 58, 84], [132, 84, 100]];
+  // Rock is faceted slate.
+  const SLATE0 = [34, 40, 64], SLATE1 = [66, 76, 110], SLATE_EDGE = [22, 24, 40];
 
   const pack = (r, g, b) => (255 << 24) | (b << 16) | (g << 8) | r;
   const clamp = v => v < 0 ? 0 : v > 255 ? 255 : v | 0;
@@ -72,18 +89,40 @@ const KRender = (() => {
     }
 
     setWorld(world) {
-      // cave back wall: dark, slightly warm, with soft patches
+      // cave back wall: deep violet, darker far rock shapes, faint spores
       const { w, h } = world, n = w * h;
       this.bgR = new Uint8Array(n); this.bgG = new Uint8Array(n); this.bgB = new Uint8Array(n);
       this.bg = new Uint32Array(n);
-      const hs = (x, y) => { const v = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453; return v - Math.floor(v); };
       for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-        const i = y * w + x;
-        const patch = Math.sin(x / 23 + Math.sin(y / 17)) * Math.cos(y / 19 - x / 41);
-        const grain = hs(x, y) * 3;
-        const r = 17 + patch * 3 + grain, g = 15 + patch * 2.5 + grain, b = 20 + patch * 3 + grain;
+        const i = y * w + x, t = y / h;
+        let r = 30 - 14 * t, g = 22 - 10 * t, b = 46 - 20 * t;
+        const far = noise(x, y * 1.6, 30, 21) * 0.7 + noise(x, y, 9, 22) * 0.3;
+        if (far > 0.6) { r -= 9; g -= 7; b -= 11; }
+        else if (far > 0.52 && BAYER[(y & 3) * 4 + (x & 3)] < (far - 0.52) / 0.08) { r -= 9; g -= 7; b -= 11; }
+        if (hash(x, y, 31) < 0.0018) { r += 40; g += 34; b += 60; }
         this.bgR[i] = r; this.bgG[i] = g; this.bgB[i] = b;
         this.bg[i] = pack(r | 0, g | 0, b | 0);
+      }
+      // dirt and rock colours depend on where the cell is, so the layers stay put
+      const tone = (c, k) => [pack(c[0], c[1], c[2]),
+        pack(clamp(c[0] * 1.25 + 14), clamp(c[1] * 1.2 + 12), clamp(c[2] * 1.15 + 12)),
+        pack(clamp(c[0] * 0.55), clamp(c[1] * 0.5), clamp(c[2] * 0.6))];
+      this.dirtC = [new Uint32Array(n), new Uint32Array(n), new Uint32Array(n)];
+      this.rockC = [new Uint32Array(n), new Uint32Array(n), new Uint32Array(n)];
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const i = y * w + x, b4 = BAYER[(y & 3) * 4 + (x & 3)];
+        const v = (y + 11 * noise(x, 0, 46, 3) + 4 * noise(x, y, 13, 4)) / 6.5;
+        let band = Math.floor(v);
+        if (v - band > 0.68 && (v - band - 0.68) / 0.32 > b4) band++;
+        let c = STRATA[((band % STRATA.length) + STRATA.length) % STRATA.length];
+        if (noise(x, y, 5, 6) > 0.62 && b4 < 0.5) c = c.map(q => q * 0.88);
+        let t = tone(c);
+        this.dirtC[0][i] = t[0]; this.dirtC[1][i] = t[1]; this.dirtC[2][i] = t[2];
+        const f = noise(x, y, 7, 9) * 0.7 + noise(x, y, 3, 10) * 0.3, q = f * 4, lv = Math.floor(q) / 3;
+        let rc = SLATE0.map((s, k) => s + (SLATE1[k] - s) * Math.min(1, lv));
+        if (Math.abs(q - Math.round(q)) < 0.045) rc = SLATE_EDGE;
+        t = tone(rc);
+        this.rockC[0][i] = t[0]; this.rockC[1][i] = t[1]; this.rockC[2][i] = t[2];
       }
       this.world = world;
     }
@@ -156,6 +195,7 @@ const KRender = (() => {
 
       this.drawCells(world, game.time);
       for (const d of game.dummies) this.drawDummy(d);
+      this.drawSmoke(game, opt.dt || 0);
       for (const pl of game.players) this.drawKiln(pl);
       this.drawProjectiles(game);
       this.drawParticles(game);
@@ -179,7 +219,7 @@ const KRender = (() => {
           if (m === M.EMPTY) { buf[o] = bg[i]; continue; }
           if (m === M.WATER) {
             const top = mat[i - w] === M.EMPTY || mat[i - w] === M.STEAM;
-            let r = top ? 92 : 38, g = top ? 158 : 104 + (shade[i] & 7), b = top ? 236 : 198;
+            let r = top ? 130 : 44, g = top ? 176 : 84 + (shade[i] & 7), b = top ? 255 : 196;
             if (charge[i]) {
               const f = Math.min(1, charge[i] / 60) * (0.35 + Math.random() * 0.65);
               r += (235 - r) * f; g += (245 - g) * f; b += (255 - b) * f;
@@ -207,50 +247,74 @@ const KRender = (() => {
             heat[grow + (vx >> 3)] += 0.8;
             continue;
           }
-          const v = pal[m], c = v[shade[i] % v.length];
-          const above = mat[i - w], below = mat[i + w];
-          const st = KWorld.STATE[m];
-          if ((st === 1 || st === 2) && (above === M.EMPTY || above === M.WATER || above === M.STEAM)) buf[o] = c[1];
-          else if (below === M.EMPTY && st === 1) buf[o] = c[2];
-          else buf[o] = c[0];
+          const above = mat[i - w], st = KWorld.STATE[m];
+          const open = q => q === M.EMPTY || q === M.STEAM || q === M.FIRE;
+          let e = 0;
+          if (st === 1 || st === 2) {
+            if (open(above) || above === M.WATER) e = 1;
+            else if (st === 1 && (open(mat[i + w]) || open(mat[i - 1]) || open(mat[i + 1]))) e = 2;
+          }
+          if (m === M.DIRT) buf[o] = this.dirtC[e][i];
+          else if (m === M.ROCK) buf[o] = this.rockC[e][i];
+          else { const v = pal[m]; buf[o] = v[shade[i] % v.length][e]; }
         }
       }
     }
 
     drawKiln(p) {
       if (p.dead) return;
-      const ox = Math.round(p.x - this.cam.x) - 4, oy = Math.round(p.y - this.cam.y) - 14;
+      const ox = Math.round(p.x - this.cam.x) - 5, oy = Math.round(p.y - this.cam.y) - KH;
       const flip = p.facing < 0;
       const hurt = 1 - p.hp / p.maxHp;
       const chipped = new Set();
       const nChip = Math.floor(hurt * kilnBody.length * 0.45);
       for (let k = 0, n = 0; k < p.chips.length && n < nChip; k++) if (p.chips[k] < kilnBody.length) { chipped.add(kilnBody[p.chips[k]]); n++; }
-      const both = p.slots[0] && p.slots[1];
-      const glowCol = both ? elements[p.slots[0]].color.map((v, i) => (v + elements[p.slots[1]].color[i]) / 2) : null;
+      const e0 = p.slots[0] && elements[p.slots[0]].color, e1 = p.slots[1] && elements[p.slots[1]].color;
+      const mix = e0 && e1 ? e0.map((v, i) => (v + e1[i]) / 2) : (e0 || e1 || CLAY.door);
       // eyes look towards the aim
       const ax = Math.cos(p.aim), ay = Math.sin(p.aim);
-      const eyeRow = 2 + (ay < -0.55 ? -1 : ay > 0.55 ? 1 : 0), eyeShift = Math.abs(ax) > 0.35 ? 1 : 0;
-      for (let y = 0; y < KILN.length; y++) {
+      const eyeRow = 6 + (ay > 0.6 ? 1 : 0), eyeShift = Math.abs(ax) > 0.35 ? 1 : 0;
+      for (let y = 0; y < KH; y++) {
         const row = KILN[y];
-        for (let x = 0; x < 9; x++) {
+        for (let x = 0; x < KW; x++) {
           const ch = row[x];
           if (ch === '.') continue;
-          if (chipped.has(y * 9 + x)) continue;
-          const sx = flip ? 8 - x : x;
+          if (chipped.has(y * KW + x)) continue;
+          const sx = flip ? KW - 1 - x : x;
           let col = CLAY[ch];
-          if (ch === 's') {
-            const el = p.slots[sx < 4 ? 0 : 1];
-            col = el ? elements[el].color : CLAY.s;
-            if (el && p.slotFlash > 0) col = [255, 255, 255];
-          } else if (ch === 'c' && glowCol) col = glowCol;
-          else if (y === eyeRow && (x === 3 + eyeShift || x === 5 + eyeShift)) col = CLAY.e;
+          if (ch === 'L' || ch === 'M' || ch === 'R') {
+            // the door: the left half shows the first element, the right half the second
+            const side = sx < 5 ? 0 : sx > 5 ? 1 : 2;
+            col = side === 2 ? mix : (side === 0 ? e0 : e1) || CLAY.door;
+            if (p.slotFlash > 0) col = (e0 && e1) ? [255, 255, 255] : [255, 120, 90];
+            if (y === 9 && side !== 2) col = col.map(v => v * 0.8);
+          } else if (y === eyeRow && (x === 3 + eyeShift || x === 6 + eyeShift)) col = CLAY.e;
           if (p.flash > 0) col = [255, 246, 236];
           this.plot(ox + sx, oy + y, col[0], col[1], col[2]);
         }
       }
-      if (p.slotFlash > 0 && !(p.slots[0] && p.slots[1])) {
-        // tried to cast without two elements: the empty openings flash
-        for (const sx of [3, 5]) for (const y of [7, 8]) this.plot(ox + sx, oy + y, 255, 120, 90, p.slotFlash / 0.35);
+    }
+
+    // Smoke from the chimney, tinted by what is loaded. Drawing only.
+    drawSmoke(game, dt) {
+      if (!this.smoke) this.smoke = [];
+      for (const p of game.players) {
+        if (p.dead || dt <= 0) continue;
+        p._smokeT = (p._smokeT || 0) - dt;
+        if (p._smokeT <= 0) {
+          p._smokeT = 0.12 + Math.random() * 0.1;
+          const e0 = p.slots[0] && elements[p.slots[0]].color, e1 = p.slots[1] && elements[p.slots[1]].color;
+          const base = e0 && e1 ? e0.map((v, i) => (v + e1[i]) / 2) : (e0 || e1);
+          const col = base ? base.map(v => v * 0.75 + 150 * 0.25) : [128, 118, 140];
+          this.smoke.push({ x: p.x + (p.facing < 0 ? -0.5 : 0.5), y: p.y - KH - 0.5, vx: (Math.random() - 0.5) * 4 - p.vx * 0.05, vy: -10 - Math.random() * 6, t: 0, T: 1 + Math.random() * 0.6, col });
+        }
+      }
+      for (const s of this.smoke) { s.t += dt; s.x += s.vx * dt; s.y += s.vy * dt; s.vx += (Math.random() - 0.5) * 20 * dt; }
+      this.smoke = this.smoke.filter(s => s.t < s.T);
+      for (const s of this.smoke) {
+        const a = 0.55 * (1 - s.t / s.T), x = s.x - this.cam.x, y = s.y - this.cam.y;
+        this.plot(x, y, s.col[0], s.col[1], s.col[2], a);
+        if (s.t > 0.35) this.plot(x + 1, y, s.col[0], s.col[1], s.col[2], a * 0.6);
       }
     }
 
@@ -343,9 +407,9 @@ const KRender = (() => {
       }
       for (const p of game.players) {
         if (p.dead) continue;
-        const cx = p.x, cy = p.y - 6.5;
-        p.slots.forEach((el, i) => { if (el) this.light(cx + (i ? 1 : -1), cy, 7, elements[el].color, 0.5); });
-        this.light(p.x + p.facing, p.y - 12, 4, [255, 236, 200], 0.22);
+        const cy = p.y - 4.5, f = p.facing;
+        p.slots.forEach((el, i) => { if (el) this.light(p.x + (i ? 1 : -1) * f, cy, 8, elements[el].color, 0.55); });
+        this.light(p.x + f, p.y - 8.5, 4, [255, 236, 200], 0.22);
       }
     }
   }

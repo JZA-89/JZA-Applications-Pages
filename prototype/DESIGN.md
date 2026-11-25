@@ -54,7 +54,7 @@ Each is linked with `?v=<version>`; bump them all together with the version in t
 | Fire | life 14–34 steps | Flickers upward; burns 22 health/s on touch. |
 | Mud | powder, slide 0.25, moves 45% of steps | Slows: run speed × 0.38, jump × 0.55, strong drag. |
 | Magma | liquid, flow 1, moves 35% of steps, life 200–255 | Burns 45 health/s on touch; cools into dirt (about 8 s). |
-| Moss | static, solid, flammable | Grows on floors and hangs from ceilings. Fuel for fire. |
+| Lichen (`MOSS`) | static, solid, flammable | Grows on floors and hangs from ceilings. Fuel for fire. |
 
 ### Reactions (`KData.reactions`, chance per step per contact)
 
@@ -76,7 +76,18 @@ One hand-shaped cave (seed 20261125): rock frame; a long cavern with a wavy floo
 
 ## The character
 
-A small figure of fired clay, 9 × 14 pixels (hitbox 7 × 12): off-white body, dark outline and cracks, two glowing eyes that look towards the aim. Two kiln openings in the chest are the element slots; each glows in its element's colour, and two interior cracks glow with the mix of both when two are loaded. Damage chips pixels off the body (up to 45% at zero health). The interface uses only clay and ash colours, so the four element colours always mean their element.
+A small **bottle kiln**, 11 × 15 pixels (hitbox 9 × 14): a glazed cream body with a soot outline, a chimney on top, two dark eyes that look towards the aim, and an arched furnace door as its mouth. The door is the element display: its left half glows with the first loaded element, its right half with the second, and the middle with their mix. The chimney puffs smoke tinted by what is loaded (grey when empty). Damage chips pixels off the body (up to 45% at zero health). The interface uses only clay and violet-ash colours, so the four element colours always mean their element.
+
+## Look
+
+The world has its own palette, deliberately unlike the random brown speckle of older digging games:
+
+- **Background:** deep violet, darker towards the bottom, with darker far-rock shapes and faint spores.
+- **Dirt:** layered strata (dusky rose, plum, sand) that follow a gentle wave and blend into each other with an ordered 4 × 4 dot pattern (Bayer dithering). Colours depend on the cell's position, so new dirt (an earth pillar) matches the layers around it.
+- **Rock:** faceted dark slate with thin crystal edges.
+- **Edges:** a light crust on any surface open to the air above, a dark rim on sides and undersides, so the terrain reads as carved.
+- **Lichen** (the fuel material, code name `MOSS`): pale sage, on floors and hanging from ceilings.
+- **Loose earth** sandy rose; **mud** grey-violet; **water** deep blue with a pale surface line.
 
 ## Player
 
@@ -130,6 +141,8 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 ## Decision log
 
 - **v0.1 (2026-11-25):** first build. Four elements, ten spells, one map, training dummies, keyboard/mouse and controller. Spell keys are the two element names in alphabetical order. Slots stay loaded after a cast. Movement spells use bursts (two, refilled on landing) so there is no free flight. Health is 100 with numbers chosen so that most attacks take three hits to finish a player (to be tuned for PvP).
+
+- **v0.2 (2026-11-25):** own look. The character is a bottle kiln (door shows the elements, chimney smoke in their colours); dirt is layered strata, rock faceted slate, moss is now lichen, the cave is violet. Player hitbox 9 × 14 (was 7 × 12).
 
 ## Open questions to test
 
