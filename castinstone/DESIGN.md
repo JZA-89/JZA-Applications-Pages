@@ -506,7 +506,7 @@ Measured with scratchpad `bal.js`: a simple bot at the creature's own level (poi
 - Urchin spines reach 100 (was 120) every 3 s; geode shards are a little slower and weaker.
 - The Hollow King was redrawn as a crowned skull in a robe.
 - **First minutes:** until a first golem has cast a spell, the line under the map says how to cast on the device in use ("Shape a spell").
-- Known and left alone for now: Lightning, Lightning is the easy answer to almost everything because it cannot miss.
+- **v0.51:** Bolt (Lightning, Lightning) does 27 (was 34): it lands at once and cannot miss, so it should not hit as hard as a Fireball that can. The second cave no longer has any of the first cave's crawlers, moths or spitters (all become shades, urchins, wraiths and geodes); delvers and wardens live in both. About half the old moth homes hold wraiths, since something that passes through walls should not be everywhere.
 
 ## Acts: the second cave (v0.48, `KData.acts`)
 

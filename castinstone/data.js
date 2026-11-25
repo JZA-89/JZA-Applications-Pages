@@ -111,7 +111,7 @@ const KData = (() => {
     },
     'lightning+lightning': {
       shot: { name: 'Bolt', kind: 'bolt', cd: 0.55, cost: 14, desc: 'An instant bolt. Electrifies any water it touches.',
-        range: 170, power: 34, knock: 90, chains: 1, chainRange: 16, charge: 70, chargeCells: 2200, color: [255, 246, 170] },
+        range: 170, power: 27, knock: 90, chains: 1, chainRange: 16, charge: 70, chargeCells: 2200, color: [255, 246, 170] },
       burst: { name: 'Shock field', kind: 'field', cd: 0.4, cost: 20, desc: 'Shocks everything near you.',
         radius: 34, power: 34, knock: 80, charge: 60, color: [255, 246, 170] },
       lift: { name: 'Spark hops', kind: 'lhops', cost: 14, desc: 'Leap again off a crack of lightning, up to three times before you land. Each hop is quick and shocks whatever is under you.',
@@ -439,7 +439,8 @@ const KData = (() => {
   const acts = [
     { name: 'The Waking Cave', biomes, remix, boss: 'emberwyrm', order: ['warden', 'moth', 'delver'], champions: { warden: 'The Slate Colossus', moth: 'The Lantern Queen', delver: 'Deepjaw' } },
     { name: 'The Sunless Deep', biomes: biomesDeep, boss: 'hollowking', order: ['shade', 'urchin', 'wraith'], champions: { shade: 'The Mirror', urchin: 'The Thousand Spines', wraith: 'The Pale Regent' },
-      remix: { crawler: [[['shade', 0, 45], ['urchin', 0, 30]], [['urchin', 0, 45], ['shade', 0, 30]], [['shade', 0, 40], ['urchin', 0, 35]]], moth: [[['wraith', 0, 55]], [['wraith', 0, 55]], [['wraith', 0, 70]]], spitter: [[['geode', 0, 85]], [['geode', 0, 85]], [['geode', 0, 60]]] } },
+      // nothing of the first cave's crawlers, moths or spitters is left down here; delvers and wardens live in both
+      remix: { crawler: [[['shade', 0, 60], ['urchin', 0, 40]], [['urchin', 0, 60], ['shade', 0, 40]], [['shade', 0, 50], ['urchin', 0, 50]]], moth: [[['wraith', 0, 50], ['shade', 0, 25], ['urchin', 0, 25]], [['wraith', 0, 50], ['urchin', 0, 30], ['shade', 0, 20]], [['wraith', 0, 60], ['shade', 0, 20], ['urchin', 0, 20]]], spitter: [[['geode', 0, 100]], [['geode', 0, 100]], [['geode', 0, 100]]] } },
   ];
   const cave = { chambers: 104, spacing: 150, hubRadius: 320, regionDistance: 800, levelEvery: 200, depthLevels: 8,
     tunnel: [12, 17], plugChance: 0.16, loopChance: 0.55, lodestones: 15, stoneReach: 46, stoneUp: 30, stoneDown: 50,   // how near counts as at a Lodestone: sideways, above it, below it
