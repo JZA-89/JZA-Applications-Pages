@@ -36,14 +36,27 @@
     b.addEventListener('click', () => KInput.queue({ type: 'load', el }));
     els.appendChild(b);
   }
-  const list = $('spellList');
-  const MODE_LABEL = { shot: 'Shot', burst: 'Burst', move: 'Move' };
+  // spell book: ten pairs x three ways to cast; pointing at a name shows what it does
+  const book = $('book');
+  const MODE_LABEL = { shot: ['Shot', 'left click'], burst: ['Burst', 'right click'], move: ['Move', 'hold Space'] };
+  book.insertAdjacentHTML('beforeend', '<span></span>' + KData.modes.map(md => `<span class="hd">${MODE_LABEL[md][0]}<small>${MODE_LABEL[md][1]}</small></span>`).join(''));
+  const showSpell = (btn, key, md) => {
+    const [a, b] = key.split('+'), sp = spells[key][md];
+    book.querySelectorAll('button.on').forEach(x => x.classList.remove('on'));
+    btn.classList.add('on');
+    $('bookDetail').innerHTML = `<b>${sp.name} <small style="color:var(--dim);font-weight:500">· ${elements[a].name} + ${elements[b].name} · ${MODE_LABEL[md][0]} · ${sp.drain ? sp.drain + ' mana a second' : sp.cost + ' mana'}</small></b><span>${sp.desc}</span>`;
+  };
   for (const key of Object.keys(spells)) {
-    const [a, b] = key.split('+'), li = document.createElement('li');
-    li.innerHTML = `<span class="pair"><i style="--c:${elements[a].css}"></i><i style="--c:${elements[b].css}"></i></span>` +
-      `<b>${elements[a].name} + ${elements[b].name}</b>` +
-      KData.modes.map(md => `<span class="desc"><em>${MODE_LABEL[md]}</em> <strong>${spells[key][md].name}</strong>: ${spells[key][md].desc}</span>`).join('');
-    list.appendChild(li);
+    const [a, b] = key.split('+');
+    book.insertAdjacentHTML('beforeend', `<span class="pairc" title="${elements[a].name} + ${elements[b].name}"><i style="--c:${elements[a].css}"></i><i style="--c:${elements[b].css}"></i></span>`);
+    for (const md of KData.modes) {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.textContent = spells[key][md].name;
+      btn.addEventListener('mouseenter', () => showSpell(btn, key, md));
+      btn.addEventListener('focus', () => showSpell(btn, key, md));
+      btn.addEventListener('click', () => showSpell(btn, key, md));
+      book.appendChild(btn);
+    }
   }
 
   // ---------- golem picker (remembered in this browser only) ----------
@@ -76,13 +89,19 @@
     document.body.dataset.mode = m;
     KInput.clearHeld();
     if (m === 'play') { view.focus({ preventScroll: true }); return; }
-    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spells and controls' : 'Prototype · one player · v0.9';
+    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spell book' : 'Prototype · one player · v0.10';
     $('btnGo').textContent = m === 'start' ? 'Start' : 'Resume';
     $('btnPanelReset').hidden = m === 'start';
-    $('panelLede').hidden = m === 'help';
+    showBook(m === 'help');
     $('btnGo').focus({ preventScroll: true });
   }
   view.tabIndex = -1;
+  function showBook(on) {
+    $('viewBook').hidden = !on; $('viewMain').hidden = on;
+    document.querySelector('.picker').hidden = on; $('panelLede').hidden = on;
+    $('btnBook').textContent = on ? 'Controls' : 'Spell book';
+  }
+  $('btnBook').addEventListener('click', () => showBook($('viewBook').hidden));
   const resume = () => setMode('play');
   const reset = () => { game.reset(); game.players[0].skin = skin; acc = 0; };
   $('btnGo').addEventListener('click', resume);

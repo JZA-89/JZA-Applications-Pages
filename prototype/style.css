@@ -103,6 +103,22 @@ body[data-mode="play"] .panel-wrap { display: none; }
 .golem:hover { background: #ffffff10; }
 .golem[aria-checked="true"] { border-color: var(--ink); background: #ffffff14; }
 .golem small { font-size: 11px; font-weight: 500; color: var(--dim); }
+.view-main, .view-book { margin-top: 20px; }
+.controls { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+.keys { margin: 0; display: grid; gap: 6px; font-size: 12.5px; }
+.keys div { display: flex; justify-content: space-between; gap: 12px; align-items: center; min-height: 24px; }
+.keys dt { color: var(--muted); }
+.keys dd { margin: 0; text-align: right; }
+.book { display: grid; grid-template-columns: auto repeat(3, 1fr); gap: 4px; font-size: 12.5px; }
+.book .hd { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); padding: 0 8px 4px; }
+.book .hd small { display: block; letter-spacing: .04em; text-transform: none; font-size: 11px; }
+.book .pairc { display: flex; align-items: center; gap: 4px; padding-right: 8px; }
+.book .pairc i { width: 11px; height: 11px; border-radius: 50%; background: var(--c); }
+.book button { text-align: left; padding: 6px 8px; border: 1px solid transparent; border-radius: 6px; background: #ffffff06; font-size: 12.5px; font-weight: 600; }
+.book button:hover, .book button:focus-visible, .book button.on { border-color: var(--line); background: #ffffff12; }
+.book-detail { margin-top: 12px; min-height: 58px; display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: #ffffff05; }
+.book-detail b { font-size: 13px; }
+.book-detail span { font-size: 12.5px; line-height: 1.5; color: var(--muted); }
 .panel footer { display: flex; gap: 10px; margin-top: 22px; }
 .btn { min-height: 42px; padding: 0 20px; border: 1px solid var(--line); border-radius: 8px; background: #ffffff0a; font-size: 13px; font-weight: 600; }
 .btn:hover { background: #ffffff14; }
@@ -112,6 +128,8 @@ body[data-mode="play"] .panel-wrap { display: none; }
 
 /* ---------- small screens ---------- */
 @media (max-width: 760px) {
+  .controls { grid-template-columns: 1fr; gap: 6px; }
+  .book { font-size: 12px; }
   .cols { grid-template-columns: 1fr; gap: 20px; }
   .panel { padding: 20px 18px 18px; }
   .panel h1 { font-size: 34px; }

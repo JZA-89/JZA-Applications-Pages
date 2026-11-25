@@ -10,6 +10,8 @@ const KGame = (() => {
   const { World, makeRng, STATE, SOLID, ST } = KWorld;
   const counts = new Int32Array(KData.materials.length);
   const MUD_COAT = 2.5;     // seconds a mud hit keeps slowing
+  // what stops spells: anything solid, and mud (you can wade through mud, spells cannot)
+  const BLOCKS = m => SOLID[m] === 1 || m === M.MUD;
   const MUD_SLOW = 0.35;    // enemy speed while in mud or coated
 
   class Game {
@@ -100,6 +102,7 @@ const KGame = (() => {
       const ax = Math.cos(p.aim);
       if (Math.abs(ax) > 0.15) p.facing = ax > 0 ? 1 : -1;
       p.moveX = a.move || 0; p.moveY = a.moveY || 0;
+      if (p.moveX) p.lastMoveX = Math.sign(p.moveX);
 
       for (const k in p.cds) if (p.cds[k] > 0) p.cds[k] -= DT;
       p.lock = Math.max(0, p.lock - DT);
@@ -173,7 +176,7 @@ const KGame = (() => {
           this.channelTick(p, mode);
           continue;
         }
-        if (mode === 'move' && !pressed) continue;       // one-shot moves: once per press
+        if (mode === 'move' && sp.kind === 'slam' && p.slam) continue; // one slam at a time
         if (mode !== 'move' && p.lock > 0) continue;
         if (p.mana < sp.cost) { if (pressed) p.manaFlash = 0.35; continue; }
         p.cds[cdKey] = sp.cd;
@@ -372,9 +375,9 @@ const KGame = (() => {
         }
         // ----- moves (in the direction you press) -----
         case 'rocket': {
-          p.vx = p.vx * 0.5 + md.x * sp.impulse * 0.7; p.vy = md.y * sp.impulse;
+          p.vx = p.vx * 0.5 + (p.moveX || 0) * sp.impulse * 0.35; p.vy = -sp.impulse;
           p.grounded = false; p.rising = false;
-          const bx = p.x - md.x * 6, by = p.y - md.y * 2 + 2;
+          const bx = p.x, by = p.y + 2;
           w.explode(bx, by, sp.radius, { fire: 0.5 });
           this.hitRadius(bx, by, sp.radius + 9, sp.power, sp.knock, p, p, key);
           this.fx.push({ kind: 'ring', x: bx, y: by, r0: 2, r1: 12, t: 0, T: 0.22, color: [255, 170, 80] });
@@ -448,19 +451,17 @@ const KGame = (() => {
           if (d < sp.range + o.w / 2 && Math.abs(da) < sp.spread + 0.15) this.hurt(o, sp.power * DT, ox / (d || 1) * 4, 0, 'scald', p, key);
         }
       } else if (sp.kind === 'thrust') {
-        const md = this.moveDir(p, sp);
-        p.vx += md.x * sp.accel * DT; p.vy += md.y * sp.accel * DT;
-        const s = Math.hypot(p.vx, p.vy);
-        if (s > sp.maxSpeed) { p.vx *= sp.maxSpeed / s; p.vy *= sp.maxSpeed / s; }
-        if (md.y < -0.3) { p.grounded = false; p.coyote = 0; }
-        p.rising = false;
+        // steam blasts straight down, lifting you; A and D steer
+        if (p.moveY <= 0) { p.vy -= sp.accel * DT; if (p.vy < -sp.maxSpeed) p.vy = -sp.maxSpeed; }
+        const tx = (p.moveX || 0) * sp.sideSpeed;
+        p.vx += Math.sign(tx - p.vx) * Math.min(Math.abs(tx - p.vx), sp.sideAccel * DT);
+        p.grounded = false; p.coyote = 0; p.rising = false;
         for (let i = 0; i < sp.steamPerTick; i++) {
-          const d = 5 + R() * 7, side = (R() - 0.5) * 5;
-          const x = Math.round(c.x - md.x * d - md.y * side), y = Math.round(c.y - md.y * d + md.x * side + 4);
+          const x = Math.round(p.x + (R() - 0.5) * 6), y = Math.round(p.y + 2 + R() * 8);
           if (w.get(x, y) === M.EMPTY) w.set(x, y, M.STEAM);
         }
       } else if (sp.kind === 'hover') {
-        const target = p.moveY < 0 ? -sp.rise : p.moveY > 0 ? 70 : sp.sink;
+        const target = p.moveY > 0 ? 60 : p.moveY < 0 ? -sp.rise : -sp.rise * 0.5;
         p.vy += Math.sign(target - p.vy) * Math.min(Math.abs(target - p.vy), 1100 * DT);
         p.rising = false;
         for (let i = 0; i < sp.perTick; i++) this.parts.push({ x: p.x + (R() - 0.5) * 6, y: p.y, vx: (R() - 0.5) * 30, vy: 120 + R() * 60, g: 200, mat: M.WATER, life: 2, owner: p });
@@ -468,8 +469,8 @@ const KGame = (() => {
         const touching = this.collides(p, p.x + 1.5, p.y) || this.collides(p, p.x - 1.5, p.y);
         if (touching) {
           p.noGravity = true;
-          p.vy = p.moveY < 0 ? -sp.speed : p.moveY > 0 ? sp.speed : 0;
-          if (p.moveY < 0 && R() < 0.3) this.burst(p.x, p.y - 4, 1, [[96, 84, 104]], 20);
+          p.vy = p.moveY > 0 ? sp.speed : -sp.speed;
+          if (R() < 0.3) this.burst(p.x, p.y - 4, 1, [[96, 84, 104]], 20);
         } else drain = 0; // only costs mana while clinging
       } else if (sp.kind === 'drill') {
         const md = this.moveDir(p, sp);
@@ -581,7 +582,7 @@ const KGame = (() => {
         const a = this.actorAt(x, y, p);
         if (a) { target = a; break; }
         if (m === M.WATER) { water = { x: ix, y: iy }; break; }
-        if (SOLID[m]) {
+        if (BLOCKS(m)) {
           if (m === M.MOSS && this.rand() < 0.8) w.set(ix, iy, M.FIRE);
           break;
         }
@@ -623,7 +624,7 @@ const KGame = (() => {
         if (a && !hit.has(a)) { hit.add(a); this.hurt(a, sp.power, dx * sp.knock, dy * sp.knock - 20, 'lance', p, key); }
         const m = w.get(ix, iy);
         if (m === M.WATER) { w.set(ix, iy, M.STEAM); break; }
-        if (SOLID[m]) {
+        if (BLOCKS(m)) {
           for (let k = 0; k < 6; k++) { const fx = ix + ((this.rand() - 0.5) * 6 | 0), fy = iy + ((this.rand() - 0.5) * 6 | 0), fm = w.get(fx, fy); if (fm === M.MOSS || (fm === M.EMPTY && this.rand() < 0.5)) w.set(fx, fy, M.FIRE); }
           break;
         }
@@ -660,7 +661,7 @@ const KGame = (() => {
             pr.travelled += sp * DT / n;
             if (hit) { this.hurt(hit, pr.sp.power, pr.vx / sp * pr.sp.knock, pr.vy / sp * pr.sp.knock - 30, 'spear', pr.owner, pr.key); this.spark(pr.x, pr.y); pr.dead = true; break; }
             if (m === M.ROCK) { this.spark(pr.x, pr.y); pr.dead = true; break; }
-            if (SOLID[m]) {
+            if (BLOCKS(m)) {
               w.explode(pr.x, pr.y, pr.sp.bore);
               pr.bore -= sp * DT / n;
               if (this.rand() < 0.25) this.burst(pr.x, pr.y, 1, [[184, 140, 128]], 40);
@@ -674,7 +675,7 @@ const KGame = (() => {
             this.fx.push({ kind: 'ring', x: pr.x, y: pr.y, r0: 2, r1: 7, t: 0, T: 0.2, color: [220, 230, 240] });
             pr.dead = true; break;
           }
-          if (hit || SOLID[m]) {
+          if (hit || BLOCKS(m)) {
             this.impact(pr, px, py, hit);
             pr.dead = true; break;
           }
