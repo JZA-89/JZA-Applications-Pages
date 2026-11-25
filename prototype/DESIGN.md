@@ -113,6 +113,26 @@ The world has its own palette, deliberately unlike the random brown speckle of o
 
 Own spells hurt you (fireball blasts, fire, magma, shock). Flare's blast skips its caster.
 
+## Enemies
+
+### Shale crawler (`KData.enemies.crawler`)
+
+The first enemy, for testing combat. A plated, beetle-like crawler of dark shale with magenta eyes (magenta is not an element colour, so enemy eyes never read as a spell). 15 × 8 pixels; hitbox 13 × 8. Three live in the cave (spawn spots x 214, 338, 480).
+
+| | |
+|---|---|
+| Health, stats | 60; attack 10, defence 8 (so player spells do ×1.11) |
+| Patrol | walks at 22, turns at walls and ledges |
+| Sees you | within 130 with a clear line (a ray through the world); forgets you 3 s after losing sight |
+| Chase | runs at 50 towards you, jumps (150) at walls |
+| Wind-up (the warning) | within 34 sideways and 18 up or down: stops, rears up 2 pixels, eyes flash, glow grows; 0.45 s |
+| Lunge | 215 forward, 90 up; first touch does power 18 (through the damage formula) and knocks back 170 |
+| Recover (the opening) | 0.7 s, slowing to a stop |
+| Stagger | any hit of 12 or more interrupts it (including a wind-up) for 0.35 s |
+| Death | crumbles into loose earth; a new one appears 7 s later at the spawn spot furthest from the player |
+
+Hazards (fire, magma, electrified water, mud) affect it like anyone else. Measured: standing still, a player first gets hit about 1.4–2.9 s after being seen; two Stone spears kill one.
+
 ## Mana
 
 Every spell costs mana. Held spells (Steam, Water jet) drain it every moment they are held and stop when it runs out. You can fly with Steam, but a full bar lasts about 5.6 s (some areas will need flight to get around); when it runs dry you fall and cannot attack until it refills. A spell needs its full cost to start (held spells need a small minimum); trying without enough flashes the mana bar.
@@ -175,6 +195,7 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.3 (2026-11-25):** the player is a rock golem, with four looks to choose from (Brute, Titan, Crystal, Sentinel; Jaisah: keep all four, the player picks). A mana bar replaces bursts (Jaisah: bursts did not make sense). Steam is now held, continuous thrust instead of a single burst (Jaisah). Damage now goes through a stat formula (Jaisah: damage should be RPG-like, from attack, defence, the move, buffs and debuffs, not a fixed number of hits); everyone starts equal. Decided by Jaisah: slots stay loaded after a cast; holding cast repeats. Hitbox 11 × 17; earth pillar 7 wide and 26 long, stone spear tunnels radius 3, so the bigger golem fits through.
 - **v0.4 (2026-11-25):** Steam drains 18 mana/s (was 36), so a full bar flies for about 5.6 s (Jaisah: at least 5 s; some parts of the game will need flight).
 - **v0.5 (2026-11-25):** renamed from KILN to Cast in Stone (Jaisah). The golem choice is now stored as `castinstone.golem` (the old `kiln.golem` is still read). The URL stays `/prototype/`.
+- **v0.6 (2026-11-25):** first enemy, the Shale crawler (patrol, chase, wind-up, lunge, recover; staggered by big hits; respawns). Jaisah asked for an enemy to test combat.
 
 ## Open questions to test
 

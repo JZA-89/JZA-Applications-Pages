@@ -36,6 +36,18 @@ const KRender = (() => {
     '..ppp..',
     '.ppppp.',
   ];
+  // Shale crawler, facing right; legs alternate between two frames.
+  const CRAWLER = [
+    '....kkkkkk.....',
+    '..kkhhhhhhkk...',
+    '.khhmmsmmsmhkk.',
+    'khmmmsmmmsmmhek',
+    'kmmmmsmmmsmmmek',
+    'kddddsdddsddddk',
+    '.kdddddddddddk.',
+  ];
+  const CRAWLER_LEGS = ['.d.d..d.d..d.d.', '..d.d..d.d..d.d'];
+  const SHALE = { k: [14, 10, 20], h: [154, 144, 174], m: [108, 100, 128], d: [72, 64, 88], s: [50, 42, 62], e: [255, 70, 160] };
   const SACK = { k: [44, 36, 56], s: [138, 128, 160], x: [206, 198, 226], p: [96, 70, 74] };
   const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + 0.5) / 16);
   function hash(i, j, s) { const v = Math.sin(i * 127.1 + j * 311.7 + s * 74.7) * 43758.5453; return v - Math.floor(v); }
@@ -182,6 +194,7 @@ const KRender = (() => {
 
       this.drawCells(world, game.time);
       for (const d of game.dummies) this.drawDummy(d);
+      for (const e of game.enemies) this.drawCrawler(e, game.time);
       for (const pl of game.players) this.drawGolem(pl);
       this.drawProjectiles(game);
       this.drawParticles(game);
@@ -284,6 +297,29 @@ const KRender = (() => {
       this.plotGolem(p.skin, ox, oy, p.facing < 0, p.slots, { chipped, flash: p.flash > 0, flashSlots });
     }
 
+    drawCrawler(e, time) {
+      if (e.dead) return;
+      const flip = e.facing < 0, W = 15;
+      const rear = e.state === 'windup' ? 2 : 0;           // rears up before a lunge
+      const ox = Math.round(e.x - this.cam.x) - 7, oy = Math.round(e.y - this.cam.y) - 8 - rear;
+      const moving = Math.abs(e.vx) > 5 && e.grounded;
+      const legs = CRAWLER_LEGS[moving ? (Math.floor(time * 10) & 1) : 0];
+      const rows = CRAWLER.concat([legs]);
+      const warn = e.state === 'windup' ? 0.5 + 0.5 * Math.sin(e.t * 40) : 0;
+      for (let y = 0; y < rows.length; y++) for (let x = 0; x < W; x++) {
+        const ch = rows[y][x];
+        if (ch === '.') continue;
+        let col = SHALE[ch];
+        if (ch === 'e' && warn) col = [255, 170 + 85 * warn, 230];
+        if (e.flash > 0 || e.state === 'stagger' && e.t < 0.08) col = [255, 246, 236];
+        this.plot(ox + (flip ? W - 1 - x : x), oy + y + (y === rows.length - 1 ? rear : 0), col[0], col[1], col[2]);
+      }
+      if (e.hp < e.maxHp) {
+        const n = Math.ceil(13 * e.hp / e.maxHp);
+        for (let x = 0; x < 13; x++) this.plot(ox + 1 + x, oy - 3, ...(x < n ? [255, 110, 180] : [52, 46, 58]));
+      }
+    }
+
     drawDummy(d) {
       if (d.dead) return;
       const ox = Math.round(d.x - this.cam.x) - 3, oy = Math.round(d.y - this.cam.y) - DUMMY.length;
@@ -370,6 +406,11 @@ const KRender = (() => {
         if (f.kind === 'flash') this.light(f.x, f.y, f.r, f.color, a);
         else if (f.kind === 'bolt') for (let i = 0; i < f.pts.length; i += 2) this.light(f.pts[i].x, f.pts[i].y, 11, [255, 246, 190], a * 0.7);
         else if (f.kind === 'trail') for (let i = 0; i < f.pts.length; i += 3) this.light(f.pts[i].x, f.pts[i].y, 7, f.color, a * 0.35);
+      }
+      for (const e of game.enemies) {
+        if (e.dead) continue;
+        const ex = e.x + e.facing * 6, ey = e.y - 5;
+        this.light(ex, ey, e.state === 'windup' ? 14 : 6, [255, 70, 160], e.state === 'windup' ? 0.75 : 0.35);
       }
       for (const p of game.players) {
         if (p.dead) continue;

@@ -119,6 +119,17 @@ const KData = (() => {
   };
   const dummy = { w: 7, h: 13, hp: 100, regenDelay: 2.5, respawn: 2 };
 
+  // ---------- Enemies ----------
+  // Shale crawler: patrols, chases what it can see, winds up (rears and its eyes
+  // flare), lunges, then needs a moment to recover. Big hits stagger it.
+  const enemies = {
+    crawler: { name: 'Shale crawler', w: 13, h: 8, hp: 60, attack: 10, defence: 8,
+      walk: 22, run: 50, sight: 130, forget: 3, jump: 150,
+      lungeRange: 34, windup: 0.45, lungeSpeed: 215, lungeLift: 90, lungeTime: 0.35, recover: 0.7,
+      power: 18, knock: 170, staggerAt: 12, stagger: 0.35,
+      count: 3, spots: [214, 338, 480], respawn: 7 },
+  };
+
   // ---------- Golems (the player's look) ----------
   // Pixel rows, facing right. k outline, h/m/d stone light/mid/dark, s seam,
   // g lichen, e eye, L/R the two element slots, c crack that glows with both.
@@ -215,6 +226,6 @@ const KData = (() => {
       ] },
   ];
 
-  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats,
+  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies,
     world: { w: 512, h: 192, chunk: 32 }, view: { w: 320, h: 180 }, step: 1 / 60 };
 })();

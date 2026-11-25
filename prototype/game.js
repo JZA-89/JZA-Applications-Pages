@@ -24,9 +24,11 @@ const KGame = (() => {
       this.shake = 0;
       this.players = [this.makePlayer(0)];
       this.dummies = this.world.dummySpots.map((s, i) => this.makeDummy(s, i));
+      const EC = KData.enemies.crawler;
+      this.enemies = EC.spots.slice(0, EC.count).map((x, i) => this.makeCrawler(x, i));
     }
 
-    get actors() { return this.players.concat(this.dummies); }
+    get actors() { return this.players.concat(this.dummies, this.enemies); }
 
     makePlayer(id) {
       const s = this.world.spawn;
@@ -51,6 +53,14 @@ const KGame = (() => {
         stats: KData.baseStats() };
     }
 
+    makeCrawler(x, i) {
+      const E = KData.enemies.crawler;
+      const stats = KData.baseStats(); stats.attack = E.attack; stats.defence = E.defence;
+      return { kind: 'crawler', id: i, x, y: this.world.surfaceAt(x), vx: 0, vy: 0, w: E.w, h: E.h,
+        hp: E.hp, maxHp: E.hp, stats, grounded: false, dead: false, respawnT: 0, lastHurt: -9, flash: 0,
+        facing: i % 2 ? 1 : -1, dir: i % 2 ? 1 : -1, state: 'patrol', t: 0, lastSeen: -9, hit: false };
+    }
+
     // ---------- one fixed step ----------
     step(actions) {
       this.time += DT;
@@ -59,6 +69,7 @@ const KGame = (() => {
       this.updateGrowths();
       this.updateParticles();
       this.updateProjectiles();
+      for (const e of this.enemies) this.crawlerTick(e);
       for (const a of this.actors) this.physics(a);
       for (const d of this.dummies) this.dummyTick(d);
       for (const f of this.fx) f.t += DT;
@@ -491,18 +502,108 @@ const KGame = (() => {
       a.vx += kx || 0; a.vy += ky || 0;
       if (amount >= 4) {
         a.flash = 0.1;
-        const col = a.kind === 'player' ? [[240, 228, 206], [198, 178, 160]] : [[150, 140, 165], [200, 194, 214]];
+        const col = a.kind === 'player' ? [[240, 228, 206], [198, 178, 160]] : a.kind === 'crawler' ? [[78, 72, 94], [112, 104, 128]] : [[150, 140, 165], [200, 194, 214]];
         this.burst(a.x, a.y - a.h / 2, Math.min(14, 2 + amount / 5), col, 80);
       }
+      if (a.kind === 'crawler' && amount >= KData.enemies.crawler.staggerAt && a.hp > 0) { a.state = 'stagger'; a.t = 0; }
       if (a.hp <= 0) this.kill(a);
     }
 
     kill(a) {
       a.dead = true; a.hp = 0;
-      a.respawnT = a.kind === 'player' ? PD.respawn : DD.respawn;
-      const col = a.kind === 'player' ? [[240, 228, 206], [198, 178, 160], [44, 28, 36]] : [[150, 140, 165], [200, 194, 214], [74, 58, 48]];
+      a.respawnT = a.kind === 'player' ? PD.respawn : a.kind === 'crawler' ? KData.enemies.crawler.respawn : DD.respawn;
+      const col = a.kind === 'player' ? [[240, 228, 206], [198, 178, 160], [44, 28, 36]] : a.kind === 'crawler' ? [[78, 72, 94], [112, 104, 128], [255, 70, 160]] : [[150, 140, 165], [200, 194, 214], [74, 58, 48]];
+      if (a.kind === 'crawler') {
+        // it crumbles into loose earth
+        const w = this.world;
+        for (let k = 0; k < 14; k++) {
+          const x = Math.round(a.x + (this.rand() - 0.5) * 8), y = Math.round(a.y - 1 - this.rand() * 5);
+          if (w.get(x, y) === M.EMPTY) w.set(x, y, M.EARTH);
+        }
+      }
       this.burst(a.x, a.y - a.h / 2, 40, col, 140);
       if (a.kind === 'player') { this.endChannel(a); a.dashT = 0; this.shake = Math.max(this.shake, 3); }
+    }
+
+    // ---------- Shale crawler ----------
+    crawlerTick(e) {
+      const E = KData.enemies.crawler, w = this.world;
+      e.flash = Math.max(0, e.flash - DT);
+      e.t += DT;
+      if (e.dead) {
+        e.respawnT -= DT;
+        if (e.respawnT <= 0) this.respawnCrawler(e);
+        return;
+      }
+      const set = s => { e.state = s; e.t = 0; };
+      // nearest living player, and whether it can be seen
+      let p = null, best = 1e9;
+      for (const q of this.players) if (!q.dead) { const dd = Math.hypot(q.x - e.x, q.y - e.y); if (dd < best) { best = dd; p = q; } }
+      let see = false, dx = 0, dy = 0;
+      if (p) {
+        dx = p.x - e.x; dy = (p.y - p.h / 2) - (e.y - e.h / 2);
+        const dist = Math.hypot(dx, dy);
+        if (dist < E.sight) see = !w.ray(e.x, e.y - e.h + 1, dx / dist, dy / dist, dist).hit;
+      }
+      if (see) e.lastSeen = this.time;
+      const fx = dir => Math.round(e.x + dir * (e.w / 2 + 1));
+      const wallAhead = dir => w.solid(fx(dir), Math.round(e.y - 2)) && w.solid(fx(dir), Math.round(e.y - 4));
+      const ledgeAhead = dir => !w.solid(fx(dir), Math.round(e.y + 1)) && !w.solid(fx(dir), Math.round(e.y + 5));
+      const toward = (v, target, rate) => v + Math.sign(target - v) * Math.min(Math.abs(target - v), rate * DT);
+      switch (e.state) {
+        case 'stagger':
+          if (e.t > E.stagger) set(see ? 'chase' : 'patrol');
+          break;
+        case 'patrol':
+          if (e.grounded) {
+            if (wallAhead(e.dir) || ledgeAhead(e.dir)) e.dir = -e.dir;
+            e.vx = toward(e.vx, e.dir * E.walk, 300);
+          }
+          if (see) set('chase');
+          break;
+        case 'chase':
+          if (!p || this.time - e.lastSeen > E.forget) { set('patrol'); break; }
+          if (Math.abs(dx) > 2) e.dir = Math.sign(dx);
+          if (e.grounded) {
+            e.vx = toward(e.vx, e.dir * E.run, 500);
+            if (wallAhead(e.dir)) { e.vy = -E.jump; e.grounded = false; }
+          }
+          if (see && e.grounded && Math.abs(dx) < E.lungeRange && Math.abs(dy) < 18) set('windup');
+          break;
+        case 'windup':
+          // the warning: it stops, rears up and its eyes flare
+          e.vx *= Math.exp(-12 * DT);
+          if (p && Math.abs(dx) > 2) e.dir = Math.sign(dx);
+          if (e.t > E.windup) { set('lunge'); e.vx = e.dir * E.lungeSpeed; e.vy = -E.lungeLift; e.grounded = false; e.hit = false; }
+          break;
+        case 'lunge':
+          if (!e.hit) for (const q of this.players) {
+            if (q.dead) continue;
+            if (Math.abs(q.x - e.x) < (q.w + e.w) / 2 && Math.abs((q.y - q.h / 2) - (e.y - e.h / 2)) < (q.h + e.h) / 2) {
+              this.hurt(q, E.power, e.dir * E.knock, -80, 'bite', e, null);
+              e.hit = true;
+            }
+          }
+          if ((e.t > 0.1 && e.grounded) || e.t > E.lungeTime + 0.6) set('recover');
+          break;
+        case 'recover':
+          if (e.grounded) e.vx *= Math.exp(-8 * DT);
+          if (e.t > E.recover) set(see ? 'chase' : 'patrol');
+          break;
+      }
+      e.facing = e.dir;
+    }
+
+    respawnCrawler(e) {
+      // come back at the spawn spot furthest from any player
+      const E = KData.enemies.crawler;
+      let bx = E.spots[0], bd = -1;
+      for (const x of E.spots) {
+        const d = Math.min(...this.players.map(p => Math.abs(p.x - x)));
+        if (d > bd) { bd = d; bx = x; }
+      }
+      Object.assign(e, { x: bx, y: this.world.surfaceAt(bx), vx: 0, vy: 0, hp: e.maxHp, dead: false, state: 'patrol', t: 0, lastHurt: -9, lastSeen: -9 });
+      this.burst(e.x, e.y - 3, 10, [[78, 72, 94], [112, 104, 128]], 60);
     }
 
     respawn(p) {
