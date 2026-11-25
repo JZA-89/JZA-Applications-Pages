@@ -1,5 +1,5 @@
 'use strict';
-/* Cast in Stone prototype — render.js
+/* Cast in Stone — render.js
    Draws the game. The world, actors and effects are plotted pixel by pixel
    into a 320x180 image (one pixel per world cell), which the page scales up
    with crisp edges. A second, smooth canvas on top carries the glow from

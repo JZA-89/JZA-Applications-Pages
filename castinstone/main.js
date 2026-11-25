@@ -1,5 +1,5 @@
 'use strict';
-/* Cast in Stone prototype — main.js
+/* Cast in Stone — main.js
    Starts everything: loads the saved world (or starts a new one), fits the
    16:9 stage to the screen, runs the fixed-step loop (60 steps a second,
    independent of the screen's frame rate), passes each step's actions to the
@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.34';
+  const VERSION = 'v0.35';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -160,7 +160,7 @@
     if (m === 'rest') { buildRest(); $('btnLeave').focus({ preventScroll: true }); return; }
     if (m === 'map') { drawBigMap(); $('btnMapClose').focus({ preventScroll: true }); return; }
     const p = game.players[0], started = m !== 'start' || hadSave;
-    $('panelEyebrow').textContent = m === 'start' ? `Prototype · one player · ${VERSION}` : 'Paused';
+    $('panelEyebrow').textContent = m === 'start' ? `Beta · one player · ${VERSION}` : 'Paused';
     $('btnGo').textContent = m === 'start' ? (hadSave ? 'Continue' : 'Start') : 'Resume';
     $('btnPanelReset').hidden = m === 'start';
     $('saveLine').innerHTML = !started ? '' : chip('star', `Level ${p.level}`) + (p.shards ? chip('shard', `${p.shards} shards`, 'teal') : '');

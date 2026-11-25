@@ -1,5 +1,5 @@
 'use strict';
-/* Cast in Stone prototype — game.js
+/* Cast in Stone — game.js
    The rules: players, training dummies, spells, projectiles, particles and
    actor physics. game.step(actions) advances everything by one fixed step,
    where actions[i] is player i's action object from input.js (or, later,

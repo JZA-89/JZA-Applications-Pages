@@ -1,5 +1,5 @@
 'use strict';
-/* Cast in Stone prototype — loot.js
+/* Cast in Stone — loot.js
    Interface pieces shared by the HUD and the panels: the icon set (KIcon),
    the Runestones tab of the rest panel (the golem with its four sockets, the
    bag, and the stone you picked), the Forge tab, hover notes for things lying

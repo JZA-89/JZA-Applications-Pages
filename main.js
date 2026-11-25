@@ -2254,7 +2254,7 @@
      14. Cast in Stone cave — a short scripted fight in the game's look.
          A small falling-sand cave (dirt in strata, rock, loose earth,
          water, steam) drawn at the game's pixel scale, with the game's
-         Brute golem (its sprite rows are copied from prototype/data.js)
+         Brute golem (its sprite rows are copied from castinstone/data.js)
          and two crawlers. The script follows the game's rules: the golem
          types Fire, Fire and casts a Fireball that blasts a crater and
          crumbles the first crawler into loose earth; types Earth,

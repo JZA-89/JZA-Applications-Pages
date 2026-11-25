@@ -1,5 +1,5 @@
 'use strict';
-/* Cast in Stone prototype — audio.js
+/* Cast in Stone — audio.js
    Every sound is made in code with the Web Audio API (oscillators and
    filtered noise): no sound files. The game reports what happened as named
    sounds with a position; this file plays them, quieter and panned with

@@ -1,5 +1,5 @@
 'use strict';
-/* Cast in Stone prototype — save.js
+/* Cast in Stone — save.js
    One ongoing world, saved in this browser (localStorage). A save holds the
    seed (which rebuilds the starting cave exactly), only the chunks that have
    changed since then (compressed), the golem's progress, and which Lodestones

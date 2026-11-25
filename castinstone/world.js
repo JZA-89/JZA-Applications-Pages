@@ -1,5 +1,5 @@
 'use strict';
-/* Cast in Stone prototype — world.js
+/* Cast in Stone — world.js
    The falling-sand world: a grid of cells, one material per cell, updated every
    fixed step. The grid is split into 32x32 chunks. Only chunks where something
    changed recently ("awake") are simulated, and every changed chunk is flagged

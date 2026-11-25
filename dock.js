@@ -27,7 +27,7 @@
     { path: "parlato/", label: "Parlato", slug: "parlato" },
     { path: "thumbcontrol/", label: "ThumbControl (beta)", slug: "thumbcontrol" },
     { path: "morphos.html", label: "MORPHOS (game)", slug: "morphos" },
-    { path: "prototype/", label: "Cast in Stone (game, beta)", slug: "castinstone" },
+    { path: "castinstone/", label: "Cast in Stone (game, beta)", slug: "castinstone" },
   ];
 
   var dock = document.createElement("nav");

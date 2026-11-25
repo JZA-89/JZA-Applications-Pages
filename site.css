@@ -440,7 +440,7 @@ main h2 {
 }
 
 [data-app="castinstone"] {
-  /* The game's own palette (prototype/style.css): a violet cave, fired-clay
+  /* The game's own palette (castinstone/style.css): a violet cave, fired-clay
      ink, and gold for the light inside the runes. */
   --bg: #0d0a14;
   --fg: #efe6d8;

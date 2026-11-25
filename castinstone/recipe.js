@@ -1,5 +1,5 @@
 'use strict';
-/* Cast in Stone prototype — recipe.js
+/* Cast in Stone — recipe.js
    Turns the elements you have typed (the recipe, up to KData.recipe.max) into
    the four spells it casts. The rules:
 
