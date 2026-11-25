@@ -41,7 +41,7 @@ Each is linked with `?v=<version>`; bump them all together with the version in t
 
 ## The world
 
-512 × 192 cells; the screen shows 320 × 180 cells, one pixel each, scaled up with crisp edges. The camera is centred on the player, clamped at the world's edges.
+2048 × 1024 cells; the screen shows 320 × 180 cells, one pixel each, scaled up with crisp edges. The camera is centred on the player, clamped at the world's edges.
 
 ### Materials (`KData.materials`)
 
@@ -71,13 +71,35 @@ Each is linked with `?v=<version>`; bump them all together with the version in t
 
 Fireball explosions boil 50% of the water they reach. A bolt that reaches water electrifies up to 2,200 connected water cells for 70 steps.
 
-#### No crumbs (minimum terrain size)
+### No crumbs (minimum terrain size)
 
 After terrain breaks (`world.explode`, which every digging spell uses, crawler chewing, and the unstick check), `world.cleanup` looks at the area: any loose piece of dirt or lichen smaller than 10 cells (`World.MIN_PIECE`, 4-connected), and any single cell with at most one solid neighbour (thin spikes and strands, two passes), crumbles into loose earth and falls. Rock never changes. The starting cave is cleaned the same way (crumbs removed outright). This keeps pixel-sized floating bits out of the world, so creatures do not snag on them.
 
-## The map
+### The cave (generated from a seed)
 
-One hand-shaped cave (seed 20261125): rock frame; a long cavern with a wavy floor and ceiling; dirt above and below to dig; three floating dirt ledges; a rock spur in the middle; rock lumps; a pool on the right lined with rock; moss on floors and ceilings. Spawn on the left. Four training dummies.
+Not a descent: a **web of caves spreading in every direction from a central hub** (Jaisah: avoid copying Noita's downward structure; it needs forks and different paths). Built from the seed at the start of a run (`world.generate`, about 0.3 s on a desktop), so the same seed always gives the same cave; in co-op only the seed and the changes will need sending.
+
+1. Dirt everywhere, with large unbreakable rock masses (two layers of noise) that shape the routes.
+2. **Chambers** (`KData.cave.chambers`, 46): the hub in the middle (84 × 42), the rest scattered at least 150 apart, 30–70 wide and 20–40 tall, as noisy ellipses. Big chambers get floating dirt ledges.
+3. **Links:** a tree that reaches every chamber (so everything is reachable), plus extra links to near neighbours (about a third of the time) for **loops, forks and alternative routes**. Dead ends happen naturally.
+4. **Tunnels:** winding (a sine wiggle across the line), radius 12–17 varying with noise. Steep ones become shafts that need flying, climbing or pillars.
+5. **Dirt plugs:** 16% of non-hub tunnels are blocked midway by a plug of dirt you must dig, blast or drill through.
+6. **Regions** (`KData.biomes`): Rose Hollows within 300 of the hub; further out, six region seeds around the hub alternate **Drowned Galleries** (blue-grey stone, water basins, mud patches, more hanging lichen) and **Ember Veins** (dark red stone, magma basins, little lichen). Each region has its own strata colours and back-wall tint; borders are dithered.
+7. **Pools:** most Drowned and Ember chambers get a basin dug into the floor, below where tunnels join, filled with water or magma, then drained down to its lowest opening so it starts at rest. Pool magma is permanent (life 255); magma you create still cools.
+8. Lichen on floors and ceilings, mud patches by region, no crumbs.
+9. **Levels:** 1 + distance from the hub / 250. Shown under the map and in hover notes.
+10. **Mana wells** (7): lilac crystals on plinths in chambers away from the hub. Within 20, mana refills at 70 a second.
+11. **Crawler homes:** 1–4 per chamber (more further out), none in the hub. Two training dummies stand in the hub.
+
+Safe spots (`world.standSpot`) climb out of solid ground, drop to the floor and check headroom, so nothing starts inside terrain.
+
+**Buttons:** Reset map rebuilds the same seed; **New cave** picks a random seed.
+
+**Map:** top right, 160 × 80, explored chunks only (anything that has been on screen), coloured by material and region, with mana wells (lilac) and you (white). Below it: region name and level.
+
+**Resting liquids:** water and magma only spread sideways towards somewhere lower within reach (3 × their flow), and slow materials only stay awake if they could still move. Together with drained pools, the world goes completely still about 10 s after a reset (simulation 0.2 ms a step, 3–10 chunks awake).
+
+**Drawing:** colours for the back wall, dirt and rock are worked out per 32 × 32 chunk when it first appears on screen, with the latest 320 kept (about 4 MB), instead of for the whole world (which would be about 60 MB).
 
 ## The character
 
@@ -121,7 +143,7 @@ Own spells hurt you (fireball blasts, fire, magma, shock). Flare's blast skips i
 
 ### Shale crawler (`KData.enemies.crawler`)
 
-The first enemy, for testing combat. A plated, beetle-like crawler of dark shale with magenta eyes (magenta is not an element colour, so enemy eyes never read as a spell). 15 × 8 pixels; hitbox 13 × 8. Three live in the cave (spawn spots x 214, 338, 480).
+The first enemy, for testing combat. A plated, beetle-like crawler of dark shale with magenta eyes (magenta is not an element colour, so enemy eyes never read as a spell). 15 × 8 pixels; hitbox 13 × 8. They live in chambers around the cave (see The cave).
 
 | | |
 |---|---|
@@ -134,7 +156,9 @@ The first enemy, for testing combat. A plated, beetle-like crawler of dark shale
 | Lunge | 215 forward, 90 up; first touch does power 18 (through the damage formula) and knocks back 170 |
 | Recover (the opening) | 0.7 s, slowing to a stop |
 | Stagger | any hit of 12 or more interrupts it (including a wind-up) for 0.35 s |
-| Death | crumbles into loose earth; a new one appears 7 s later at the spawn spot furthest from the player |
+| Death | crumbles into loose earth; comes back home 25 s later, but only while no player is within 300 of its home |
+| Home and level | lives in one chamber; level from its distance to the hub: per level above 1, +30% health, +2 attack, +1 defence |
+| Sleep | not simulated or drawn when no player is within 380 sideways and 266 up or down |
 
 Hazards (fire, magma, electrified water, mud) affect it like anyone else. Measured: standing still, a player first gets hit about 1.4–2.9 s after being seen; two Stone spears kill one.
 
@@ -228,6 +252,7 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.8 (2026-11-25):** hover note: point at anything to see what it is (Jaisah).
 - **v0.9 (2026-11-25):** three ways to cast, approved by Jaisah: every pair has a Shot (left click), a Burst around you (right click) and a Move (hold Space after jumping), 30 spells in all; W/S now steer Moves (Space alone jumps) and X clears. No terrain crumbs: pieces under 10 cells and one-cell spikes crumble (Jaisah: 1-pixel bits snag bots). Mud now really slows enemies, and a spray hit coats and slows for 2.5 s (Jaisah).
 - **v0.10 (2026-11-25):** Moves don't follow the mouse (hold Space: steam blasts straight down, A/D steer); every spell repeats while held, with short gaps, so mana is the limit; mud blocks spells; the spell list moved to a Spell book grid (all Jaisah).
+- **v0.11 (2026-11-25):** a generated web of caves (hub, 46 chambers, looping tunnels, three regions, pools, plugs, mana wells, levels by distance), a map of explored areas, New cave, crawlers that live in chambers, scale with level and sleep when far away. Liquids come to rest. Jaisah: not a downward descent, and it needs forks.
 
 ## Open questions to test
 
