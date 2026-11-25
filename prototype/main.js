@@ -8,7 +8,7 @@
 
 (() => {
   const { elements, elementOrder, spells, spellKey, view: V, step: STEP } = KData;
-  const VERSION = 'v0.15';
+  const VERSION = 'v0.16';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -277,6 +277,10 @@
         n.innerHTML = KData.modes.map(md => `<span class="mode"><kbd>${keysFor[md]}</kbd>${set[md].name}</span>`).join('');
       }
     }
+    // the boss's health while you fight it
+    const b = game.boss, showBoss = !!(b && !b.dead && b.engaged);
+    if (showBoss !== hud.boss) { hud.boss = showBoss; $('bossBar').hidden = !showBoss; if (showBoss) $('bossName').textContent = KData.bosses[b.type].name; }
+    if (showBoss) $('bossFill').style.transform = `scaleX(${Math.max(0, b.hp) / b.maxHp})`;
     // the rest prompt next to a Lodestone
     const near = !!p.nearStone && mode === 'play';
     if (near !== hud.near) { hud.near = near; $('restPrompt').hidden = !near; $('restPrompt').innerHTML = pad ? 'D-pad up · Rest' : '<kbd>W</kbd> Rest'; }
@@ -292,6 +296,7 @@
       const status = game.statusText(a);
       if (a.kind === 'player') return [`You (${KData.golems[a.skin].name}) · Level ${a.level}`, `${hp}. Mana ${Math.round(a.mana)} of ${a.maxMana}.`];
       if (a.kind === 'dummy') return ['Training dummy', `${hp}. Heals when left alone.`];
+      if (a.kind === 'boss') { const B = KData.bosses[a.type]; return [`${B.name} · Level ${a.level}`, `${hp}.${status} ${B.desc}`]; }
       const E = KData.enemies[a.kind];
       if (E) return [`${a.elite ? 'Elite ' : ''}${E.name} · Level ${a.level}`, `${hp}.${status} ${E.desc || ''}`.trim()];
     }
@@ -342,6 +347,8 @@
       else if (w.explored[(l.y >> 5) * w.cw + (l.x >> 5)]) dot(l.x, l.y - 4, pk(120, 108, 150), true);
     }
     if (window.KLoot) window.KLoot.mapDots(game, dot, pk);
+    const L = w.lair;
+    if (L && !game.defeated.has(L.boss) && w.explored[(L.y >> 5) * w.cw + (L.x >> 5)]) { dot(L.x - 2, L.y, pk(255, 90, 40), true); dot(L.x + 2, L.y, pk(255, 90, 40), true); }
     const p = game.players[0], px = Math.floor(p.x / sx), py = Math.floor((p.y - 8) / sy);
     for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 0], [0, -1]]) { const X = px + dx, Y = py + dy; if (X >= 0 && Y >= 0 && X < mm.width && Y < mm.height) mbuf[Y * mm.width + X] = pk(255, 255, 255); }
     mctx.putImageData(mimg, 0, 0);

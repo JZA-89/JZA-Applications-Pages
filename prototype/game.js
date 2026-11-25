@@ -15,7 +15,7 @@ const KGame = (() => {
   const MUD_SLOW = 0.35;    // enemy speed while in mud or coated
 
   class Game {
-    constructor(seed) { this.seed = seed; this.found = new Set(); this.opened = new Set(); this.checkpoint = 0; this.events = []; this.reset(); }
+    constructor(seed) { this.seed = seed; this.found = new Set(); this.opened = new Set(); this.defeated = new Set(); this.cores = new Set(); this.checkpoint = 0; this.events = []; this.reset(); }
 
     // Build (or rebuild) the cave from the seed. keepPlayers keeps the golems'
     // progress (levels, stats, runestones) and puts them at their checkpoint.
@@ -32,13 +32,14 @@ const KGame = (() => {
       this.shake = 0;
       this.players = kept || [this.makePlayer(0)];
       if (kept) for (const p of kept) this.respawn(p);
-      else { this.found = new Set([0]); this.opened = new Set(); this.checkpoint = 0; }
+      else { this.found = new Set([0]); this.opened = new Set(); this.defeated = new Set(); this.cores = new Set(); this.checkpoint = 0; }
+      this.makeBoss();
       this.bits = [];   // shards flying to a player
       this.dummies = this.world.dummySpots.map((s, i) => this.makeDummy(s, i));
       this.enemies = this.world.enemyHomes.map((home, i) => this.makeEnemy(home, i));
     }
 
-    get actors() { return this.players.concat(this.dummies, this.enemies); }
+    get actors() { const a = this.players.concat(this.dummies, this.enemies); if (this.boss && !this.boss.dead) a.push(this.boss); return a; }
 
     makePlayer(id) {
       const s = this.world.spawn;
@@ -194,8 +195,232 @@ const KGame = (() => {
       this.applyStats(p);
       return true;
     }
-    saveExtra() { return { opened: [...this.opened] }; }
-    loadExtra(x) { if (x && Array.isArray(x.opened)) this.opened = new Set(x.opened.filter(Number.isInteger)); }
+    saveExtra() { return { opened: [...this.opened], defeated: [...this.defeated], cores: [...this.cores] }; }
+    loadExtra(x) {
+      if (!x) return;
+      if (Array.isArray(x.opened)) this.opened = new Set(x.opened.filter(Number.isInteger));
+      if (Array.isArray(x.defeated)) this.defeated = new Set(x.defeated.filter(id => KData.bosses[id]));
+      if (Array.isArray(x.cores)) this.cores = new Set(x.cores.filter(c => typeof c === 'string'));
+      if (this.boss && this.defeated.has(this.boss.type)) this.boss = null;
+    }
+
+    // ---------- the Emberwyrm ----------
+    makeBoss() {
+      const L = this.world.lair;
+      this.boss = null;
+      if (!L || this.defeated.has(L.boss)) return;
+      const B = KData.bosses[L.boss], lv = L.level - 1, stats = KData.baseStats();
+      stats.attack = B.attack + B.perLevel.attack * lv; stats.defence = B.defence + B.perLevel.defence * lv;
+      const hp = Math.round(B.hp * (1 + B.perLevel.hp * lv));
+      const x = L.x, y = L.surface + 18;
+      this.boss = { kind: 'boss', type: L.boss, boss: true, level: L.level, x, y, vx: 0, vy: 0, w: 18, h: 12, segR: 6,
+        hp, maxHp: hp, stats, dead: false, state: 'swim', t: 0, flash: 0, engaged: false, awayT: 0, raged: false, touchT: 0,
+        trail: Array.from({ length: 80 }, (_, i) => ({ x: x - i * 2, y })), facing: 1, lastHurt: -9 };
+    }
+    // distance from (x, y) to the nearest part of the wyrm
+    bossNearest(b, x, y) {
+      let best = { x: b.x, y: b.y - 6, d: Math.hypot(b.x - x, b.y - 6 - y) };
+      for (let i = 4; i < b.trail.length; i += 5) { const s = b.trail[i], d = Math.hypot(s.x - x, s.y - y); if (d < best.d) best = { x: s.x, y: s.y, d }; }
+      return best;
+    }
+    bossNear(b, x, y) { return this.bossNearest(b, x, y).d; }
+    lakeTop(x) {
+      // the highest magma cell in this column of the lair
+      const L = this.world.lair, w = this.world;
+      for (let y = Math.floor(L.y - L.ry); y < L.y + L.ry * 2; y++) if (w.get(Math.round(x), y) === M.MAGMA) return y;
+      return null;
+    }
+    // open lake below (x, y): the first thing straight down is magma
+    openLakeBelow(x, y) {
+      const w = this.world;
+      for (let yy = Math.round(y); yy < w.h - 2; yy++) { const m = w.get(Math.round(x), yy); if (m === M.MAGMA) return yy; if (SOLID[m]) return null; }
+      return null;
+    }
+    bossTick() {
+      const b = this.boss;
+      if (!b || b.dead) return;
+      const B = KData.bosses[b.type], L = this.world.lair, w = this.world;
+      b.flash = Math.max(0, b.flash - DT); b.t += DT; b.touchT = Math.max(0, b.touchT - DT);
+      if (b.wetT > 0) b.wetT -= DT;
+      const inLair = q => ((q.x - L.x) / (L.rx * 1.15)) ** 2 + ((q.y - L.y) / (L.ry * 1.5)) ** 2 < 1;
+      let p = null, best = 1e9;
+      for (const q of this.players) if (!q.dead && inLair(q)) { const d = Math.hypot(q.x - b.x, q.y - b.y); if (d < best) { best = d; p = q; } }
+      if (!p) {
+        b.awayT += DT;
+        if (b.engaged && b.awayT > B.reset) { b.engaged = false; b.hp = b.maxHp; b.state = 'swim'; b.stranded = false; }
+      } else {
+        b.awayT = 0;
+        if (!b.engaged) { b.engaged = true; this.events.push({ type: 'toast', kind: 'big', text: `${B.name} stirs in the magma` }); }
+      }
+      const set = s => { b.state = s; b.t = 0; };
+      const headIn = () => w.get(Math.round(b.x), Math.round(b.y - 6));
+      const swimTo = (tx, ty, speed) => {
+        const dx = tx - b.x, dy = ty - (b.y - 6), d = Math.hypot(dx, dy);
+        if (d < 1) return;
+        const sx = dx / d * speed * DT, sy = dy / d * speed * DT;
+        const ok = (x, y) => w.get(Math.round(x), Math.round(y - 6)) === M.MAGMA;
+        if (ok(b.x + sx, b.y + sy)) { b.x += sx; b.y += sy; }
+        else if (ok(b.x + sx, b.y)) b.x += sx;
+        else if (ok(b.x, b.y + sy)) b.y += sy;
+        b.facing = sx >= 0 ? 1 : -1;
+      };
+      // below half health the lake rises once and it strikes more often
+      if (b.engaged && !b.raged && b.hp < b.maxHp * B.rageAt) {
+        b.raged = true;
+        for (let x = Math.floor(L.x - L.rx * 1.1); x <= L.x + L.rx * 1.1; x++) {
+          const top = this.lakeTop(x);
+          if (top == null) continue;
+          for (let k = 1; k <= B.rise; k++) if (w.get(x, top - k) === M.EMPTY) { w.set(x, top - k, M.MAGMA); w.life[(top - k) * w.w + x] = 255; }
+        }
+        this.events.push({ type: 'toast', kind: 'big', text: 'The magma lake rises' });
+        this.shake = Math.max(this.shake, 3);
+      }
+      if (!b.engaged || (!p && b.state !== 'breach' && b.state !== 'stranded')) {
+        // nobody in the lair: it circles under the surface
+        if (b.state !== 'swim' && b.state !== 'stranded') set('swim');
+        if (headIn() === M.MAGMA) swimTo(L.x + Math.sin(this.time * 0.3) * L.rx * 0.5, L.surface + 20, B.swim * 0.4);
+        else b.y += 60 * DT;
+      } else switch (b.state) {
+        case 'swim': {
+          // cooled all round: stranded
+          if (headIn() !== M.MAGMA) {
+            // just above the surface (after spitting): sink back in; no magma anywhere near (the lake cooled): stranded
+            let near = false;
+            for (let dy = 0; dy <= 14 && !near; dy += 2) for (let dx = -8; dx <= 8; dx += 4) if (w.get(Math.round(b.x + dx), Math.round(b.y - 6 + dy)) === M.MAGMA) { near = true; break; }
+            if (near) { b.y += 80 * DT; break; }
+            b.strandFor = B.strand; set('stranded'); b.stranded = true; b.vy = 0; this.events.push({ type: 'toast', text: `${B.name} is stranded` }); break;
+          }
+          const top = this.lakeTop(p.x) ?? L.surface;
+          swimTo(p.x, top + 14, B.swim);
+          if (b.t > (b.raged ? 1.3 : 2.1)) {
+            // pick where to come up: beside you, with nothing between that spot and you
+            const spot = (offsets) => {
+              for (const o of offsets) {
+                const tx = p.x + p.vx * 0.3 + o, tt = this.lakeTop(tx);
+                if (tt == null) continue;
+                const dx = p.x - tx, dy = (p.y - p.h - 2) - (tt - 4), d = Math.hypot(dx, dy) || 1;
+                if (!w.ray(tx, tt - 4, dx / d, dy / d, d).hit) return { x: tx, y: tt };
+              }
+              return null;
+            };
+            if (this.rand() < 0.62) {
+              const t = spot([26, -26, 40, -40, 14, -14, 56, -56, 0]);
+              if (t) { b.target = t; set('bubble'); } else set('spit');
+            } else {
+              // spitting lobs over edges, so it only needs some distance from you
+              b.target = null;
+              for (const o of [70, -70, 90, -90, 55, -55, 110, -110]) { const tt = this.lakeTop(p.x + o); if (tt != null) { b.target = { x: p.x + o, y: tt }; break; } }
+              set('spit');
+            }
+          }
+          break;
+        }
+        case 'bubble': {
+          // the warning: the magma bubbles where it will breach
+          swimTo(b.target.x, b.target.y + 10, B.swim * 1.6);
+          if (this.rand() < 0.5) this.burst(b.target.x + (this.rand() - 0.5) * 16, b.target.y - 1, 1, [[255, 196, 96], [255, 120, 40]], 60);
+          if (b.t > B.bubble) {
+            // a leap sized to reach just above you (not the ceiling)
+            const rise = Math.max(24, (b.y - 6) - (p.y - p.h / 2) + 14);
+            b.vy = -Math.min(B.breachUp, Math.sqrt(2 * B.gravity * rise));
+            const tApex = -b.vy / B.gravity;
+            b.vx = Math.max(-B.breach, Math.min(B.breach, (p.x - b.x) / (tApex * 1.15)));
+            b.hitDone = false;
+            this.burst(b.x, b.y - 6, 26, [[255, 196, 96], [255, 120, 40]], 160);
+            this.shake = Math.max(this.shake, 2);
+            set('breach');
+          }
+          break;
+        }
+        case 'breach': {
+          b.vy += B.gravity * DT;
+          // past the top of its leap it steers back towards the lake
+          if (b.vy > 0) {
+            let tx = null;
+            for (let d = 0; d < 160 && tx == null; d += 4) for (const s of [Math.sign(b.vx) || 1, -(Math.sign(b.vx) || 1)]) if (this.openLakeBelow(b.x + s * d, b.y - 6) != null) { tx = b.x + s * d; break; }
+            if (tx != null) b.vx += Math.sign(tx - b.x) * Math.min(Math.abs(tx - b.x) * 6, 600) * DT;
+          }
+          b.x += b.vx * DT; b.y += b.vy * DT;
+          b.facing = b.vx >= 0 ? 1 : -1;
+          // bonk on a ceiling or a wall on the way up
+          if (b.vy < 0 && SOLID[headIn()]) { b.y -= b.vy * DT; b.vy = 30; }
+          const m = headIn();
+          if (b.vy > 0 && m === M.MAGMA && b.t > 0.3) { this.burst(b.x, b.y - 6, 20, [[255, 196, 96], [255, 120, 40]], 140); set('swim'); }
+          else if (b.vy > 0 && SOLID[m]) {
+            // landed on something that is not magma
+            for (let k = 0; k < 20 && SOLID[w.get(Math.round(b.x), Math.round(b.y - 6))]; k++) b.y--;
+            // magma close by: it is only stunned for a moment; none (the lake cooled): truly stranded
+            let near = false;
+            for (let d = -40; d <= 40 && !near; d += 4) { const top = this.lakeTop(b.x + d); if (top != null && top - b.y < 70 && top - b.y > -30) near = true; }
+            b.strandFor = near ? 1.1 : B.strand;
+            b.stranded = true; this.shake = Math.max(this.shake, 3);
+            if (!near) this.events.push({ type: 'toast', text: `${B.name} is stranded` });
+            set('stranded');
+          }
+          if (b.y > w.h - 20 || b.t > 4) { b.strandFor = 1.1; b.stranded = true; set('stranded'); }
+          break;
+        }
+        case 'stranded': {
+          // flops on the ground; after a while wriggles towards the lake and drops back in
+          const below = w.get(Math.round(b.x), Math.round(b.y - 5 + 6));
+          if (!SOLID[below] && below !== M.MAGMA) b.y += 110 * DT;
+          if (headIn() === M.MAGMA && b.t > 0.5) { b.stranded = false; set('swim'); break; }
+          if (b.t > (b.strandFor || B.strand)) {
+            let tx = null;
+            for (let d = 4; d < 400 && tx == null; d += 3) for (const s of [1, -1]) if (this.openLakeBelow(b.x + s * d, b.y - 4) != null) { tx = b.x + s * d; break; }
+            if (tx == null) tx = L.x;
+            b.x += Math.sign(tx - b.x) * 34 * DT; b.facing = Math.sign(tx - b.x) || 1;
+            // can't go on: slip down through whatever is underneath
+            if (b.t > (b.strandFor || B.strand) + 6) b.y += 40 * DT;
+          }
+          break;
+        }
+        case 'spit': {
+          // swims to a spot with a clear line to you, rises and spits a volley of magma
+          if (b.t < 0.05) b.goT = 0;
+          if (b.target && Math.abs(b.target.x - b.x) > 4 && (b.goT += DT) < 1.6) { swimTo(b.target.x, b.target.y + 10, B.swim * 1.8); b.t = 0.06; break; }
+          const top = this.lakeTop(b.x) ?? L.surface;
+          b.y += ((top + 2) - b.y) * Math.min(1, 4 * DT);
+          b.facing = Math.sign(p.x - b.x) || 1;
+          const n = b.raged ? B.spitCountRage : B.spitCount;
+          b.spat = b.spat || 0;
+          if (b.t > 0.6 + b.spat * 0.3 && b.spat < n) {
+            b.spat++;
+            const mx = b.x + b.facing * 9, my = b.y - 10, dx = p.x + (this.rand() - 0.5) * 24 - mx, dy = (p.y - 6) - my, g = 380, v = 230;
+            const disc = v ** 4 - g * (g * dx * dx + 2 * dy * v * v);
+            // a high lob that comes down on you over ledges
+            const an = disc >= 0 ? Math.atan2(v * v + Math.sqrt(disc), g * Math.abs(dx)) : Math.PI / 3;
+            this.projectiles.push({ kind: 'blob', sp: { power: B.globPower, count: B.glob, mat: 'MAGMA' }, key: 'earth+fire', owner: b, x: mx, y: my, vx: Math.cos(an) * v * Math.sign(dx || 1), vy: -Math.sin(an) * v, g, age: 0 });
+          }
+          if (b.spat >= n && b.t > 0.6 + n * 0.3 + 0.4) { b.spat = 0; set('swim'); }
+          break;
+        }
+      }
+      // the body follows the head
+      const h0 = b.trail[0];
+      if (Math.hypot(b.x - h0.x, b.y - 6 - h0.y) > 1.5) { b.trail.unshift({ x: b.x, y: b.y - 6 }); b.trail.length = 80; }
+      // touching any part of it hurts
+      if (b.engaged && !b.touchT) for (const q of this.players) {
+        if (q.dead) continue;
+        const n = this.bossNearest(b, q.x, q.y - q.h / 2);
+        if (n.d < b.segR + 6) { this.hurt(q, B.contact, Math.sign(q.x - n.x || 1) * B.knock, -B.knock * 0.6, 'wyrm', b, null); b.touchT = B.touchCd; }
+      }
+    }
+    bossDefeated(b) {
+      const B = KData.bosses[b.type], RU = KData.runes, p = b.lastHitBy && !b.lastHitBy.dead ? b.lastHitBy : this.players[0];
+      b.dead = true; b.hp = 0;
+      this.defeated.add(b.type); this.cores.add(B.region);
+      this.gainXp(p, KData.progression.killXp(b.level, 'crawler', false) * B.xpMul, 'boss');
+      p.shards = (p.shards || 0) + B.shardsMul * b.level;
+      const first = this.hasRune(p, 'crucible') ? this.makeRune(b.level + 1, { tier: 3 }) : this.makeRune(b.level + 1, { type: 'crucible', tier: 3 });
+      const second = this.makeRune(b.level + 1, { tier: 2 + (this.rand() < 0.4 ? 1 : 0) });
+      this.dropRune(b.x - 6, b.y - 10, first); this.dropRune(b.x + 6, b.y - 10, second);
+      for (const s of b.trail.filter((_, i) => i % 6 === 0)) this.burst(s.x, s.y, 8, [[255, 140, 50], [90, 40, 36], [255, 220, 140]], 160);
+      this.fx.push({ kind: 'flash', x: b.x, y: b.y - 6, r: 60, t: 0, T: 0.6, color: [255, 160, 70] });
+      this.shake = Math.max(this.shake, 4);
+      this.events.push({ type: 'toast', kind: 'big', text: `${B.name} falls · ${B.core} claimed · ${B.shardsMul * b.level} shards` });
+      this.events.push({ type: 'save' });
+    }
 
     equip(p, index) {
       const r = p.inventory[index];
@@ -296,6 +521,7 @@ const KGame = (() => {
       this.updateProjectiles();
       for (const e of this.enemies) this.enemyTick(e);
       for (const a of this.actors) if (!a.asleep) this.physics(a);
+      this.bossTick();
       this.lodestonesTick();
       this.lootTick();
       this.treasureTick();
@@ -907,7 +1133,8 @@ const KGame = (() => {
           const ix = Math.floor(pr.x), iy = Math.floor(pr.y);
           if (!w.inb(ix, iy)) { pr.dead = true; break; }
           const m = w.mat[iy * w.w + ix];
-          const hit = this.actorAt(pr.x, pr.y, pr.age < 0.15 ? pr.owner : null, 1);
+          // your own projectiles can hit you after a moment; an enemy's never hit itself
+          const hit = this.actorAt(pr.x, pr.y, pr.age < 0.15 || pr.owner.kind !== 'player' ? pr.owner : null, 1);
           if (pr.kind === 'spear') {
             pr.travelled += sp * DT / n;
             if (hit) { this.hurt(hit, pr.sp.power, pr.vx / sp * pr.sp.knock, pr.vy / sp * pr.sp.knock - 30, 'spear', pr.owner, pr.key); this.spark(pr.x, pr.y); pr.dead = true; break; }
@@ -1038,7 +1265,9 @@ const KGame = (() => {
     spark(x, y) { this.burst(x, y, 8, [[255, 246, 170], [200, 205, 215]], 110); }
 
     // ---------- actors ----------
-    inBox(a, x, y, pad = 0) { return x >= a.x - a.w / 2 - pad && x <= a.x + a.w / 2 + pad && y >= a.y - a.h - pad && y <= a.y + pad; }
+    inBox(a, x, y, pad = 0) {
+      if (a.kind === 'boss') return this.bossNear(a, x, y) < a.segR + pad;
+      return x >= a.x - a.w / 2 - pad && x <= a.x + a.w / 2 + pad && y >= a.y - a.h - pad && y <= a.y + pad; }
     actorAt(x, y, except, pad = 0) {
       for (const a of this.actors) if (a !== except && !a.dead && this.inBox(a, x, y, pad)) return a;
       return null;
@@ -1047,7 +1276,8 @@ const KGame = (() => {
     hitRadius(x, y, r, dmg, knock, except, src, spell) {
       for (const a of this.actors) {
         if (a.dead || a === except) continue;
-        const cx = a.x, cy = a.y - a.h / 2, d = Math.hypot(cx - x, cy - y);
+        let cx = a.x, cy = a.y - a.h / 2, d = Math.hypot(cx - x, cy - y);
+        if (a.kind === 'boss') { const n = this.bossNearest(a, x, y); cx = n.x; cy = n.y; d = Math.max(0, n.d - a.segR); }
         if (d > r) continue;
         const f = 1 - (d / r) * 0.6, nx = (cx - x) / (d || 1), ny = (cy - y) / (d || 1);
         this.hurt(a, dmg * f, nx * knock * f, ny * knock * f - 60 * f, 'blast', src, spell);
@@ -1071,17 +1301,19 @@ const KGame = (() => {
         mods = (this.affinity(target, e1) + this.affinity(target, e2)) / 2;
         const els = [e1, e2];
         if (target.wetT > 0 && els.includes(S.wet.boosts)) mods *= S.wet.by;
+        if (target.stranded) mods *= KData.bosses[target.type].strandMul;
         if ((target.slowT > 0 || target.inMud) && els.includes(S.muddy.boosts)) mods *= S.muddy.by;
         if (target.burnT > 0 && els.includes(S.burning.boosts)) mods *= S.burning.by;
       }
       return base * pow * (2 * atk / (atk + ts.defence)) * mods;
     }
-    affinity(a, el) { const E = KData.enemies[a.kind]; return E && E.affinity && E.affinity[el] != null ? E.affinity[el] : 1; }
+    affinity(a, el) { const E = a.kind === 'boss' ? KData.bosses[a.type] : KData.enemies[a.kind]; return E && E.affinity && E.affinity[el] != null ? E.affinity[el] : 1; }
     statusText(a) {
       const t = [];
       if (a.wetT > 0) t.push('Wet: lightning hits it 50% harder.');
       if (a.slowT > 0 || a.inMud) t.push('Muddy: slowed, and fire hits it 40% harder.');
       if (a.burnT > 0) t.push('Burning: water hits it 40% harder.');
+      if (a.stranded) t.push('Stranded: takes double damage.');
       return t.length ? ' ' + t.join(' ') : '';
     }
 
@@ -1108,6 +1340,7 @@ const KGame = (() => {
     }
 
     kill(a) {
+      if (a.kind === 'boss') return this.bossDefeated(a);
       a.dead = true; a.hp = 0;
       // experience to whoever hit it last (hazards a player caused count for 8 s)
       if (a.kind !== 'player' && a.kind !== 'dummy' && a.lastHitBy && this.time - a.lastHitAt < 8 && !a.lastHitBy.dead)
@@ -1519,7 +1752,7 @@ const KGame = (() => {
     }
 
     physics(a) {
-      if (a.dead) return;
+      if (a.dead || a.kind === 'boss') return;
       const w = this.world;
       if (a.anchored) return;                 // a spitter in its wall
       if (a.ghost) {                          // a delver inside the ground: no collision

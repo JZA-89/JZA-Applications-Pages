@@ -212,6 +212,7 @@ const KRender = (() => {
       this.drawLodestones(game, game.time);
       for (const d of game.dummies) this.drawDummy(d);
       for (const e of game.enemies) if (!e.asleep && !e.dead) { if (e.kind === 'crawler') this.drawCrawler(e, game.time); else this.drawEnemy(e, game.time); }
+      if (game.boss && !game.boss.dead) this.drawBoss(game.boss, game);
       for (const pl of game.players) this.drawGolem(pl);
       this.drawCaches(game);
       this.drawLoot(game);
@@ -275,7 +276,7 @@ const KRender = (() => {
             if (m === M.MAGMA) {
               const c = magma[shade[i] & 3], f = 0.82 + 0.18 * Math.sin(pulse + shade[i] * 0.1);
               buf[o] = pack(clamp(c[0] * f), clamp(c[1] * f), clamp(c[2] * f));
-              heat[grow + (vx >> 3)] += 0.8;
+              heat[grow + (vx >> 3)] += 0.25;
               continue;
             }
             const above = mat[i - w], st = KWorld.STATE[m];
@@ -344,6 +345,40 @@ const KRender = (() => {
       let flashSlots = null;
       if (p.slotFlash > 0) flashSlots = p.slots[0] && p.slots[1] ? [255, 255, 255] : [255, 120, 90];
       this.plotGolem(p.skin, ox, oy, p.facing < 0, p.slots, { chipped, flash: p.flash > 0, flashSlots });
+    }
+
+    // The Emberwyrm: a chain of basalt plates with glowing cracks, and a head
+    // with jaws. Under the magma it shows faintly.
+    drawBoss(b, game) {
+      const w = game.world, cx = this.cam.x, cy = this.cam.y;
+      const disc = (x, y, r, col, a, crack) => {
+        for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+          if (dx * dx + dy * dy > r * r) continue;
+          const edge = dx * dx + dy * dy > (r - 1.2) ** 2;
+          let c = edge ? [40, 14, 12] : dy < -r * 0.35 ? col.map(v => v * 1.25) : dy > r * 0.4 ? col.map(v => v * 0.75) : col;
+          if (crack && !edge && (dx + dy * 2 + 40) % 5 === 0) c = [255, 170, 80];
+          if (b.flash > 0) c = [255, 246, 236];
+          this.plot(x + dx - cx, y + dy - cy, clamp(c[0]), clamp(c[1]), clamp(c[2]), a);
+        }
+      };
+      // under the magma it shows as a dark shape moving beneath the surface
+      const under = (x, y) => w.get(Math.round(x), Math.round(y)) === M.MAGMA ? 0.8 : 1;
+      const body = b.stranded ? [176, 104, 84] : [150, 74, 58];
+      for (let i = 76; i >= 4; i -= 4) {
+        const s = b.trail[i]; if (!s) continue;
+        const r = Math.max(3, Math.round(7 - i / 16));
+        const sub = under(s.x, s.y) < 1;
+        disc(Math.round(s.x), Math.round(s.y), r, sub ? [58, 24, 20] : body, under(s.x, s.y), !sub);
+      }
+      // head
+      const hx = Math.round(b.x), hy = Math.round(b.y - 6), f = b.facing, a = under(hx, hy), sub = a < 1;
+      disc(hx, hy, 8, sub ? [58, 24, 20] : [168, 84, 64], a, false);
+      const jaw = b.state === 'breach' || b.state === 'spit' ? 2 : 0;
+      for (let k = 0; k < 7; k++) { this.plot(hx + f * (6 + k) - cx, hy - 2 - jaw - cy, 70, 30, 26, a); this.plot(hx + f * (6 + k) - cx, hy + 2 + jaw - cy, 70, 30, 26, a); }
+      for (let k = 1; k < 7; k += 2) { this.plot(hx + f * (6 + k) - cx, hy - 1 - jaw - cy, 240, 230, 210, a); this.plot(hx + f * (6 + k) - cx, hy + 1 + jaw - cy, 240, 230, 210, a); }
+      for (const ex of [3, 4]) this.plot(hx + f * ex - cx, hy - 4 - cy, 255, 230, 120, 1);
+      // where it will breach: the bubbling spot
+      if (b.state === 'bubble' && b.target) for (let k = 0; k < 5; k++) this.plot(b.target.x + (Math.random() - 0.5) * 16 - cx, b.target.y - 1 - Math.random() * 4 - cy, 255, 240, 190, 0.95);
     }
 
     drawEnemy(e, time) {
@@ -509,7 +544,8 @@ const KRender = (() => {
       for (let gy = 0; gy < this.gh; gy++) for (let gx = 0; gx < gw; gx++) {
         const h = this.heat[gy * gw + gx], s = this.spark[gy * gw + gx];
         const wx = this.cam.x + gx * 8 + 4, wy = this.cam.y + gy * 8 + 4;
-        if (h > 0) this.light(wx, wy, 10 + Math.min(14, h * 0.35), [255, 120, 50], 0.12 + Math.min(0.4, h / 70));
+        // a few burning cells glow strongly; a whole lake of magma only warmly (it would wash out to white)
+        if (h > 0) this.light(wx, wy, 10 + Math.min(10, h * 0.3), [255, 120, 50], 0.1 + Math.min(0.28, h / 60));
         if (s > 0) this.light(wx, wy, 9 + Math.min(10, s * 0.3), [140, 190, 255], 0.1 + Math.min(0.4, s / 50));
       }
       for (const L of game.loot) this.light(L.x, L.y - 2, 9, KData.runes.tiers[L.rune.tier].color, 0.55);
@@ -528,6 +564,12 @@ const KRender = (() => {
         else if (f.kind === 'beam') for (let k = 0; k <= 6; k++) this.light(f.x0 + (f.x1 - f.x0) * k / 6, f.y0 + (f.y1 - f.y0) * k / 6, 9, f.color, a * 0.6);
       }
       for (const l of game.world.lodestones) if (game.found.has(l.id)) this.light(l.x, l.y - 8, 18, [201, 182, 255], 0.5 + 0.12 * Math.sin(game.time * 2.5 + l.x));
+      if (game.boss && !game.boss.dead) {
+        const b = game.boss;
+        this.light(b.x, b.y - 6, 22, [255, 140, 50], 0.55);
+        for (let i = 12; i < 72; i += 12) if (b.trail[i]) this.light(b.trail[i].x, b.trail[i].y, 12, [255, 120, 40], 0.3);
+        if (b.state === 'bubble' && b.target) this.light(b.target.x, b.target.y, 26, [255, 210, 120], 0.75);
+      }
       for (const e of game.enemies) {
         if (e.dead || e.asleep) continue;
         const col = e.elite ? [255, 200, 90] : e.kind === 'spitter' ? [255, 140, 50] : e.kind === 'moth' ? [222, 196, 244] : [255, 70, 160];

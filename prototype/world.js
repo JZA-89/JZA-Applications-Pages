@@ -537,10 +537,51 @@ const KWorld = (() => {
       }
       this.bw = bw;
 
+      // 8b. the Emberwyrm's lair: the biggest far Ember chamber becomes a great hall with a magma lake
+      const lairNode = nodes.filter(n => n.biome === 2 && n.dist > 420).sort((a, b) => b.rx * b.ry - a.rx * a.ry)[0];
+      this.lair = null;
+      if (lairNode) {
+        const n = lairNode;
+        n.lair = true; n.rx = Math.max(n.rx, 105); n.ry = Math.max(n.ry, 50);
+        n.x = Math.max(n.rx + 30, Math.min(w - n.rx - 30, n.x)); n.y = Math.max(n.ry + 40, Math.min(h - n.ry * 2 - 30, n.y));
+        for (let y = Math.floor(n.y - n.ry * 1.2); y <= n.y + n.ry * 1.9; y++) for (let x = Math.floor(n.x - n.rx * 1.2); x <= n.x + n.rx * 1.2; x++) {
+          if (x < 12 || y < 12 || x >= w - 12 || y >= h - 12) continue;
+          const ex = (x - n.x) / n.rx, ey = (y - n.y) / n.ry;
+          const bey = (y - (n.y + n.ry * 0.8)) / (n.ry * 0.9), bex = (x - n.x) / (n.rx * 0.9);
+          if (ex * ex + ey * ey + (noise(x, y, 11, s + 3) - 0.5) * 0.3 < 1 || bex * bex + bey * bey < 1) mat[y * w + x] = M.EMPTY;
+        }
+        // the lake: every open cell below the chamber's middle, inside a box
+        const lx0 = Math.max(12, Math.floor(n.x - n.rx * 1.2)), lx1 = Math.min(w - 13, Math.ceil(n.x + n.rx * 1.2));
+        const ly0 = Math.floor(n.y + n.ry * 0.15), ly1 = Math.min(h - 13, Math.ceil(n.y + n.ry * 1.75));
+        for (let y = ly0; y <= ly1; y++) for (let x = lx0; x <= lx1; x++) {
+          const i = y * w + x;
+          if (mat[i] === M.EMPTY) { mat[i] = M.MAGMA; this.life[i] = 255; }
+        }
+        // a rock rim 3 cells thick around the magma (so digging cannot drain it), and
+        // tunnel mouths at the box's edge sealed with rock
+        for (let y = ly0 - 3; y <= ly1 + 3; y++) for (let x = lx0 - 3; x <= lx1 + 3; x++) {
+          const i = y * w + x;
+          if (mat[i] !== M.DIRT && mat[i] !== M.MOSS && mat[i] !== M.EMPTY) continue;
+          if (mat[i] === M.EMPTY && y < ly0) continue;
+          let nearMagma = false;
+          for (let k = 1; k <= 3 && !nearMagma; k++) for (const [dx, dy] of [[k, 0], [-k, 0], [0, k], [0, -k]]) if (mat[i + dy * w + dx] === M.MAGMA) { nearMagma = true; break; }
+          if (nearMagma) mat[i] = M.ROCK;
+        }
+        // ledges above the lake to fight from
+        for (const [fx, fy, fr] of [[-0.62, -0.25, 15], [0, -0.55, 17], [0.62, -0.25, 15], [-0.3, -0.12, 6], [0.3, -0.12, 6]]) {
+          const lx = n.x + fx * n.rx, ly = n.y + fy * n.ry;
+          for (let y = Math.floor(ly - 4); y <= ly + 4; y++) for (let x = Math.floor(lx - fr - 2); x <= lx + fr + 2; x++) {
+            const ex = (x - lx) / fr, ey = (y - ly) / 3.5;
+            if (ex * ex + ey * ey < 1 && mat[y * w + x] === M.EMPTY) mat[y * w + x] = M.DIRT;
+          }
+        }
+        this.lair = { x: n.x, y: n.y, rx: n.rx, ry: n.ry, surface: Math.floor(n.y + n.ry * 0.15), level: this.levelAt(n.x, n.y), boss: 'emberwyrm' };
+      }
+
       // 9. pools in chambers (water in the Drowned Galleries, magma in the Ember Veins)
       for (const n of nodes) {
         const B = BIOMES[n.biome];
-        if (!B.pool || R() < 0.25) continue;
+        if (n.lair || !B.pool || R() < 0.25) continue;
         // poolFrom: where the surface sits, from the chamber's top (0) to its bottom (1)
         const pm = M[B.pool];
         // dig a basin into the floor, below where the tunnels join, so the pool holds
@@ -621,7 +662,7 @@ const KWorld = (() => {
       };
       const addCache = (x, y, kind, n) => this.caches.push({ id: this.caches.length, x: Math.round(x), y: Math.round(y), kind, level: this.levelAt(x, y) });
       for (const n of nodes) {
-        if (n.hub || R() > T.cacheChance) continue;
+        if (n.hub || n.lair || R() > T.cacheChance) continue;
         const B = KData.biomes[n.biome];
         const kinds = Object.keys(T.kinds).filter(k => k !== 'pool' || (B.pool && n.pooled)).sort(() => R() - 0.5);
         let placed = false;
@@ -679,7 +720,7 @@ const KWorld = (() => {
       this.enemyHomes = [];
       const EN = KData.enemies;
       for (const n of nodes) {
-        if (n.hub) continue;
+        if (n.hub || n.lair) continue;
         const level = this.levelAt(n.x, n.y);
         const count = Math.min(4, 1 + Math.floor(n.dist / 420) + (R() < 0.5 ? 1 : 0));
         let wardens = 0;
@@ -718,7 +759,17 @@ const KWorld = (() => {
       this.lodestones = [];
       const hubStone = this.standSpot(this.spawn.x - 18, this.spawn.y - 4, 16) || { x: this.spawn.x - 18, y: this.spawn.y };
       this.lodestones.push({ id: 0, x: hubStone.x, y: hubStone.y, hub: true });
+      if (lairNode) {
+        // the chamber nearest the lair always gets a Lodestone
+        // the nearest chamber to the lair with room for one gets a Lodestone
+        const byDist = nodes.filter(n => !n.hub && !n.lair).sort((a, b) => Math.hypot(a.x - lairNode.x, a.y - lairNode.y) - Math.hypot(b.x - lairNode.x, b.y - lairNode.y));
+        for (const near of byDist.slice(0, 4)) {
+          const sp = spotIn(near, 30, 16);
+          if (sp) { this.lodestones.push({ id: this.lodestones.length, x: sp.x, y: sp.y, nearLair: true }); break; }
+        }
+      }
       for (const n of far) {
+        if (n.lair) continue;
         if (this.lodestones.length >= C.lodestones) break;
         if (this.lodestones.some(l => Math.hypot(l.x - n.x, l.y - n.y) < 260)) continue;
         const sp = spotIn(n, 12, 16);

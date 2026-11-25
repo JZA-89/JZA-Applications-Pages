@@ -59,6 +59,11 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .pts { font-size: 11px; font-weight: 700; color: #1a1513; background: var(--mana); border-radius: 4px; padding: 0 5px; letter-spacing: 0; }
 .xp { width: 90px; height: 4px; }
 .xp i { background: #e8d9a8; }
+.bossbar { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); display: grid; justify-items: center; gap: 4px; width: min(360px, 46%); pointer-events: none; }
+.bossbar span { font-size: 12.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #ffb27a; text-shadow: 0 1px 3px #000; }
+.hp.boss { width: 100%; height: 8px; }
+.hp.boss i { background: linear-gradient(90deg, #ff7a2f, #ffcf7a); }
+.bossbar:not([hidden]) ~ .toasts { top: 46px; }
 .toasts { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); display: grid; justify-items: center; gap: 5px; pointer-events: none; width: min(460px, 70%); }
 .toast { font-size: 12.5px; padding: 6px 12px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); text-align: center; animation: toastin .25s ease-out; }
 .toast.xp { color: #e8d9a8; }

@@ -215,6 +215,20 @@ const KData = (() => {
   };
   const elites = { chance: 0.08, from: 2, hp: 1.8, attack: 1.3 };
 
+  // ---------- Bosses ----------
+  // The Emberwyrm lives in a magma lake in the Ember Veins. It can only swim
+  // through magma: cool its lake with water (magma + water makes dirt) and a
+  // breach that lands on solid ground leaves it stranded, taking double damage.
+  const bosses = {
+    emberwyrm: { name: 'The Emberwyrm', region: 'ember', core: 'Ember core',
+      desc: 'Swims through magma. Bubbles mark where it will breach. Fire does nothing; water hurts it and cools its lake into dirt. Stranded on solid ground, it takes double damage.',
+      hp: 900, attack: 14, defence: 14, perLevel: { hp: 0.3, attack: 2, defence: 1 },
+      swim: 95, bubble: 0.85, breach: 270, breachUp: 300, gravity: 420, contact: 26, knock: 220, touchCd: 0.8,
+      spitEvery: 3.6, spitCount: 3, spitCountRage: 5, glob: 12, globPower: 16, strand: 4.5, strandMul: 2,
+      rise: 6, segments: 12, rageAt: 0.5, reset: 8, xpMul: 15, shardsMul: 40,
+      affinity: { fire: 0, water: 1.6, lightning: 1.2 } },
+  };
+
   // ---------- Regions ----------
   // The cave spreads in every direction from the hub. Each region has its own
   // stone colours (strata), background, lichen, and pools in its chambers.
@@ -420,6 +434,6 @@ const KData = (() => {
       ] },
   ];
 
-  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, statuses, elites, modes, biomes, cave, progression, runes, treasure,
+  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, statuses, elites, bosses, modes, biomes, cave, progression, runes, treasure,
     world: { w: 2048, h: 1024, chunk: 32 }, view: { w: 320, h: 180 }, step: 1 / 60 };
 })();

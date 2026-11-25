@@ -265,6 +265,23 @@ Shown on the enemy (drips when wet, muddy tint, burning flecks) and in its hover
 
 Tested in a cleared arena (player standing still, 10 s): crawler 6 hits, moth 4, delver 3, spitter 2, warden 1 (slow on purpose). On a whole cave (one seed): 23 moths, 21 spitters, 17 crawlers, 8 delvers, 3 wardens, plus 3–5 elites.
 
+### The Emberwyrm (`KData.bosses.emberwyrm`, `game.bossTick`)
+
+The first boss, in the Ember Veins. **Lair:** the biggest Ember chamber more than 420 from the hub is enlarged to at least 105 × 50 and dug deeper; every open cell below its middle becomes a permanent **magma lake**, with a 3-cell rock rim (so digging cannot drain it) and tunnel mouths at the lake's edge sealed with rock. Five dirt ledges float above the lake (a high centre one, two side ones, two small stepping stones). No other enemies or caches in the lair; the nearest chamber with room always gets a Lodestone. Red dots mark the lair on the map until it is defeated.
+
+**Fight:** it wakes when a player enters the lair (boss bar at the top), heals and calms if everyone stays out for 8 s. Health 900, attack 14, defence 14 (+30% / +2 / +1 a level; the lair is usually level 2–4). It can only swim through magma.
+- **Swim** under the surface towards you (speed 95; its dark shape shows through the magma).
+- **Bubble → breach** (62%): picks a surface spot beside you with a clear line to your head, the magma **bubbles there for 0.85 s** (the warning), then it leaps on an arc sized to reach just above you, bonks off ceilings, steers back to open lake after the top of its arc and dives in.
+- **Spit** (38%): swims to a spot 55–110 from you, rises and lobs 3 magma globs (5 when enraged) in high arcs that come down on you over ledges (power 16, 12 magma cells each).
+- **Contact:** any part of its body hurts (power 26, knock 220, at most every 0.8 s).
+- **Enraged** below half health: the lake rises 6 cells (once) and it strikes more often (every 1.3 s instead of 2.1 s).
+- **Stranded:** if a leap lands on solid ground with magma close by, it is only stunned (1.1 s); with no magma near (or when the magma around its head has been **cooled into dirt with water**) it is stranded for 4.5 s, takes **double damage**, then wriggles to open lake and drops back in.
+- Affinity: fire ×0, water ×1.6, lightning ×1.2.
+
+**Rewards:** experience (15 × a crawler of its level), shards (40 × level), two runestones dropped where it dies (the Crucible at Legendary if you have none, otherwise a Legendary; plus an Epic or Legendary), and the **Ember core**. Defeated bosses and claimed cores are saved; it does not return.
+
+Measured over three seeds (60 s each, a player standing on a ledge, put back if knocked off): it cycles swim / bubble / breach / spit, deals 380–860 damage a minute to a player who never dodges, and strands itself on ledges for short spells. Its magma lake loses no cells over a fight.
+
 ## Mana
 
 Every spell costs mana. Held spells (Steam, Water jet) drain it every moment they are held and stop when it runs out. You can fly with Steam, but a full bar lasts about 5.6 s (some areas will need flight to get around); when it runs dry you fall and cannot attack until it refills. A spell needs its full cost to start (held spells need a small minimum); trying without enough flashes the mana bar.
@@ -360,6 +377,7 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.13 (2026-11-26):** runestones: four slots, 15 stones with stats and traits (including the Crucible, whose fire melts rock, Jaisah's idea for reaching further), drops, a bag, breaking into shards.
 - **v0.14 (2026-11-26):** crystal veins and shards, relic caches sealed in five ways, the Forge.
 - **v0.15 (2026-11-26):** four new enemies (Glowmoth, Delver, Cinder spitter, Slate warden), element affinities, status effects (wet, muddy, burning), elites.
+- **v0.16 (2026-11-26):** the first boss, the Emberwyrm, in a magma-lake lair: breaches marked by bubbling, spit volleys, enrage with a rising lake, stranding when its lake is cooled; drops the Crucible and the Ember core. Large magma areas glow more softly.
 
 ## Open questions to test
 
