@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#0d0a14">
-<title>Cast in Stone | Prototype · v0.10</title>
-<link rel="stylesheet" href="style.css?v=0.10">
+<title>Cast in Stone | Prototype · v0.11</title>
+<link rel="stylesheet" href="style.css?v=0.11">
 </head>
 <body data-mode="start">
 
@@ -36,6 +36,11 @@
 
     <div class="look" id="look" hidden><b id="lookName"></b><span id="lookDesc"></span></div>
 
+    <div class="map" id="mapBox">
+      <canvas id="minimap" width="128" height="64" aria-label="Map of the explored cave"></canvas>
+      <span id="region">Rose Hollows · Level 1</span>
+    </div>
+
     <div class="element-bar">
       <div class="loaded">
         <span class="slot" id="slot0"></span>
@@ -50,9 +55,9 @@
 <div class="panel-wrap" id="panelWrap">
   <section class="panel" id="panel" role="dialog" aria-modal="true" aria-labelledby="panelTitle">
     <header>
-      <p class="eyebrow" id="panelEyebrow">Prototype · one player · v0.10</p>
+      <p class="eyebrow" id="panelEyebrow">Prototype · one player · v0.11</p>
       <h1 id="panelTitle">CAST IN STONE</h1>
-      <p class="lede" id="panelLede">A rock golem in a cave, with four elements. Load any two: every pair gives you an aimed Shot, a Burst around you and a way to Move.</p>
+      <p class="lede" id="panelLede">A rock golem in a web of caves, with four elements. Load any two: every pair gives you an aimed Shot, a Burst around you and a way to Move. Explore out from the hub; the further you go, the tougher it gets.</p>
     </header>
 
     <section class="picker" aria-labelledby="pickTitle">
@@ -91,17 +96,18 @@
       <button type="button" class="btn primary" id="btnGo">Start</button>
       <button type="button" class="btn" id="btnBook">Spell book</button>
       <button type="button" class="btn" id="btnPanelReset" hidden>Reset map</button>
+      <button type="button" class="btn" id="btnNewCave">New cave</button>
     </footer>
   </section>
 </div>
 
 <noscript><p class="noscript">This prototype needs JavaScript.</p></noscript>
 
-<script src="data.js?v=0.10"></script>
-<script src="world.js?v=0.10"></script>
-<script src="input.js?v=0.10"></script>
-<script src="game.js?v=0.10"></script>
-<script src="render.js?v=0.10"></script>
-<script src="main.js?v=0.10"></script>
+<script src="data.js?v=0.11"></script>
+<script src="world.js?v=0.11"></script>
+<script src="input.js?v=0.11"></script>
+<script src="game.js?v=0.11"></script>
+<script src="render.js?v=0.11"></script>
+<script src="main.js?v=0.11"></script>
 </body>
 </html>

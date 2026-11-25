@@ -89,7 +89,7 @@
     document.body.dataset.mode = m;
     KInput.clearHeld();
     if (m === 'play') { view.focus({ preventScroll: true }); return; }
-    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spell book' : 'Prototype · one player · v0.10';
+    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spell book' : 'Prototype · one player · v0.11';
     $('btnGo').textContent = m === 'start' ? 'Start' : 'Resume';
     $('btnPanelReset').hidden = m === 'start';
     showBook(m === 'help');
@@ -106,6 +106,7 @@
   const reset = () => { game.reset(); game.players[0].skin = skin; acc = 0; };
   $('btnGo').addEventListener('click', resume);
   $('btnPanelReset').addEventListener('click', () => { reset(); resume(); });
+  $('btnNewCave').addEventListener('click', () => { game.seed = (Math.random() * 1e9) | 0; reset(); mapTick = 0; resume(); });
   $('btnPause').addEventListener('click', () => setMode('pause'));
   $('btnSpells').addEventListener('click', () => setMode('help'));
   $('btnReset').addEventListener('click', () => { reset(); view.focus(); });
@@ -184,11 +185,12 @@
       if (a.dead || !game.inBox(a, wx, wy, pad)) continue;
       const hp = `Health ${Math.max(0, Math.ceil(a.hp))} of ${a.maxHp}`;
       const slowed = a.slowT > 0 || a.inMud ? ' Slowed by mud.' : '';
-      if (a.kind === 'crawler') return ['Shale crawler', `${hp}.${slowed} Winds up, then lunges. A hard hit staggers it.`];
+      if (a.kind === 'crawler') return [`Shale crawler · Level ${a.level}`, `${hp}.${slowed} Winds up, then lunges. A hard hit staggers it.`];
       if (a.kind === 'dummy') return ['Training dummy', `${hp}. Heals when left alone.`];
       if (a.kind === 'player') return [`You (${KData.golems[a.skin].name})`, `${hp}. Mana ${Math.round(a.mana)} of ${a.maxMana}.`];
     }
     const w = game.world, x = Math.floor(wx), y = Math.floor(wy);
+    for (const wl of w.wells) if (Math.abs(wx - wl.x) < 4 && wy > wl.y - 9 && wy < wl.y + 1) return ['Mana well', 'Stand next to it to refill mana fast.'];
     if (!w.inb(x, y)) return null;
     const m = w.get(x, y);
     if (m === KData.M.EMPTY) return null;
@@ -207,6 +209,28 @@
     lookText = t;
     $('look').hidden = !info;
     if (info) { $('lookName').textContent = info[0]; $('lookDesc').textContent = info[1]; }
+  }
+
+  // ---------- map of the explored cave, and the region you are in ----------
+  const mm = $('minimap'), mctx = mm.getContext('2d'), mimg = mctx.createImageData(mm.width, mm.height), mbuf = new Uint32Array(mimg.data.buffer);
+  const pk = (r, g, b, a = 255) => (a << 24) | (b << 16) | (g << 8) | r;
+  let mapTick = 0, regionText = '';
+  function updateMap() {
+    if (mapTick++ % 12) return;
+    const w = game.world, M = KData.M, sx = w.w / mm.width, sy = w.h / mm.height;
+    for (let y = 0; y < mm.height; y++) for (let x = 0; x < mm.width; x++) {
+      const wx = Math.floor((x + 0.5) * sx), wy = Math.floor((y + 0.5) * sy), o = y * mm.width + x;
+      if (!w.explored[(wy >> 5) * w.cw + (wx >> 5)]) { mbuf[o] = pk(8, 6, 12, 0); continue; }
+      const m = w.get(wx, wy), B = KData.biomes[w.biomeAt(wx, wy)].strata[0];
+      mbuf[o] = m === M.ROCK ? pk(52, 58, 84) : m === M.WATER ? pk(44, 90, 190) : m === M.MAGMA ? pk(230, 100, 40)
+        : KWorld.SOLID[m] || m === M.MUD ? pk(B[0] * 0.75, B[1] * 0.75, B[2] * 0.75) : pk(24, 20, 34);
+    }
+    for (const wl of w.wells) if (w.explored[(wl.y >> 5) * w.cw + (wl.x >> 5)]) { const o = Math.floor(wl.y / sy) * mm.width + Math.floor(wl.x / sx); mbuf[o] = pk(201, 182, 255); }
+    const p = game.players[0], px = Math.floor(p.x / sx), py = Math.floor((p.y - 8) / sy);
+    for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 0], [0, -1]]) { const X = px + dx, Y = py + dy; if (X >= 0 && Y >= 0 && X < mm.width && Y < mm.height) mbuf[Y * mm.width + X] = pk(255, 255, 255); }
+    mctx.putImageData(mimg, 0, 0);
+    const t = `${KData.biomes[w.biomeAt(p.x, p.y - 8)].name} · Level ${w.levelAt(p.x, p.y)}`;
+    if (t !== regionText) { regionText = t; $('region').textContent = t; }
   }
 
   // ---------- loop ----------
@@ -230,6 +254,7 @@
     R.draw(game, { reticle, reduced: reduced.matches, dt: mode === 'play' ? dt : 0 });
     updateHud();
     updateLook();
+    updateMap();
     requestAnimationFrame(frame);
   }
   setMode('start');

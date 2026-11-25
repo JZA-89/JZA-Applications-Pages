@@ -44,9 +44,11 @@ const KWorld = (() => {
   }
 
   // Deterministic smooth noise for the map shape.
+  // fast integer hash -> 0..1
   function hash(i, j, s) {
-    const v = Math.sin(i * 127.1 + j * 311.7 + s * 74.7) * 43758.5453;
-    return v - Math.floor(v);
+    let h = (Math.imul(i | 0, 374761393) + Math.imul(j | 0, 668265263) + Math.imul(s | 0, 1442695041)) | 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
   }
   function noise(x, y, scale, s) {
     x /= scale; y /= scale;
@@ -170,8 +172,8 @@ const KWorld = (() => {
       const st = STATE[m];
       if (st === ST.static) return;
 
-      // Countdown materials (steam, fire, magma).
-      if (LIFE1[m]) {
+      // Countdown materials (steam, fire, magma). 255 means permanent (pools the cave starts with).
+      if (LIFE1[m] && this.life[i] !== 255) {
         if (st === ST.liquid ? R() < 0.5 : true) {
           if (this.life[i] > 0) this.life[i]--;
           if (this.life[i] === 0) {
@@ -184,7 +186,12 @@ const KWorld = (() => {
         this.wakeAt(x, y);
       }
 
-      if (MOVE[m] < 1 && R() > MOVE[m]) { this.wakeAt(x, y); return; }
+      if (MOVE[m] < 1 && R() > MOVE[m]) {
+        // a slow material skipped this step; stay awake only if it could still move
+        if (y + 1 < this.h && (this.canEnter(m, mat[i + w], 1) || (x > 0 && this.canEnter(m, mat[i + w - 1], 1)) || (x + 1 < w && this.canEnter(m, mat[i + w + 1], 1)) ||
+            (st === ST.liquid && ((x > 0 && mat[i - 1] === M.EMPTY) || (x + 1 < w && mat[i + 1] === M.EMPTY))))) this.wakeAt(x, y);
+        return;
+      }
 
       if (st === ST.powder) {
         if (y + 1 < this.h && this.canEnter(m, mat[i + w], 1)) { this.swap(i, i + w); return; }
@@ -208,18 +215,18 @@ const KWorld = (() => {
             if (nx >= 0 && nx < w && this.canEnter(m, mat[i + w + dx], 1)) { this.swap(i, i + w + dx); return; }
           }
         }
-        // Spread sideways as far as the flow allows.
+        // Spread sideways only towards somewhere lower (a drop within reach), so
+        // pools level out and then rest instead of jittering for ever.
         for (const dx of [d, -d]) {
-          let far = 0;
-          for (let k = 1; k <= FLOW[m]; k++) {
+          let target = 0;
+          for (let k = 1; k <= FLOW[m] * 3; k++) {
             const nx = x + dx * k;
             if (nx < 0 || nx >= w) break;
             const t = mat[i + dx * k];
             if (t !== M.EMPTY && !(STATE[t] === ST.gas || STATE[t] === ST.fire)) break;
-            far = k;
-            if (y + 1 < this.h && mat[i + dx * k + w] === M.EMPTY) break; // found a drop
+            if (y + 1 < this.h && this.canEnter(m, mat[i + dx * k + w], 1)) { target = k; break; }
           }
-          if (far) { this.swap(i, i + dx * far); return; }
+          if (target) { this.swap(i, i + dx * Math.min(target, FLOW[m])); return; }
         }
         return;
       }
@@ -278,16 +285,18 @@ const KWorld = (() => {
       x0 = Math.max(1, Math.floor(x0)); y0 = Math.max(1, Math.floor(y0));
       x1 = Math.min(w - 2, Math.ceil(x1)); y1 = Math.min(h - 2, Math.ceil(y1));
       const breakable = m => m === M.DIRT || m === M.MOSS;
-      const seen = new Set();
+      if (!this.seenAt) this.seenAt = new Uint16Array(mat.length);
+      if (++this.seenStamp >= 65535 || !this.seenStamp) { this.seenAt.fill(0); this.seenStamp = 1; }
+      const seenAt = this.seenAt, st = this.seenStamp;
       for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
         const i = y * w + x;
-        if (!breakable(mat[i]) || seen.has(i)) continue;
+        if (!breakable(mat[i]) || seenAt[i] === st) continue;
         const piece = [i], q = [i];
-        seen.add(i);
+        seenAt[i] = st;
         while (q.length && piece.length < MIN) {
           const j = q.pop();
           for (const k of [j - 1, j + 1, j - w, j + w]) {
-            if (!seen.has(k) && breakable(mat[k])) { seen.add(k); piece.push(k); q.push(k); }
+            if (seenAt[k] !== st && breakable(mat[k])) { seenAt[k] = st; piece.push(k); q.push(k); }
           }
         }
         if (piece.length < MIN && !q.length) for (const k of piece) this.put(k, into);
@@ -359,83 +368,232 @@ const KWorld = (() => {
     }
 
     // ----- the map -----
-    // One hand-shaped cave: rock frame, dirt to dig, ledges, a rock outcrop,
-    // a pool on the right, moss to burn.
+    // A web of caves spreading in every direction from a hub: chambers joined
+    // by winding tunnels (every chamber reachable, plus extra links for loops
+    // and forks), unbreakable rock masses that shape the routes, three regions
+    // with their own pools, dirt plugs to dig through, mana wells, and homes
+    // for the crawlers. Everything comes from the seed.
     generate() {
-      const { w, h } = this, mat = this.mat, s = this.seed % 997;
+      const { w, h } = this, mat = this.mat, s = this.seed % 997, C = KData.cave;
       const R = makeRng(this.seed ^ 0x9e3779b9);
-      const floorY = x => 148 + 8 * Math.sin(x / 41) + 5 * Math.sin(x / 17 + 2);
-      const ceilY = x => 42 + 10 * Math.sin(x / 57 + 1) + 5 * Math.sin(x / 19);
-      const poolA = 372, poolB = 452;
-      const poolFloor = x => (x > poolA && x < poolB) ? floorY(x) + 24 * Math.sin(Math.PI * (x - poolA) / (poolB - poolA)) : floorY(x);
+      const BIOMES = KData.biomes;
 
+      // 1. dirt everywhere, with large rock masses
       for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-        const i = y * w + x;
-        const n = (noise(x, y, 9, s) - 0.5) * 7;
-        const top = ceilY(x) + n, bot = poolFloor(x) + n * 0.6;
-        mat[i] = (y > top && y < bot) ? M.EMPTY : M.DIRT;
-        // rock lining under the pool so the water stays
-        if (x > poolA - 4 && x < poolB + 4 && y >= bot && y < bot + 5 && y > floorY(x) - 2) mat[i] = M.ROCK;
+        const n = noise(x, y, 95, s + 1) * 0.65 + noise(x, y, 24, s + 2) * 0.35;
+        mat[y * w + x] = n > 0.66 ? M.ROCK : M.DIRT;
       }
-      // rock outcrop in the middle
-      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-        // a jagged rock spur rising from the floor
-        const sx = (x - 262) / (11 - Math.max(0, floorY(262) - y) * 0.22), sy = y - (floorY(262) - 28);
-        if (sy > 0 && Math.abs(sx) + (noise(x, y, 4, s + 5) - 0.5) * 0.7 < 1) mat[y * w + x] = M.ROCK;
-        // a few rock lumps in the ceiling and deep floor
-        const lumps = [[120, ceilY(120) - 6, 12, 7], [330, ceilY(330) - 4, 14, 8], [200, 176, 18, 6], [60, 172, 10, 8]];
-        for (const [lx, ly, rx, ry] of lumps) {
-          const ex = (x - lx) / rx, ey = (y - ly) / ry;
-          if (ex * ex + ey * ey + (noise(x, y, 5, s + 3) - 0.5) * 0.6 < 1) mat[y * w + x] = M.ROCK;
+
+      // 2. chambers: the hub in the middle, the rest spread around it
+      const hub = { x: w >> 1, y: h >> 1, rx: 84, ry: 42, hub: true };
+      const nodes = [hub];
+      for (let tries = 0; tries < 4000 && nodes.length < C.chambers; tries++) {
+        const x = 100 + R() * (w - 200), y = 80 + R() * (h - 160);
+        if (nodes.some(n => Math.hypot(n.x - x, (n.y - y) * 1.3) < C.spacing)) continue;
+        nodes.push({ x, y, rx: 30 + R() * 40, ry: 20 + R() * 20 });
+      }
+      for (const n of nodes) n.dist = Math.hypot(n.x - hub.x, n.y - hub.y);
+
+      // 3. links: a tree that reaches every chamber, then extra links for loops
+      const edges = [], inTree = new Set([0]), key = (a, b) => a < b ? a + ',' + b : b + ',' + a, have = new Set();
+      const dd = (a, b) => Math.hypot(nodes[a].x - nodes[b].x, (nodes[a].y - nodes[b].y) * 1.2);
+      while (inTree.size < nodes.length) {
+        let best = null;
+        for (const a of inTree) for (let b = 0; b < nodes.length; b++) {
+          if (inTree.has(b)) continue;
+          const d = dd(a, b);
+          if (!best || d < best.d) best = { a, b, d };
+        }
+        inTree.add(best.b); edges.push(best); have.add(key(best.a, best.b));
+      }
+      for (let a = 0; a < nodes.length; a++) {
+        const near = nodes.map((_, b) => b).filter(b => b !== a).sort((p, q) => dd(a, p) - dd(a, q)).slice(0, 3);
+        for (const b of near) if (!have.has(key(a, b)) && dd(a, b) < 330 && R() < C.loopChance * 0.6) { edges.push({ a, b, d: dd(a, b) }); have.add(key(a, b)); }
+      }
+
+      const disc = (cx, cy, r, m) => {
+        for (let y = Math.floor(cy - r); y <= cy + r; y++) for (let x = Math.floor(cx - r); x <= cx + r; x++) {
+          if (x < 1 || y < 1 || x >= w - 1 || y >= h - 1) continue;
+          const dx = x - cx, dy = y - cy;
+          if (dx * dx + dy * dy <= r * r) mat[y * w + x] = m;
+        }
+      };
+      // 4. tunnels: winding, of varying width
+      for (const e of edges) {
+        const A = nodes[e.a], B = nodes[e.b], len = Math.hypot(B.x - A.x, B.y - A.y);
+        const nx = -(B.y - A.y) / len, ny = (B.x - A.x) / len;
+        const amp = Math.min(45, len * 0.18) * (R() - 0.5) * 2, waves = 1 + ((R() * 2) | 0), ph = R() * 6;
+        const rad = C.tunnel[0] + R() * (C.tunnel[1] - C.tunnel[0]);
+        e.path = [];
+        for (let d = 0; d <= len; d += 3) {
+          const t = d / len, off = amp * Math.sin(t * Math.PI) * Math.sin(t * Math.PI * waves + ph);
+          const x = A.x + (B.x - A.x) * t + nx * off, y = A.y + (B.y - A.y) * t + ny * off;
+          const r = rad + (noise(x, y, 17, s + 4) - 0.5) * 7;
+          disc(x, y, r, M.EMPTY);
+          e.path.push([x, y, r]);
         }
       }
-      // floating dirt ledges
-      const ledges = [[188, 106, 24, 4], [308, 96, 17, 4], [104, 104, 13, 3]];
-      for (const [lx, ly, rx, ry] of ledges) {
-        for (let y = ly - ry - 2; y <= ly + ry + 2; y++) for (let x = lx - rx - 3; x <= lx + rx + 3; x++) {
-          const ex = (x - lx) / rx, ey = (y - ly) / ry;
-          if (ex * ex + ey * ey + (noise(x, y, 4, s + 7) - 0.5) * 0.5 < 1) mat[y * w + x] = M.DIRT;
+      // 5. chambers: noisy ellipses, with floating ledges in the big ones
+      for (const n of nodes) {
+        for (let y = Math.floor(n.y - n.ry * 1.4); y <= n.y + n.ry * 1.4; y++) for (let x = Math.floor(n.x - n.rx * 1.4); x <= n.x + n.rx * 1.4; x++) {
+          if (x < 2 || y < 2 || x >= w - 2 || y >= h - 2) continue;
+          const ex = (x - n.x) / n.rx, ey = (y - n.y) / n.ry;
+          if (ex * ex + ey * ey + (noise(x, y, 11, s + 3) - 0.5) * 0.6 < 1) mat[y * w + x] = M.EMPTY;
         }
-      }
-      // rock frame
-      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-        const n = noise(x, y, 6, s + 11) * 4;
-        if (x < 4 + n || x > w - 5 - n || y < 4 + n || y > h - 5 - n) mat[y * w + x] = M.ROCK;
-      }
-      // water in the pool, up to just under the lower rim
-      const surface = Math.ceil(Math.max(floorY(poolA), floorY(poolB))) + 2;
-      for (let x = poolA; x <= poolB; x++) for (let y = surface; y < h; y++) {
-        const i = y * w + x;
-        if (mat[i] !== M.EMPTY) break;
-        mat[i] = M.WATER;
-      }
-      // moss on floors and hanging from ceilings
-      for (let x = 5; x < w - 5; x++) {
-        for (let y = 6; y < h - 6; y++) {
-          const i = y * w + x;
-          if (mat[i] !== M.DIRT) continue;
-          if (mat[i - w] === M.EMPTY && R() < 0.55) { mat[i] = M.MOSS; if (R() < 0.4 && mat[i + w] === M.DIRT) mat[i + w] = M.MOSS; }
-          else if (mat[i + w] === M.EMPTY && R() < 0.3) {
-            const len = 1 + ((R() * 4) | 0);
-            for (let k = 1; k <= len && mat[i + k * w] === M.EMPTY; k++) mat[i + k * w] = M.MOSS;
+        if (n.rx > 50 || n.hub) {
+          const count = n.hub ? 2 : 1 + (R() < 0.5);
+          for (let k = 0; k < count; k++) {
+            const lx = n.x + (R() - 0.5) * n.rx * 1.1, ly = n.y + (R() - 0.2) * n.ry * 0.6, lrx = 12 + R() * 10, lry = 3 + R() * 1.5;
+            for (let y = Math.floor(ly - lry - 2); y <= ly + lry + 2; y++) for (let x = Math.floor(lx - lrx - 3); x <= lx + lrx + 3; x++) {
+              const ex = (x - lx) / lrx, ey = (y - ly) / lry;
+              if (ex * ex + ey * ey + (noise(x, y, 4, s + 7) - 0.5) * 0.5 < 1 && mat[y * w + x] === M.EMPTY) mat[y * w + x] = M.DIRT;
+            }
           }
         }
       }
+      // 6. dirt plugs: some tunnels are blocked midway and must be dug through
+      for (const e of edges) {
+        if (nodes[e.a].hub || nodes[e.b].hub || R() > C.plugChance || e.path.length < 30) continue;
+        const mid = e.path.length >> 1;
+        for (let k = mid - 3; k <= mid + 3; k++) { const [x, y, r] = e.path[k]; disc(x, y, r + 2, M.DIRT); }
+        e.plugged = true;
+      }
+      // 7. rock frame around the world
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        if (x > 14 && x < w - 15 && y > 14 && y < h - 15) { x = w - 16; continue; }
+        const n = noise(x, y, 7, s + 11) * 6;
+        if (x < 6 + n || x > w - 7 - n || y < 6 + n || y > h - 7 - n) mat[y * w + x] = M.ROCK;
+      }
+
+      // 8. regions: rose around the hub; further out, the nearest region seed
+      const seeds = [], turn = R() * Math.PI * 2;
+      for (let k = 0; k < 6; k++) {
+        const an = turn + k / 6 * Math.PI * 2;
+        seeds.push({ x: hub.x + Math.cos(an) * C.regionDistance, y: hub.y + Math.sin(an) * C.regionDistance * 0.5, b: 1 + (k % 2) });
+      }
+      for (const n of nodes) {
+        if (n.dist < C.hubRadius) { n.biome = 0; continue; }
+        let best = 1e9; for (const sd of seeds) { const d = Math.hypot(sd.x - n.x, sd.y - n.y); if (d < best) { best = d; n.biome = sd.b; } }
+      }
+      const bw = w >> 4, bh = h >> 4;
+      this.biomeMap = new Uint8Array(bw * bh);
+      for (let by = 0; by < bh; by++) for (let bx = 0; bx < bw; bx++) {
+        const x = bx * 16 + 8, y = by * 16 + 8;
+        let best = 1e9, b = 0;
+        for (const n of nodes) { const d = Math.hypot((n.x - x) / (n.rx + 60), (n.y - y) / (n.ry + 60)); if (d < best) { best = d; b = n.biome; } }
+        this.biomeMap[by * bw + bx] = b;
+      }
+      this.bw = bw;
+
+      // 9. pools in chambers (water in the Drowned Galleries, magma in the Ember Veins)
+      for (const n of nodes) {
+        const B = BIOMES[n.biome];
+        if (!B.pool || R() < 0.25) continue;
+        // poolFrom: where the surface sits, from the chamber's top (0) to its bottom (1)
+        const pm = M[B.pool];
+        // dig a basin into the floor, below where the tunnels join, so the pool holds
+        const bx = n.x, by = n.y + n.ry * 0.85, brx = n.rx * 0.75, bry = n.ry * (pm === M.WATER ? 0.55 : 0.35);
+        for (let y = Math.floor(by - bry); y <= by + bry; y++) for (let x = Math.floor(bx - brx); x <= bx + brx; x++) {
+          if (x < 8 || y < 8 || x >= w - 8 || y >= h - 8) continue;
+          const ex = (x - bx) / brx, ey = (y - by) / bry;
+          if (ex * ex + ey * ey + (noise(x, y, 6, s + 9) - 0.5) * 0.3 < 1 && mat[y * w + x] !== M.ROCK) mat[y * w + x] = M.EMPTY;
+        }
+        for (let y = Math.floor(n.y + n.ry * (2 * B.poolFrom - 1)); y <= n.y + n.ry * 1.6; y++)
+          for (let x = Math.floor(n.x - n.rx * 1.4); x <= n.x + n.rx * 1.4; x++) {
+            if (x < 2 || y < 2 || x >= w - 2 || y >= h - 2) continue;
+            const ex = (x - n.x) / n.rx, ey = (y - n.y) / n.ry;
+            const bex = (x - bx) / brx, bey = (y - by) / bry;
+            if ((ex * ex + ey * ey < 1.05 || bex * bex + bey * bey < 1.1) && mat[y * w + x] === M.EMPTY) { mat[y * w + x] = pm; this.life[y * w + x] = 255; }
+          }
+        // drain the pool down to its lowest opening, so it starts at rest instead of leaking for a minute
+        const x0 = Math.max(2, Math.floor(n.x - n.rx * 1.5)), x1 = Math.min(w - 3, Math.ceil(n.x + n.rx * 1.5));
+        const y0 = Math.max(2, Math.floor(n.y - n.ry * 1.5)), y1 = Math.min(h - 3, Math.ceil(n.y + n.ry * 1.6));
+        for (let pass = 0, changed = true; changed && pass < 400; pass++) {
+          changed = false;
+          for (let y = y1; y >= y0; y--) for (let x = x0; x <= x1; x++) {
+            const i = y * w + x;
+            if (mat[i] !== pm) continue;
+            if (mat[i + w] === M.EMPTY || mat[i - 1] === M.EMPTY || mat[i + 1] === M.EMPTY) { mat[i] = M.EMPTY; this.life[i] = 0; changed = true; }
+          }
+        }
+      }
+
+      // 10. lichen on floors and hanging from ceilings; mud patches in wet regions
+      for (let y = 6; y < h - 6; y++) for (let x = 5; x < w - 5; x++) {
+        const i = y * w + x;
+        if (mat[i] !== M.DIRT) continue;
+        const B = BIOMES[this.biomeMap[(y >> 4) * bw + (x >> 4)]];
+        if (mat[i - w] === M.EMPTY) {
+          if (R() < B.mud) { mat[i] = M.MUD; if (mat[i + w] === M.DIRT) mat[i + w] = M.MUD; }
+          else if (R() < B.lichen) { mat[i] = M.MOSS; if (R() < 0.4 && mat[i + w] === M.DIRT) mat[i + w] = M.MOSS; }
+        } else if (mat[i + w] === M.EMPTY && R() < B.hang) {
+          const len = 1 + ((R() * 4) | 0);
+          for (let k = 1; k <= len && mat[i + k * w] === M.EMPTY; k++) mat[i + k * w] = M.MOSS;
+        }
+      }
       for (let i = 0; i < mat.length; i++) this.shade[i] = (R() * 255) | 0;
-      this.cleanup(0, 0, w, h, M.EMPTY); // no crumbs in the starting cave either
+      this.cleanup(0, 0, w, h, M.EMPTY); // no crumbs in the starting cave
       this.awake.fill(3);
       this.dirty.fill(1);
+      this.explored = new Uint8Array(this.cw * this.ch);
 
-      // first floor below the first open cell from the top
-      const surfaceAt = x => {
-        let y = 6;
-        while (y < h - 6 && mat[y * w + x] !== M.EMPTY) y++;
-        while (y < h - 6 && mat[y * w + x] === M.EMPTY) y++;
-        return y;
+      // 11. where things start
+      this.nodes = nodes; this.edges = edges; this.hub = hub;
+      const spotIn = (n, tries, head, centreFirst = true) => {
+        for (let k = 0; k < tries; k++) {
+          const sp = this.standSpot(n.x + (k || !centreFirst ? (R() - 0.5) * n.rx * 1.2 : 0), n.y - n.ry * 0.3, head);
+          if (sp && sp.y < n.y + n.ry * 1.5) return sp;
+        }
+        return null;
       };
-      this.spawn = { x: 40, y: surfaceAt(40) };
-      this.dummySpots = [140, 188, 318, 486].map(x => ({ x, y: surfaceAt(x) }));
-      this.surfaceAt = surfaceAt;
+      this.spawn = spotIn(hub, 120, 22);
+      // fallback: search the hub on a grid for any spot with headroom
+      for (let gy = hub.y - hub.ry; !this.spawn && gy <= hub.y + hub.ry; gy += 6)
+        for (let gx = hub.x - hub.rx; !this.spawn && gx <= hub.x + hub.rx; gx += 6) this.spawn = this.standSpot(gx, gy, 20);
+      if (!this.spawn) this.spawn = { x: hub.x, y: this.floorBelow(hub.x, hub.y) };
+      this.dummySpots = [];
+      for (let k = 0; k < 40 && this.dummySpots.length < 2; k++) {
+        const sp = spotIn(hub, 1, 16, false);
+        if (sp && Math.abs(sp.x - this.spawn.x) > 24 && this.dummySpots.every(d => Math.abs(d.x - sp.x) > 20)) this.dummySpots.push(sp);
+      }
+      this.crawlerHomes = [];
+      for (const n of nodes) {
+        if (n.hub) continue;
+        const level = this.levelAt(n.x, n.y);
+        const count = Math.min(4, 1 + Math.floor(n.dist / 420) + (R() < 0.5 ? 1 : 0));
+        for (let k = 0; k < count; k++) {
+          const sp = spotIn(n, 8, 10);
+          if (sp && this.get(sp.x, sp.y - 2) === M.EMPTY) this.crawlerHomes.push({ x: sp.x, y: sp.y, level });
+        }
+      }
+      const far = nodes.filter(n => !n.hub && n.dist > 220);
+      for (let i = far.length - 1; i > 0; i--) { const j = (R() * (i + 1)) | 0; [far[i], far[j]] = [far[j], far[i]]; }
+      this.wells = far.map(n => spotIn(n, 12, 14)).filter(Boolean).slice(0, C.wells);
+    }
+
+    // A place to stand near (x, y): climb out of anything solid, drop to the
+    // floor, and check there is headroom (returns null if there is not).
+    standSpot(x, y, head = 20) {
+      x = Math.round(x); y = Math.round(y);
+      for (let k = 0; k < 60 && SOLID[this.get(x, y)]; k++) y--;
+      y = this.floorBelow(x, y);
+      for (let k = 1; k <= head; k++) for (const dx of [-6, -3, 0, 3, 6]) if (SOLID[this.get(x + dx, y - k)]) return null;
+      return { x, y };
+    }
+
+    // First solid cell at or below (x, y): where something standing there rests.
+    floorBelow(x, y) {
+      x = Math.max(1, Math.min(this.w - 2, Math.round(x))); y = Math.max(1, Math.round(y));
+      while (y < this.h - 2 && !SOLID[this.get(x, y)]) y++;
+      return y;
+    }
+    biomeAt(x, y) { return this.biomeMap[(Math.max(0, Math.min(this.h - 1, y | 0)) >> 4) * this.bw + (Math.max(0, Math.min(this.w - 1, x | 0)) >> 4)]; }
+    levelAt(x, y) { return 1 + Math.floor(Math.hypot(x - this.hub.x, y - this.hub.y) / KData.cave.levelEvery); }
+    // kept for tests: the first floor below the first open cell from the top
+    surfaceAt(x) {
+      let y = 6;
+      while (y < this.h - 6 && this.mat[y * this.w + x] !== M.EMPTY) y++;
+      return this.floorBelow(x, y);
     }
   }
 

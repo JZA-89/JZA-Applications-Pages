@@ -28,8 +28,7 @@ const KGame = (() => {
       this.shake = 0;
       this.players = [this.makePlayer(0)];
       this.dummies = this.world.dummySpots.map((s, i) => this.makeDummy(s, i));
-      const EC = KData.enemies.crawler;
-      this.enemies = EC.spots.slice(0, EC.count).map((x, i) => this.makeCrawler(x, i));
+      this.enemies = this.world.crawlerHomes.map((home, i) => this.makeCrawler(home, i));
     }
 
     get actors() { return this.players.concat(this.dummies, this.enemies); }
@@ -57,11 +56,13 @@ const KGame = (() => {
         stats: KData.baseStats() };
     }
 
-    makeCrawler(x, i) {
-      const E = KData.enemies.crawler;
-      const stats = KData.baseStats(); stats.attack = E.attack; stats.defence = E.defence;
-      return { kind: 'crawler', id: i, x, y: this.world.surfaceAt(x), vx: 0, vy: 0, w: E.w, h: E.h,
-        hp: E.hp, maxHp: E.hp, stats, grounded: false, dead: false, respawnT: 0, lastHurt: -9, flash: 0,
+    // A crawler lives in one chamber (its home) and is tougher further from the hub.
+    makeCrawler(home, i) {
+      const E = KData.enemies.crawler, L = home.level - 1;
+      const stats = KData.baseStats(); stats.attack = E.attack + E.perLevel.attack * L; stats.defence = E.defence + E.perLevel.defence * L;
+      const hp = Math.round(E.hp * (1 + E.perLevel.hp * L));
+      return { kind: 'crawler', id: i, home, level: home.level, x: home.x, y: home.y, vx: 0, vy: 0, w: E.w, h: E.h,
+        hp, maxHp: hp, stats, grounded: false, dead: false, respawnT: 0, lastHurt: -9, flash: 0, asleep: true,
         facing: i % 2 ? 1 : -1, dir: i % 2 ? 1 : -1, state: 'patrol', t: 0, lastSeen: -9, hit: false };
     }
 
@@ -74,7 +75,8 @@ const KGame = (() => {
       this.updateParticles();
       this.updateProjectiles();
       for (const e of this.enemies) this.crawlerTick(e);
-      for (const a of this.actors) this.physics(a);
+      for (const a of this.actors) if (!a.asleep) this.physics(a);
+      this.wellsTick();
       for (const d of this.dummies) this.dummyTick(d);
       for (const f of this.fx) f.t += DT;
       this.fx = this.fx.filter(f => f.t < f.T);
@@ -849,6 +851,9 @@ const KGame = (() => {
     crawlerTick(e) {
       const E = KData.enemies.crawler, w = this.world;
       e.flash = Math.max(0, e.flash - DT);
+      // far from everyone it sleeps (not simulated) until a player comes near
+      e.asleep = !e.dead && !this.players.some(q => Math.abs(q.x - e.x) < E.awake && Math.abs(q.y - e.y) < E.awake * 0.7);
+      if (e.asleep) return;
       e.t += DT;
       if (e.dead) {
         e.respawnT -= DT;
@@ -974,15 +979,21 @@ const KGame = (() => {
     }
 
     respawnCrawler(e) {
-      // come back at the spawn spot furthest from any player
+      // back home, but only while nobody is close enough to see it appear
       const E = KData.enemies.crawler;
-      let bx = E.spots[0], bd = -1;
-      for (const x of E.spots) {
-        const d = Math.min(...this.players.map(p => Math.abs(p.x - x)));
-        if (d > bd) { bd = d; bx = x; }
+      if (this.players.some(p => Math.hypot(p.x - e.home.x, p.y - e.home.y) < E.respawnClear)) { e.respawnT = 2; return; }
+      Object.assign(e, { x: e.home.x, y: this.world.floorBelow(e.home.x, e.home.y - 6), vx: 0, vy: 0, hp: e.maxHp, dead: false, state: 'patrol', t: 0, lastHurt: -9, lastSeen: -9, slowT: 0 });
+    }
+
+    // Mana wells: standing near one refills mana fast.
+    wellsTick() {
+      const C = KData.cave;
+      for (const p of this.players) {
+        p.atWell = false;
+        if (p.dead) continue;
+        for (const wl of this.world.wells) if (Math.hypot(p.x - wl.x, (p.y - 6) - (wl.y - 6)) < C.wellReach) { p.atWell = true; break; }
+        if (p.atWell) p.mana = Math.min(p.maxMana, p.mana + C.wellRegen * DT);
       }
-      Object.assign(e, { x: bx, y: this.world.surfaceAt(bx), vx: 0, vy: 0, hp: e.maxHp, dead: false, state: 'patrol', t: 0, lastHurt: -9, lastSeen: -9 });
-      this.burst(e.x, e.y - 3, 10, [[78, 72, 94], [112, 104, 128]], 60);
     }
 
     respawn(p) {
@@ -996,8 +1007,7 @@ const KGame = (() => {
       if (d.dead) {
         d.respawnT -= DT;
         if (d.respawnT <= 0) {
-          const y = this.world.surfaceAt(Math.round(d.home.x));
-          Object.assign(d, { x: d.home.x, y: Math.min(y, d.home.y + 40), vx: 0, vy: 0, hp: d.maxHp, dead: false, lastHurt: -9 });
+          Object.assign(d, { x: d.home.x, y: this.world.floorBelow(d.home.x, d.home.y - 10), vx: 0, vy: 0, hp: d.maxHp, dead: false, lastHurt: -9 });
         }
         return;
       }

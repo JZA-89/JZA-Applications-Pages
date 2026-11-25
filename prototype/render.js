@@ -50,7 +50,11 @@ const KRender = (() => {
   const SHALE = { k: [14, 10, 20], h: [154, 144, 174], m: [108, 100, 128], d: [72, 64, 88], s: [50, 42, 62], e: [255, 70, 160] };
   const SACK = { k: [44, 36, 56], s: [138, 128, 160], x: [206, 198, 226], p: [96, 70, 74] };
   const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + 0.5) / 16);
-  function hash(i, j, s) { const v = Math.sin(i * 127.1 + j * 311.7 + s * 74.7) * 43758.5453; return v - Math.floor(v); }
+  function hash(i, j, s) {
+    let h = (Math.imul(i | 0, 374761393) + Math.imul(j | 0, 668265263) + Math.imul(s | 0, 1442695041)) | 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  }
   function noise(x, y, scale, s) {
     x /= scale; y /= scale;
     const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j;
@@ -60,7 +64,6 @@ const KRender = (() => {
   }
   // Dirt is layered: bands of dusky rose, plum and sand that follow a gentle
   // wave, blended into each other with an ordered dot pattern.
-  const STRATA = [[124, 76, 92], [142, 92, 96], [104, 64, 90], [160, 114, 104], [92, 58, 84], [132, 84, 100]];
   // Rock is faceted slate.
   const SLATE0 = [34, 40, 64], SLATE1 = [66, 76, 110], SLATE_EDGE = [22, 24, 40];
 
@@ -87,43 +90,48 @@ const KRender = (() => {
       ]));
     }
 
+    // Colours for the background, dirt and rock depend on where a cell is (and
+    // which region it is in). They are worked out one 32x32 chunk at a time when
+    // the chunk is first on screen, and the most recent few hundred are kept.
     setWorld(world) {
-      // cave back wall: deep violet, darker far rock shapes, faint spores
-      const { w, h } = world, n = w * h;
-      this.bgR = new Uint8Array(n); this.bgG = new Uint8Array(n); this.bgB = new Uint8Array(n);
-      this.bg = new Uint32Array(n);
-      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-        const i = y * w + x, t = y / h;
-        let r = 30 - 14 * t, g = 22 - 10 * t, b = 46 - 20 * t;
+      this.world = world;
+      this.cc = new Map();
+    }
+
+    chunkColours(ckx, cky) {
+      const k = cky * 4096 + ckx;
+      let c = this.cc.get(k);
+      if (c) return c;
+      const world = this.world, BI = KData.biomes, h = world.h;
+      c = { bg: new Uint32Array(1024), dirt: new Uint32Array(1024), rock: new Uint32Array(1024) };
+      for (let ly = 0; ly < 32; ly++) for (let lx = 0; lx < 32; lx++) {
+        const x = ckx * 32 + lx, y = cky * 32 + ly, i = ly * 32 + lx, b4 = BAYER[(y & 3) * 4 + (x & 3)];
+        // region, with a dithered border so regions blend instead of meeting in squares
+        const B = BI[world.biomeAt(x + (hash(x, y, 41) - 0.5) * 18, y + (hash(x, y, 42) - 0.5) * 18)];
+        // back wall: the region's tint, darker far rock shapes, faint spores
+        const t = y / h;
+        let r = B.bg[0] - 6 * t, g = B.bg[1] - 4 * t, bl = B.bg[2] - 8 * t;
         const far = noise(x, y * 1.6, 30, 21) * 0.7 + noise(x, y, 9, 22) * 0.3;
-        if (far > 0.6) { r -= 9; g -= 7; b -= 11; }
-        else if (far > 0.52 && BAYER[(y & 3) * 4 + (x & 3)] < (far - 0.52) / 0.08) { r -= 9; g -= 7; b -= 11; }
-        if (hash(x, y, 31) < 0.0018) { r += 40; g += 34; b += 60; }
-        this.bgR[i] = r; this.bgG[i] = g; this.bgB[i] = b;
-        this.bg[i] = pack(r | 0, g | 0, b | 0);
-      }
-      // dirt and rock colours depend on where the cell is, so the layers stay put
-      const tone = (c, k) => [pack(c[0], c[1], c[2]),
-        pack(clamp(c[0] * 1.25 + 14), clamp(c[1] * 1.2 + 12), clamp(c[2] * 1.15 + 12)),
-        pack(clamp(c[0] * 0.55), clamp(c[1] * 0.5), clamp(c[2] * 0.6))];
-      this.dirtC = [new Uint32Array(n), new Uint32Array(n), new Uint32Array(n)];
-      this.rockC = [new Uint32Array(n), new Uint32Array(n), new Uint32Array(n)];
-      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-        const i = y * w + x, b4 = BAYER[(y & 3) * 4 + (x & 3)];
+        if (far > 0.6 || (far > 0.52 && b4 < (far - 0.52) / 0.08)) { r -= 9; g -= 7; bl -= 11; }
+        if (hash(x, y, 31) < 0.0018) { r += 40; g += 34; bl += 60; }
+        c.bg[i] = pack(clamp(r), clamp(g), clamp(bl));
+        // dirt: layered bands of the region's colours
         const v = (y + 11 * noise(x, 0, 46, 3) + 4 * noise(x, y, 13, 4)) / 6.5;
         let band = Math.floor(v);
         if (v - band > 0.68 && (v - band - 0.68) / 0.32 > b4) band++;
-        let c = STRATA[((band % STRATA.length) + STRATA.length) % STRATA.length];
-        if (noise(x, y, 5, 6) > 0.62 && b4 < 0.5) c = c.map(q => q * 0.88);
-        let t = tone(c);
-        this.dirtC[0][i] = t[0]; this.dirtC[1][i] = t[1]; this.dirtC[2][i] = t[2];
+        const S = B.strata;
+        let dc = S[((band % S.length) + S.length) % S.length];
+        if (noise(x, y, 5, 6) > 0.62 && b4 < 0.5) dc = dc.map(q => q * 0.88);
+        c.dirt[i] = pack(dc[0] | 0, dc[1] | 0, dc[2] | 0);
+        // rock: faceted slate
         const f = noise(x, y, 7, 9) * 0.7 + noise(x, y, 3, 10) * 0.3, q = f * 4, lv = Math.floor(q) / 3;
-        let rc = SLATE0.map((s, k) => s + (SLATE1[k] - s) * Math.min(1, lv));
+        let rc = SLATE0.map((s0, kk) => s0 + (SLATE1[kk] - s0) * Math.min(1, lv));
         if (Math.abs(q - Math.round(q)) < 0.045) rc = SLATE_EDGE;
-        t = tone(rc);
-        this.rockC[0][i] = t[0]; this.rockC[1][i] = t[1]; this.rockC[2][i] = t[2];
+        c.rock[i] = pack(rc[0] | 0, rc[1] | 0, rc[2] | 0);
       }
-      this.world = world;
+      this.cc.set(k, c);
+      if (this.cc.size > 320) this.cc.delete(this.cc.keys().next().value);
+      return c;
     }
 
     resize(cssW, cssH) {
@@ -193,8 +201,9 @@ const KRender = (() => {
       this.cam.x = cx; this.cam.y = cy;
 
       this.drawCells(world, game.time);
+      this.drawWells(world, game.time);
       for (const d of game.dummies) this.drawDummy(d);
-      for (const e of game.enemies) this.drawCrawler(e, game.time);
+      for (const e of game.enemies) if (!e.asleep) this.drawCrawler(e, game.time);
       for (const pl of game.players) this.drawGolem(pl);
       this.drawProjectiles(game);
       this.drawParticles(game);
@@ -206,56 +215,80 @@ const KRender = (() => {
 
     drawCells(world, time) {
       const { w, mat, shade, life, charge } = world, buf = this.buf, pal = this.pal;
-      const bg = this.bg, bgR = this.bgR, bgG = this.bgG, bgB = this.bgB;
       const heat = this.heat, spark = this.spark, gw = this.gw;
       heat.fill(0); spark.fill(0);
       const fire = materials[M.FIRE].colors, magma = materials[M.MAGMA].colors;
       const pulse = time * 3;
+      const lit = c => pack(clamp((c & 255) * 1.25 + 14), clamp(((c >> 8) & 255) * 1.2 + 12), clamp(((c >> 16) & 255) * 1.15 + 12));
+      const dark = c => pack(clamp((c & 255) * 0.55), clamp(((c >> 8) & 255) * 0.5), clamp(((c >> 16) & 255) * 0.6));
+      const open = q => q === M.EMPTY || q === M.STEAM || q === M.FIRE;
+      // mark what is on screen as explored (for the map)
+      for (let cy = this.cam.y >> 5; cy <= (this.cam.y + V.h - 1) >> 5; cy++) for (let cx = this.cam.x >> 5; cx <= (this.cam.x + V.w - 1) >> 5; cx++) world.explored[cy * world.cw + cx] = 1;
       for (let vy = 0; vy < V.h; vy++) {
-        const wy = vy + this.cam.y, row = wy * w, grow = (vy >> 3) * gw;
-        for (let vx = 0; vx < V.w; vx++) {
-          const i = row + vx + this.cam.x, m = mat[i], o = vy * V.w + vx;
-          if (m === M.EMPTY) { buf[o] = bg[i]; continue; }
-          if (m === M.WATER) {
-            const top = mat[i - w] === M.EMPTY || mat[i - w] === M.STEAM;
-            let r = top ? 130 : 44, g = top ? 176 : 84 + (shade[i] & 7), b = top ? 255 : 196;
-            if (charge[i]) {
-              const f = Math.min(1, charge[i] / 60) * (0.35 + Math.random() * 0.65);
-              r += (235 - r) * f; g += (245 - g) * f; b += (255 - b) * f;
-              spark[grow + (vx >> 3)] += 0.5;
+        const wy = vy + this.cam.y, row = wy * w, grow = (vy >> 3) * gw, cky = wy >> 5, ly = (wy & 31) * 32;
+        for (let vx = 0; vx < V.w;) {
+          const ckx = (vx + this.cam.x) >> 5, C = this.chunkColours(ckx, cky);
+          const end = Math.min(V.w, (ckx + 1) * 32 - this.cam.x);
+          for (; vx < end; vx++) {
+            const wx = vx + this.cam.x, i = row + wx, m = mat[i], o = vy * V.w + vx, li = ly + (wx & 31);
+            if (m === M.EMPTY) { buf[o] = C.bg[li]; continue; }
+            const bgc = C.bg[li], bR = bgc & 255, bG = (bgc >> 8) & 255, bB = (bgc >> 16) & 255;
+            if (m === M.WATER) {
+              const top = mat[i - w] === M.EMPTY || mat[i - w] === M.STEAM;
+              let r = top ? 130 : 44, g = top ? 176 : 84 + (shade[i] & 7), b = top ? 255 : 196;
+              if (charge[i]) {
+                const f = Math.min(1, charge[i] / 60) * (0.35 + Math.random() * 0.65);
+                r += (235 - r) * f; g += (245 - g) * f; b += (255 - b) * f;
+                spark[grow + (vx >> 3)] += 0.5;
+              }
+              buf[o] = pack(clamp(bR + (r - bR) * 0.8), clamp(bG + (g - bG) * 0.8), clamp(bB + (b - bB) * 0.8));
+              continue;
             }
-            const a = 0.8;
-            buf[o] = pack(clamp(bgR[i] + (r - bgR[i]) * a), clamp(bgG[i] + (g - bgG[i]) * a), clamp(bgB[i] + (b - bgB[i]) * a));
-            continue;
+            if (m === M.STEAM) {
+              const a = 0.16 + 0.42 * Math.min(1, life[i] / 120), c = materials[M.STEAM].colors[shade[i] % 3];
+              buf[o] = pack(clamp(bR + (c[0] - bR) * a), clamp(bG + (c[1] - bG) * a), clamp(bB + (c[2] - bB) * a));
+              continue;
+            }
+            if (m === M.FIRE) {
+              const l = life[i] + ((shade[i] + time * 60) % 7) - 3;
+              const c = fire[l > 24 ? 0 : l > 16 ? 1 : l > 8 ? 2 : 3];
+              buf[o] = pack(c[0], c[1], c[2]);
+              heat[grow + (vx >> 3)] += 1;
+              continue;
+            }
+            if (m === M.MAGMA) {
+              const c = magma[shade[i] & 3], f = 0.82 + 0.18 * Math.sin(pulse + shade[i] * 0.1);
+              buf[o] = pack(clamp(c[0] * f), clamp(c[1] * f), clamp(c[2] * f));
+              heat[grow + (vx >> 3)] += 0.8;
+              continue;
+            }
+            const above = mat[i - w], st = KWorld.STATE[m];
+            let e = 0;
+            if (st === 1 || st === 2) {
+              if (open(above) || above === M.WATER) e = 1;
+              else if (st === 1 && (open(mat[i + w]) || open(mat[i - 1]) || open(mat[i + 1]))) e = 2;
+            }
+            if (m === M.DIRT || m === M.ROCK) {
+              const base = m === M.DIRT ? C.dirt[li] : C.rock[li];
+              buf[o] = e === 1 ? lit(base) : e === 2 ? dark(base) : base;
+            } else { const v = pal[m]; buf[o] = v[shade[i] % v.length][e]; }
           }
-          if (m === M.STEAM) {
-            const a = 0.16 + 0.42 * Math.min(1, life[i] / 120), c = materials[M.STEAM].colors[shade[i] % 3];
-            buf[o] = pack(clamp(bgR[i] + (c[0] - bgR[i]) * a), clamp(bgG[i] + (c[1] - bgG[i]) * a), clamp(bgB[i] + (c[2] - bgB[i]) * a));
-            continue;
-          }
-          if (m === M.FIRE) {
-            const l = life[i] + ((shade[i] + time * 60) % 7) - 3;
-            const c = fire[l > 24 ? 0 : l > 16 ? 1 : l > 8 ? 2 : 3];
-            buf[o] = pack(c[0], c[1], c[2]);
-            heat[grow + (vx >> 3)] += 1;
-            continue;
-          }
-          if (m === M.MAGMA) {
-            const c = magma[shade[i] & 3], f = 0.82 + 0.18 * Math.sin(pulse + shade[i] * 0.1);
-            buf[o] = pack(clamp(c[0] * f), clamp(c[1] * f), clamp(c[2] * f));
-            heat[grow + (vx >> 3)] += 0.8;
-            continue;
-          }
-          const above = mat[i - w], st = KWorld.STATE[m];
-          const open = q => q === M.EMPTY || q === M.STEAM || q === M.FIRE;
-          let e = 0;
-          if (st === 1 || st === 2) {
-            if (open(above) || above === M.WATER) e = 1;
-            else if (st === 1 && (open(mat[i + w]) || open(mat[i - 1]) || open(mat[i + 1]))) e = 2;
-          }
-          if (m === M.DIRT) buf[o] = this.dirtC[e][i];
-          else if (m === M.ROCK) buf[o] = this.rockC[e][i];
-          else { const v = pal[m]; buf[o] = v[shade[i] % v.length][e]; }
+        }
+      }
+    }
+
+    // Mana wells: a lilac crystal on a little plinth, gently pulsing.
+    drawWells(world, time) {
+      const CR = ['..k..', '.kak.', 'kabak', 'kabak', 'kabak', '.kak.', 'sssss', 'ddddd'];
+      const col = { k: [60, 40, 90], a: [201, 182, 255], b: [246, 236, 255], s: [150, 143, 138], d: [96, 90, 94] };
+      for (const wl of world.wells) {
+        const ox = Math.round(wl.x - this.cam.x) - 2, oy = Math.round(wl.y - this.cam.y) - CR.length;
+        if (ox < -6 || oy < -10 || ox > V.w || oy > V.h) continue;
+        const pulse = 0.85 + 0.15 * Math.sin(time * 3 + wl.x);
+        for (let y = 0; y < CR.length; y++) for (let x = 0; x < 5; x++) {
+          const ch = CR[y][x]; if (ch === '.') continue;
+          const c = col[ch], f = ch === 'a' || ch === 'b' ? pulse : 1;
+          this.plot(ox + x, oy + y, clamp(c[0] * f), clamp(c[1] * f), clamp(c[2] * f));
         }
       }
     }
@@ -415,8 +448,9 @@ const KRender = (() => {
         else if (f.kind === 'trail') for (let i = 0; i < f.pts.length; i += 3) this.light(f.pts[i].x, f.pts[i].y, 7, f.color, a * 0.35);
         else if (f.kind === 'beam') for (let k = 0; k <= 6; k++) this.light(f.x0 + (f.x1 - f.x0) * k / 6, f.y0 + (f.y1 - f.y0) * k / 6, 9, f.color, a * 0.6);
       }
+      for (const wl of game.world.wells) this.light(wl.x, wl.y - 5, 16, [201, 182, 255], 0.5 + 0.1 * Math.sin(game.time * 3 + wl.x));
       for (const e of game.enemies) {
-        if (e.dead) continue;
+        if (e.dead || e.asleep) continue;
         const ex = e.x + e.facing * 6, ey = e.y - 5;
         this.light(ex, ey, e.state === 'windup' ? 14 : 6, [255, 70, 160], e.state === 'windup' ? 0.75 : 0.35);
       }

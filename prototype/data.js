@@ -182,8 +182,26 @@ const KData = (() => {
       walk: 22, run: 50, sight: 130, sense: 50, hearing: 110, forget: 4, jump: 165,
       lungeRange: 34, windup: 0.45, lungeSpeed: 215, lungeLift: 90, lungeTime: 0.35, recover: 0.7,
       power: 18, knock: 170, staggerAt: 12, stagger: 0.35,
-      count: 3, spots: [214, 338, 480], respawn: 7 },
+      respawn: 25, awake: 380, respawnClear: 300,
+      // tougher further from the hub: per level above 1
+      perLevel: { hp: 0.3, attack: 2, defence: 1 } },
   };
+
+  // ---------- Regions ----------
+  // The cave spreads in every direction from the hub. Each region has its own
+  // stone colours (strata), background, lichen, and pools in its chambers.
+  // Difficulty (level) grows with distance from the hub: 1 + distance / levelEvery.
+  // poolFrom: where a chamber's pool surface sits, from its top (0) to its bottom (1).
+  const biomes = [
+    { id: 'rose', name: 'Rose Hollows', bg: [30, 22, 46], lichen: 0.55, hang: 0.3, pool: null, mud: 0,
+      strata: [[124, 76, 92], [142, 92, 96], [104, 64, 90], [160, 114, 104], [92, 58, 84], [132, 84, 100]] },
+    { id: 'drowned', name: 'Drowned Galleries', bg: [16, 26, 44], lichen: 0.3, hang: 0.4, pool: 'WATER', poolFrom: 0.6, mud: 0.3,
+      strata: [[72, 94, 108], [86, 108, 118], [60, 80, 98], [100, 122, 128], [54, 72, 90], [80, 100, 112]] },
+    { id: 'ember', name: 'Ember Veins', bg: [34, 16, 24], lichen: 0.3, hang: 0.12, pool: 'MAGMA', poolFrom: 0.8, mud: 0,
+      strata: [[112, 58, 52], [128, 70, 58], [88, 46, 48], [148, 88, 66], [74, 40, 44], [118, 64, 56]] },
+  ];
+  const cave = { chambers: 46, spacing: 150, hubRadius: 300, regionDistance: 540, levelEvery: 250,
+    tunnel: [12, 17], plugChance: 0.16, loopChance: 0.55, wells: 7, wellReach: 20, wellRegen: 70 };
 
   // ---------- Golems (the player's look) ----------
   // Pixel rows, facing right. k outline, h/m/d stone light/mid/dark, s seam,
@@ -281,6 +299,6 @@ const KData = (() => {
       ] },
   ];
 
-  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, modes,
-    world: { w: 512, h: 192, chunk: 32 }, view: { w: 320, h: 180 }, step: 1 / 60 };
+  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, modes, biomes, cave,
+    world: { w: 2048, h: 1024, chunk: 32 }, view: { w: 320, h: 180 }, step: 1 / 60 };
 })();
