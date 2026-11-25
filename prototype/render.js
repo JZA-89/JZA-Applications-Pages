@@ -205,6 +205,7 @@ const KRender = (() => {
       for (const d of game.dummies) this.drawDummy(d);
       for (const e of game.enemies) if (!e.asleep) this.drawCrawler(e, game.time);
       for (const pl of game.players) this.drawGolem(pl);
+      this.drawCaches(game);
       this.drawLoot(game);
       this.drawProjectiles(game);
       this.drawParticles(game);
@@ -255,6 +256,12 @@ const KRender = (() => {
               const c = fire[l > 24 ? 0 : l > 16 ? 1 : l > 8 ? 2 : 3];
               buf[o] = pack(c[0], c[1], c[2]);
               heat[grow + (vx >> 3)] += 1;
+              continue;
+            }
+            if (m === M.CRYSTAL) {
+              const cc = materials[M.CRYSTAL].colors[shade[i] & 3], tw = ((shade[i] * 7 + (time * 4 | 0)) % 23) === 0 ? 1.25 : 1;
+              buf[o] = pack(clamp(cc[0] * tw), clamp(cc[1] * tw), clamp(cc[2] * tw));
+              spark[grow + (vx >> 3)] += 0.15;
               continue;
             }
             if (m === M.MAGMA) {
@@ -370,6 +377,28 @@ const KRender = (() => {
       }
     }
 
+    // relic caches: a stone casket with a gold band; open ones lose their lid
+    drawCaches(game) {
+      const S = ['.kkkkkkk.', 'kgggggggk', 'kmmmymmmk', 'kssssssks', 'kmmmmmmmk', 'kdddddddk'];
+      const O = ['.........', '.........', 'kk.....kk', 'kssssssks', 'kmmmmmmmk', 'kdddddddk'];
+      const col = { k: [30, 24, 34], g: [255, 211, 122], y: [255, 245, 210], m: [110, 104, 120], s: [200, 160, 90], d: [70, 64, 80] };
+      for (const c of game.world.caches) {
+        const ox = Math.round(c.x - this.cam.x) - 4, oy = Math.round(c.y - this.cam.y) - 6;
+        if (ox < -10 || oy < -8 || ox > V.w || oy > V.h) continue;
+        const open = game.opened.has(c.id), rows = open ? O : S;
+        // buried caches are hidden by the ground in front of them; only the glow shows
+        for (let y = 0; y < 6; y++) for (let x = 0; x < 9; x++) {
+          const ch = rows[y][x]; if (ch === '.') continue;
+          const wx = c.x - 4 + x, wy = c.y - 6 + y, m = game.world.get(wx, wy);
+          if (KWorld.SOLID[m] && m !== KData.M.EARTH) continue;
+          const k = open ? col[ch].map(v => v * 0.6) : col[ch];
+          this.plot(ox + x, oy + y, k[0] | 0, k[1] | 0, k[2] | 0);
+        }
+      }
+      // shards flying to the player
+      for (const b of game.bits) this.plot(b.x - this.cam.x, b.y - this.cam.y, 170, 250, 240);
+    }
+
     // runestones lying in the cave: a small stone in its grade's colour
     drawLoot(game) {
       const tiers = KData.runes.tiers;
@@ -448,6 +477,8 @@ const KRender = (() => {
         if (s > 0) this.light(wx, wy, 9 + Math.min(10, s * 0.3), [140, 190, 255], 0.1 + Math.min(0.4, s / 50));
       }
       for (const L of game.loot) this.light(L.x, L.y - 2, 9, KData.runes.tiers[L.rune.tier].color, 0.55);
+      for (const c of game.world.caches) if (!game.opened.has(c.id)) this.light(c.x, c.y - 4, 16, [255, 200, 110], 0.38 + 0.12 * Math.sin(game.time * 2 + c.id));
+      for (let k = 0; k < game.bits.length; k += 3) this.light(game.bits[k].x, game.bits[k].y, 5, [140, 240, 230], 0.5);
       for (const pr of game.projectiles) {
         if (pr.kind === 'fireball') this.light(pr.x, pr.y, 16, [255, 150, 60], 0.85);
         else if (pr.kind === 'blob') this.light(pr.x, pr.y, 12, [255, 120, 40], 0.7);

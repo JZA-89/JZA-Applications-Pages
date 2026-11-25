@@ -29,6 +29,7 @@
   window.KRest = {
     build(game, p, tab) {
       $('tabRunes').hidden = false;
+      if (tab === 'forge') return this.forge(game, p);
       const view = $('runesView');
       if (tab !== 'runes') return;
       let html = '<div class="rune-slots">';
@@ -58,6 +59,27 @@
         rebuild();
       }));
     },
+  };
+
+  // ---------- the Forge tab: shards into stat points and stronger runestones ----------
+  window.KRest.forge = (game, p) => {
+    const T = KData.treasure, view = $('forgeView');
+    const pc = T.pointCost(p.bought || 0);
+    let html = `<p class="lede forge-lede"><b>${p.shards || 0} shards.</b> Break crystal veins with any digging spell, open relic caches, or break spare runestones to get more.</p>
+      <div class="forge-row"><div><b>A stat point</b><span>Spend it in the Stats tab. Each one costs more than the last.</span></div><button type="button" class="btn small primary" data-buy ${p.shards >= pc ? '' : 'disabled'}>Buy · ${pc}</button></div>
+      <h2 class="bag-title">Strengthen a worn runestone (one level)</h2>`;
+    for (const slot of RU.slots) {
+      const r = p.runes[slot];
+      if (!r) { html += `<div class="forge-row dim"><div><b>${RU.slotNames[slot]}</b><span>Nothing worn</span></div></div>`; continue; }
+      const cost = T.levelUpCost(r), max = r.level >= T.maxRuneLevel;
+      const next = { ...r, level: r.level + 1 };
+      html += `<div class="forge-row"><div><b style="color:${css(RU.tiers[r.tier].color)}">${RU.types[r.type].name}</b><span>Level ${r.level} → ${r.level + 1}: ${statLines(next)}</span></div>` +
+        `<button type="button" class="btn small" data-lvl="${slot}" ${!max && p.shards >= cost ? '' : 'disabled'}>${max ? 'Highest level' : 'Strengthen · ' + cost}</button></div>`;
+    }
+    view.innerHTML = html;
+    const rebuild = () => { window.cis.save(); document.querySelector('.rest-tab[data-tab="forge"]').click(); };
+    view.querySelector('[data-buy]').addEventListener('click', () => { if (game.buyPoint(p)) rebuild(); });
+    view.querySelectorAll('[data-lvl]').forEach(b => b.addEventListener('click', () => { if (game.levelUpRune(p, b.dataset.lvl)) rebuild(); }));
   };
 
   // ---------- hover notes and map dots for things in the cave ----------

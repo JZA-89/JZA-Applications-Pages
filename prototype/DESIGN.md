@@ -58,6 +58,7 @@ Each is linked with `?v=<version>`; bump them all together with the version in t
 | Mud | powder, slide 0.25, moves 45% of steps | Slows: run speed × 0.38, jump × 0.55, strong drag. |
 | Magma | liquid, flow 1, moves 35% of steps, life 200–255 | Burns 45 health/s on touch; cools into dirt (about 8 s). |
 | Lichen (`MOSS`) | static, solid, flammable | Grows on floors and hangs from ceilings. Fuel for fire. |
+| Crystal vein (`CRYSTAL`) | static, solid | Breaks like dirt and gives shards (see Treasure). |
 
 ### Reactions (`KData.reactions`, chance per step per contact)
 
@@ -215,9 +216,27 @@ The golem has four slots: **head, core, arms, legs**. A runestone adds stats (co
 
 Speed is +5% run speed a point. **Drops:** 14% of kills, every elite, two Epic or better from bosses; grade odds rise with the level (Epic 3% + 2% a level up to 20%, Rare 18% + 4% a level up to 45%). Stones fall, rest on the ground (a small stone in its grade's colour, glowing, gold dot on the map) and are picked up by touch into a **bag of 24**. At a Lodestone's **Runestones** tab: equip (the worn one goes back to the bag), take off, or **break** a stone into shards ((3 + 2 × level) × 1, 2.5, 6 or 15 by grade), spent at Lodestones (see Treasure).
 
+### Treasure (`KData.treasure`)
+
+**Crystal veins** (`CRYSTAL`, turquoise, sparkling, faint glow): a blob in the wall of 60% of chambers, plus 40 smaller veins scattered in the dirt; some sit in rock (Crucible only). Breakable by anything that digs (`world.explode` records each broken crystal cell in `world.broken`). Each cell throws out a **shard** that flies to the nearest player within 160 and adds 1 to their shards (a notice adds them up). About 2,000–2,700 crystal cells per cave.
+
+**Relic caches:** stone caskets with a gold band and a soft gold glow, in 60% of chambers (15–25 per cave), each sealed in by the cave in one of five ways:
+
+| Kind | Where | How to reach it |
+|---|---|---|
+| Buried | a pocket 9–19 cells into a chamber's dirt wall, enclosed by at least 7 cells of dirt | dig |
+| High | an alcove dug into a chamber's ceiling, with a shelf | fly, climb or build a pillar |
+| Flooded | at the bottom of a Drowned basin | swim down |
+| Magma | at the bottom of an Ember basin | wade (with the Magma heart, or quickly), or cool the magma with water and dig |
+| Rock | a pocket inside a rock mass beside a chamber | only fire that melts rock (the Crucible) |
+
+Touching one opens it: experience 30 × level, shards 12 × level, a runestone one grade better than a usual drop (at most Epic) into the bag, and from level 5 a 10% chance of the Crucible (if you have none). Checked over four seeds: no buried or rock cache has an opening to the cave. Opened caches are saved. Gold dots mark unopened caches on the map once seen; hover notes say how to reach each kind.
+
+**The Forge** (a Lodestone tab) spends shards: a **stat point** for 80 + 40 per point already bought, or **one level** on a worn runestone for (8 + 5 × level) × 1, 2, 4 or 8 by grade (up to level 30).
+
 ### Saving (`save.js`)
 
-One ongoing world per browser (`localStorage` key `castinstone.save.v1`). A save holds the seed (which rebuilds the starting cave exactly), only the 32 × 32 chunks changed since generation (materials and life values, run-length encoded and base64), the explored map (bits), found Lodestones and the checkpoint, and the golem (position, health, mana, level, experience, points, stats, loaded elements, look, worn runestones, bag, shards). Runestones are checked on load (known type, grade and slot). Saves happen every 20 s of play, on reaching a Lodestone, on resting and spending points, on travel, on pause or leaving the page. A save is checked (readable, complete) before it replaces the last one; loading clamps every number and falls back to the checkpoint if the golem would stand inside terrain. A new world plus a little digging is about 40 KB.
+One ongoing world per browser (`localStorage` key `castinstone.save.v1`). A save holds the seed (which rebuilds the starting cave exactly), only the 32 × 32 chunks changed since generation (materials and life values, run-length encoded and base64), the explored map (bits), found Lodestones and the checkpoint, and the golem (position, health, mana, level, experience, points, stats, loaded elements, look, worn runestones, bag, shards, points bought), and the opened caches. Runestones are checked on load (known type, grade and slot). Saves happen every 20 s of play, on reaching a Lodestone, on resting and spending points, on travel, on pause or leaving the page. A save is checked (readable, complete) before it replaces the last one; loading clamps every number and falls back to the checkpoint if the golem would stand inside terrain. A new world plus a little digging is about 40 KB.
 
 The start panel says Continue when a save exists. **New game** (pause or start panel) asks for a second press, then starts a new random cave and progress. **Reset map** rebuilds the cave from its seed but keeps the golem's progress.
 
@@ -314,6 +333,7 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.11 (2026-11-25):** a generated web of caves (hub, 46 chambers, looping tunnels, three regions, pools, plugs, mana wells, levels by distance), a map of explored areas, New cave, crawlers that live in chambers, scale with level and sleep when far away. Liquids come to rest. Jaisah: not a downward descent, and it needs forks.
 - **v0.12 (2026-11-26):** Lodestones (checkpoint, repair, rest panel with stats and travel) replace mana wells; experience, levels and stat points; one ongoing world saved in the browser (Jaisah: an ongoing world; all four elements from the start; upgrades that reach further come with runestones).
 - **v0.13 (2026-11-26):** runestones: four slots, 15 stones with stats and traits (including the Crucible, whose fire melts rock, Jaisah's idea for reaching further), drops, a bag, breaking into shards.
+- **v0.14 (2026-11-26):** crystal veins and shards, relic caches sealed in five ways, the Forge.
 
 ## Open questions to test
 

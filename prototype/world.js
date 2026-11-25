@@ -74,6 +74,8 @@ const KWorld = (() => {
       this.seed = seed;
       this.rand = makeRng(seed);
       this.spawn = { x: 40, y: 100 };
+      this.broken = [];   // crystal cells broken since the game last looked (x, y pairs)
+      this.caches = [];
       this.dummySpots = [];
       this.generate();
     }
@@ -267,6 +269,7 @@ const KWorld = (() => {
             if (m === M.EMPTY || HARD[m]) continue;
             if (m === M.WATER) { if (R() < (opts.boil || 0)) this.put(i, M.STEAM); continue; }
             const edge = d2 > (r - 2) * (r - 2);
+            if (m === M.CRYSTAL) this.broken.push(x, y);
             this.put(i, edge && opts.fire && R() < opts.fire ? M.FIRE : M.EMPTY);
             removed++;
           } else if (d2 <= ring * ring && opts.fire) {
@@ -434,6 +437,7 @@ const KWorld = (() => {
 
       // 2. chambers: the hub in the middle, the rest spread around it
       const hub = { x: w >> 1, y: h >> 1, rx: 84, ry: 42, hub: true };
+      this.hub = hub;
       const nodes = [hub];
       for (let tries = 0; tries < 4000 && nodes.length < C.chambers; tries++) {
         const x = 100 + R() * (w - 200), y = 80 + R() * (h - 160);
@@ -553,6 +557,7 @@ const KWorld = (() => {
             const bex = (x - bx) / brx, bey = (y - by) / bry;
             if ((ex * ex + ey * ey < 1.05 || bex * bex + bey * bey < 1.1) && mat[y * w + x] === M.EMPTY) { mat[y * w + x] = pm; this.life[y * w + x] = 255; }
           }
+        n.pooled = true;
         // drain the pool down to its lowest opening, so it starts at rest instead of leaking for a minute
         const x0 = Math.max(2, Math.floor(n.x - n.rx * 1.5)), x1 = Math.min(w - 3, Math.ceil(n.x + n.rx * 1.5));
         const y0 = Math.max(2, Math.floor(n.y - n.ry * 1.5)), y1 = Math.min(h - 3, Math.ceil(n.y + n.ry * 1.6));
@@ -579,8 +584,74 @@ const KWorld = (() => {
           for (let k = 1; k <= len && mat[i + k * w] === M.EMPTY; k++) mat[i + k * w] = M.MOSS;
         }
       }
+      // 10b. crystal veins in chamber walls, and a few deeper in the dirt
+      const T = KData.treasure;
+      const blob = (cx, cy, r, m, onlyIn) => {
+        for (let y = Math.floor(cy - r); y <= cy + r; y++) for (let x = Math.floor(cx - r); x <= cx + r; x++) {
+          if (x < 10 || y < 10 || x >= w - 10 || y >= h - 10) continue;
+          const dx = x - cx, dy = y - cy;
+          if (dx * dx + dy * dy + (noise(x, y, 3, s + 12) - 0.5) * r * 2 > r * r) continue;
+          const i = y * w + x;
+          if (!onlyIn || onlyIn.includes(mat[i])) mat[i] = m;
+        }
+      };
+      const wallPoint = (n, an, extra) => {
+        // walk out from the chamber's centre to its wall, then a little further
+        let x = n.x, y = n.y, k = 0;
+        while (k++ < 160 && mat[Math.round(y) * w + Math.round(x)] !== M.DIRT && mat[Math.round(y) * w + Math.round(x)] !== M.ROCK) { x += Math.cos(an); y += Math.sin(an); }
+        return { x: x + Math.cos(an) * extra, y: y + Math.sin(an) * extra };
+      };
+      for (const n of nodes) {
+        if (n.hub || R() > T.veinChance) continue;
+        const pt = wallPoint(n, R() * Math.PI * 2, 2);
+        blob(pt.x, pt.y, 3 + R() * 3, M.CRYSTAL, [M.DIRT, M.ROCK, M.MOSS]);
+      }
+      for (let k = 0; k < T.extraVeins; k++) {
+        const x = 40 + R() * (w - 80), y = 40 + R() * (h - 80);
+        if (mat[(y | 0) * w + (x | 0)] === M.DIRT) blob(x, y, 2 + R() * 3, M.CRYSTAL, [M.DIRT]);
+      }
+
       for (let i = 0; i < mat.length; i++) this.shade[i] = (R() * 255) | 0;
       this.cleanup(0, 0, w, h, M.EMPTY); // no crumbs in the starting cave
+
+      // 10c. relic caches, sealed in by the cave (after the clean-up, so pockets stay)
+      const solidAround = (x, y, r, kinds) => {
+        for (let yy = y - r; yy <= y + r; yy++) for (let xx = x - r; xx <= x + r; xx++) if (!kinds.includes(this.get(xx, yy))) return false;
+        return true;
+      };
+      const addCache = (x, y, kind, n) => this.caches.push({ id: this.caches.length, x: Math.round(x), y: Math.round(y), kind, level: this.levelAt(x, y) });
+      for (const n of nodes) {
+        if (n.hub || R() > T.cacheChance) continue;
+        const B = KData.biomes[n.biome];
+        const kinds = Object.keys(T.kinds).filter(k => k !== 'pool' || (B.pool && n.pooled)).sort(() => R() - 0.5);
+        let placed = false;
+        for (const kind of kinds) {
+          if (placed || R() > T.kinds[kind] * 1.6) continue;
+          if (kind === 'pool') {
+            // at the bottom of the chamber's basin, under the water or magma
+            const y = this.floorBelow(n.x, n.y + n.ry * 0.6);
+            if (mat[(y - 2) * w + Math.round(n.x)] === M[B.pool]) { addCache(n.x, y, B.pool === 'MAGMA' ? 'magma' : 'flooded', n); placed = true; }
+          } else if (kind === 'high') {
+            // an alcove dug into the ceiling
+            let y = Math.round(n.y);
+            while (y > 12 && !SOLID[mat[y * w + Math.round(n.x)]]) y--;
+            if (y > 14 && solidAround(Math.round(n.x), y - 6, 4, [M.DIRT, M.MOSS, M.ROCK, M.CRYSTAL])) {
+              for (let yy = y - 9; yy <= y + 1; yy++) for (let xx = Math.round(n.x) - 5; xx <= n.x + 5; xx++) if (mat[yy * w + xx] !== M.ROCK) mat[yy * w + xx] = M.EMPTY;
+              for (let xx = Math.round(n.x) - 6; xx <= n.x + 6; xx++) if (!SOLID[mat[(y - 2) * w + xx]]) mat[(y - 2) * w + xx] = M.DIRT; // a shelf to sit on
+              addCache(n.x, y - 3, 'high', n); placed = true;
+            }
+          } else {
+            // buried in dirt, or (rarer) encased in rock beside the chamber
+            const want = kind === 'rock' ? [M.ROCK] : [M.DIRT, M.MOSS, M.CRYSTAL];
+            for (let t = 0; t < 12 && !placed; t++) {
+              const an = R() * Math.PI * 2, pt = wallPoint(n, an, kind === 'rock' ? 10 : 9 + R() * 10), x = Math.round(pt.x), y = Math.round(pt.y);
+              if (x < 20 || y < 20 || x > w - 20 || y > h - 20 || !solidAround(x, y, 7, want)) continue;
+              for (let yy = y - 4; yy <= y + 3; yy++) for (let xx = x - 5; xx <= x + 5; xx++) mat[yy * w + xx] = M.EMPTY;
+              addCache(x, y + 4, kind === 'rock' ? 'rock' : 'buried', n); placed = true;
+            }
+          }
+        }
+      }
       this.awake.fill(3);
       this.dirty.fill(1);
       this.explored = new Uint8Array(this.cw * this.ch);

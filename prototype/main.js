@@ -8,7 +8,7 @@
 
 (() => {
   const { elements, elementOrder, spells, spellKey, view: V, step: STEP } = KData;
-  const VERSION = 'v0.13';
+  const VERSION = 'v0.14';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -202,10 +202,11 @@
     const box = $('toasts');
     box.innerHTML = toasts.map(t => `<div class="toast ${t.kind}">${t.text}</div>`).join('');
   }
-  let xpPending = 0, xpTimer = 0;
+  let xpPending = 0, xpTimer = 0, shardPending = 0, shardTimer = 0;
   function handleEvents(dt) {
     for (const e of game.events) {
       if (e.type === 'xp') { xpPending += e.amount; xpTimer = 0.6; }
+      else if (e.type === 'shard') { shardPending++; shardTimer = 0.7; }
       else if (e.type === 'level') toast(`Level ${e.level} · ${e.points} stat point${e.points === 1 ? '' : 's'} to spend at a Lodestone`, 'big');
       else if (e.type === 'found') toast(`Lodestone found · ${e.stone.hub ? 'the hub' : e.stone.region}`, 'stone');
       else if (e.type === 'rest') { save(); setMode('rest'); }
@@ -215,6 +216,7 @@
     }
     game.events.length = 0;
     if (xpPending && (xpTimer -= dt) <= 0) { toast(`+${xpPending} experience`, 'xp'); xpPending = 0; }
+    if (shardPending && (shardTimer -= dt) <= 0) { toast(`+${shardPending} shard${shardPending === 1 ? '' : 's'} · ${game.players[0].shards} in all`, 'shard'); shardPending = 0; }
     let changed = false;
     for (const t of toasts) t.t += dt;
     while (toasts.length && toasts[0].t > (toasts[0].kind === 'big' ? 4.5 : 3)) { toasts.shift(); changed = true; }
@@ -328,7 +330,7 @@
       const wx = Math.floor((x + 0.5) * sx), wy = Math.floor((y + 0.5) * sy), o = y * mm.width + x;
       if (!w.explored[(wy >> 5) * w.cw + (wx >> 5)]) { mbuf[o] = pk(8, 6, 12, 0); continue; }
       const m = w.get(wx, wy), B = KData.biomes[w.biomeAt(wx, wy)].strata[0];
-      mbuf[o] = m === M.ROCK ? pk(52, 58, 84) : m === M.WATER ? pk(44, 90, 190) : m === M.MAGMA ? pk(230, 100, 40)
+      mbuf[o] = m === M.ROCK ? pk(52, 58, 84) : m === M.WATER ? pk(44, 90, 190) : m === M.MAGMA ? pk(230, 100, 40) : m === M.CRYSTAL ? pk(96, 224, 214)
         : KWorld.SOLID[m] || m === M.MUD ? pk(B[0] * 0.75, B[1] * 0.75, B[2] * 0.75) : pk(24, 20, 34);
     }
     const dot = (wx, wy, c, big) => {

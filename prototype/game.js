@@ -15,7 +15,7 @@ const KGame = (() => {
   const MUD_SLOW = 0.35;    // enemy speed while in mud or coated
 
   class Game {
-    constructor(seed) { this.seed = seed; this.found = new Set(); this.checkpoint = 0; this.events = []; this.reset(); }
+    constructor(seed) { this.seed = seed; this.found = new Set(); this.opened = new Set(); this.checkpoint = 0; this.events = []; this.reset(); }
 
     // Build (or rebuild) the cave from the seed. keepPlayers keeps the golems'
     // progress (levels, stats, runestones) and puts them at their checkpoint.
@@ -32,7 +32,8 @@ const KGame = (() => {
       this.shake = 0;
       this.players = kept || [this.makePlayer(0)];
       if (kept) for (const p of kept) this.respawn(p);
-      else { this.found = new Set([0]); this.checkpoint = 0; }
+      else { this.found = new Set([0]); this.opened = new Set(); this.checkpoint = 0; }
+      this.bits = [];   // shards flying to a player
       this.dummies = this.world.dummySpots.map((s, i) => this.makeDummy(s, i));
       this.enemies = this.world.crawlerHomes.map((home, i) => this.makeCrawler(home, i));
     }
@@ -117,6 +118,85 @@ const KGame = (() => {
       }
       this.loot = this.loot.filter(L => !L.taken);
     }
+    // ---------- treasure: shards from crystal, relic caches ----------
+    treasureTick() {
+      const w = this.world, T = KData.treasure;
+      // each broken crystal cell throws out a shard that flies to the nearest player
+      for (let k = 0; k < w.broken.length; k += 2) {
+        if (this.bits.length > 400) break;
+        this.bits.push({ x: w.broken[k] + 0.5, y: w.broken[k + 1] + 0.5, vx: (this.rand() - 0.5) * 120, vy: -40 - this.rand() * 80, t: 0 });
+      }
+      w.broken.length = 0;
+      for (const b of this.bits) {
+        b.t += DT;
+        let tgt = null, best = 160;
+        for (const p of this.players) { if (p.dead) continue; const d = Math.hypot(p.x - b.x, p.y - p.h / 2 - b.y); if (d < best) { best = d; tgt = p; } }
+        if (tgt && b.t > 0.25) {
+          const dx = tgt.x - b.x, dy = tgt.y - tgt.h / 2 - b.y, d = Math.hypot(dx, dy) || 1, a = 900;
+          b.vx += dx / d * a * DT; b.vy += dy / d * a * DT;
+          b.vx *= Math.exp(-2 * DT); b.vy *= Math.exp(-2 * DT);
+          if (d < 6) { tgt.shards = (tgt.shards || 0) + 1; b.done = true; this.events.push({ type: 'shard' }); }
+        } else { b.vy += 200 * DT; b.vx *= Math.exp(-3 * DT); }
+        b.x += b.vx * DT; b.y += b.vy * DT;
+        if (b.t > 6) b.done = true;
+      }
+      this.bits = this.bits.filter(b => !b.done);
+      // caches open at a touch
+      for (const c of w.caches) {
+        if (this.opened.has(c.id)) continue;
+        for (const p of this.players) {
+          if (p.dead || Math.abs(p.x - c.x) > 9 || Math.abs(p.y - c.y) > 10) continue;
+          this.openCache(p, c);
+          break;
+        }
+      }
+    }
+    openCache(p, c) {
+      const T = KData.treasure, RU = KData.runes;
+      this.opened.add(c.id);
+      const shards = T.shards(c.level);
+      p.shards = (p.shards || 0) + shards;
+      // a runestone a grade better than a drop would usually be; deep caches may hold the Crucible
+      const crucible = this.rand() < T.crucibleChance(c.level) && !this.hasRune(p, 'crucible');
+      const rune = crucible ? this.makeRune(c.level, { type: 'crucible', tier: 2 }) : this.makeRune(c.level, { tier: Math.min(2, RU.tierFor(c.level, this.rand()) + 1) });
+      if (p.inventory.length < RU.bag) p.inventory.push(rune); else this.dropRune(c.x, c.y - 6, rune);
+      this.events.push({ type: 'toast', kind: 'loot', text: `Relic cache opened · ${RU.types[rune.type].name} (${RU.tiers[rune.tier].name}) · ${shards} shards` });
+      this.gainXp(p, T.xp(c.level), 'cache');
+      this.burst(c.x, c.y - 4, 24, [[255, 211, 122], [255, 240, 200]], 120);
+      this.fx.push({ kind: 'flash', x: c.x, y: c.y - 4, r: 30, t: 0, T: 0.4, color: [255, 211, 122] });
+      this.events.push({ type: 'save' });
+    }
+    hasRune(p, type) { return Object.values(p.runes).some(r => r && r.type === type) || p.inventory.some(r => r.type === type); }
+    describeTreasure(wx, wy) {
+      for (const c of this.world.caches) if (Math.abs(wx - c.x) < 6 && wy > c.y - 7 && wy < c.y + 1) {
+        const how = { buried: 'Buried in the dirt. Dig to it.', rock: 'Sealed inside rock. Only fire that melts rock reaches it.', magma: 'At the bottom of a magma pool. Wade, or cool the magma with water and dig.', flooded: 'At the bottom of a flooded basin. Swim down to it.', high: 'High in the ceiling. Fly, climb or build up to it.' }[c.kind];
+        return this.opened.has(c.id) ? ['Relic cache (empty)', 'Already opened.'] : [`Relic cache · Level ${c.level}`, `${how} Touch it to open it.`];
+      }
+      return null;
+    }
+    treasureDots(dot, pk) {
+      const w = this.world;
+      for (const c of w.caches) if (!this.opened.has(c.id) && w.explored[(c.y >> 5) * w.cw + (c.x >> 5)]) dot(c.x, c.y - 3, pk(255, 211, 122), true);
+    }
+    // the Forge: shards buy stat points and raise a worn runestone's level
+    buyPoint(p) {
+      const cost = KData.treasure.pointCost(p.bought || 0);
+      if ((p.shards || 0) < cost) return false;
+      p.shards -= cost; p.bought = (p.bought || 0) + 1; p.points++;
+      return true;
+    }
+    levelUpRune(p, slot) {
+      const r = p.runes[slot], T = KData.treasure;
+      if (!r || r.level >= T.maxRuneLevel) return false;
+      const cost = T.levelUpCost(r);
+      if ((p.shards || 0) < cost) return false;
+      p.shards -= cost; r.level++;
+      this.applyStats(p);
+      return true;
+    }
+    saveExtra() { return { opened: [...this.opened] }; }
+    loadExtra(x) { if (x && Array.isArray(x.opened)) this.opened = new Set(x.opened.filter(Number.isInteger)); }
+
     equip(p, index) {
       const r = p.inventory[index];
       if (!r || !KData.runes.types[r.type]) return;
@@ -213,6 +293,7 @@ const KGame = (() => {
       for (const a of this.actors) if (!a.asleep) this.physics(a);
       this.lodestonesTick();
       this.lootTick();
+      this.treasureTick();
       for (const d of this.dummies) this.dummyTick(d);
       for (const f of this.fx) f.t += DT;
       this.fx = this.fx.filter(f => f.t < f.T);

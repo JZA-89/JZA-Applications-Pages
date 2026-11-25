@@ -13,7 +13,7 @@ const KData = (() => {
   // density: heavier sinks through lighter (only between moving states).
   // colors: [r,g,b] variants picked per cell for texture.
   const M = {
-    EMPTY: 0, ROCK: 1, DIRT: 2, EARTH: 3, WATER: 4, STEAM: 5, FIRE: 6, MUD: 7, MAGMA: 8, MOSS: 9,
+    EMPTY: 0, ROCK: 1, DIRT: 2, EARTH: 3, WATER: 4, STEAM: 5, FIRE: 6, MUD: 7, MAGMA: 8, MOSS: 9, CRYSTAL: 10,
   };
 
   const materials = [];
@@ -37,6 +37,9 @@ const KData = (() => {
     colors: [[255, 120, 40], [255, 168, 64], [236, 84, 28], [255, 196, 96]] };
   materials[M.MOSS]  = { desc: 'Solid, and burns easily.', name: 'Lichen', state: 'static', solid: true, flammable: true, density: 99,
     colors: [[118, 168, 146], [104, 154, 134], [132, 182, 156], [110, 160, 140]] };
+
+  materials[M.CRYSTAL] = { desc: 'Break it with any digging spell: its shards fly to you. Spend shards at a Lodestone.', name: 'Crystal vein', state: 'static', solid: true, density: 99, glow: true,
+    colors: [[96, 224, 214], [130, 240, 228], [80, 200, 196], [170, 250, 240]] };
 
   // ---------- Reactions ----------
   // When a cell of material a touches b, with this chance per tick, a becomes ra
@@ -206,6 +209,21 @@ const KData = (() => {
   // ---------- Getting stronger ----------
   // Experience from kills and discoveries; each level gives stat points, spent at a Lodestone.
   // xpFor(L): experience needed to go from level L to L+1.
+  // ---------- Treasure ----------
+  // Relic caches are sealed in by the cave (buried, under magma, under water,
+  // high in a ceiling, or inside rock). Crystal veins break into shards.
+  const treasure = {
+    cacheChance: 0.6,          // per chamber
+    kinds: { buried: 0.28, high: 0.45, pool: 0.7, rock: 0.4 },
+    xp: L => 30 * L, shards: L => 12 * L,
+    crucibleChance: L => L >= 5 ? 0.1 : 0,   // a deep cache may hold the Crucible
+    veinChance: 0.6, extraVeins: 40,
+    // the Forge, at a Lodestone
+    pointCost: n => 80 + 40 * n,              // n = points already bought
+    levelUpCost: r => Math.round((8 + 5 * r.level) * [1, 2, 4, 8][r.tier]),
+    maxRuneLevel: 30,
+  };
+
   const progression = {
     xpFor: L => Math.round(50 + 30 * (L - 1) + 6 * (L - 1) * (L - 1)),
     pointsPerLevel: 3,
@@ -377,6 +395,6 @@ const KData = (() => {
       ] },
   ];
 
-  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, modes, biomes, cave, progression, runes,
+  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, modes, biomes, cave, progression, runes, treasure,
     world: { w: 2048, h: 1024, chunk: 32 }, view: { w: 320, h: 180 }, step: 1 / 60 };
 })();
