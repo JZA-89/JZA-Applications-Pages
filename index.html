@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JZA Applications — Sharp tools for sharp people</title>
-<meta name="description" content="Sharp tools for sharp people. PowerGlass, PointFoundry, GhostDelta, BananaBomb, BikeSpec, Parlato, ThumbControl and the game MORPHOS — every app with its own design language, made by JZA Applications.">
+<meta name="description" content="Sharp tools for sharp people. PowerGlass, PointFoundry, GhostDelta, BananaBomb, BikeSpec, Parlato, ThumbControl and the games MORPHOS and Cast in Stone — every app with its own design language, made by JZA Applications.">
 <meta name="theme-color" content="#08080a">
 <link rel="canonical" href="https://jza.app/">
 <meta property="og:title" content="JZA Applications">
@@ -17,7 +17,7 @@
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="site.css?v=17">
+<link rel="stylesheet" href="site.css?v=18">
 <style>
   /* ---------- index-only layout ---------- */
   main { max-width: none; padding: 0; }
@@ -52,6 +52,7 @@
   html[data-view="parlato"] .amb-parlato { opacity: 1; animation-play-state: running; }
   html[data-view="thumbcontrol"] .amb-thumbcontrol { opacity: 1; animation-play-state: running; }
   html[data-view="morphos"] .amb-morphos { opacity: 1; animation-play-state: running; }
+  html[data-view="castinstone"] .amb-castinstone { opacity: 1; animation-play-state: running; }
 
   .amb-home {
     background:
@@ -98,6 +99,12 @@
     background:
       radial-gradient(60% 50% at 78% 40%, rgba(117, 213, 184, 0.16), transparent 70%),
       radial-gradient(50% 45% at 12% 90%, rgba(214, 237, 162, 0.08), transparent 70%);
+  }
+
+  .amb-castinstone {
+    background:
+      radial-gradient(60% 50% at 22% 42%, rgba(183, 156, 255, 0.15), transparent 70%),
+      radial-gradient(50% 45% at 88% 88%, rgba(255, 211, 122, 0.08), transparent 70%);
   }
 
   /* ---------- hero ---------- */
@@ -1163,6 +1170,37 @@
     .strip .app-icon { width: 54px; height: 54px; margin-bottom: 0.65rem; }
   }
 
+  /* ---------- Cast in Stone (a browser game, in beta) ---------- */
+  /* Like MORPHOS it is not an App Store app: one action, Play, which opens
+     the game (prototype/). It reuses MORPHOS's tag line, button and note
+     styles; the gold comes from its own theme. */
+  .chapter .wm-castinstone { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.9rem; font-size: clamp(1.5rem, 3.1vw, 2.15rem); }
+  .chapter .wm-castinstone .beta-tag { letter-spacing: 0.18em; }
+  .cs-play:hover { box-shadow: 0 10px 34px rgba(255, 211, 122, 0.28); }
+  /* The live cave: a slab of slate holding a pixel cave drawn by main.js §14,
+     with the recipe's sockets and the spell's name under it, as in the game. */
+  .cs-wrap { width: min(540px, calc(100vw - 48px)); margin: 0 auto; }
+  .cs-slab {
+    padding: 8px 8px 6px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #2b2437 0%, #1d1827 46%, #15111d 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      0 0 0 1px #000, 0 0 0 4px #1b1624, 0 0 0 5px #000,
+      0 30px 80px rgba(0, 0, 0, 0.55),
+      0 0 90px rgba(183, 156, 255, 0.1);
+  }
+  .cs-slab canvas { display: block; width: 100%; aspect-ratio: 192 / 120; image-rendering: pixelated; image-rendering: crisp-edges; border-radius: 9px; background: #14101f; box-shadow: inset 0 0 0 1px #000; }
+  .cs-hud { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.7rem 0.4rem 0.35rem; }
+  .cs-sockets { display: flex; align-items: center; gap: 5px; }
+  .cs-sockets i { --c: transparent; width: 18px; height: 18px; background: #0a0710; clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%); box-shadow: inset 0 0 0 2px #241d30; transition: background 0.12s; }
+  .cs-sockets i:first-child { width: 24px; height: 24px; margin-right: 3px; }
+  .cs-sockets i.on { background: var(--c); filter: drop-shadow(0 0 5px var(--c)); box-shadow: none; }
+  .cs-plate { margin: 0; text-align: right; line-height: 1.15; min-width: 0; }
+  .cs-plate b { display: block; font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif; font-weight: 600; font-size: 1.05rem; letter-spacing: 0.04em; color: #efe6d8; transition: color 0.2s; }
+  .cs-plate span { font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: #9a8f82; }
+  .cs-gold .cs-plate b, .cs-gold .cs-plate span { color: #ffd37a; }
+
   /* ---------- beta apps (TestFlight instead of the App Store) ---------- */
   .beta-tag {
     font-family: var(--font-mono);
@@ -1608,7 +1646,7 @@
   <style>
     .reveal { opacity: 1; transform: none; }
     /* the live demos are JS-drawn — without it they're empty shells */
-    .pg-demo, .pf-frame, .gd-art, .bb-wrap, .mo-wrap { display: none; }
+    .pg-demo, .pf-frame, .gd-art, .bb-wrap, .mo-wrap, .cs-wrap { display: none; }
     .pt-peerwave { display: none; }
     .tc-now, .tc-banner { display: none; }
   </style>
@@ -1626,6 +1664,7 @@
   <div class="amb amb-parlato"></div>
   <div class="amb amb-thumbcontrol"></div>
   <div class="amb amb-morphos"></div>
+  <div class="amb amb-castinstone"></div>
 </div>
 
 <main>
@@ -2122,6 +2161,43 @@
     </div>
   </section>
 
+  <!-- ================= Cast in Stone (browser game, in beta) =================
+       Jaisah's second game, still changing often (hence the Beta tag). Not on
+       the App Store, so no About/Support/Privacy pages (it makes no network
+       requests): Play opens the game in prototype/. Its rules and numbers are
+       in prototype/DESIGN.md. When it leaves beta, remove the beta tag and
+       the beta sentence in the note. -->
+  <section class="chapter" id="castinstone" data-chapter="castinstone" data-app="castinstone">
+    <div class="chapter-inner">
+      <div class="chapter-copy">
+        <p class="chapter-kicker reveal"><b>09</b> · Game · Plays in your browser</p>
+        <img class="app-icon chapter-icon vt-castinstone reveal" src="assets/icon-castinstone.jpg" alt="Cast in Stone icon" width="124" height="124" loading="lazy" decoding="async" style="--reveal-delay:.08s">
+        <h2 class="wordmark wm-castinstone reveal" style="--reveal-delay:.16s"><span>CAST <i>IN</i> STONE</span> <span class="beta-tag">Beta</span></h2>
+        <p class="mo-tag reveal" style="--reveal-delay:.22s">Type the elements. <em>Shape the spell.</em></p>
+        <p class="chapter-desc reveal" style="--reveal-delay:.3s">You are a golem of living rock in a cave made of falling sand, where everything can be dug, burned, flooded or brought down. Type up to seven elements to make a spell: the first sets its form, the rest change it. Twenty-six special spells are hidden in the cave as exact sequences to find and learn by heart. Explore, grow stronger, hunt the three champions and face the Emberwyrm in its lake of magma.</p>
+        <a class="mo-play cs-play reveal" href="prototype/" style="--reveal-delay:.38s">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.4-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z"/></svg>
+          Play Cast in Stone
+        </a>
+        <p class="mo-note reveal" style="--reveal-delay:.44s">Free, right here in your browser: no download, no account. Play with a mouse and keyboard, or a game controller; touch controls are not built yet. Your cave is saved in your browser. It is a beta: it changes often, and a big update may start your cave again.</p>
+      </div>
+      <div class="chapter-art">
+        <div data-parallax="0.04">
+          <div class="reveal cs-wrap" aria-hidden="true">
+            <div class="cs-slab" id="cs-slab">
+              <canvas id="cs-cave" width="192" height="120"></canvas>
+              <div class="cs-hud">
+                <div class="cs-sockets" id="cs-sockets"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <p class="cs-plate"><b id="cs-spell">Type the elements</b><span id="cs-kind">the first is the form</span></p>
+              </div>
+            </div>
+            <p class="mo-caption">Fire, Fire is a Fireball. Earth, Lightning is a spear that bores through the wall. Water, Fire, Water, in that order, is a Geyser.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= finale: all apps + contact ================= -->
   <div class="finale">
   <section class="strip-section" data-chapter="home">
@@ -2135,6 +2211,7 @@
       <a class="glass specular" href="parlato/" data-app="parlato"><img class="app-icon" src="assets/icon-parlato.jpg" alt="" width="64" height="64" loading="lazy" decoding="async">Parlato</a>
       <a class="glass specular" href="thumbcontrol/" data-app="thumbcontrol"><img class="app-icon" src="assets/icon-thumbcontrol.jpg" alt="" width="64" height="64" loading="lazy" decoding="async">ThumbControl</a>
       <a class="glass specular" href="morphos.html" data-app="morphos"><img class="app-icon" src="assets/icon-morphos.jpg" alt="" width="64" height="64" loading="lazy" decoding="async">MORPHOS</a>
+      <a class="glass specular" href="prototype/" data-app="castinstone"><img class="app-icon" src="assets/icon-castinstone.jpg" alt="" width="64" height="64" loading="lazy" decoding="async">Cast in Stone</a>
     </div>
   </section>
 
@@ -2151,7 +2228,7 @@
 
 </main>
 
-<script src="dock.js?v=13" id="jza-dock-script"></script>
-<script src="main.js?v=21"></script>
+<script src="dock.js?v=14" id="jza-dock-script"></script>
+<script src="main.js?v=22"></script>
 </body>
 </html>

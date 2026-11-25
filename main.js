@@ -2249,4 +2249,282 @@
     }
   }
   })();
+
+  /* ------------------------------------------------------------------
+     14. Cast in Stone cave — a short scripted fight in the game's look.
+         A small falling-sand cave (dirt in strata, rock, loose earth,
+         water, steam) drawn at the game's pixel scale, with the game's
+         Brute golem (its sprite rows are copied from prototype/data.js)
+         and two crawlers. The script follows the game's rules: the golem
+         types Fire, Fire and casts a Fireball that blasts a crater and
+         crumbles the first crawler into loose earth; types Earth,
+         Lightning and a Stone spear bores a tunnel through the wall into
+         the next chamber; then types Water, Fire, Water, an exact
+         sequence, and the special spell Geyser bursts under the second
+         crawler. The sockets under the cave fill as it types (the first,
+         larger one is the form), and the plate names the spell, in gold
+         for a special. If the game's look or these spells change, update
+         this to match. Reduced motion draws one frame just after the
+         first blast; offscreen it pauses.
+     ------------------------------------------------------------------ */
+  (function () {
+  var csCanvas = document.getElementById("cs-cave");
+  var csSlab = document.getElementById("cs-slab");
+  if (csCanvas && csSlab && csCanvas.getContext) {
+    var W = 192, H = 120, ctx = csCanvas.getContext("2d");
+    var img = ctx.createImageData(W, H), buf = new Uint32Array(img.data.buffer);
+    var pk = function (r, g, b) { return (255 << 24) | ((b & 255) << 16) | ((g & 255) << 8) | (r & 255); };
+    var hash = function (x, y) { var n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return n - Math.floor(n); };
+    var EMPTY = 0, DIRT = 1, ROCK = 2, EARTH = 3, WATER = 4, STEAM = 5;
+    var EL = { fire: "#ff7a2f", water: "#3fa9ff", earth: "#c89a4a", lightning: "#fff27a" };
+    var ELRGB = { fire: [255, 122, 47], water: [63, 169, 255], earth: [200, 154, 74], lightning: [255, 242, 122] };
+    var STONE = { h: [214, 206, 192], m: [150, 143, 138], d: [96, 90, 94], s: [52, 44, 54], k: [20, 16, 24], g: [122, 172, 150], e: [255, 236, 196] };
+    var GOLEM = [
+      "...kkkkk.kkk.kkkkk...",
+      "..khhgghkhhhkhhhghk..",
+      ".khhhmmshhmmshhhmmhk.",
+      ".khmmmmshLmRshmmmmdk.",
+      ".ksmmddssmddsmmmddsk.",
+      "khsssssssssssssssshhk",
+      "khhhhhshhhhhhshhhhmdk",
+      "khmmmmshhhmcmshmmmmdk",
+      "kdmmddshmmcmmssmmdddk",
+      ".ksssshmmmmcmmsssssk.",
+      ".khhhsmmmmcmmdshhhhk.",
+      "khhmmssmmmddddshhmmhk",
+      "khmmmsssssdsssshmmmdk",
+      "kdmddshhhsshhhsmmdddk",
+      ".kdddshmmdkdmmsddddk.",
+      "..kkkkmmdk.kmddkkkk..",
+      ".....kdddk.kdddk....."
+    ];
+    var CRAWLER = [
+      "..kkkkkkk..",
+      ".kmmmmmmmk.",
+      "kmmdmmmdmek",
+      "kmmmmmmmmmk",
+      ".kdkdkdkdk.",
+      ".k.k.k.k.k."
+    ];
+    var cells, life, S;
+    var sockets = document.getElementById("cs-sockets").children;
+    var elSpell = document.getElementById("cs-spell"), elKind = document.getElementById("cs-kind");
+    var shown = "";
+
+    var floorAt = function (x, y) { while (y < H - 2 && cells[y * W + x] === EMPTY) y++; return y; };
+    var build = function () {
+      cells = new Uint8Array(W * H); life = new Uint8Array(W * H);
+      var x, y, ex, ey;
+      for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+        var c = DIRT;
+        if (Math.pow(x - 16, 2) + Math.pow(y - 14, 2) < 380 + hash(x, y) * 60) c = ROCK;
+        if (Math.pow(x - 180, 2) + Math.pow(y - 110, 2) < 330 + hash(x, y) * 60) c = ROCK;
+        ex = (x - 62) / 54; ey = (y - 64) / 25;
+        if (ex * ex + ey * ey + (hash(x >> 2, y >> 2) - 0.5) * 0.18 < 1) c = EMPTY;
+        ex = (x - 157) / 23; ey = (y - 60) / 17;
+        if (ex * ex + ey * ey + (hash(x >> 2, y >> 2) - 0.5) * 0.2 < 1) c = EMPTY;
+        cells[y * W + x] = c;
+      }
+    };
+    var explode = function (cx, cy, r) {
+      for (var y = Math.floor(cy - r); y <= cy + r; y++) for (var x = Math.floor(cx - r); x <= cx + r; x++) {
+        if (x < 1 || y < 1 || x >= W - 1 || y >= H - 1) continue;
+        if ((x - cx) * (x - cx) + (y - cy) * (y - cy) > r * r) continue;
+        var m = cells[y * W + x];
+        if (m === DIRT || m === EARTH) cells[y * W + x] = EMPTY;
+      }
+    };
+    var reset = function () {
+      build();
+      var gy = floorAt(34, 60), ay = floorAt(98, 60), by = floorAt(158, 56);
+      S = { t: 0, queue: [], spell: "", kind: "", gold: false, parts: [], proj: null, flash: 0, shake: 0, recoil: 0, fade: 0, fadeIn: 1,
+        golem: { x: 34, y: gy },
+        foes: [{ x: 98, y: ay, hp: 1, face: -1, hurt: 0, dead: false }, { x: 158, y: by, hp: 2, face: -1, hurt: 0, dead: false, vy: 0 }],
+        did: {} };
+    };
+    var crumble = function (f) {
+      f.dead = true;
+      for (var k = 0; k < 22; k++) S.parts.push({ x: f.x + (hash(k, 3) - 0.5) * 9, y: f.y - 1 - hash(k, 7) * 5, vx: (hash(k, 11) - 0.5) * 60, vy: -20 - hash(k, 5) * 50, kind: EARTH, life: 3 });
+    };
+    /* the script: [time, what happens] */
+    var once = function (id, at, fn) { if (S.t >= at && !S.did[id]) { S.did[id] = true; fn(); } };
+    var script = function () {
+      var g = S.golem, a = S.foes[0], b = S.foes[1];
+      once("q1", 1.0, function () { S.queue = ["fire"]; S.spell = "Lesser Fireball"; S.kind = "Shot"; });
+      once("q2", 1.4, function () { S.queue = ["fire", "fire"]; S.spell = "Fireball"; });
+      once("c1", 2.2, function () {
+        var sx = g.x + 9, sy = g.y - 10, T = 0.5, grav = 60;
+        S.proj = { kind: "fireball", x: sx, y: sy, vx: (a.x - sx) / T, vy: (a.y - 3 - sy) / T - 0.5 * grav * T, g: grav }; S.recoil = 0.16;
+      });
+      once("q3", 4.3, function () { S.queue = ["earth"]; S.spell = "Lesser Boulder"; S.kind = "Shot"; });
+      once("q4", 4.7, function () { S.queue = ["earth", "lightning"]; S.spell = "Stone spear"; });
+      once("c2", 5.4, function () {
+        var sx = g.x + 9, sy = g.y - 10, d = Math.hypot(b.x - sx, b.y - 4 - sy);
+        S.proj = { kind: "spear", x: sx, y: sy, vx: (b.x - sx) / d * 250, vy: (b.y - 4 - sy) / d * 250, g: 0 }; S.recoil = 0.16;
+      });
+      once("q5", 7.3, function () { S.queue = ["water"]; S.spell = "Lesser Water jet"; S.kind = "Shot"; S.gold = false; });
+      once("q6", 7.65, function () { S.queue = ["water", "fire"]; S.spell = "Scald"; });
+      once("q7", 8.0, function () { S.queue = ["water", "fire", "water"]; S.spell = "Geyser"; S.kind = "Special spell"; S.gold = true; });
+      once("c3", 9.0, function () {
+        S.recoil = 0.16; S.flash = 0.25; S.shake = 0.3; b.hurt = 0.3; b.vy = -150;
+        for (var k = 0; k < 70; k++) S.parts.push({ x: b.x + (hash(k, 1) - 0.5) * 9, y: b.y - 1, vx: (hash(k, 2) - 0.5) * 36, vy: -70 - hash(k, 4) * 120, kind: hash(k, 9) < 0.75 ? WATER : STEAM, life: 4 });
+      });
+      once("k3", 9.7, function () { if (!b.dead) crumble(b); });
+      once("q8", 12.0, function () { S.queue = []; S.spell = ""; S.kind = ""; S.gold = false; });
+      if (S.t > 13.6) S.fade = Math.min(1, (S.t - 13.6) / 0.8);
+      if (S.t > 14.6) reset();
+    };
+    var step = function (dt) {
+      S.t += dt; S.fadeIn = Math.max(0, S.fadeIn - dt * 1.6);
+      S.flash = Math.max(0, S.flash - dt); S.shake = Math.max(0, S.shake - dt); S.recoil = Math.max(0, S.recoil - dt);
+      script();
+      var i, x, y, f, p = S.proj;
+      /* the projectile */
+      if (p) {
+        var n = 4;
+        for (i = 0; i < n && p; i++) {
+          p.vy += p.g * dt / n; p.x += p.vx * dt / n; p.y += p.vy * dt / n;
+          var ix = Math.round(p.x), iy = Math.round(p.y), m = cells[iy * W + ix];
+          var hit = null;
+          for (var k = 0; k < S.foes.length; k++) { f = S.foes[k]; if (!f.dead && Math.abs(f.x - p.x) < 6 && p.y > f.y - 7 && p.y < f.y + 1) hit = f; }
+          if (p.kind === "fireball" && (hit || m === DIRT || m === ROCK || m === EARTH || ix < 2 || ix > W - 3)) {
+            explode(p.x, p.y, 9); S.flash = 0.2; S.shake = 0.25;
+            for (k = 0; k < 26; k++) S.parts.push({ x: p.x + (hash(k, 21) - 0.5) * 12, y: p.y + (hash(k, 22) - 0.5) * 12, vx: (hash(k, 23) - 0.5) * 110, vy: (hash(k, 24) - 0.8) * 110, kind: hash(k, 25) < 0.55 ? "fire" : EARTH, life: 0.5 + hash(k, 26) * 0.7 });
+            for (k = 0; k < S.foes.length; k++) { f = S.foes[k]; if (!f.dead && Math.hypot(f.x - p.x, f.y - 3 - p.y) < 15) crumble(f); }
+            S.proj = p = null;
+          } else if (p.kind === "spear") {
+            if (m === DIRT || m === EARTH) { explode(p.x, p.y, 3.2); if (hash(ix, iy) < 0.3) S.parts.push({ x: p.x, y: p.y, vx: (hash(ix, 1) - 0.5) * 40, vy: -20, kind: EARTH, life: 2 }); }
+            if (hit) { hit.hurt = 0.3; hit.hp--; hit.x += 5; S.flash = 0.12; S.proj = p = null; }
+            else if (m === ROCK || ix > W - 4) S.proj = p = null;
+          }
+        }
+      }
+      /* particles: fire fades; earth, water and steam turn back into cells where they land */
+      for (i = S.parts.length - 1; i >= 0; i--) {
+        var q = S.parts[i];
+        q.life -= dt; q.vy += (q.kind === STEAM ? -30 : 240) * dt; q.x += q.vx * dt; q.y += q.vy * dt;
+        x = Math.round(q.x); y = Math.round(q.y);
+        var gone = q.life <= 0 || x < 1 || y < 1 || x >= W - 1 || y >= H - 1;
+        if (!gone && q.kind !== "fire" && cells[y * W + x] !== EMPTY) {
+          var py = y - 1; while (py > 1 && cells[py * W + x] !== EMPTY) py--;
+          if (y - py < 6) { cells[py * W + x] = q.kind; life[py * W + x] = 90; }
+          gone = true;
+        } else if (gone && q.kind !== "fire" && x > 0 && y > 0 && x < W - 1 && y < H - 1 && cells[y * W + x] === EMPTY) { cells[y * W + x] = q.kind; life[y * W + x] = 90; }
+        if (gone) S.parts.splice(i, 1);
+      }
+      /* the sand: loose earth falls and piles, water falls and spreads, steam rises and fades */
+      for (y = H - 2; y > 0; y--) for (var xx = 0; xx < W; xx++) {
+        x = (y & 1) ? xx : W - 1 - xx; i = y * W + x;
+        var c = cells[i];
+        if (c === EARTH || c === WATER) {
+          var dir = hash(x + S.t * 60, y) < 0.5 ? -1 : 1;
+          if (cells[i + W] === EMPTY || (c === EARTH && cells[i + W] === WATER)) { cells[i] = cells[i + W]; cells[i + W] = c; }
+          else if (cells[i + W + dir] === EMPTY && cells[i + dir] === EMPTY) { cells[i] = EMPTY; cells[i + W + dir] = c; }
+          else if (c === WATER && cells[i + dir] === EMPTY) { cells[i] = EMPTY; cells[i + dir] = c; }
+        } else if (c === STEAM) {
+          if (life[i] > 0) life[i]--;
+          if (life[i] === 0) cells[i] = EMPTY;
+          else if (cells[i - W] === EMPTY && hash(x, y + S.t * 60) < 0.5) { cells[i] = EMPTY; cells[i - W] = STEAM; life[i - W] = life[i]; }
+        }
+      }
+      /* the crawlers: the second one is thrown up by the geyser */
+      for (i = 0; i < S.foes.length; i++) {
+        f = S.foes[i]; f.hurt = Math.max(0, f.hurt - dt);
+        if (f.dead) continue;
+        if (f.vy) { f.vy += 400 * dt; f.y += f.vy * dt; var fl = floorAt(Math.round(f.x), 30); if (f.vy > 0 && f.y >= fl) { f.y = fl; f.vy = 0; } }
+        else f.y = floorAt(Math.round(f.x), Math.max(2, Math.round(f.y) - 8));
+      }
+      S.golem.y = floorAt(S.golem.x, Math.max(2, S.golem.y - 8));
+    };
+    var sprite = function (rows, cx, feet, flip, colour) {
+      var w = rows[0].length, h = rows.length, ox = Math.round(cx) - (w >> 1), oy = Math.round(feet) - h;
+      for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
+        var ch = rows[y][flip ? w - 1 - x : x];
+        if (ch === ".") continue;
+        var c = colour(ch, y, h), px = ox + x + (c.dx || 0), py = oy + y + (c.dy || 0);
+        if (px >= 0 && py >= 0 && px < W && py < H) buf[py * W + px] = pk(c[0], c[1], c[2]);
+      }
+    };
+    var draw = function () {
+      var x, y, i, c;
+      for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+        i = y * W + x; c = cells[i];
+        if (c === EMPTY) { var v = hash(x >> 1, y >> 1) < 0.04 ? 8 : 0; buf[i] = pk(22 + v, 17 + v, 34 + v * 2); }
+        else if (c === DIRT) {
+          /* strata: bands that wander, lit with lichen where they face open air */
+          var band = Math.floor((y + Math.sin(x / 17) * 3 + Math.sin(x / 5.3) * 1.2) / 8) & 1, sp = hash(x, y) < 0.5 ? 0 : 6;
+          if (cells[i - W] === EMPTY && hash(x, 9) < 0.6) buf[i] = pk(122, 172, 150);
+          else buf[i] = band ? pk(132 + sp, 84 + sp, 100 + sp) : pk(150 + sp, 100 + sp, 104 + sp);
+        }
+        else if (c === ROCK) { var r = hash(x >> 2, y >> 2) < 0.5 ? 0 : 8; buf[i] = hash(x, y) < 0.08 ? pk(30, 34, 52) : pk(44 + r, 52 + r, 80 + r); }
+        else if (c === EARTH) { var e = hash(x, y) * 18; buf[i] = pk(172 + e, 128 + e, 118 + e); }
+        else if (c === WATER) buf[i] = pk(44 + (hash(x, y + S.t) < 0.1 ? 40 : 0), 90, 198);
+        else buf[i] = pk(204, 206, 230);
+      }
+      /* the crawlers */
+      for (i = 0; i < S.foes.length; i++) {
+        var f = S.foes[i];
+        if (f.dead) continue;
+        sprite(CRAWLER, f.x, f.y, f.face > 0, function (ch) { return f.hurt > 0 ? [255, 246, 236] : ch === "k" ? [30, 26, 40] : ch === "m" ? [112, 104, 128] : ch === "d" ? [78, 72, 94] : [255, 70, 160]; });
+      }
+      /* the golem: it breathes, and leans back from a cast; its two lights show the recipe */
+      var breathe = !reducedMotion && Math.sin(S.t * 2.4) > 0.5, e0 = ELRGB[S.queue[0]], e1 = ELRGB[S.queue[1] || S.queue[0]];
+      sprite(GOLEM, S.golem.x, S.golem.y, false, function (ch, y, h) {
+        var col = ch === "L" ? (e0 || [58, 30, 34]) : ch === "R" ? (e1 || [58, 30, 34]) : ch === "c" ? (e0 ? [(e0[0] + e1[0]) >> 1, (e0[1] + e1[1]) >> 1, (e0[2] + e1[2]) >> 1] : STONE.s) : STONE[ch];
+        col = col.slice();
+        if (y < h - 3) { col.dy = breathe ? -1 : 0; if (S.recoil > 0 && y < h * 0.45) col.dx = -1; }
+        return col;
+      });
+      /* the projectile and the particles */
+      var p = S.proj, plot = function (px, py, r, g, b) { px = Math.round(px); py = Math.round(py); if (px >= 0 && py >= 0 && px < W && py < H) buf[py * W + px] = pk(r, g, b); };
+      if (p && p.kind === "fireball") { for (i = 1; i <= 5; i++) plot(p.x - p.vx * i * 0.006, p.y - p.vy * i * 0.006, 255, 150 - i * 16, 44); plot(p.x, p.y, 255, 245, 200); plot(p.x + 1, p.y, 255, 170, 70); plot(p.x - 1, p.y, 255, 170, 70); plot(p.x, p.y + 1, 255, 170, 70); plot(p.x, p.y - 1, 255, 170, 70); }
+      if (p && p.kind === "spear") { var sp2 = Math.hypot(p.vx, p.vy); for (i = 0; i < 7; i++) plot(p.x - p.vx / sp2 * i, p.y - p.vy / sp2 * i, i < 2 ? 255 : 150, i < 2 ? 252 : 156, i < 2 ? 230 : 170); }
+      for (i = 0; i < S.parts.length; i++) { var q = S.parts[i]; if (q.kind === "fire") plot(q.x, q.y, 255, 150 + hash(i, 1) * 80, 50); else if (q.kind === EARTH) plot(q.x, q.y, 184, 140, 128); else if (q.kind === WATER) plot(q.x, q.y, 80, 140, 240); else plot(q.x, q.y, 214, 216, 236); }
+      /* a flash and a fade, mixed into the picture */
+      var veil = Math.max(S.fade, S.fadeIn), fl = S.flash > 0 ? Math.min(0.35, S.flash * 1.6) : 0;
+      if (veil > 0 || fl > 0) for (i = 0; i < buf.length; i++) {
+        var u = buf[i], r2 = u & 255, g2 = (u >> 8) & 255, b2 = (u >> 16) & 255;
+        if (fl > 0) { r2 += (255 - r2) * fl; g2 += (230 - g2) * fl; b2 += (200 - b2) * fl; }
+        if (veil > 0) { r2 += (13 - r2) * veil; g2 += (10 - g2) * veil; b2 += (20 - b2) * veil; }
+        buf[i] = pk(r2, g2, b2);
+      }
+      ctx.putImageData(img, S.shake > 0 && !reducedMotion ? Math.round((hash(S.t, 1) - 0.5) * 3) : 0, S.shake > 0 && !reducedMotion ? Math.round((hash(S.t, 2) - 0.5) * 3) : 0);
+      /* the sockets and the plate, only when they change */
+      var sig = S.queue.join("+") + "|" + S.spell + "|" + S.gold;
+      if (sig !== shown) {
+        shown = sig;
+        for (i = 0; i < sockets.length; i++) { var el = S.queue[i]; sockets[i].className = el ? "on" : ""; sockets[i].style.setProperty("--c", el ? EL[el] : "transparent"); }
+        elSpell.textContent = S.spell || "Type the elements"; elKind.textContent = S.kind || "the first is the form";
+        csSlab.classList.toggle("cs-gold", !!S.gold);
+      }
+    };
+
+    reset();
+    if (reducedMotion) {
+      /* a still frame: the Fireball has just blasted its crater */
+      for (var guard = 0; guard < 600 && !(S.did.c1 && !S.proj && S.t > 2.9); guard++) step(1 / 60);
+      S.fadeIn = 0; S.flash = 0; S.shake = 0;
+      draw();
+    } else if ("IntersectionObserver" in window) {
+      var raf = null, last = 0, acc = 0;
+      var frame = function (now) {
+        acc += Math.min(0.1, (now - last) / 1000 || 0);
+        last = now;
+        while (acc >= 1 / 60) { step(1 / 60); acc -= 1 / 60; }
+        draw();
+        raf = requestAnimationFrame(frame);
+      };
+      draw();
+      new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting && !raf) { last = performance.now(); raf = requestAnimationFrame(frame); }
+          else if (!entry.isIntersecting && raf) { cancelAnimationFrame(raf); raf = null; }
+        });
+      }).observe(csSlab);
+    } else {
+      S.fadeIn = 0;
+      draw();
+    }
+  }
+  })();
 })();
