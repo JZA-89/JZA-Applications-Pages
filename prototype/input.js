@@ -49,6 +49,18 @@ const KInput = (() => {
     });
     addEventListener('keyup', e => keys.delete(e.code));
     addEventListener('blur', () => { keys.clear(); mouse.left = mouse.right = false; });
+    // The buttons are read from the browser's own record of what is held
+    // (event.buttons), on every press, release and movement. Counting presses
+    // and releases is not enough: while one mouse button is down, pressing or
+    // letting go of the other sends no press or release at all, only a
+    // movement, so a button could be left "held" for good. A button starts
+    // counting only when pressed over the game, and stops as soon as it is up.
+    const sync = (e, onGame) => {
+      if (e.pointerType !== 'mouse') return;
+      const L = !!(e.buttons & 1), R2 = !!(e.buttons & 2);
+      mouse.left = L && (mouse.left || onGame);
+      mouse.right = R2 && (mouse.right || onGame);
+    };
     target.addEventListener('pointermove', e => {
       if (e.pointerType !== 'mouse') return;
       mouse.x = e.clientX; mouse.y = e.clientY; mouse.moved = true; device = 'kbm';
@@ -56,10 +68,14 @@ const KInput = (() => {
     target.addEventListener('pointerdown', e => {
       if (e.pointerType !== 'mouse') return;
       mouse.x = e.clientX; mouse.y = e.clientY; mouse.moved = true; device = 'kbm';
-      if (e.button === 0) mouse.left = true;
-      if (e.button === 2) mouse.right = true;
+      sync(e, true);
     });
-    addEventListener('pointerup', e => { if (e.button === 0) mouse.left = false; if (e.button === 2) mouse.right = false; });
+    // a second button pressed while the first is held arrives as a movement
+    addEventListener('pointermove', e => sync(e, e.target === target && (mouse.left || mouse.right)));
+    addEventListener('pointerup', e => sync(e, false));
+    addEventListener('pointercancel', () => { mouse.left = mouse.right = false; });
+    addEventListener('mouseleave', () => { mouse.left = mouse.right = false; });
+    document.addEventListener('mouseleave', () => { mouse.left = mouse.right = false; });
     target.addEventListener('contextmenu', e => e.preventDefault());
   }
 
