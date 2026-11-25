@@ -23,6 +23,7 @@
    cached by recipe. */
 
 const KRecipe = (() => {
+  const Math = KMath;   // the same arithmetic on every device (dmath.js)
   const { spells, spellKey, modes } = KData;
   const cache = new Map(), parsed = new Map();
   const ADJ = { fire: 'Burning', water: 'Soaking', earth: 'Heavy', lightning: 'Charged' };

@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#0d0a14">
 <meta name="description" content="Cast in Stone: a golem of living rock in a cave of falling sand. Type the elements to shape a spell. A browser game in beta, by JZA Applications.">
 <link rel="canonical" href="https://jza.app/castinstone/">
-<title>Cast in Stone | Beta · v0.41</title>
-<link rel="stylesheet" href="style.css?v=0.41">
+<title>Cast in Stone | Beta · v0.42</title>
+<link rel="stylesheet" href="style.css?v=0.42">
 </head>
 <body data-mode="start">
 
@@ -41,6 +41,7 @@
     <div class="look" id="look" hidden><b id="lookName"></b><span id="lookDesc"></span></div>
     <div class="rest-prompt" id="restPrompt" hidden></div>
     <div class="buffs" id="buffs" aria-live="polite"></div>
+    <div class="net-wait" id="netWait" hidden>Waiting for the other player…</div>
 
     <!-- bottom centre: the cockpit -->
     <div class="cockpit" id="cockpit">
@@ -79,6 +80,7 @@
       <button type="button" class="tab" role="tab" data-tab="game" data-icon="golem">Golem</button>
       <button type="button" class="tab" role="tab" data-tab="book" data-icon="book">Spell book</button>
       <button type="button" class="tab" role="tab" data-tab="controls" data-icon="keys">Controls</button>
+      <button type="button" class="tab" role="tab" data-tab="coop" data-icon="crown">Co-op</button>
     </nav>
 
     <div class="shell-body">
@@ -98,6 +100,20 @@
         <div class="book-detail" id="bookDetail" aria-live="polite"><b>Point at a spell</b><span>The first element you type is the form. Each one after it adds its property, in any order. Typing the form's own element again makes it bigger. Each element after the second costs more than the last. Up to seven.</span></div>
         <h2 class="rule"><span id="specialsTitle">Special spells</span></h2>
         <div id="specials"></div>
+      </div>
+
+      <div class="view" data-view="coop" id="viewCoop" hidden>
+        <p class="lede">Two golems in one cave. One of you hosts and gives the other a five-letter code. You play in the host's cave; each of you keeps your own golem, with its level, runestones and spells, and what you gain is saved to your own device.</p>
+        <div class="coop-row">
+          <button type="button" class="btn primary" id="btnHost">Host a game</button>
+          <span class="coop-or">or join with a code</span>
+          <input type="text" id="coopCode" class="coop-code" maxlength="5" placeholder="CODE" aria-label="Your friend's five-letter code" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <button type="button" class="btn" id="btnJoin">Join</button>
+        </div>
+        <p class="coop-status" id="coopStatus" aria-live="polite" hidden></p>
+        <button type="button" class="btn ghost" id="btnLeaveCoop" hidden>Cancel</button>
+        <p class="note">In co-op the game does not stop while a menu is open: your golem stands still and cannot be hurt until you return. A friend's spells hurt you a little. Enemies you kill together give experience to both of you when you are close.</p>
+        <p class="note">Your two browsers connect directly to each other. <a href="privacy.html" target="_blank" rel="noopener">What co-op connects to</a>.</p>
       </div>
 
       <div class="view" data-view="controls" id="viewControls" hidden>
@@ -167,16 +183,18 @@
 
 <noscript><p class="noscript">Cast in Stone needs JavaScript.</p></noscript>
 
-<script src="data.js?v=0.41"></script>
-<script src="recipe.js?v=0.41"></script>
-<script src="world.js?v=0.41"></script>
-<script src="audio.js?v=0.41"></script>
-<script src="input.js?v=0.41"></script>
-<script src="game.js?v=0.41"></script>
-<script src="save.js?v=0.41"></script>
-<script src="render.js?v=0.41"></script>
-<script src="loot.js?v=0.41"></script>
-<script src="touch.js?v=0.41"></script>
-<script src="main.js?v=0.41"></script>
+<script src="dmath.js?v=0.42"></script>
+<script src="data.js?v=0.42"></script>
+<script src="recipe.js?v=0.42"></script>
+<script src="world.js?v=0.42"></script>
+<script src="audio.js?v=0.42"></script>
+<script src="input.js?v=0.42"></script>
+<script src="game.js?v=0.42"></script>
+<script src="save.js?v=0.42"></script>
+<script src="render.js?v=0.42"></script>
+<script src="loot.js?v=0.42"></script>
+<script src="net.js?v=0.42"></script>
+<script src="touch.js?v=0.42"></script>
+<script src="main.js?v=0.42"></script>
 </body>
 </html>

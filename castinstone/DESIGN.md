@@ -482,6 +482,17 @@ Standing in mud, or being hit by mud spray, slows. A spray hit coats the target 
 
 The last device used takes over. Touch controls are not built yet. (Jaisah, v0.18: W no longer jumps; Q W E S load the elements.)
 
+## Co-op (v0.42, `net.js`, `dmath.js`)
+
+Two players, online, in the host's cave. Each keeps their own golem: a guest's level, runestones, spells and shards come from their own save and go back to it (`KSave.storeGuest`); the cave, its Lodestones found, caches, tablets, champions and boss belong to the host's save.
+
+- **How the two devices stay the same.** Each device runs the whole game. During play they send each other only button presses, one message per step. A press is used `delay` steps later (2 to 9, set from the measured round trip; 3 on a good connection, which is 50 ms), and a step runs only when both players' presses for it are there, so a slow device or connection slows both rather than splitting them. Every 120 steps both work out `game.checksum()` and compare; a mismatch makes the host send the cave again (at most 5 times in 2 minutes, then co-op stops).
+- **Same answers everywhere.** The rules use seeded dice and `KMath` (dmath.js): sin, cos, atan2, exp, pow, log and hypot built from exact operations, because each browser's own versions differ in the last digit. Never use `Math.random`, the clock, or `sort` with a random comparison in world.js, recipe.js or game.js. (That last one was a real fault before v0.42: Chrome's sort asks a different number of questions once the page has been open a while, so "New game" and a later reload could build different caves from one seed. The shuffle in world.js replaces it. Saves moved to `castinstone.save.v3` for this.)
+- **Starting.** Guest sends its golem (`KSave.packPlayer`). Host stops, sends its save (without chunks), `world.meta()` and one number per chunk (`chunkHashes`). Guest builds the cave from the seed, asks for chunks whose numbers differ (`packChunk`), then both build the same game on that cave (`KSave.restore(save, world)`, `game.addPlayer`, `world.syncStart`).
+- **Connecting.** Host waits in mailbox `cis-h-<CODE>` at coop.jza.app (the MORPHOS Worker, unchanged; it accepts jza.app only); the guest leaves an offer there and collects the answer from its own mailbox. Public STUN servers (Cloudflare, Google). `?signal=local` on localhost swaps the mailboxes for localStorage, for tests. `privacy.html` describes all of this and must be kept in step.
+- **Rules that differ in co-op:** the game never pauses; with a panel open your golem is `away` (stands still, cannot be hurt). Menu choices (`cis.act`: spend a point, equip, break, forge, travel) travel with the presses as `ui` events and run inside the step on both devices. Each golem has its own checkpoint. Resting or dying returns only enemies more than 420 from the other golem. A kill gives its experience to both golems within 420. A friend's spells do 30% damage. Events carry `p` (the golem they are for) so each screen shows only its own notices.
+- **Not done yet:** more than two players, PvP, a marker pointing to an off-screen friend, sharing the map each has explored, choosing a golem look during co-op.
+
 ## Touch (v0.41, `touch.js`, `KInput.touch`)
 
 A third input device, `'touch'`, taken on any finger press (keyboard, mouse and controller take over as before). `touch.js` builds the on-screen controls in `#touch` (shown only in play) and writes what is held into `KInput.touch`; the game still receives plain actions.
@@ -586,6 +597,12 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.40:** Jaisah: the two blob creatures were duplicates, the warden was a tank that did nothing, more ranged enemies and kinds per region were wanted, and enemies swarmed him at a rest point. Added four kinds (two ranged) by re-labelling existing homes rather than changing cave generation, so saves carry over; gave the warden a throw and a ground wave; added the calm after a rest and sent chasing enemies home.
 
 - **v0.41:** touch controls (Jaisah: "Yep, add it"). Shot doubles as the aim so one thumb can fire and aim; automatic aim covers the moments that thumb is on Jump or an element.
+
+- **v0.42:** co-op (Jaisah: "OK Go ahead"). Chose both devices running the game and swapping presses, rather than the host streaming the world: the sand simulation changes thousands of cells a second, which is too much to send, while presses are a few bytes. Jaisah: do not keep code for carrying old saves over; early development, starting again is fine. So one way of building a cave, and a new save key.
+
+## Checks run for v0.42
+
+Two pages connected through `?signal=local`: in step from the first frame, identical golem positions, health and levels after moving, casting, dying and a menu choice; 60 steps a second, also with 60 ms added each way (delay rose to 6). A cave dug before hosting arrived intact. A golem moved by hand on one device was detected at the next comparison and both were matched up again. Closing the guest's page returned the host to its own game. Same seed built four times, cold and after warming the page: identical. Not tried between two different browsers or over the real internet.
 
 ## Checks run for v0.41
 

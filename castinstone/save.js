@@ -7,9 +7,17 @@
    broken save never replaces a good one. */
 
 const KSave = (() => {
-  const KEY = 'castinstone.save.v2';   // v2: the larger cave (v0.24); older saves do not fit it
+  const KEY = 'castinstone.save.v3';   // v3: caves built the same on every device (v0.42); older saves do not fit
   const VERSION = 1;
 
+  // a golem's progress (also what a guest brings to a co-op game, and takes home)
+  function packPlayer(p) {
+    return {
+      x: Math.round(p.x), y: Math.round(p.y), hp: Math.round(p.hp), mana: Math.round(p.mana),
+      level: p.level, xp: p.xp, points: p.points, alloc: p.alloc, queue: p.queue, known: p.known, skin: p.skin,
+      runes: p.runes || null, inventory: p.inventory || null, shards: p.shards || 0, bought: p.bought || 0,
+    };
+  }
   function serialize(game) {
     const p = game.players[0], w = game.world;
     return {
@@ -17,11 +25,7 @@ const KSave = (() => {
       found: [...game.found], checkpoint: game.checkpoint,
       explored: btoa(String.fromCharCode(...packBits(w.explored))),
       chunks: w.saveChunks(),
-      player: {
-        x: Math.round(p.x), y: Math.round(p.y), hp: Math.round(p.hp), mana: Math.round(p.mana),
-        level: p.level, xp: p.xp, points: p.points, alloc: p.alloc, queue: p.queue, known: p.known, skin: p.skin,
-        runes: p.runes || null, inventory: p.inventory || null, shards: p.shards || 0, bought: p.bought || 0,
-      },
+      player: packPlayer(p),
       extra: game.saveExtra ? game.saveExtra() : null,
       loot: game.loot.map(L => ({ x: Math.round(L.x), y: Math.round(L.y), rune: L.rune })),
     };
@@ -39,15 +43,7 @@ const KSave = (() => {
   }
 
   // Rebuild a game from a save. Returns the game, or null if the save is unusable.
-  function restore(data) {
-    if (!data || data.v !== VERSION || !Number.isFinite(data.seed)) return null;
-    const game = new KGame.Game(data.seed);
-    const w = game.world, p = game.players[0], s = data.player || {};
-    w.loadChunks(data.chunks || {});
-    if (data.explored) { const e = unpackBits(data.explored, w.explored.length); w.explored.set(e); }
-    game.found = new Set((data.found || [0]).filter(id => id >= 0 && id < w.lodestones.length));
-    game.found.add(0);
-    game.checkpoint = game.found.has(data.checkpoint) ? data.checkpoint : 0;
+  function applyPlayer(game, p, s) {
     const num = (v, lo, hi, d) => Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d;
     p.level = num(s.level, 1, 999, 1); p.xp = num(s.xp, 0, 1e7, 0); p.points = num(s.points, 0, 9999, 0);
     p.alloc = {};
@@ -64,6 +60,21 @@ const KSave = (() => {
     p.shards = num(s.shards, 0, 1e7, 0); p.bought = num(s.bought, 0, 999, 0);
     game.applyStats(p);
     p.hp = num(s.hp, 1, p.maxHp, p.maxHp); p.mana = num(s.mana, 0, p.maxMana, p.maxMana);
+  }
+  const okRuneOf = r => { const RU = KData.runes; return r && RU.types[r.type] && Number.isInteger(r.tier) && r.tier >= 0 && r.tier < RU.tiers.length && Number.isFinite(r.level) ? { id: String(r.id || ''), type: r.type, tier: r.tier, level: Math.max(1, Math.min(99, r.level)) } : null; };
+
+  // world: in co-op, a cave already built (the host's), used as it is
+  function restore(data, world) {
+    if (!data || data.v !== VERSION || !Number.isFinite(data.seed)) return null;
+    const game = new KGame.Game(data.seed, world);
+    const w = game.world, p = game.players[0], s = data.player || {};
+    if (!world) w.loadChunks(data.chunks || {});
+    if (data.explored) { const e = unpackBits(data.explored, w.explored.length); w.explored.set(e); }
+    game.found = new Set((data.found || [0]).filter(id => id >= 0 && id < w.lodestones.length));
+    game.found.add(0);
+    game.checkpoint = game.found.has(data.checkpoint) ? data.checkpoint : 0;
+    applyPlayer(game, p, s);
+    const num = (v, lo, hi, d) => Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d;
     // stand where the golem was, if that is still a free spot; otherwise at the checkpoint
     if (Number.isFinite(s.x) && Number.isFinite(s.y) && s.x > 8 && s.y > 8 && s.x < w.w - 8 && s.y < w.h - 8) {
       p.x = s.x; p.y = s.y;
@@ -71,7 +82,7 @@ const KSave = (() => {
     } else game.respawn(p);
     if (game.loadExtra && data.extra) game.loadExtra(data.extra);
     // runestones lying in the cave
-    if (Array.isArray(data.loot)) for (const L of data.loot.slice(0, 60)) { const r = okRune(L.rune); if (r && Number.isFinite(L.x) && Number.isFinite(L.y)) game.loot.push({ x: L.x, y: L.y, vx: 0, vy: 0, rune: r, t: 1 }); }
+    if (Array.isArray(data.loot)) for (const L of data.loot.slice(0, 60)) { const r = okRuneOf(L.rune); if (r && Number.isFinite(L.x) && Number.isFinite(L.y)) game.loot.push({ x: L.x, y: L.y, vx: 0, vy: 0, rune: r, t: 1 }); }
     return game;
   }
 
@@ -97,5 +108,20 @@ const KSave = (() => {
   function exists() { try { return !!localStorage.getItem(KEY); } catch (e) { return false; } }
   function clear() { try { localStorage.removeItem(KEY); } catch (e) {} }
 
-  return { serialize, restore, store, load, exists, clear, KEY };
+  // After co-op as a guest: put the golem's progress into this device's own save, leaving its own cave
+  // (and where the golem stood in it) as they were. With no save yet, a new cave is started for it.
+  function storeGuest(p) {
+    try {
+      const mine = packPlayer(p); delete mine.x; delete mine.y;
+      let data = null;
+      try { data = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+      if (!data || data.v !== VERSION || !Number.isFinite(data.seed)) data = { v: VERSION, seed: (Math.random() * 1e9) | 0, at: Date.now(), found: [0], checkpoint: 0, chunks: {}, player: {}, extra: null, loot: [] };
+      data.player = Object.assign(mine, Number.isFinite(data.player && data.player.x) ? { x: data.player.x, y: data.player.y } : {});
+      data.at = Date.now();
+      localStorage.setItem(KEY, JSON.stringify(data));
+      return true;
+    } catch (e) { return false; }
+  }
+
+  return { serialize, restore, store, load, exists, clear, KEY, packPlayer, applyPlayer, storeGuest };
 })();

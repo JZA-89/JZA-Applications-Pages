@@ -71,6 +71,7 @@ const KInput = (() => {
     document.body.dataset.device = device;
     addEventListener('keydown', e => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target && e.target.tagName === 'INPUT') return;   // typing a co-op code
       // a key that is only repeating (held since before the controller took over) does not count
       if (e.repeat && !keys.has(e.code)) return;
       if (!e.repeat) setDevice('kbm');

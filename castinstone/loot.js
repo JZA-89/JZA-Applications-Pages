@@ -103,9 +103,9 @@
       view.querySelectorAll('[data-worn]').forEach(b => b.addEventListener('click', () => { picked = { slot: b.dataset.worn }; refocus = '[data-off]'; this.build(game, p, 'runes'); }));
       view.querySelectorAll('[data-bag]').forEach(b => b.addEventListener('click', () => { picked = { bag: +b.dataset.bag }; refocus = '[data-equip]'; this.build(game, p, 'runes'); }));
       const on = (sel, fn) => { const b = view.querySelector(sel); if (b) b.addEventListener('click', fn); };
-      on('[data-equip]', () => { const slot = RU.types[stone.type].slot; game.equip(p, picked.bag); picked = { slot }; refocus = `[data-worn="${slot}"]`; rebuild(); });
-      on('[data-off]', () => { game.unequip(p, picked.slot); picked = null; refocus = '[data-bag]'; rebuild(); });
-      on('[data-break]', () => { p.inventory.splice(picked.bag, 1); p.shards = (p.shards || 0) + shardValue(stone); picked = null; refocus = '[data-bag]'; window.cis.save(); window.cis.rest(); });
+      on('[data-equip]', () => { const slot = RU.types[stone.type].slot; window.cis.act('equip', picked.bag); picked = { slot }; refocus = `[data-worn="${slot}"]`; rebuild(); });
+      on('[data-off]', () => { window.cis.act('unequip', picked.slot); picked = null; refocus = '[data-bag]'; rebuild(); });
+      on('[data-break]', () => { window.cis.act('breakRune', picked.bag); picked = null; refocus = '[data-bag]'; window.cis.save(); window.cis.rest(); });
     },
   };
 
@@ -143,8 +143,8 @@
     }
     view.innerHTML = html;
     const rebuild = () => { window.cis.save(); window.cis.rest(); };
-    view.querySelector('[data-buy]').addEventListener('click', () => { if (game.buyPoint(p)) rebuild(); });
-    view.querySelectorAll('[data-lvl]').forEach(b => b.addEventListener('click', () => { if (game.levelUpRune(p, b.dataset.lvl)) rebuild(); }));
+    view.querySelector('[data-buy]').addEventListener('click', () => { if (window.cis.act('buyPoint')) rebuild(); });
+    view.querySelectorAll('[data-lvl]').forEach(b => b.addEventListener('click', () => { if (window.cis.act('levelUpRune', b.dataset.lvl)) rebuild(); }));
   };
 
   // ---------- hover notes and map dots for things in the cave ----------

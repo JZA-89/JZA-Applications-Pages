@@ -269,7 +269,7 @@ const KRender = (() => {
     draw(game, opt) {
       const world = game.world;
       if (world !== this.world) this.setWorld(world);
-      const p = game.players[0];
+      const p = game.players[game.me || 0];   // this device's golem (the second one for a co-op guest)
       let cx = Math.round(p.x - V.w / 2), cy = Math.round(p.y - 8 - V.h / 2);
       if (game.shake > 0 && !opt.reduced) { cx += Math.round((Math.random() - 0.5) * game.shake); cy += Math.round((Math.random() - 0.5) * game.shake); }
       cx = Math.max(0, Math.min(world.w - V.w, cx)); cy = Math.max(0, Math.min(world.h - V.h, cy));

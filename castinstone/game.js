@@ -6,22 +6,24 @@
    from the network). Nothing here reads a device or draws anything. */
 
 const KGame = (() => {
+  const Math = KMath;   // the same arithmetic on every device (dmath.js)
   const { M, spells, spellKey, player: PD, dummy: DD, step: DT } = KData;
   const { World, makeRng, STATE, SOLID, ST } = KWorld;
   const counts = new Int32Array(KData.materials.length);
+  const UI_CALLS = new Set(['spendPoint', 'equip', 'unequip', 'buyPoint', 'levelUpRune', 'breakRune', 'travel']);
   const MUD_COAT = 2.5;     // seconds a mud hit keeps slowing
   // what stops spells: anything solid, and mud (you can wade through mud, spells cannot)
   const BLOCKS = m => SOLID[m] === 1 || m === M.MUD;
   const MUD_SLOW = 0.35;    // enemy speed while in mud or coated
 
   class Game {
-    constructor(seed) { this.seed = seed; this.found = new Set(); this.opened = new Set(); this.defeated = new Set(); this.cores = new Set(); this.checkpoint = 0; this.events = []; this.reset(); }
+    constructor(seed, world) { this.seed = seed; this.found = new Set(); this.opened = new Set(); this.defeated = new Set(); this.cores = new Set(); this.checkpoint = 0; this.events = []; this.reset(false, world); }
 
     // Build (or rebuild) the cave from the seed. keepPlayers keeps the golems'
     // progress (levels, stats, runestones) and puts them at their checkpoint.
-    reset(keepPlayers) {
+    reset(keepPlayers, world) {
       const kept = keepPlayers ? this.players : null, explored = keepPlayers && this.world ? this.world.explored : null;
-      this.world = new World(this.seed);
+      this.world = world || new World(this.seed);   // co-op hands over a cave already built
       if (explored) this.world.explored.set(explored);
       this.rand = makeRng(this.seed + 17);
       this.time = 0;
@@ -78,7 +80,7 @@ const KGame = (() => {
           if (p.dead || Math.abs(p.x - t.x) > 10 || Math.abs(p.y - t.y) > 14) continue;
           this.read.add(t.id); this.applyStats(p);
           const got = this.tome(p, null, KData.treasure.tierFor(t.level), true);
-          if (!got) { const n = 20 * t.level; p.shards = (p.shards || 0) + n; this.events.push({ type: 'toast', kind: 'shard', text: `A rune tablet you can already read · ${n} shards` }); }
+          if (!got) { const n = 20 * t.level; p.shards = (p.shards || 0) + n; this.events.push({ p: p.id, type: 'toast', kind: 'shard', text: `A rune tablet you can already read · ${n} shards` }); }
           this.sfx('cache', t.x, t.y); this.gainXp(p, 15 * t.level, 'tablet');
           this.events.push({ type: 'toast', kind: 'stone', text: `Rune tablet read · +${KData.treasure.boons.tablet.mana} maximum mana, for good` });
           this.fx.push({ kind: 'flash', x: t.x, y: t.y - 6, r: 30, t: 0, T: 0.5, color: [150, 240, 230] });
@@ -136,6 +138,42 @@ const KGame = (() => {
     }
 
     get actors() { const a = this.players.concat(this.dummies, this.enemies); if (this.boss && !this.boss.dead) a.push(this.boss); return a; }
+
+    // ---------- co-op ----------
+    // A second golem joins: its progress comes from its own save (data), and it stands beside the first.
+    addPlayer(data) {
+      const p = this.makePlayer(this.players.length), host = this.players[0];
+      KSave.applyPlayer(this, p, data || {});
+      Object.assign(p, { x: host.x, y: host.y, checkpoint: this.checkpoint, calmT: 5 });
+      this.players.push(p);
+      return p;
+    }
+    // One number for the state of play. Both devices work it out on the same step; if they differ, they have drifted apart.
+    checksum() {
+      let h = 2166136261; const mix = v => { h = Math.imul(h ^ (v | 0), 16777619); }, w = this.world;
+      mix(w.tick); mix(this.projectiles.length); mix(this.parts.length); mix(this.loot.length);
+      for (const p of this.players) {
+        mix(p.x * 16); mix(p.y * 16); mix(p.hp * 4); mix(p.mana * 4); mix(p.xp); mix(p.level); mix(p.shards || 0);
+        const cx = p.x >> w.shift, cy = p.y >> w.shift;
+        for (let y = Math.max(0, cy - 1) * w.cs; y < Math.min(w.ch, cy + 2) * w.cs; y++) for (let x = Math.max(0, cx - 1) * w.cs, i = y * w.w + x; x < Math.min(w.cw, cx + 2) * w.cs; x++) h = Math.imul(h ^ w.mat[i++], 16777619);
+      }
+      for (const e of this.enemies) if (!e.asleep) { mix(e.x * 16); mix(e.y * 16); mix(e.hp * 4); }
+      if (this.boss) { mix(this.boss.x * 16); mix(this.boss.hp); }
+      for (let k = 0; k < w.awake.length; k++) mix(w.awake[k]);
+      return h >>> 0;
+    }
+    get coop() { return this.players.length > 1; }
+    breakRune(p, index) {
+      const r = p.inventory[index];
+      if (!r) return false;
+      p.inventory.splice(index, 1); p.shards = (p.shards || 0) + Math.round((3 + 2 * r.level) * [1, 2.5, 6, 15][r.tier]);
+      return true;
+    }
+    // experience for a kill: the golem that landed it, and in co-op any other golem close by
+    shareXp(a, p, amount, why) {
+      this.gainXp(p, amount, why);
+      for (const q of this.players) if (q !== p && !q.dead && Math.hypot(q.x - a.x, q.y - a.y) < 420) this.gainXp(q, amount, why);
+    }
 
     makePlayer(id) {
       const s = this.world.spawn;
@@ -215,10 +253,10 @@ const KGame = (() => {
         if (L.t < 0.4) continue;
         for (const p of this.players) {
           if (p.dead || Math.abs(p.x - L.x) > 10 || Math.abs((p.y - p.h / 2) - L.y) > 14) continue;
-          if (p.inventory.length >= RU.bag) { if (!L.fullWarned) { this.events.push({ type: 'toast', text: 'Your bag of runestones is full. Break some at a Lodestone.' }); L.fullWarned = true; } continue; }
+          if (p.inventory.length >= RU.bag) { if (!L.fullWarned) { this.events.push({ p: p.id, type: 'toast', text: 'Your bag of runestones is full. Break some at a Lodestone.' }); L.fullWarned = true; } continue; }
           p.inventory.push(L.rune); L.taken = true; this.sfx('rune', L.x, L.y);
           const T = RU.types[L.rune.type];
-          this.events.push({ type: 'toast', kind: 'loot', text: `Found: ${T.name} · ${RU.tiers[L.rune.tier].name} · level ${L.rune.level}` });
+          this.events.push({ p: p.id, type: 'toast', kind: 'loot', text: `Found: ${T.name} · ${RU.tiers[L.rune.tier].name} · level ${L.rune.level}` });
           this.events.push({ type: 'save' });
           break;
         }
@@ -241,7 +279,7 @@ const KGame = (() => {
           const dx = tgt.x - b.x, dy = tgt.y - tgt.h / 2 - b.y, d = Math.hypot(dx, dy) || 1, a = 900;
           b.vx += dx / d * a * DT; b.vy += dy / d * a * DT;
           b.vx *= Math.exp(-2 * DT); b.vy *= Math.exp(-2 * DT);
-          if (d < 6) { tgt.shards = (tgt.shards || 0) + 1; b.done = true; this.events.push({ type: 'shard' }); if (this.time - (this.shardSndAt || -1) > 0.05) { this.shardSndAt = this.time; this.sfx('shard', b.x, b.y, 0.7); } }
+          if (d < 6) { tgt.shards = (tgt.shards || 0) + 1; b.done = true; this.events.push({ p: tgt.id, type: 'shard' }); if (this.time - (this.shardSndAt || -1) > 0.05) { this.shardSndAt = this.time; this.sfx('shard', b.x, b.y, 0.7); } }
         } else { b.vy += 200 * DT; b.vx *= Math.exp(-3 * DT); }
         b.x += b.vx * DT; b.y += b.vy * DT;
         if (b.t > 6) b.done = true;
@@ -266,7 +304,7 @@ const KGame = (() => {
       const crucible = this.rand() < T.crucibleChance(c.level) && !this.hasRune(p, 'crucible');
       const rune = crucible ? this.makeRune(c.level, { type: 'crucible', tier: 2 }) : this.makeRune(c.level, { tier: Math.min(2, RU.tierFor(c.level, this.rand()) + 1) });
       if (p.inventory.length < RU.bag) p.inventory.push(rune); else this.dropRune(c.x, c.y - 6, rune);
-      this.events.push({ type: 'toast', kind: 'loot', text: `Relic cache opened · ${RU.types[rune.type].name} (${RU.tiers[rune.tier].name}) · ${shards} shards` });
+      this.events.push({ p: p.id, type: 'toast', kind: 'loot', text: `Relic cache opened · ${RU.types[rune.type].name} (${RU.tiers[rune.tier].name}) · ${shards} shards` });
       if (this.rand() < KData.treasure.tomeChance) this.tome(p, null, KData.treasure.tierFor(c.level));
       this.gainXp(p, T.xp(c.level), 'cache');
       this.sfx('cache', c.x, c.y);
@@ -278,7 +316,7 @@ const KGame = (() => {
     learn(p, id, how) {
       if (p.known.includes(id)) return false;
       p.known.push(id);
-      this.events.push({ type: 'learn', id, how });
+      this.events.push({ p: p.id, type: 'learn', id, how });
       this.events.push({ type: 'save' });
       return true;
     }
@@ -495,7 +533,7 @@ const KGame = (() => {
         this.fx.push({ kind: 'ring', x, y, r0: 3, r1: S.radius + 2, t: 0, T: 0.4, color: [255, 150, 60] });
         this.fx.push({ kind: 'flash', x, y, r: 46, t: 0, T: 0.5, color: [255, 150, 60] });
         this.burst(x, y, 26, [[255, 190, 90], [255, 120, 40]], 130);
-        if (!n) this.events.push({ type: 'toast', text: 'Meltdown found no rock to melt there' });
+        if (!n) this.events.push({ p: p.id, type: 'toast', text: 'Meltdown found no rock to melt there' });
         this.sfx('bigboom', x, y, 1); this.sfx('magma', x, y, 1.2); this.shake = Math.max(this.shake, 5);
       } else if (id === 'worldbreaker') {
         for (const o of this.actors) {
@@ -684,7 +722,7 @@ const KGame = (() => {
       if (b.wetT > 0) b.wetT -= DT;
       if (b.slowT > 0) b.slowT -= DT;
       if (b.burnT > 0) b.burnT -= DT;
-      const inLair = q => ((q.x - L.x) / (L.rx * 1.15)) ** 2 + ((q.y - L.y) / (L.ry * 1.5)) ** 2 < 1;
+      const inLair = q => { const ax = (q.x - L.x) / (L.rx * 1.15), ay = (q.y - L.y) / (L.ry * 1.5); return ax * ax + ay * ay < 1; };
       let p = null, best = 1e9;
       for (const q of this.players) if (!q.dead && inLair(q)) { const d = Math.hypot(q.x - b.x, q.y - b.y); if (d < best) { best = d; p = q; } }
       if (!p) {
@@ -839,7 +877,7 @@ const KGame = (() => {
           if (b.t > 0.6 + b.spat * 0.3 && b.spat < n) {
             b.spat++;
             const mx = b.x + b.facing * 9, my = b.y - 10, dx = p.x + (this.rand() - 0.5) * 24 - mx, dy = (p.y - 6) - my, g = 380, v = 230;
-            const disc = v ** 4 - g * (g * dx * dx + 2 * dy * v * v);
+            const disc = v * v * v * v - g * (g * dx * dx + 2 * dy * v * v);
             // a high lob that comes down on you over ledges
             const an = disc >= 0 ? Math.atan2(v * v + Math.sqrt(disc), g * Math.abs(dx)) : Math.PI / 3;
             this.sfx('magma', mx, my, 0.9);
@@ -910,11 +948,11 @@ const KGame = (() => {
     gainXp(p, amount, why) {
       const P = KData.progression;
       p.xp += amount;
-      this.events.push({ type: 'xp', amount, why });
+      this.events.push({ p: p.id, type: 'xp', amount, why });
       while (p.xp >= P.xpFor(p.level)) {
         p.xp -= P.xpFor(p.level); p.level++; p.points += P.pointsPerLevel;
         p.hp = p.maxHp; p.mana = p.maxMana;
-        this.events.push({ type: 'level', level: p.level, points: p.points });
+        this.events.push({ p: p.id, type: 'level', level: p.level, points: p.points });
         this.sfx('level', p.x, p.y);
       }
     }
@@ -947,7 +985,7 @@ const KGame = (() => {
           this.sfx('stone', l.x, l.y);
           this.gainXp(p, KData.progression.lodestoneXp, 'Lodestone found');
         }
-        if (this.checkpoint !== l.id) { this.checkpoint = l.id; this.events.push({ type: 'checkpoint', stone: l }); }
+        if ((p.id ? p.checkpoint : this.checkpoint) !== l.id) { if (p.id) p.checkpoint = l.id; else this.checkpoint = l.id; this.events.push({ p: p.id, type: 'checkpoint', stone: l }); }
         if (was !== l) this.events.push({ type: 'save' });
         p.hp = Math.min(p.maxHp, p.hp + C.stoneRepair * DT);
         p.mana = Math.min(p.maxMana, p.mana + C.stoneRepair * DT);
@@ -958,7 +996,8 @@ const KGame = (() => {
       const l = this.world.lodestones[id];
       if (!l || !this.found.has(id)) return;
       Object.assign(p, { x: l.x + 14, y: this.world.floorBelow(l.x + 14, l.y - 10), vx: 0, vy: 0 });
-      this.checkpoint = id; p.calmT = 5;
+      if (p.id) p.checkpoint = id; else this.checkpoint = id;
+      p.calmT = 5;
       for (const e of this.enemies) e.lastSeen = -9;
     }
 
@@ -1009,6 +1048,7 @@ const KGame = (() => {
 
     // ---------- player control ----------
     control(p, a) {
+      p.away = !!a.away;   // in a menu during co-op: nothing can hurt this golem
       p.flash = Math.max(0, p.flash - DT);
       p.slotFlash = Math.max(0, p.slotFlash - DT);
       p.manaFlash = Math.max(0, p.manaFlash - DT);
@@ -1027,6 +1067,8 @@ const KGame = (() => {
           else p.slotFlash = 0.35;
         } else if (e.type === 'clear') { p.queue = []; p.used = false; }
         else if (e.type === 'undo') { p.queue.pop(); p.used = false; }
+        // a menu choice (spend a point, wear a runestone, travel): in co-op these arrive with the button presses, so both devices make them on the same step
+        else if (e.type === 'ui' && UI_CALLS.has(e.name)) { this[e.name](p, ...(Array.isArray(e.args) ? e.args : [])); this.events.push({ p: p.id, type: 'ui' }); }
       }
       const RC = KRecipe.resolve(p.queue);
       p.recipe = RC;
@@ -1082,7 +1124,7 @@ const KGame = (() => {
       const moveActive = !!a.moveSpell, movePressed = moveActive && !p.moveWas;
       p.moveWas = moveActive;
       if (p.safeT > 0) p.safeT -= DT;
-      for (const e of a.events) if (e.type === 'interact' && p.nearStone) { this.events.push({ type: 'rest', stone: p.nearStone }); p.calmT = 5; this.reviveEnemies(); }
+      for (const e of a.events) if (e.type === 'interact' && p.nearStone) { this.events.push({ p: p.id, type: 'rest', stone: p.nearStone }); p.calmT = 5; this.reviveEnemies(p); }
 
       // mana refills on its own, faster on the ground
       if (p.manaWait > 0) p.manaWait -= DT;
@@ -1993,7 +2035,8 @@ const KGame = (() => {
     }
 
     hurt(a, amount, kx, ky, kind, src, spell) {
-      if (a.dead || amount <= 0) return;
+      if (a.dead || amount <= 0 || a.away) return;
+      if (a.kind === 'player' && src && src.kind === 'player' && src !== a) amount *= 0.3;   // co-op: a friend's spell hurts, but much less
       if (src && src.kind === 'player') { a.lastHitBy = src; a.lastHitAt = this.time; }
       if (spell && spell.includes('earth') && this.has(src, 'quarry')) { kx = (kx || 0) * 1.6; ky = (ky || 0) * 1.6; }
       if (this.has(a, 'anchor')) { kx = (kx || 0) * 0.25; ky = (ky || 0) * 0.25; }
@@ -2046,7 +2089,7 @@ const KGame = (() => {
         this.fx.push({ kind: 'flash', x: a.x, y: a.y - 8, r: 80, t: 0, T: 0.5, color: [255, 170, 70] });
         this.burst(a.x, a.y - 8, 40, [[255, 220, 140], [255, 150, 60]], 180);
         this.sfx('bigboom', a.x, a.y, 1); this.shake = Math.max(this.shake, 5);
-        this.events.push({ type: 'toast', kind: 'big', text: 'The Phoenix flame restores you' });
+        this.events.push({ p: a.id, type: 'toast', kind: 'big', text: 'The Phoenix flame restores you' });
       }
       if (a.hp <= 0) this.kill(a);
     }
@@ -2074,7 +2117,7 @@ const KGame = (() => {
       a.dead = true; a.hp = 0;
       // experience to whoever hit it last (hazards a player caused count for 8 s)
       if (a.kind !== 'player' && a.kind !== 'dummy' && a.lastHitBy && this.time - a.lastHitAt < 8 && !a.lastHitBy.dead)
-        this.gainXp(a.lastHitBy, Math.max(1, Math.round(KData.progression.killXp(a.level || 1, a.kind, a.elite) * (a.champion ? KData.champions.xp : 1) * KData.progression.underLevel(a.lastHitBy.level - (a.level || 1)))), 'kill');
+        this.shareXp(a, a.lastHitBy, Math.max(1, Math.round(KData.progression.killXp(a.level || 1, a.kind, a.elite) * (a.champion ? KData.champions.xp : 1) * KData.progression.underLevel(a.lastHitBy.level - (a.level || 1)))), 'kill');
       if (a.champion && a.lastHitBy) {
         // a champion falls for good: a Legendary runestone, a tome and shards
         const q = a.lastHitBy, RU = KData.runes, r = this.makeRune(a.level + 1, { tier: 3 });
@@ -2087,7 +2130,7 @@ const KGame = (() => {
         this.sfx('level', a.x, a.y, 1.2); this.shake = Math.max(this.shake, 5);
         this.events.push({ type: 'save' });
       }
-      if (a.kind === 'player') this.events.push({ type: 'died' });
+      if (a.kind === 'player') this.events.push({ p: a.id, type: 'died' });
       else if (a.kind !== 'dummy' && a.lastHitBy && (a.elite || a.boss || this.rand() < KData.runes.dropChance)) {
         const n = a.boss ? 2 : 1;
         for (let k = 0; k < n; k++) this.dropRune(a.x, a.y - a.h / 2, this.makeRune(a.level || 1, a.boss ? { tier: Math.min(3, 2 + k) } : a.elite ? { tier: Math.max(1, KData.runes.tierFor(a.level, this.rand())) } : {}));
@@ -2260,7 +2303,7 @@ const KGame = (() => {
         const mx = e.x + e.face * 5, my = e.y - 7;
         const dx = p.x - mx, dy = (p.y - 6) - my, g = 380, v = E.speed;
         // aim on a falling arc: the lower of the two angles that reach the target
-        const disc = v ** 4 - g * (g * dx * dx + 2 * dy * v * v);
+        const disc = v * v * v * v - g * (g * dx * dx + 2 * dy * v * v);
         let an;
         if (disc >= 0) an = Math.atan2(v * v - Math.sqrt(disc), g * Math.abs(dx));
         else an = Math.PI / 4;
@@ -2339,7 +2382,7 @@ const KGame = (() => {
     // the velocity that throws something from (x, y) to land on (tx, ty) at speed v under gravity g:
     // the lower of the two arcs that reach, or 45 degrees if it is out of reach
     lobAt(x, y, tx, ty, v, g) {
-      const dx = tx - x, dy = ty - y, disc = v ** 4 - g * (g * dx * dx + 2 * dy * v * v);
+      const dx = tx - x, dy = ty - y, disc = v * v * v * v - g * (g * dx * dx + 2 * dy * v * v);
       const an = disc >= 0 ? Math.atan2(v * v - Math.sqrt(disc), g * Math.abs(dx)) : Math.PI / 4;
       return { vx: Math.cos(an) * v * Math.sign(dx || 1), vy: -Math.sin(an) * v };
     }
@@ -2637,10 +2680,12 @@ const KGame = (() => {
 
     // Resting at a Lodestone (or dying) brings the cave's creatures back,
     // except any close enough to see appear. Nothing comes back on its own.
-    reviveEnemies() {
-      for (const e of this.enemies) if (e.dead && !(e.champion && this.defeated.has('champ:' + e.kind)) && !this.players.some(p => !p.dead && Math.hypot(p.x - e.home.x, p.y - e.home.y) < 170)) this.respawnCrawler(e);
+    reviveEnemies(by) {
+      // in co-op, whatever is near the other golem is left as it is: its fight goes on
+      const busy = (x, y) => this.players.some(q => q !== by && !q.dead && Math.hypot(q.x - x, q.y - y) < 420);
+      for (const e of this.enemies) if (e.dead && !busy(e.home.x, e.home.y) && !(e.champion && this.defeated.has('champ:' + e.kind)) && !this.players.some(p => !p.dead && Math.hypot(p.x - e.home.x, p.y - e.home.y) < 170)) this.respawnCrawler(e);
       // the living go home too, and forget you: nothing that was chasing you is waiting at the Lodestone
-      for (const e of this.enemies) if (!e.dead && !e.champion && this.time - (e.lastSeen ?? -9) < 12) { this.respawnCrawler(e); }
+      for (const e of this.enemies) if (!e.dead && !e.champion && !busy(e.x, e.y) && this.time - (e.lastSeen ?? -9) < 12) { this.respawnCrawler(e); }
     }
     respawnCrawler(e) {
       const y = e.flying || e.kind === 'spitter' || e.kind === 'delver' ? e.home.y : this.world.floorBelow(e.home.x, e.home.y - 6);
@@ -2650,12 +2695,12 @@ const KGame = (() => {
 
     respawn(p) {
       // back at the last Lodestone touched (the hub's at first)
-      const l = this.world.lodestones[this.checkpoint] || this.world.lodestones[0];
+      const l = this.world.lodestones[p.id ? p.checkpoint ?? this.checkpoint : this.checkpoint] || this.world.lodestones[0];
       const s = l ? { x: l.x + 14, y: this.world.floorBelow(l.x + 14, l.y - 10) } : this.world.spawn;
       Object.assign(p, { x: s.x, y: s.y, vx: 0, vy: 0, hp: p.maxHp, dead: false, mana: p.maxMana, manaWait: 0, dashT: 0, slam: null, lastHurt: -9, burnT: 0, slowT: 0 });
       this.endAllChannels(p);
       p.calmT = 5;
-      this.reviveEnemies();
+      this.reviveEnemies(p);
     }
 
     dummyTick(d) {

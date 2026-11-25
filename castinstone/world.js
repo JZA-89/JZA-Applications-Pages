@@ -8,6 +8,7 @@
    the same actions give the same world. */
 
 const KWorld = (() => {
+  const Math = KMath;   // the same arithmetic on every device (dmath.js)
   const { M, materials, reactions } = KData;
   const N = materials.length;
 
@@ -41,6 +42,19 @@ const KWorld = (() => {
     REACT[r.a * N + r.b] = { chance: r.chance, ra: r.ra, rb: r.rb };
     REACT[r.b * N + r.a] = { chance: r.chance, ra: r.rb, rb: r.ra };
     REACTIVE[r.a] = 1; REACTIVE[r.b] = 1;
+  }
+
+  // Put a short list in a random order, asking the dice in a fixed sequence. (Never shuffle with
+  // `list.sort(() => R() - 0.5)`: how many times a browser's sort asks depends on the browser, and in
+  // Chrome on how long the page has been open, so the same seed gave different caves.)
+  function shuffle(list, R) {
+    for (let start = 1; start < list.length; start++) {
+      const item = list[start]; let left = 0, right = start;
+      while (left < right) { const mid = left + ((right - left) >> 1); if (R() - 0.5 < 0) right = mid; else left = mid + 1; }
+      for (let k = start; k > left; k--) list[k] = list[k - 1];
+      list[left] = item;
+    }
+    return list;
   }
 
   // Deterministic smooth noise for the map shape.
@@ -343,7 +357,7 @@ const KWorld = (() => {
       let n = 0;
       for (let y = Math.floor(cy - r); y <= cy + r; y++) for (let x = Math.floor(cx - r); x <= cx + r; x++) {
         if (x < 8 || y < 8 || x >= this.w - 8 || y >= this.h - 8) continue; // never the world's frame
-        if ((x - cx) ** 2 + (y - cy) ** 2 > r * r) continue;
+        if ((x - cx) * (x - cx) + (y - cy) * (y - cy) > r * r) continue;
         const i = y * this.w + x;
         if (this.mat[i] === M.ROCK) { this.put(i, M.MAGMA); n++; }
       }
@@ -402,6 +416,45 @@ const KWorld = (() => {
     // ----- saving: only the chunks that changed since the cave was generated -----
     // Each chunk's materials and life values are run-length encoded (value, run length
     // up to 255) and stored as base64 text.
+    // ----- co-op: giving another device exactly this cave -----
+    // One number per chunk that changes if any cell in it differs.
+    chunkHashes() {
+      const { cw, ch, cs, w } = this, out = new Uint32Array(cw * ch), A = [this.mat, this.shade, this.life, this.charge];
+      for (let k = 0; k < out.length; k++) {
+        const x0 = (k % cw) * cs, y0 = ((k / cw) | 0) * cs; let h = 2166136261;
+        for (const a of A) for (let y = 0; y < cs; y++) { let i = (y0 + y) * w + x0; for (let x = 0; x < cs; x++) h = Math.imul(h ^ a[i++], 16777619); }
+        out[k] = h >>> 0;
+      }
+      return out;
+    }
+    // one chunk's cells (material, texture, life, charge) as text
+    packChunk(k) {
+      const { cw, cs, w } = this, x0 = (k % cw) * cs, y0 = ((k / cw) | 0) * cs; let s = '';
+      for (const a of [this.mat, this.shade, this.life, this.charge]) for (let y = 0; y < cs; y++) s += String.fromCharCode.apply(null, a.subarray((y0 + y) * w + x0, (y0 + y) * w + x0 + cs));
+      return btoa(s);
+    }
+    unpackChunk(k, text) {
+      const { cw, cs, w } = this, x0 = (k % cw) * cs, y0 = ((k / cw) | 0) * cs, s = atob(text);
+      if (s.length !== cs * cs * 4) return false;
+      let n = 0;
+      for (const a of [this.mat, this.shade, this.life, this.charge]) for (let y = 0; y < cs; y++) { let i = (y0 + y) * w + x0; for (let x = 0; x < cs; x++) a[i++] = s.charCodeAt(n++); }
+      this.dirty[k] = 1;
+      return true;
+    }
+    // everything about the cave that is not a cell: where things are, and which chunks are awake or changed
+    meta() {
+      const b64 = a => { let s = ''; for (let i = 0; i < a.length; i += 4096) s += String.fromCharCode.apply(null, a.subarray(i, i + 4096)); return btoa(s); };
+      return { spawn: this.spawn, caches: this.caches, dummySpots: this.dummySpots, hub: this.hub, lair: this.lair, nodes: this.nodes, edges: this.edges, enemyHomes: this.enemyHomes, lodestones: this.lodestones,
+        broken: this.broken, cooled: this.cooled, bw: this.bw, biomeMap: b64(this.biomeMap), awake: b64(this.awake), changed: b64(this.changed) };
+    }
+    adopt(m) {
+      const put = (a, text) => { const s = atob(text); if (s.length === a.length) for (let i = 0; i < a.length; i++) a[i] = s.charCodeAt(i); };
+      for (const k of ['spawn', 'caches', 'dummySpots', 'hub', 'lair', 'nodes', 'edges', 'enemyHomes', 'lodestones', 'broken', 'cooled']) this[k] = m[k];
+      put(this.biomeMap, m.biomeMap); put(this.awake, m.awake); put(this.changed, m.changed);
+    }
+    // both devices call this at the same moment, so the cave's clock and dice agree from here on
+    syncStart(seed) { this.tick = 0; this.stamp.fill(0); this.rand = makeRng(seed); this.dirty.fill(1); }
+
     saveChunks() {
       const out = {}, cs = this.cs;
       const enc = bytes => {
@@ -686,7 +739,8 @@ const KWorld = (() => {
       for (const n of nodes) {
         if (n.hub || n.lair || R() > T.cacheChance) continue;
         const B = KData.biomes[n.biome];
-        const kinds = Object.keys(T.kinds).filter(k => k !== 'pool' || (B.pool && n.pooled)).sort(() => R() - 0.5);
+        const kinds = Object.keys(T.kinds).filter(k => k !== 'pool' || (B.pool && n.pooled));
+        shuffle(kinds, R);
         let placed = false;
         for (const kind of kinds) {
           if (placed || R() > T.kinds[kind] * 1.6) continue;

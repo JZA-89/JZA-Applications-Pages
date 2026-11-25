@@ -11,12 +11,14 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.41';
+  const VERSION = 'v0.42';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
   let game = KSave.load() || new KGame.Game(randomSeed());
   const hadSave = KSave.exists();
+  let ME = 0;            // which golem is this device's: 0, or 1 as the guest in co-op
+  let guestGame = false; // true while `game` is a friend's cave (never stored as this device's save)
   const R = new KRender.Renderer(view, glow);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   function randomSeed() { return (Math.random() * 1e9) | 0; }
@@ -84,7 +86,7 @@
   }
   // special spells: the ones you know show their sequence; the rest stay hidden
   function renderSpecials() {
-    const known = game.players[0].known, S = KData.specials, ids = Object.keys(S);
+    const known = game.players[ME].known, S = KData.specials, ids = Object.keys(S);
     $('specialsTitle').textContent = `Special spells · ${known.length} of ${ids.length} known`;
     // by tier: the number of elements tells you how long an unknown one is
     const TIER = ['', 'First circle · three elements', 'Second circle · four elements', 'Third circle · five elements', 'Fourth circle · six elements', 'Fifth circle · seven elements'];
@@ -115,7 +117,7 @@
   $('keygrid').innerHTML = KEYCARDS.map(([ic, title, rows]) => `<div class="keycard"><h3>${KIcon(ic)}${title}</h3>` + rows.map(([k, t]) => `<div class="keyrow"><span class="k">${k}</span><span>${t}</span></div>`).join('') + '</div>').join('');
 
   // ---------- golem picker (the look; also kept in the save) ----------
-  let skin = game.players[0].skin || 0;
+  let skin = game.players[ME].skin || 0;
   if (!hadSave) try { const v = parseInt(localStorage.getItem('castinstone.golem'), 10); if (v >= 0 && v < KData.golems.length) skin = v; } catch {}
   const golemBtns = KData.golems.map((g, i) => {
     const b = document.createElement('button');
@@ -129,7 +131,7 @@
     return b;
   });
   function pickGolem(i) {
-    skin = i; game.players[0].skin = i;
+    skin = i; game.players[ME].skin = i;
     golemBtns.forEach((b, k) => b.setAttribute('aria-checked', k === i ? 'true' : 'false'));
     try { localStorage.setItem('castinstone.golem', String(i)); } catch {}
   }
@@ -137,7 +139,19 @@
 
   // ---------- saving ----------
   let saveTimer = 0;
-  function save() { if (KSave.store(game)) saveTimer = 0; }
+  function save() {
+    // as a guest in co-op only the golem's progress goes home; the cave is the host's
+    if (guestGame) { if (game.players[ME]) KSave.storeGuest(game.players[ME]); saveTimer = 0; return; }
+    if (KNet.state === 'sync' && KNet.role === 'guest') return;
+    if (KSave.store(game)) saveTimer = 0;
+  }
+  // A menu choice that changes the golem. Alone it happens at once; in co-op it travels with the
+  // button presses, so both devices make it on the same step (the panel is rebuilt when it lands).
+  const act = (name, ...args) => {
+    if (KNet.on) { KInput.queue({ type: 'ui', name, args }); return true; }
+    const r = game[name](game.players[ME], ...args);
+    return r === undefined ? true : r;
+  };
   addEventListener('pagehide', save);
 
   // ---------- modes: start, help (spell book), pause, map, rest, play ----------
@@ -161,10 +175,11 @@
     if (m === 'play') { view.focus({ preventScroll: true }); return; }
     if (m === 'rest') { buildRest(); $('btnLeave').focus({ preventScroll: true }); return; }
     if (m === 'map') { drawBigMap(); $('btnMapClose').focus({ preventScroll: true }); return; }
-    const p = game.players[0], started = m !== 'start' || hadSave;
-    $('panelEyebrow').textContent = m === 'start' ? `Beta · one player · ${VERSION}` : 'Paused';
+    const p = game.players[ME], started = m !== 'start' || hadSave;
+    $('panelEyebrow').textContent = KNet.on ? 'Co-op · the game goes on while this is open' : m === 'start' ? `Beta · ${VERSION}` : 'Paused';
+    $('btnNewCave').hidden = KNet.busy; if (KNet.busy) $('btnPanelReset').hidden = true;
     $('btnGo').textContent = m === 'start' ? (hadSave ? 'Continue' : 'Start') : 'Resume';
-    $('btnPanelReset').hidden = m === 'start';
+    $('btnPanelReset').hidden = m === 'start' || KNet.busy;
     $('saveLine').innerHTML = !started ? '' : chip('star', `Level ${p.level}`) + (p.shards ? chip('shard', `${p.shards} shards`, 'teal') : '');
     $('panelLede').hidden = started;
     // the journey: what there is to find in this cave, and what it has given you
@@ -184,26 +199,26 @@
   view.tabIndex = -1;
   const resume = () => setMode('play');
   // Reset the cave: rebuild it from its seed, keeping the golem's progress.
-  const resetMap = () => { game.reset(true); game.players[0].skin = skin; acc = 0; mapTick = 0; save(); };
+  const resetMap = () => { game.reset(true); game.players[ME].skin = skin; acc = 0; mapTick = 0; save(); };
   $('btnGo').addEventListener('click', () => { KAudio.start(); resume(); });
   addEventListener('pointerdown', () => KAudio.start(), { once: true });
   addEventListener('keydown', () => KAudio.start(), { once: true });
   const muteBtn = $('btnMute');
   const showMute = () => { muteBtn.setAttribute('aria-pressed', KAudio.muted ? 'true' : 'false'); muteBtn.innerHTML = KIcon(KAudio.muted ? 'mute' : 'sound'); muteBtn.title = KAudio.muted ? 'Sound is off (M)' : 'Sound is on (M)'; };
   muteBtn.addEventListener('click', () => { KAudio.start(); KAudio.setMuted(!KAudio.muted); showMute(); view.focus(); });
-  addEventListener('keydown', e => { if (e.code === 'KeyM' && !e.repeat && !e.metaKey && !e.ctrlKey) { KAudio.start(); KAudio.setMuted(!KAudio.muted); showMute(); } });
+  addEventListener('keydown', e => { if (e.target && e.target.tagName === 'INPUT') return; if (e.code === 'KeyM' && !e.repeat && !e.metaKey && !e.ctrlKey) { KAudio.start(); KAudio.setMuted(!KAudio.muted); showMute(); } });
   showMute();
   const musicBtn = $('btnMusic');
   const showMusic = () => { musicBtn.setAttribute('aria-pressed', KAudio.music ? 'false' : 'true'); musicBtn.innerHTML = KIcon(KAudio.music ? 'music' : 'nomusic'); musicBtn.title = KAudio.music ? 'Music is on (N)' : 'Music is off (N)'; };
   const toggleMusic = () => { KAudio.start(); KAudio.setMusic(!KAudio.music); showMusic(); };
   musicBtn.addEventListener('click', () => { toggleMusic(); view.focus(); });
-  addEventListener('keydown', e => { if (e.code === 'KeyN' && !e.repeat && !e.metaKey && !e.ctrlKey) toggleMusic(); });
+  addEventListener('keydown', e => { if (e.target && e.target.tagName === 'INPUT') return; if (e.code === 'KeyN' && !e.repeat && !e.metaKey && !e.ctrlKey) toggleMusic(); });
   showMusic();
   $('btnPanelReset').addEventListener('click', () => { resetMap(); resume(); });
   $('btnNewCave').addEventListener('click', () => {
     // a second press confirms: this replaces the saved world and the golem's progress
     if (!confirmNew) { confirmNew = true; $('btnNewCave').textContent = 'Press again to start over'; return; }
-    game = new KGame.Game(randomSeed()); game.players[0].skin = skin; window.cis.game = game;
+    game = new KGame.Game(randomSeed()); game.players[ME].skin = skin; window.cis.game = game;
     KSave.clear(); save(); acc = 0; mapTick = 0; toasts.length = 0; resume();
   });
   $('btnPause').addEventListener('click', () => setMode('pause'));
@@ -221,7 +236,7 @@
     onReset: () => {},
     // touch: with no finger aiming, aim at the nearest creature in view, if any
     autoAim: () => {
-      const p = game.players[0], c = game.chest(p), w = game.world; let best = null, bd = 185;
+      const p = game.players[ME], c = game.chest(p), w = game.world; let best = null, bd = 185;
       const look = a => { if (!a || a.dead || a.asleep) return; const tx = a.x, ty = a.y - a.h / 2, d = Math.hypot(tx - c.x, ty - c.y); if (d < bd && d > 1 && !w.ray(c.x, c.y, (tx - c.x) / d, (ty - c.y) / d, Math.max(0, d - Math.max(a.w, a.h) / 2 - 1)).hit) { bd = d; best = { aim: Math.atan2(ty - c.y, tx - c.x), dist: d }; } };
       for (const e of game.enemies) if (Math.abs(e.x - c.x) < 190) look(e);
       look(game.boss);
@@ -296,7 +311,7 @@
   const STAT_ICON = { attack: 'attack', defence: 'defence', vitality: 'heart', mana: 'drop', focus: 'focus', fire: 'fire', water: 'water', earth: 'earth', lightning: 'lightning' };
   const STAT_COL = { attack: '#ffd37a', defence: '#c9c2d6', vitality: '#e0705c', mana: '#b79cff', focus: '#b79cff' };
   function buildRest() {
-    const p = game.players[0], P = KData.progression, here = p.nearStone || game.world.lodestones[game.checkpoint];
+    const p = game.players[ME], P = KData.progression, here = p.nearStone || game.world.lodestones[ME ? p.checkpoint ?? game.checkpoint : game.checkpoint];
     $('restWhere').textContent = here ? `${here.hub ? 'The hub' : here.region} · Level ${here.level}` : '';
     $('restLevel').textContent = p.level;
     $('restGem').style.setProperty('--pct', Math.min(100, 100 * p.xp / P.xpFor(p.level)).toFixed(1));
@@ -320,7 +335,7 @@
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'plus'; b.textContent = '+'; b.disabled = p.points <= 0;
       b.setAttribute('aria-label', `Add a point to ${s.name}`);
-      b.addEventListener('click', () => { if (game.spendPoint(p, s.id)) { buildRest(); save(); const nb = grid.querySelectorAll('.plus')[P.stats.indexOf(s)]; if (nb && !nb.disabled) nb.focus(); } });
+      b.addEventListener('click', () => { if (act('spendPoint', s.id)) { buildRest(); save(); const nb = grid.querySelectorAll('.plus')[P.stats.indexOf(s)]; if (nb && !nb.disabled) nb.focus(); } });
       row.appendChild(b);
       grid.appendChild(row);
     }
@@ -336,7 +351,7 @@
       const d = here ? Math.round(Math.hypot(l.x - here.x, l.y - here.y)) : 0;
       b.innerHTML = `<b>${l.hub ? 'The hub' : l.region}</b><span>Level ${l.level}</span><small>${isHere ? 'You are here' : d + ' away'}</small>`;
       b.disabled = isHere;
-      b.addEventListener('click', () => { game.travel(p, l.id); save(); resume(); });
+      b.addEventListener('click', () => { act('travel', l.id); save(); resume(); });
       tl.appendChild(b);
     }
     const unfound = game.world.lodestones.length - game.found.size;
@@ -355,18 +370,20 @@
   let xpPending = 0, xpTimer = 0, shardPending = 0, shardTimer = 0;
   function handleEvents(dt) {
     for (const e of game.events) {
+      if (e.p !== undefined && e.p !== ME) continue;   // the other golem's news
+      if (e.type === 'ui') { if (mode === 'rest') buildRest(); continue; }
       if (e.type === 'xp') { xpPending += e.amount; xpTimer = 0.6; }
       else if (e.type === 'shard') { shardPending++; shardTimer = 0.7; }
       else if (e.type === 'level') {
         // point the way to the nearest Lodestone you have found, where points are spent
-        const p = game.players[0];
+        const p = game.players[ME];
         let best = null, bd = 1e9;
         for (const id of game.found) { const l = game.world.lodestones[id]; if (!l) continue; const d = Math.hypot(l.x - p.x, l.y - p.y); if (d < bd) { bd = d; best = l; } }
         const where = !best ? '' : bd < 40 ? ' · press F at the Lodestone here' : ` · nearest Lodestone ${Math.round(bd)} ${Math.abs(best.x - p.x) > Math.abs(best.y - p.y) ? (best.x < p.x ? 'west' : 'east') : (best.y < p.y ? 'up' : 'down')}`;
         toast(`Level ${e.level} · ${e.points} stat point${e.points === 1 ? '' : 's'} to spend at a Lodestone${where}`, 'big');
       }
       else if (e.type === 'found') toast(`Lodestone found · ${e.stone.hub ? 'the hub' : e.stone.region}`, 'stone');
-      else if (e.type === 'rest') { save(); setMode('rest'); }
+      else if (e.type === 'rest') { save(); if (mode === 'play') setMode('rest'); }
       else if (e.type === 'save') save();
       else if (e.type === 'died') toast('Your golem crumbled. It rises again at the last Lodestone.', 'died');
       else if (e.type === 'toast') toast(e.text, e.kind || '');
@@ -374,7 +391,7 @@
     }
     game.events.length = 0;
     if (xpPending && (xpTimer -= dt) <= 0) { toast(`+${xpPending} experience`, 'xp'); xpPending = 0; }
-    if (shardPending && (shardTimer -= dt) <= 0) { toast(`+${shardPending} shard${shardPending === 1 ? '' : 's'} · ${game.players[0].shards} in all`, 'shard'); shardPending = 0; }
+    if (shardPending && (shardTimer -= dt) <= 0) { toast(`+${shardPending} shard${shardPending === 1 ? '' : 's'} · ${game.players[ME].shards} in all`, 'shard'); shardPending = 0; }
     let changed = false;
     for (const t of toasts) t.t += dt;
     while (toasts.length && toasts[0].t > (toasts[0].kind === 'big' ? 4.5 : 3)) { toasts.shift(); changed = true; }
@@ -384,7 +401,7 @@
   // ---------- HUD ----------
   const hud = { hp: -1, mana: -1, maxHp: -1, maxMana: -1, q: null, name: '', flash: 0, mflash: 0, lv: '', boss: '', buffs: '' };
   function updateHud() {
-    const p = game.players[0];
+    const p = game.players[ME];
     // health and mana: the liquid in the two orbs
     const hp = Math.round(p.hp);
     if (hp !== hud.hp || p.maxHp !== hud.maxHp) {
@@ -523,12 +540,13 @@
     for (const e of game.enemies) if (e.champion && !e.dead && w.explored[(e.home.y >> 5) * w.cw + (e.home.x >> 5)]) dot(e.home.x, e.home.y - 6, pk(255, 110, 180), true);
     const L = w.lair;
     if (L && !game.defeated.has(L.boss) && w.explored[(L.y >> 5) * w.cw + (L.x >> 5)]) { dot(L.x - 3 * s / 4, L.y, pk(255, 90, 40), true); dot(L.x + 3 * s / 4, L.y, pk(255, 90, 40), true); }
-    const p = game.players[0];
+    const p = game.players[ME];
+    for (const q of game.players) if (q !== p) dot(q.x, q.y - 8, pk(120, 230, 255), true);   // a friend
     dot(p.x, p.y - 8, pk(255, 255, 255), true);
     if (W !== mm.width) { const X = Math.floor((p.x - x0) / s), Y = Math.floor((p.y - 8 - y0) / s); for (const [dx, dy] of [[-4, 0], [4, 0], [0, -4], [0, 4], [-3, 0], [3, 0], [0, -3], [0, 3]]) if (X + dx >= 0 && Y + dy >= 0 && X + dx < W && Y + dy < H) buf[(Y + dy) * W + X + dx] = pk(255, 255, 255); }
   }
   function drawBigMap() {
-    const w = game.world, p = game.players[0];
+    const w = game.world, p = game.players[ME];
     paintMap(bbuf, big.width, big.height, 0, 0, w.w / big.width);
     bctx.putImageData(bimg, 0, 0);
     const found = game.found.size, all = w.lodestones.length;
@@ -539,7 +557,7 @@
   $('btnMapClose').addEventListener('click', () => setMode('play'));
   function updateMap() {
     if (mapTick++ % 12) return;
-    const w = game.world, p = game.players[0], S = 6;
+    const w = game.world, p = game.players[ME], S = 6;
     const x0 = Math.max(0, Math.min(w.w - mm.width * S, p.x - mm.width * S / 2)), y0 = Math.max(0, Math.min(w.h - mm.height * S, p.y - mm.height * S / 2));
     paintMap(mbuf, mm.width, mm.height, x0, y0, S);
     mctx.putImageData(mimg, 0, 0);
@@ -549,12 +567,28 @@
 
   // ---------- loop ----------
   let acc = 0, last = performance.now();
-  const origin = () => { const p = game.players[0]; const c = game.chest(p), q = R.worldToClient(c.x, c.y); q.scale = view.getBoundingClientRect().width / V.w; return q; };
+  const origin = () => { const p = game.players[ME]; const c = game.chest(p), q = R.worldToClient(c.x, c.y); q.scale = view.getBoundingClientRect().width / V.w; return q; };
+  // in co-op, with a panel open this golem stands still and cannot be hurt; menu choices still go through
+  const coopSample = () => {
+    const a = KInput.sample(origin);
+    return mode === 'play' ? a : { move: 0, moveY: 0, jump: false, cast: false, burst: false, moveSpell: false, away: true, aim: a.aim, aimDist: a.aimDist, events: a.events.filter(e => e.type === 'ui') };
+  };
   function frame(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
     const padAct = KInput.poll(mode === 'play', now);
     if (padAct) padMenu(padAct);
-    if (mode === 'play') {
+    if (KNet.on) {
+      // co-op: the game goes on whatever is open, and a step runs only when both players' presses for it are here
+      game.hitStop = 0; acc = Math.min(acc + dt, STEP * 8);
+      if (KNet.behind > 1) acc += STEP;   // the other device is ahead: catch up
+      let n = 0;
+      while (acc >= STEP && n < 8) { if (!KNet.step(coopSample)) break; acc -= STEP; n++; }
+      saveTimer += dt;
+      if (saveTimer > 20) save();
+      const w = KNet.waited;
+      $('netWait').hidden = w < 900;
+      if (w > 45000) KNet.stop('The other player stopped responding, so co-op was stopped.');
+    } else if (mode === 'play' && KNet.state !== 'sync') {
       if (game.hitStop > 0) { game.hitStop -= dt; acc = 0; }   // a brief freeze on heavy blows
       else acc += dt;
       let n = 0;
@@ -563,9 +597,9 @@
       saveTimer += dt;
       if (saveTimer > 20) save();
     }
-    handleEvents(mode === 'play' ? dt : 0);
+    handleEvents(mode === 'play' || KNet.on ? dt : 0);
     // sounds, heard from the golem
-    const me = game.players[0];
+    const me = game.players[ME];
     for (const [name, x, y, v] of game.sounds) KAudio.play(name, x, y, me.x, me.y - 8, v);
     game.sounds.length = 0;
     const held = new Set();
@@ -574,7 +608,7 @@
     // music: calm in the cave, ominous while a boss or champion is fighting you
     const foe = game.boss && !game.boss.dead && game.boss.engaged ? game.boss : game.championNear(me);
     KAudio.setMood(foe && !me.dead ? 'boss' : 'cave');
-    const p = game.players[0];
+    const p = game.players[ME];
     let reticle = null;
     if (mode === 'play') {
       if (KInput.device !== 'kbm') { const c = game.chest(p); reticle = { x: c.x + Math.cos(p.aim) * 26, y: c.y + Math.sin(p.aim) * 26 }; }
@@ -593,5 +627,52 @@
   requestAnimationFrame(frame);
 
   // for testing from the console
-  window.cis = { get game() { return game; }, set game(g) { game = g; }, R, save, setMode, toast, rest: buildRest };
+  // ---------- co-op (net.js) ----------
+  const coopSay = (text, kind) => {
+    const el = $('coopStatus'); el.textContent = text; el.dataset.kind = kind || ''; el.hidden = !text;
+    $('btnHost').disabled = $('btnJoin').disabled = $('coopCode').disabled = KNet.busy;
+    $('btnNewCave').hidden = KNet.busy; if (KNet.busy) $('btnPanelReset').hidden = true; else $('btnPanelReset').hidden = mode === 'start';
+    $('btnLeaveCoop').hidden = !KNet.busy; $('btnLeaveCoop').textContent = KNet.on ? 'Leave co-op' : 'Cancel';
+  };
+  KNet.init({
+    version: VERSION,
+    game: () => game,
+    myPlayer: () => KSave.packPlayer(game.players[ME]),
+    status: coopSay,
+    note: text => toast(text, 'big'),
+    pause: () => { KInput.clearHeld(); },
+    saveNow: () => save(),
+    setGame: (g, me) => { game = g; ME = me; g.me = me; guestGame = me === 1; acc = 0; mapTick = 0; },
+    started: role => {
+      toasts.length = 0; renderToasts();
+      toast(role === 'host' ? 'A friend has joined your cave' : 'You have joined your friend\'s cave', 'big');
+      coopSay(role === 'host' ? 'Playing co-op: a friend is in your cave.' : 'Playing co-op in your friend\'s cave. Your golem\'s progress is saved to this device.', 'ok');
+      KAudio.start(); setMode('play');
+    },
+    ended: (why, wasPlaying, role) => {
+      $('netWait').hidden = true;
+      if (guestGame) {
+        // back to this device's own cave, with whatever the golem gained
+        if (game.players[ME]) KSave.storeGuest(game.players[ME]);
+        guestGame = false; ME = 0;
+        game = KSave.load() || new KGame.Game(randomSeed()); game.me = 0;
+      } else if (game.players.length > 1) {
+        // the host carries on alone in the same cave
+        const data = JSON.parse(JSON.stringify(KSave.serialize(game)));
+        const g = KSave.restore(data, game.world);
+        if (g) { game = g; game.me = 0; }
+        ME = 0; save();
+      }
+      acc = 0; mapTick = 0;
+      coopSay(why, 'bad');
+      if (wasPlaying) { toast(why, 'big'); setMode('pause'); showPanelTab('coop'); }
+    },
+  });
+  $('btnHost').addEventListener('click', () => { save(); KNet.host(); });
+  $('btnJoin').addEventListener('click', () => { save(); KNet.join($('coopCode').value); });
+  $('coopCode').addEventListener('keydown', e => { if (e.key === 'Enter') $('btnJoin').click(); });
+  $('btnLeaveCoop').addEventListener('click', () => KNet.leave());
+  addEventListener('pagehide', () => { if (KNet.busy) KNet.leave(); });
+
+  window.cis = { get game() { return game; }, set game(g) { game = g; }, R, save, setMode, toast, rest: buildRest, act, get me() { return ME; } };
 })();
