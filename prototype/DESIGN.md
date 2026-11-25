@@ -464,6 +464,18 @@ The start/pause panel holds the title, the golem picker, a two-column controls l
 
 **Hit-stop:** the game freezes for a moment on heavy blows: 0.045 s when you deal 30 or more, 0.06 s when you take 15 or more, 0.08 s when the wyrm's body hits you, 0.25 s when it dies.
 
+## Music (v0.27, `audio.js`)
+
+Made in code like every other sound: no files. Two pieces that cross-fade over about two seconds (`KAudio.setMood`):
+- **The cave** (calm): five open chords of soft sine and triangle notes, about 13 s each with 4.5 s fades so they overlap; a quiet low hum; and single high bell notes like drips every 2 to 7 s, sometimes answered by a second. Everything goes through a 3 s echo made from fading noise.
+- **A boss or champion** (ominous; plays while the Emberwyrm is engaged or a champion has noticed you, and you are alive): a low growling drone whose filter slowly opens and closes, held clashing chords, a slow heartbeat drum (a heavy beat, its echo, then two lighter ones), and now and then two bells a semitone apart.
+
+Notes are scheduled 0.4 s ahead on the audio clock and nothing is scheduled while the page is hidden. **N** or the music button turns music off and on (remembered, `castinstone.music`); **M** still silences everything. `KAudio.probe()` reports the faders and the measured level for tests.
+
+## Golem motion (v0.27, `render.js` `golemPose`)
+
+The golem is one sprite, moved in parts by a pixel: the feet (bottom three rows, split down the middle), the arms (outer columns of the lower half) and the upper body. Poses: a four-beat walk whose pace follows its speed, with the opposite arm swinging and a lean into a run; breathing when still (chest, then arms); stretched going up and feet tucked coming down; a squash for 0.12 s on landing; a lean back from a cast; a lean into a dash; braced and shaking while lifting. A part pulled away from the one above it is filled in, so no gaps show. With reduced motion the golem stays a still sprite.
+
 ## Hover note
 
 Pointing the mouse at something shows a small note in the bottom-left corner (`#look`, `describe()` in `main.js`): creatures with their health (and your own mana), or the material under the cursor with a one-line description (`desc` in each material; electrified water has its own). Hidden over empty space, with a controller, outside play, and on screens narrow enough to use the compact layout.
@@ -502,6 +514,11 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.24 (2026-11-26):** balance pass from measurements (earth digs best, fire no longer best at everything, Bursts worth their mana, single elements not the most efficient, explosions cannot delete magma), longer recipes look bigger, a cave more than twice the size with levels 1 to 8, enemies return only on rest, a much bigger Emberwyrm arena. Saves start again (`castinstone.save.v2`).
 - **v0.25 (2026-11-26):** three champions; a full map on Tab and a local corner map; relic caches teach a special spell 25% of the time (was 70%).
 - **v0.26 (2026-11-26):** a new interface for the HUD and every panel (Jaisah: proper game UI, as in MORPHOS).
+- **v0.27 (2026-11-26):** music (a calm cave piece and an ominous one for bosses and champions, N to toggle) and motion for the golems (both Jaisah).
+
+## Checks run for v0.27
+
+Music measured in the browser: the cave piece playing after start, the boss piece taking over inside the lair and the cave piece returning outside it, silence with N and sound again after; the setting is remembered. Golem poses sampled while still, running and jumping (they change as described) and photographed enlarged (no gaps or stray pixels); reduced motion leaves it still. I cannot hear the music from here, so how it sounds is for Jaisah to judge.
 
 ## Checks run for v0.26
 

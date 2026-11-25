@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.26';
+  const VERSION = 'v0.27';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -97,7 +97,7 @@
     ['golem', 'Move', [[K('A') + K('D'), 'Run'], [K('Space', 'w'), 'Jump. Keep holding in the air to Lift'], [K('Shift', 'w'), 'Move: a dash, a blink, a climb'], [K('F'), 'Rest at a Lodestone']]],
     ['shot', 'Cast', [[KIcon('mouse'), 'Aim with the mouse'], [K('Left', 'w'), 'Shot, aimed where you point'], [K('Right', 'w'), 'Burst, around you'], ['', 'Hold any of them to keep casting']]],
     ['rune', 'Recipe', [[elementOrder.map(EK).join(''), 'Add Fire, Water, Earth or Lightning'], [K('C'), 'Take off the last element'], [K('X'), 'Clear the recipe'], ['', 'After a cast, the next element starts a new recipe']]],
-    ['keys', 'Menus', [[K('Tab', 'w'), 'Map'], [K('H'), 'Spell book'], [K('M'), 'Sound on or off'], [K('Esc', 'w'), 'Pause']]],
+    ['keys', 'Menus', [[K('Tab', 'w'), 'Map'], [K('H'), 'Spell book'], [K('M') + K('N'), 'All sound · music, on or off'], [K('Esc', 'w'), 'Pause']]],
   ];
   $('keygrid').innerHTML = KEYCARDS.map(([ic, title, rows]) => `<div class="keycard"><h3>${KIcon(ic)}${title}</h3>` + rows.map(([k, t]) => `<div class="keyrow"><span class="k">${k}</span><span>${t}</span></div>`).join('') + '</div>').join('');
 
@@ -169,6 +169,12 @@
   muteBtn.addEventListener('click', () => { KAudio.start(); KAudio.setMuted(!KAudio.muted); showMute(); view.focus(); });
   addEventListener('keydown', e => { if (e.code === 'KeyM' && !e.repeat && !e.metaKey && !e.ctrlKey) { KAudio.start(); KAudio.setMuted(!KAudio.muted); showMute(); } });
   showMute();
+  const musicBtn = $('btnMusic');
+  const showMusic = () => { musicBtn.setAttribute('aria-pressed', KAudio.music ? 'false' : 'true'); musicBtn.innerHTML = KIcon(KAudio.music ? 'music' : 'nomusic'); musicBtn.title = KAudio.music ? 'Music is on (N)' : 'Music is off (N)'; };
+  const toggleMusic = () => { KAudio.start(); KAudio.setMusic(!KAudio.music); showMusic(); };
+  musicBtn.addEventListener('click', () => { toggleMusic(); view.focus(); });
+  addEventListener('keydown', e => { if (e.code === 'KeyN' && !e.repeat && !e.metaKey && !e.ctrlKey) toggleMusic(); });
+  showMusic();
   $('btnPanelReset').addEventListener('click', () => { resetMap(); resume(); });
   $('btnNewCave').addEventListener('click', () => {
     // a second press confirms: this replaces the saved world and the golem's progress
@@ -480,6 +486,9 @@
     const held = new Set();
     if (mode === 'play' && !me.dead) for (const md of KData.modes) { const k = me.channels[md]; if (k) { const sp = game.spec(me, md); if (sp) held.add(sp.kind); } }
     KAudio.hold(held);
+    // music: calm in the cave, ominous while a boss or champion is fighting you
+    const foe = game.boss && !game.boss.dead && game.boss.engaged ? game.boss : game.championNear(me);
+    KAudio.setMood(foe && !me.dead ? 'boss' : 'cave');
     const p = game.players[0];
     let reticle = null;
     if (mode === 'play') {

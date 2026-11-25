@@ -215,7 +215,7 @@ const KRender = (() => {
       for (const d of game.dummies) this.drawDummy(d);
       for (const e of game.enemies) if (!e.asleep && !e.dead) { if (e.kind === 'crawler') this.drawCrawler(e, game.time); else this.drawEnemy(e, game.time); }
       if (game.boss && !game.boss.dead) this.drawBoss(game.boss, game);
-      for (const pl of game.players) this.drawGolem(pl);
+      for (const pl of game.players) this.drawGolem(pl, game.time, opt.reduced);
       this.drawCaches(game);
       this.drawLoot(game);
       this.drawProjectiles(game);
@@ -316,6 +316,10 @@ const KRender = (() => {
     plotGolem(skin, ox, oy, flip, slots, opts = {}) {
       const S = SKINS[skin], e0 = slots[0] && elements[slots[0]].color, e1 = slots[1] && elements[slots[1]].color;
       const mix = e0 && e1 ? e0.map((v, i) => (v + e1[i]) / 2) : null;
+      // opts.pose: { body, legL, legR, armL, armR, lean } in pixels (see golemPose). The feet are
+      // the bottom three rows, split down the middle; the arms are the outer columns of the lower half.
+      const P = opts.pose, legs = S.H - 3, half = S.W / 2;
+      const off = (y, x) => y >= legs ? (x < half ? P.legL : P.legR) : P.body + (y >= S.H * 0.45 && (x <= 4 || x >= S.W - 5) ? (x <= 4 ? P.armL : P.armR) : 0);
       for (let y = 0; y < S.H; y++) {
         const row = S.rows[y];
         for (let x = 0; x < S.W; x++) {
@@ -329,12 +333,50 @@ const KRender = (() => {
           else col = STONE[ch];
           if (opts.flashSlots && (ch === 'L' || ch === 'R')) col = opts.flashSlots;
           if (opts.flash) col = [255, 246, 236];
-          this.plot(ox + (flip ? S.W - 1 - x : x), oy + y, col[0], col[1], col[2]);
+          const sx = ox + (flip ? S.W - 1 - x : x);
+          if (!P) { this.plot(sx, oy + y, col[0], col[1], col[2]); continue; }
+          // the pose moves whole parts by a pixel; a part pulled away from the one above it is filled in
+          const o = off(y, x), dx = y < S.H * 0.4 ? P.lean : 0;
+          this.plot(sx + dx, oy + y + o, col[0], col[1], col[2]);
+          if (y + 1 < S.H && off(y + 1, x) > o && row !== undefined && S.rows[y + 1][x] !== '.') this.plot(sx + dx, oy + y + o + 1, col[0], col[1], col[2]);
         }
       }
     }
 
-    drawGolem(p) {
+    // How the golem stands this frame: a walk cycle, breathing when still,
+    // stretched going up and tucked coming down, a squash on landing, a lean
+    // into a run or dash and back from a cast, braced while lifting.
+    golemPose(p, time) {
+      const P = { body: 0, legL: 0, legR: 0, armL: 0, armR: 0, lean: 0 };
+      if (!this._pose) this._pose = new WeakMap();
+      const st = this._pose.get(p) || { g: true, land: -9 };
+      if (p.grounded && !st.g) st.land = time;
+      st.g = p.grounded; this._pose.set(p, st);
+      const prevT = st.t; st.t = time;
+      const speed = Math.abs(p.vx);
+      if (p.dashT > 0) { P.lean = Math.sign(p.dashVX || p.facing) * 2; P.legL = -1; P.armL = P.armR = -1; }
+      else if (p.channels.lift) { P.legL = P.legR = 1; P.armL = P.armR = 1; P.body = Math.sin(time * 30) > 0 ? 0 : -1; }
+      else if (!p.grounded) {
+        if (p.vy < -30) { P.legL = P.legR = 1; P.armL = P.armR = -1; }          // going up: stretched, arms raised
+        else if (p.vy > 60) { P.legL = P.legR = -1; P.armL = P.armR = -1; }     // coming down: feet tucked
+      } else if (time - st.land < 0.12) { P.body = 1; P.armL = P.armR = 1; }    // just landed: a squash
+      else if (speed > 10) {
+        // four beats to a stride, faster the faster it runs
+        st.walk = (st.walk || 0) + speed * 0.13 * Math.min(0.05, Math.max(0, time - (prevT || time)));
+        const ph = Math.floor(st.walk) & 3;
+        if (ph === 0) { P.legL = -1; P.armR = -1; } else if (ph === 2) { P.legR = -1; P.armL = -1; } else P.body = -1;
+        if (speed > 45) P.lean = Math.sign(p.vx);
+      } else {
+        // breathing: the chest rises, and the arms follow a moment later
+        if (Math.sin(time * 2.4 + p.id) > 0.5) P.body = -1;
+        if (Math.sin(time * 2.4 + p.id - 0.7) > 0.5) P.armL = P.armR = -1;
+      }
+      // a cast throws the upper body back from the aim
+      if (p.lock > 0.05 && !P.lean) P.lean = -Math.sign(Math.cos(p.aim));
+      return P;
+    }
+
+    drawGolem(p, time, reduced) {
       if (p.dead) return;
       const S = SKINS[p.skin] || SKINS[0];
       const ox = Math.round(p.x - this.cam.x) - (S.W >> 1), oy = Math.round(p.y - this.cam.y) - S.H;
@@ -346,7 +388,7 @@ const KRender = (() => {
       }
       let flashSlots = null;
       if (p.slotFlash > 0) flashSlots = p.slots[0] && p.slots[1] ? [255, 255, 255] : [255, 120, 90];
-      this.plotGolem(p.skin, ox, oy, p.facing < 0, p.slots, { chipped, flash: p.flash > 0, flashSlots });
+      this.plotGolem(p.skin, ox, oy, p.facing < 0, p.slots, { chipped, flash: p.flash > 0, flashSlots, pose: reduced ? null : this.golemPose(p, time) });
     }
 
     // The Emberwyrm: a chain of basalt plates with glowing cracks, and a head
