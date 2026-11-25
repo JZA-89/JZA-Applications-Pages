@@ -278,7 +278,12 @@ const KData = (() => {
   // upgrade cards and co-op finds will change them later.
   const baseStats = () => ({ attack: 10, defence: 10, power: { fire: 1, water: 1, earth: 1, lightning: 1 } });
   const player = {
-    w: 11, h: 17, hp: 100, run: 72, accel: 900, airAccel: 520, friction: 14,
+    // the body that collides is smaller than the golem as drawn (21 wide, 17 to 20 tall), so it
+    // slips through gaps a little narrower and lower than it looks (was 11 x 17 until v0.36)
+    w: 9, h: 15,
+    // clawing through dirt by walking into it: starts after `wait` s of pushing, then a stroke every
+    // `every` s that clears `depth` cells ahead, the body's height plus `room` (measured: about 12 cells a second; running is 72)
+    dig: { wait: 0.3, every: 0.1, depth: 4, room: 2, rise: 2 }, hp: 100, run: 72, accel: 900, airAccel: 520, friction: 14,
     jump: 168, gravity: 480, maxFall: 330, coyote: 0.1, buffer: 0.12,
     regenDelay: 3, regen: 12, respawn: 1.4,
     // mana: refills on its own, faster on the ground. Spending pauses the refill

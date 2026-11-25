@@ -2449,6 +2449,34 @@ const KGame = (() => {
       if (this.time - d.lastHurt > DD.regenDelay) d.hp = Math.min(d.maxHp, d.hp + 60 * DT);
     }
 
+    // One stroke of digging: clears dirt, lichen and loose earth just ahead of the golem, as tall
+    // as its body plus a little. Holding jump as well digs a step higher each stroke, which makes
+    // a ramp upwards. Rock and crystal stop it. Returns whether anything was dug.
+    clawDig(a, dir) {
+      const w = this.world, D = PD.dig, up = a.jumpHeld ? D.rise : 0;
+      const top = Math.floor(a.y - a.h) - D.room - up, bottom = Math.floor(a.y - 0.001) - up;
+      let dug = 0, x0 = 1e9, x1 = -1e9;
+      for (let k = 0; k < D.depth; k++) {
+        const cx = dir > 0 ? Math.floor(a.x + a.w / 2) + k : Math.floor(a.x - a.w / 2 - 0.001) - k;
+        if (cx < 10 || cx > w.w - 10) break;
+        let rock = false;
+        for (let cy = top; cy <= bottom; cy++) {
+          const m = w.get(cx, cy);
+          if (m === M.DIRT || m === M.MOSS || m === M.EARTH) {
+            w.set(cx, cy, M.EMPTY); dug++; x0 = Math.min(x0, cx); x1 = Math.max(x1, cx);
+            if (this.rand() < 0.12) this.parts.push({ x: cx + 0.5, y: cy, vx: -dir * (20 + this.rand() * 50), vy: -30 - this.rand() * 50, g: 380, mat: M.EARTH, life: 2, owner: a });
+          } else if (SOLID[m]) rock = true;
+        }
+        if (rock) break;   // something it cannot dig is in the way: no further this stroke
+      }
+      if (!dug) return false;
+      w.cleanup(x0 - 6, top - 6, x1 + 6, bottom + 6);
+      this.burst(a.x + dir * (a.w / 2 + 2), a.y - a.h / 2, 3, [[184, 140, 128], [132, 84, 100]], 60);
+      this.sfx('earth', a.x, a.y, 0.3);
+      this.alert(a, a.x, a.y, 70);
+      return true;
+    }
+
     // Walking into loose earth pushes through it: if everything in the way
     // (the column just ahead, the golem's height) is loose earth, it is thrown
     // aside. Dirt, rock and crystal still block.
@@ -2563,7 +2591,7 @@ const KGame = (() => {
             for (let k = 1; k <= 3; k++) if (!this.collides(a, a.x + sx, a.y - k)) { up = k; break; }
             if (up && a.vy >= -40) { a.x += sx; a.y -= up; }
             else if (a.kind === 'player' && this.plough(a, Math.sign(sx))) a.vx *= 0.8;   // loose earth gives way
-            else { a.vx = a.kind === 'dummy' ? -a.vx * 0.3 : 0; if (a.dashT > 0) a.dashVX = 0; }
+            else { if (a.kind === 'player') a.pushDir = Math.sign(sx); a.vx = a.kind === 'dummy' ? -a.vx * 0.3 : 0; if (a.dashT > 0) a.dashVX = 0; }
           }
         }
         if (sy) {
@@ -2579,6 +2607,14 @@ const KGame = (() => {
         }
       }
       if (!a.grounded && this.collides(a, a.x, a.y + 0.6)) a.grounded = true;
+      // Digging: keep walking into dirt and the golem claws through it (free, slow, never rock).
+      if (a.kind === 'player') {
+        if (a.pushDir && (a.moveX || 0) * a.pushDir > 0.5 && a.dashT <= 0 && !a.slam) {
+          a.digDir = a.pushDir; a.digT = (a.digT || 0) + DT;
+          if (a.digT >= PD.dig.wait) { a.digT = this.clawDig(a, a.pushDir) ? PD.dig.wait - PD.dig.every : 0; }
+        } else if (!((a.moveX || 0) * (a.digDir || 0) > 0.5)) a.digT = 0;   // it keeps its rhythm while you keep pushing the same way
+        a.pushDir = 0;
+      }
       a.noGravity = false; // climbing and drilling set it again each step
       if (a.slam) { a.slam.t += DT; if (a.grounded || a.slam.t > 1.5) this.slamImpact(a); }
       if (a.grounded && a.vy > 0) a.vy = 0;

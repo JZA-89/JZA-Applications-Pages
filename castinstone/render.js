@@ -362,6 +362,7 @@ const KRender = (() => {
       const prevT = st.t; st.t = time;
       const speed = Math.abs(p.vx);
       if (p.dashT > 0) { P.lean = Math.sign(p.dashVX || p.facing) * 2; P.legL = -1; P.armL = P.armR = -1; }
+      else if (p.digT > 0 && p.grounded) { const sw = Math.sin(time * 26) > 0; P.armL = sw ? -1 : 1; P.armR = sw ? 1 : -1; P.lean = p.facing; P.body = sw ? 0 : -1; }   // clawing at dirt
       else if (p.channels.lift) { P.legL = P.legR = 1; P.armL = P.armR = 1; P.body = Math.sin(time * 30) > 0 ? 0 : -1; }
       else if (!p.grounded) {
         if (p.vy < -30) { P.legL = P.legR = 1; P.armL = P.armR = -1; }          // going up: stretched, arms raised
