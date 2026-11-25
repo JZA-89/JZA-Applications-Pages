@@ -23,7 +23,8 @@ Plain scripts sharing one global scope, loaded in this order, no build step:
 | `data.js` | Every number and table: materials, reactions, elements, spells, player and dummy stats. |
 | `world.js` | The falling-sand grid, chunks, map generation, and tools spells use (explode, electrify, ray). |
 | `input.js` | Keyboard, mouse and controller → actions. |
-| `game.js` | Rules: player control, spells, projectiles, particles, actor physics, damage. |
+| `game.js` | Rules: player control, spells, projectiles, particles, actor physics, damage, levels, Lodestones. |
+| `save.js` | Saving and loading the ongoing world in the browser. |
 | `render.js` | Drawing: cells, the clay character, dummies, effects, glow. |
 | `main.js` | Startup, the fixed-step loop, HUD, the panel (start, spells, pause). |
 | `style.css` | Page and HUD styles. |
@@ -162,6 +163,39 @@ The first enemy, for testing combat. A plated, beetle-like crawler of dark shale
 
 Hazards (fire, magma, electrified water, mud) affect it like anyone else. Measured: standing still, a player first gets hit about 1.4–2.9 s after being seen; two Stone spears kill one.
 
+## Getting stronger
+
+### Lodestones (`world.lodestones`, `game.lodestonesTick`)
+
+Standing stones with a rune: one in the hub beside the start, seven more spread through chambers at least 260 apart (they replaced the mana wells, which only refilled mana). Within 22 sideways and 20 up or down:
+- **Found:** the first touch lights the rune (+25 experience, a notice).
+- **Checkpoint:** the last one touched is where you rise after dying.
+- **Repair:** health and mana refill at 90 a second while you stand there.
+- **Rest:** W (d-pad up) on the ground opens the rest panel (play pauses): **Stats** to spend points, **Travel** to any found Lodestone. A prompt shows while you are near.
+
+### Experience and levels (`KData.progression`)
+
+- From kills (8 + 6 × the enemy's level, ×3 for elites), finding Lodestones (25), and later treasure and bosses. Kill credit goes to the last player who hit it within 8 s (so a crawler that dies in your fire still counts).
+- Level L to L+1 needs 50 + 30(L−1) + 6(L−1)² (50, 86, 134, 194, 266…).
+- Each level: **3 stat points** and a full repair. Notices show experience gained and level-ups; the HUD shows the level, a thin experience bar and the unspent points.
+
+### Stats (spent at a Lodestone, `game.spendPoint`, `game.applyStats`)
+
+| Stat | Per point |
+|---|---|
+| Attack | +1 (base 10) |
+| Defence | +1 (base 10) |
+| Vitality | +10 maximum health (base 100) |
+| Mana | +10 maximum mana (base 100) |
+| Focus | mana refills 8% faster |
+| Fire / Water / Earth / Lightning power | spells with that element hit 6% harder (a pair averages its two elements) |
+
+### Saving (`save.js`)
+
+One ongoing world per browser (`localStorage` key `castinstone.save.v1`). A save holds the seed (which rebuilds the starting cave exactly), only the 32 × 32 chunks changed since generation (materials and life values, run-length encoded and base64), the explored map (bits), found Lodestones and the checkpoint, and the golem (position, health, mana, level, experience, points, stats, loaded elements, look). Saves happen every 20 s of play, on reaching a Lodestone, on resting and spending points, on travel, on pause or leaving the page. A save is checked (readable, complete) before it replaces the last one; loading clamps every number and falls back to the checkpoint if the golem would stand inside terrain. A new world plus a little digging is about 40 KB.
+
+The start panel says Continue when a save exists. **New game** (pause or start panel) asks for a second press, then starts a new random cave and progress. **Reset map** rebuilds the cave from its seed but keeps the golem's progress.
+
 ## Mana
 
 Every spell costs mana. Held spells (Steam, Water jet) drain it every moment they are held and stop when it runs out. You can fly with Steam, but a full bar lasts about 5.6 s (some areas will need flight to get around); when it runs dry you fall and cannot attack until it refills. A spell needs its full cost to start (held spells need a small minimum); trying without enough flashes the mana bar.
@@ -253,6 +287,7 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.9 (2026-11-25):** three ways to cast, approved by Jaisah: every pair has a Shot (left click), a Burst around you (right click) and a Move (hold Space after jumping), 30 spells in all; W/S now steer Moves (Space alone jumps) and X clears. No terrain crumbs: pieces under 10 cells and one-cell spikes crumble (Jaisah: 1-pixel bits snag bots). Mud now really slows enemies, and a spray hit coats and slows for 2.5 s (Jaisah).
 - **v0.10 (2026-11-25):** Moves don't follow the mouse (hold Space: steam blasts straight down, A/D steer); every spell repeats while held, with short gaps, so mana is the limit; mud blocks spells; the spell list moved to a Spell book grid (all Jaisah).
 - **v0.11 (2026-11-25):** a generated web of caves (hub, 46 chambers, looping tunnels, three regions, pools, plugs, mana wells, levels by distance), a map of explored areas, New cave, crawlers that live in chambers, scale with level and sleep when far away. Liquids come to rest. Jaisah: not a downward descent, and it needs forks.
+- **v0.12 (2026-11-26):** Lodestones (checkpoint, repair, rest panel with stats and travel) replace mana wells; experience, levels and stat points; one ongoing world saved in the browser (Jaisah: an ongoing world; all four elements from the start; upgrades that reach further come with runestones).
 
 ## Open questions to test
 

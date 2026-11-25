@@ -15,9 +15,12 @@ const KGame = (() => {
   const MUD_SLOW = 0.35;    // enemy speed while in mud or coated
 
   class Game {
-    constructor(seed) { this.seed = seed; this.reset(); }
+    constructor(seed) { this.seed = seed; this.found = new Set(); this.checkpoint = 0; this.events = []; this.reset(); }
 
-    reset() {
+    // Build (or rebuild) the cave from the seed. keepPlayers keeps the golems'
+    // progress (levels, stats, runestones) and puts them at their checkpoint.
+    reset(keepPlayers) {
+      const kept = keepPlayers ? this.players : null;
       this.world = new World(this.seed);
       this.rand = makeRng(this.seed + 17);
       this.time = 0;
@@ -26,7 +29,9 @@ const KGame = (() => {
       this.fx = [];
       this.growths = [];
       this.shake = 0;
-      this.players = [this.makePlayer(0)];
+      this.players = kept || [this.makePlayer(0)];
+      if (kept) for (const p of kept) this.respawn(p);
+      else { this.found = new Set([0]); this.checkpoint = 0; }
       this.dummies = this.world.dummySpots.map((s, i) => this.makeDummy(s, i));
       this.enemies = this.world.crawlerHomes.map((home, i) => this.makeCrawler(home, i));
     }
@@ -47,7 +52,74 @@ const KGame = (() => {
         channels: { shot: null, burst: null, move: null }, dashT: 0, dashVX: 0, dashVY: 0, dashHit: null,
         dead: false, respawnT: 0, lastHurt: -9, flash: 0, slotFlash: 0, lastSpell: null,
         chips, inWater: false, inMud: false, hurtBy: {},
+        level: 1, xp: 0, points: 0, alloc: {}, regenMul: 1,
       };
+    }
+
+    // ---------- getting stronger ----------
+    // Stats come from points spent (alloc); derived values are rebuilt from them.
+    applyStats(p) {
+      const a = p.alloc, v = id => a[id] || 0;
+      p.stats.attack = 10 + v('attack');
+      p.stats.defence = 10 + v('defence');
+      for (const el of KData.elementOrder) p.stats.power[el] = 1 + 0.06 * v(el);
+      const hpFrac = p.hp / p.maxHp, mFrac = p.mana / p.maxMana;
+      p.maxHp = PD.hp + 10 * v('vitality');
+      p.maxMana = PD.mana + 10 * v('mana');
+      p.hp = Math.min(p.maxHp, Math.max(1, hpFrac * p.maxHp));
+      p.mana = Math.min(p.maxMana, mFrac * p.maxMana);
+      p.regenMul = 1 + 0.08 * v('focus');
+    }
+    spendPoint(p, id) {
+      if (p.points <= 0 || !KData.progression.stats.some(s => s.id === id)) return false;
+      p.points--; p.alloc[id] = (p.alloc[id] || 0) + 1;
+      this.applyStats(p);
+      return true;
+    }
+    gainXp(p, amount, why) {
+      const P = KData.progression;
+      p.xp += amount;
+      this.events.push({ type: 'xp', amount, why });
+      while (p.xp >= P.xpFor(p.level)) {
+        p.xp -= P.xpFor(p.level); p.level++; p.points += P.pointsPerLevel;
+        p.hp = p.maxHp; p.mana = p.maxMana;
+        this.events.push({ type: 'level', level: p.level, points: p.points });
+      }
+    }
+
+    // ---------- Lodestones ----------
+    // Touching one: found (first time, experience), checkpoint, and full repair
+    // while you stand by it. W (or up) on the ground next to it opens the rest panel.
+    lodestonesTick() {
+      const C = KData.cave;
+      for (const p of this.players) {
+        const was = p.nearStone;
+        p.nearStone = null;
+        if (p.dead) continue;
+        for (const l of this.world.lodestones) {
+          if (Math.abs(p.x - l.x) < C.stoneReach && Math.abs(p.y - l.y) < 20) { p.nearStone = l; break; }
+        }
+        const l = p.nearStone;
+        if (!l) continue;
+        if (!this.found.has(l.id)) {
+          this.found.add(l.id);
+          this.events.push({ type: 'found', stone: l });
+          this.gainXp(p, KData.progression.lodestoneXp, 'Lodestone found');
+        }
+        if (this.checkpoint !== l.id) { this.checkpoint = l.id; this.events.push({ type: 'checkpoint', stone: l }); }
+        if (was !== l) this.events.push({ type: 'save' });
+        p.hp = Math.min(p.maxHp, p.hp + C.stoneRepair * DT);
+        p.mana = Math.min(p.maxMana, p.mana + C.stoneRepair * DT);
+        if (p.grounded && p.moveY < 0 && !p.restHeld) this.events.push({ type: 'rest', stone: l });
+        p.restHeld = p.moveY < 0;
+      }
+    }
+    travel(p, id) {
+      const l = this.world.lodestones[id];
+      if (!l || !this.found.has(id)) return;
+      Object.assign(p, { x: l.x + 14, y: this.world.floorBelow(l.x + 14, l.y - 10), vx: 0, vy: 0 });
+      this.checkpoint = id;
+      for (const e of this.enemies) e.lastSeen = -9;
     }
 
     makeDummy(s, i) {
@@ -76,7 +148,7 @@ const KGame = (() => {
       this.updateProjectiles();
       for (const e of this.enemies) this.crawlerTick(e);
       for (const a of this.actors) if (!a.asleep) this.physics(a);
-      this.wellsTick();
+      this.lodestonesTick();
       for (const d of this.dummies) this.dummyTick(d);
       for (const f of this.fx) f.t += DT;
       this.fx = this.fx.filter(f => f.t < f.T);
@@ -149,7 +221,7 @@ const KGame = (() => {
 
       // mana refills on its own, faster on the ground
       if (p.manaWait > 0) p.manaWait -= DT;
-      else p.mana = Math.min(p.maxMana, p.mana + (p.grounded ? PD.manaGroundRegen : PD.manaRegen) * DT);
+      else p.mana = Math.min(p.maxMana, p.mana + (p.grounded ? PD.manaGroundRegen : PD.manaRegen) * (p.regenMul || 1) * DT);
 
       // the three ways to cast
       const key = p.slots[0] && p.slots[1] ? spellKey(p.slots[0], p.slots[1]) : null;
@@ -818,6 +890,7 @@ const KGame = (() => {
 
     hurt(a, amount, kx, ky, kind, src, spell) {
       if (a.dead || amount <= 0) return;
+      if (src && src.kind === 'player') { a.lastHitBy = src; a.lastHitAt = this.time; }
       amount = this.damage(src || null, a, amount, spell);
       a.hp -= amount; a.lastHurt = this.time;
       a.vx += kx || 0; a.vy += ky || 0;
@@ -833,6 +906,10 @@ const KGame = (() => {
 
     kill(a) {
       a.dead = true; a.hp = 0;
+      // experience to whoever hit it last (hazards a player caused count for 8 s)
+      if (a.kind !== 'player' && a.kind !== 'dummy' && a.lastHitBy && this.time - a.lastHitAt < 8 && !a.lastHitBy.dead)
+        this.gainXp(a.lastHitBy, KData.progression.killXp(a.level || 1, a.elite ? 'elite' : a.kind), 'kill');
+      if (a.kind === 'player') this.events.push({ type: 'died' });
       a.respawnT = a.kind === 'player' ? PD.respawn : a.kind === 'crawler' ? KData.enemies.crawler.respawn : DD.respawn;
       const col = a.kind === 'player' ? [[240, 228, 206], [198, 178, 160], [44, 28, 36]] : a.kind === 'crawler' ? [[78, 72, 94], [112, 104, 128], [255, 70, 160]] : [[150, 140, 165], [200, 194, 214], [74, 58, 48]];
       if (a.kind === 'crawler') {
@@ -985,19 +1062,10 @@ const KGame = (() => {
       Object.assign(e, { x: e.home.x, y: this.world.floorBelow(e.home.x, e.home.y - 6), vx: 0, vy: 0, hp: e.maxHp, dead: false, state: 'patrol', t: 0, lastHurt: -9, lastSeen: -9, slowT: 0 });
     }
 
-    // Mana wells: standing near one refills mana fast.
-    wellsTick() {
-      const C = KData.cave;
-      for (const p of this.players) {
-        p.atWell = false;
-        if (p.dead) continue;
-        for (const wl of this.world.wells) if (Math.hypot(p.x - wl.x, (p.y - 6) - (wl.y - 6)) < C.wellReach) { p.atWell = true; break; }
-        if (p.atWell) p.mana = Math.min(p.maxMana, p.mana + C.wellRegen * DT);
-      }
-    }
-
     respawn(p) {
-      const s = this.world.spawn;
+      // back at the last Lodestone touched (the hub's at first)
+      const l = this.world.lodestones[this.checkpoint] || this.world.lodestones[0];
+      const s = l ? { x: l.x + 14, y: this.world.floorBelow(l.x + 14, l.y - 10) } : this.world.spawn;
       Object.assign(p, { x: s.x, y: s.y, vx: 0, vy: 0, hp: p.maxHp, dead: false, mana: p.maxMana, manaWait: 0, dashT: 0, slam: null, lastHurt: -9 });
       this.endAllChannels(p);
     }

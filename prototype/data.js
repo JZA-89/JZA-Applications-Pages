@@ -178,7 +178,7 @@ const KData = (() => {
   // Shale crawler: patrols, chases what it can see, winds up (rears and its eyes
   // flare), lunges, then needs a moment to recover. Big hits stagger it.
   const enemies = {
-    crawler: { name: 'Shale crawler', w: 13, h: 8, hp: 60, attack: 10, defence: 8,
+    crawler: { name: 'Shale crawler', desc: 'Winds up, then lunges. A hard hit staggers it.', w: 13, h: 8, hp: 60, attack: 10, defence: 8,
       walk: 22, run: 50, sight: 130, sense: 50, hearing: 110, forget: 4, jump: 165,
       lungeRange: 34, windup: 0.45, lungeSpeed: 215, lungeLift: 90, lungeTime: 0.35, recover: 0.7,
       power: 18, knock: 170, staggerAt: 12, stagger: 0.35,
@@ -201,7 +201,29 @@ const KData = (() => {
       strata: [[112, 58, 52], [128, 70, 58], [88, 46, 48], [148, 88, 66], [74, 40, 44], [118, 64, 56]] },
   ];
   const cave = { chambers: 46, spacing: 150, hubRadius: 300, regionDistance: 540, levelEvery: 250,
-    tunnel: [12, 17], plugChance: 0.16, loopChance: 0.55, wells: 7, wellReach: 20, wellRegen: 70 };
+    tunnel: [12, 17], plugChance: 0.16, loopChance: 0.55, lodestones: 8, stoneReach: 22, stoneRepair: 90 };
+
+  // ---------- Getting stronger ----------
+  // Experience from kills and discoveries; each level gives stat points, spent at a Lodestone.
+  // xpFor(L): experience needed to go from level L to L+1.
+  const progression = {
+    xpFor: L => Math.round(50 + 30 * (L - 1) + 6 * (L - 1) * (L - 1)),
+    pointsPerLevel: 3,
+    killXp: (level, kind) => Math.round((kind === 'elite' ? 3 : 1) * (8 + 6 * level)),
+    lodestoneXp: 25,
+    // per point spent
+    stats: [
+      { id: 'attack', name: 'Attack', desc: 'Every spell does more damage.', per: 1, show: v => 10 + v },
+      { id: 'defence', name: 'Defence', desc: 'You take less damage.', per: 1, show: v => 10 + v },
+      { id: 'vitality', name: 'Vitality', desc: '+10 maximum health.', per: 10, show: v => 100 + 10 * v },
+      { id: 'mana', name: 'Mana', desc: '+10 maximum mana.', per: 10, show: v => 100 + 10 * v },
+      { id: 'focus', name: 'Focus', desc: 'Mana refills 8% faster.', per: 0.08, show: v => '+' + Math.round(8 * v) + '%' },
+      { id: 'fire', name: 'Fire power', desc: 'Spells with fire hit 6% harder.', per: 0.06, show: v => '+' + Math.round(6 * v) + '%', el: 'fire' },
+      { id: 'water', name: 'Water power', desc: 'Spells with water hit 6% harder.', per: 0.06, show: v => '+' + Math.round(6 * v) + '%', el: 'water' },
+      { id: 'earth', name: 'Earth power', desc: 'Spells with earth hit 6% harder.', per: 0.06, show: v => '+' + Math.round(6 * v) + '%', el: 'earth' },
+      { id: 'lightning', name: 'Lightning power', desc: 'Spells with lightning hit 6% harder.', per: 0.06, show: v => '+' + Math.round(6 * v) + '%', el: 'lightning' },
+    ],
+  };
 
   // ---------- Golems (the player's look) ----------
   // Pixel rows, facing right. k outline, h/m/d stone light/mid/dark, s seam,
@@ -299,6 +321,6 @@ const KData = (() => {
       ] },
   ];
 
-  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, modes, biomes, cave,
+  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, modes, biomes, cave, progression,
     world: { w: 2048, h: 1024, chunk: 32 }, view: { w: 320, h: 180 }, step: 1 / 60 };
 })();

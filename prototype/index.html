@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#0d0a14">
-<title>Cast in Stone | Prototype · v0.11</title>
-<link rel="stylesheet" href="style.css?v=0.11">
+<title>Cast in Stone | Prototype · v0.12</title>
+<link rel="stylesheet" href="style.css?v=0.12">
 </head>
 <body data-mode="start">
 
@@ -24,6 +24,10 @@
         <span class="label">Mana</span>
         <div class="hp mana" role="meter" aria-label="Mana" aria-valuemin="0" aria-valuemax="100" id="manaMeter"><i id="manaFill"></i></div>
       </div>
+      <div class="vital lv">
+        <span class="label"><span id="lvText">Level 1</span> <b class="pts" id="ptsBadge" hidden>+3</b></span>
+        <div class="hp xp" aria-hidden="true"><i id="xpFill"></i></div>
+      </div>
     </div>
 
     <div class="hud-tr">
@@ -35,6 +39,9 @@
     </div>
 
     <div class="look" id="look" hidden><b id="lookName"></b><span id="lookDesc"></span></div>
+
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+    <div class="rest-prompt" id="restPrompt" hidden></div>
 
     <div class="map" id="mapBox">
       <canvas id="minimap" width="128" height="64" aria-label="Map of the explored cave"></canvas>
@@ -55,9 +62,9 @@
 <div class="panel-wrap" id="panelWrap">
   <section class="panel" id="panel" role="dialog" aria-modal="true" aria-labelledby="panelTitle">
     <header>
-      <p class="eyebrow" id="panelEyebrow">Prototype · one player · v0.11</p>
+      <p class="eyebrow" id="panelEyebrow">Prototype · one player · v0.12</p>
       <h1 id="panelTitle">CAST IN STONE</h1>
-      <p class="lede" id="panelLede">A rock golem in a web of caves, with four elements. Load any two: every pair gives you an aimed Shot, a Burst around you and a way to Move. Explore out from the hub; the further you go, the tougher it gets.</p>
+      <p class="lede" id="panelLede">A rock golem in a web of caves, with four elements. Load any two: every pair gives you an aimed Shot, a Burst around you and a way to Move. Explore out from the hub; the further you go, the tougher it gets. Your world and your golem's progress are saved in this browser.</p>
     </header>
 
     <section class="picker" aria-labelledby="pickTitle">
@@ -81,6 +88,7 @@
           <div><dt>Move</dt><dd>Hold <kbd>Space</kbd> in the air</dd></div>
           <div><dt>Steer a Move</dt><dd><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></dd></div>
           <div><dt>Spell book · pause</dt><dd><kbd>H</kbd> · <kbd>Esc</kbd></dd></div>
+          <div><dt>Rest at a Lodestone</dt><dd><kbd>W</kbd></dd></div>
         </dl>
       </div>
       <p class="note">Hold any of the three to keep casting until your mana runs out. Controller: left stick run, right stick aim, B X A Y elements, RT shot, LT burst, LB jump and move, View clears, Menu pauses.</p>
@@ -96,18 +104,45 @@
       <button type="button" class="btn primary" id="btnGo">Start</button>
       <button type="button" class="btn" id="btnBook">Spell book</button>
       <button type="button" class="btn" id="btnPanelReset" hidden>Reset map</button>
-      <button type="button" class="btn" id="btnNewCave">New cave</button>
+      <button type="button" class="btn" id="btnNewCave">New game</button>
+    </footer>
+  </section>
+</div>
+
+<div class="panel-wrap" id="restWrap" hidden>
+  <section class="panel rest" role="dialog" aria-modal="true" aria-labelledby="restTitle">
+    <header>
+      <p class="eyebrow">Lodestone · <span id="restWhere"></span></p>
+      <h1 id="restTitle" class="rest-title">Rest</h1>
+      <p class="lede"><b id="restLevel">Level 1</b> · <span id="restXp"></span> · <span id="restPoints" class="pts-line"></span></p>
+    </header>
+    <div class="rest-tabs" role="tablist">
+      <button type="button" class="rest-tab" data-tab="stats" role="tab">Stats</button>
+      <button type="button" class="rest-tab" data-tab="runes" role="tab" id="tabRunes" hidden>Runestones</button>
+      <button type="button" class="rest-tab" data-tab="travel" role="tab">Travel</button>
+    </div>
+    <div class="rest-view" data-view="stats">
+      <div class="stats" id="statGrid"></div>
+    </div>
+    <div class="rest-view" data-view="runes" id="runesView" hidden></div>
+    <div class="rest-view" data-view="travel" hidden>
+      <div class="trips" id="travelList"></div>
+      <p class="note" id="travelNote"></p>
+    </div>
+    <footer>
+      <button type="button" class="btn primary" id="btnLeave">Leave</button>
     </footer>
   </section>
 </div>
 
 <noscript><p class="noscript">This prototype needs JavaScript.</p></noscript>
 
-<script src="data.js?v=0.11"></script>
-<script src="world.js?v=0.11"></script>
-<script src="input.js?v=0.11"></script>
-<script src="game.js?v=0.11"></script>
-<script src="render.js?v=0.11"></script>
-<script src="main.js?v=0.11"></script>
+<script src="data.js?v=0.12"></script>
+<script src="world.js?v=0.12"></script>
+<script src="input.js?v=0.12"></script>
+<script src="game.js?v=0.12"></script>
+<script src="save.js?v=0.12"></script>
+<script src="render.js?v=0.12"></script>
+<script src="main.js?v=0.12"></script>
 </body>
 </html>

@@ -1,19 +1,22 @@
 'use strict';
 /* Cast in Stone prototype — main.js
-   Starts everything: fits the 16:9 stage to the screen, runs the fixed-step
-   loop (60 steps a second, independent of the screen's frame rate), passes
-   each step's actions to the game, draws, and keeps the HUD and the panel
-   (start, spells, pause) up to date. */
+   Starts everything: loads the saved world (or starts a new one), fits the
+   16:9 stage to the screen, runs the fixed-step loop (60 steps a second,
+   independent of the screen's frame rate), passes each step's actions to the
+   game, draws, and keeps the HUD, the panels (start, spell book, pause, rest
+   at a Lodestone) and the notices up to date. Saves now and then. */
 
 (() => {
   const { elements, elementOrder, spells, spellKey, view: V, step: STEP } = KData;
-  const SEED = 20261125;
+  const VERSION = 'v0.12';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
-  const game = new KGame.Game(SEED);
+  let game = KSave.load() || new KGame.Game(randomSeed());
+  const hadSave = KSave.exists();
   const R = new KRender.Renderer(view, glow);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  function randomSeed() { return (Math.random() * 1e9) | 0; }
 
   // ---------- layout ----------
   function fit() {
@@ -26,7 +29,7 @@
   addEventListener('resize', fit);
   fit();
 
-  // ---------- element chips and spell list ----------
+  // ---------- element chips ----------
   const els = $('els');
   for (const el of elementOrder) {
     const e = elements[el], b = document.createElement('button');
@@ -36,7 +39,8 @@
     b.addEventListener('click', () => KInput.queue({ type: 'load', el }));
     els.appendChild(b);
   }
-  // spell book: ten pairs x three ways to cast; pointing at a name shows what it does
+
+  // ---------- spell book: ten pairs x three ways to cast ----------
   const book = $('book');
   const MODE_LABEL = { shot: ['Shot', 'left click'], burst: ['Burst', 'right click'], move: ['Move', 'hold Space'] };
   book.insertAdjacentHTML('beforeend', '<span></span>' + KData.modes.map(md => `<span class="hd">${MODE_LABEL[md][0]}<small>${MODE_LABEL[md][1]}</small></span>`).join(''));
@@ -59,10 +63,9 @@
     }
   }
 
-  // ---------- golem picker (remembered in this browser only) ----------
-  let skin = 0;
-  try { const v = parseInt(localStorage.getItem('castinstone.golem') ?? localStorage.getItem('kiln.golem'), 10); if (v >= 0 && v < KData.golems.length) skin = v; } catch {}
-  game.players[0].skin = skin;
+  // ---------- golem picker (the look; also kept in the save) ----------
+  let skin = game.players[0].skin || 0;
+  if (!hadSave) try { const v = parseInt(localStorage.getItem('castinstone.golem'), 10); if (v >= 0 && v < KData.golems.length) skin = v; } catch {}
   const golemBtns = KData.golems.map((g, i) => {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'golem'; b.setAttribute('role', 'radio');
@@ -82,15 +85,24 @@
   }
   pickGolem(skin);
 
-  // ---------- modes: start, help, pause, play ----------
-  let mode = 'start';
+  // ---------- saving ----------
+  let saveTimer = 0;
+  function save() { if (KSave.store(game)) saveTimer = 0; }
+  addEventListener('pagehide', save);
+
+  // ---------- modes: start, help, pause, rest, play ----------
+  let mode = 'start', confirmNew = false;
   function setMode(m) {
     mode = m;
     document.body.dataset.mode = m;
     KInput.clearHeld();
+    $('restWrap').hidden = m !== 'rest';
+    $('panelWrap').hidden = m === 'play' || m === 'rest';
+    confirmNew = false; $('btnNewCave').textContent = 'New game';
     if (m === 'play') { view.focus({ preventScroll: true }); return; }
-    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spell book' : 'Prototype · one player · v0.11';
-    $('btnGo').textContent = m === 'start' ? 'Start' : 'Resume';
+    if (m === 'rest') { buildRest(); $('btnLeave').focus({ preventScroll: true }); return; }
+    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spell book' : `Prototype · one player · ${VERSION}`;
+    $('btnGo').textContent = m === 'start' ? (hadSave ? 'Continue' : 'Start') : 'Resume';
     $('btnPanelReset').hidden = m === 'start';
     showBook(m === 'help');
     $('btnGo').focus({ preventScroll: true });
@@ -103,13 +115,20 @@
   }
   $('btnBook').addEventListener('click', () => showBook($('viewBook').hidden));
   const resume = () => setMode('play');
-  const reset = () => { game.reset(); game.players[0].skin = skin; acc = 0; };
+  // Reset map: rebuild the cave from its seed, keeping the golem's progress.
+  const resetMap = () => { game.reset(true); game.players[0].skin = skin; acc = 0; mapTick = 0; save(); };
   $('btnGo').addEventListener('click', resume);
-  $('btnPanelReset').addEventListener('click', () => { reset(); resume(); });
-  $('btnNewCave').addEventListener('click', () => { game.seed = (Math.random() * 1e9) | 0; reset(); mapTick = 0; resume(); });
+  $('btnPanelReset').addEventListener('click', () => { resetMap(); resume(); });
+  $('btnNewCave').addEventListener('click', () => {
+    // a second press confirms: this replaces the saved world and the golem's progress
+    if (!confirmNew) { confirmNew = true; $('btnNewCave').textContent = 'Press again to start over'; return; }
+    game = new KGame.Game(randomSeed()); game.players[0].skin = skin; window.cis.game = game;
+    KSave.clear(); save(); acc = 0; mapTick = 0; toasts.length = 0; resume();
+  });
   $('btnPause').addEventListener('click', () => setMode('pause'));
   $('btnSpells').addEventListener('click', () => setMode('help'));
-  $('btnReset').addEventListener('click', () => { reset(); view.focus(); });
+  $('btnReset').addEventListener('click', () => { resetMap(); view.focus(); });
+  $('btnLeave').addEventListener('click', resume);
   for (const b of document.querySelectorAll('.hud button')) b.addEventListener('pointerdown', e => e.stopPropagation());
 
   KInput.attach(view, {
@@ -117,40 +136,121 @@
     onClose: () => { if (mode !== 'start') resume(); },
     onPause: () => setMode(mode === 'play' ? 'pause' : 'play'),
     onHelp: () => setMode(mode === 'help' ? 'play' : 'help'),
-    onReset: reset,
+    onReset: resetMap,
   });
-  document.addEventListener('visibilitychange', () => { if (document.hidden && mode === 'play') setMode('pause'); });
-  // a controller's Menu button resumes from the panel too
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { save(); if (mode === 'play') setMode('pause'); } });
+  // a controller's Menu or A button resumes from a panel
   let padMenuPrev = false;
   function pollPadMenu() {
     if (mode === 'play') { padMenuPrev = false; return; }
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
     const p = [...pads].find(x => x && x.connected);
-    const down = !!(p && (p.buttons[9]?.pressed || p.buttons[0]?.pressed));
+    const down = !!(p && p.buttons[9] && p.buttons[9].pressed);
     if (down && !padMenuPrev) resume();
     padMenuPrev = down;
   }
 
+  // ---------- rest at a Lodestone: spend stat points, travel ----------
+  let restTab = 'stats';
+  function buildRest() {
+    const p = game.players[0], P = KData.progression, here = p.nearStone || game.world.lodestones[game.checkpoint];
+    $('restWhere').textContent = here ? `${here.region} · Level ${here.level}` : '';
+    $('restLevel').textContent = `Level ${p.level}`;
+    $('restXp').textContent = `${Math.floor(p.xp)} of ${P.xpFor(p.level)} experience to level ${p.level + 1}`;
+    $('restPoints').textContent = p.points ? `${p.points} stat point${p.points === 1 ? '' : 's'} to spend` : 'No stat points to spend';
+    $('restPoints').classList.toggle('has', p.points > 0);
+    for (const t of document.querySelectorAll('.rest-tab')) t.setAttribute('aria-selected', t.dataset.tab === restTab ? 'true' : 'false');
+    for (const v of document.querySelectorAll('.rest-view')) v.hidden = v.dataset.view !== restTab;
+    // stats
+    const grid = $('statGrid');
+    grid.innerHTML = '';
+    for (const s of P.stats) {
+      const n = p.alloc[s.id] || 0, row = document.createElement('div');
+      row.className = 'stat';
+      const dot = s.el ? `<i style="--c:${elements[s.el].css}"></i>` : '';
+      row.innerHTML = `<span class="sn">${dot}${s.name}</span><span class="sv">${s.show(n)}</span><span class="sd">${s.desc}</span>`;
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'plus'; b.textContent = '+'; b.disabled = p.points <= 0;
+      b.setAttribute('aria-label', `Add a point to ${s.name}`);
+      b.addEventListener('click', () => { if (game.spendPoint(p, s.id)) { buildRest(); save(); const nb = grid.querySelectorAll('.plus')[P.stats.indexOf(s)]; if (nb && !nb.disabled) nb.focus(); } });
+      row.appendChild(b);
+      grid.appendChild(row);
+    }
+    // travel
+    const tl = $('travelList');
+    tl.innerHTML = '';
+    for (const l of game.world.lodestones) {
+      if (!game.found.has(l.id)) continue;
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'trip';
+      const isHere = here && here.id === l.id;
+      b.innerHTML = `<b>${l.hub ? 'The hub' : l.region}</b><span>Level ${l.level}${isHere ? ' · you are here' : ''}</span>`;
+      b.disabled = isHere;
+      b.addEventListener('click', () => { game.travel(p, l.id); save(); resume(); });
+      tl.appendChild(b);
+    }
+    const unfound = game.world.lodestones.length - game.found.size;
+    $('travelNote').textContent = unfound ? `${unfound} more Lodestone${unfound === 1 ? '' : 's'} somewhere in the cave.` : 'You have found every Lodestone.';
+    if (window.KRest) window.KRest.build(game, p, restTab);
+  }
+  for (const t of document.querySelectorAll('.rest-tab')) t.addEventListener('click', () => { restTab = t.dataset.tab; buildRest(); });
+
+  // ---------- notices (top centre): experience, levels, finds ----------
+  const toasts = [];
+  function toast(text, kind = '') { toasts.push({ text, kind, t: 0 }); if (toasts.length > 4) toasts.shift(); renderToasts(); }
+  function renderToasts() {
+    const box = $('toasts');
+    box.innerHTML = toasts.map(t => `<div class="toast ${t.kind}">${t.text}</div>`).join('');
+  }
+  let xpPending = 0, xpTimer = 0;
+  function handleEvents(dt) {
+    for (const e of game.events) {
+      if (e.type === 'xp') { xpPending += e.amount; xpTimer = 0.6; }
+      else if (e.type === 'level') toast(`Level ${e.level} · ${e.points} stat point${e.points === 1 ? '' : 's'} to spend at a Lodestone`, 'big');
+      else if (e.type === 'found') toast(`Lodestone found · ${e.stone.hub ? 'the hub' : e.stone.region}`, 'stone');
+      else if (e.type === 'rest') { save(); setMode('rest'); }
+      else if (e.type === 'save') save();
+      else if (e.type === 'died') toast('Your golem crumbled. It rises again at the last Lodestone.', '');
+      else if (e.type === 'toast') toast(e.text, e.kind || '');
+    }
+    game.events.length = 0;
+    if (xpPending && (xpTimer -= dt) <= 0) { toast(`+${xpPending} experience`, 'xp'); xpPending = 0; }
+    let changed = false;
+    for (const t of toasts) t.t += dt;
+    while (toasts.length && toasts[0].t > (toasts[0].kind === 'big' ? 4.5 : 3)) { toasts.shift(); changed = true; }
+    if (changed) renderToasts();
+  }
+
   // ---------- HUD ----------
-  const hud = { hp: -1, mana: -1, s0: undefined, s1: undefined, name: '', flash: 0, mflash: 0 };
+  const hud = { hp: -1, mana: -1, maxHp: -1, maxMana: -1, s0: undefined, s1: undefined, name: '', flash: 0, mflash: 0, lv: '' };
   function updateHud() {
     const p = game.players[0];
     const hp = Math.round(p.hp);
-    if (hp !== hud.hp) {
-      hud.hp = hp;
+    if (hp !== hud.hp || p.maxHp !== hud.maxHp) {
+      hud.hp = hp; hud.maxHp = p.maxHp;
       $('hpFill').style.transform = `scaleX(${Math.max(0, hp) / p.maxHp})`;
       $('hpMeter').setAttribute('aria-valuenow', Math.max(0, hp));
-      $('hpMeter').classList.toggle('low', hp < 35);
+      $('hpMeter').setAttribute('aria-valuemax', p.maxHp);
+      $('hpMeter').classList.toggle('low', hp < p.maxHp * 0.35);
     }
     const mana = Math.round(p.mana);
-    if (mana !== hud.mana) {
-      hud.mana = mana;
+    if (mana !== hud.mana || p.maxMana !== hud.maxMana) {
+      hud.mana = mana; hud.maxMana = p.maxMana;
       $('manaFill').style.transform = `scaleX(${mana / p.maxMana})`;
       $('manaMeter').setAttribute('aria-valuenow', mana);
+      $('manaMeter').setAttribute('aria-valuemax', p.maxMana);
       $('manaMeter').classList.toggle('empty', p.manaWait > 0.4 && mana < 1);
     }
     if (p.manaFlash > 0.3 && hud.mflash <= 0.3) { const mm = $('manaMeter'); mm.classList.remove('flash'); void mm.offsetWidth; mm.classList.add('flash'); }
     hud.mflash = p.manaFlash;
+    const P = KData.progression, lv = `${p.level}|${Math.floor(p.xp)}|${p.points}`;
+    if (lv !== hud.lv) {
+      hud.lv = lv;
+      $('lvText').textContent = `Level ${p.level}`;
+      $('xpFill').style.transform = `scaleX(${Math.min(1, p.xp / P.xpFor(p.level))})`;
+      $('ptsBadge').hidden = !p.points;
+      $('ptsBadge').textContent = `+${p.points}`;
+    }
     for (const i of [0, 1]) {
       const el = p.slots[i];
       if (el !== hud['s' + i]) {
@@ -175,6 +275,9 @@
         n.innerHTML = KData.modes.map(md => `<span class="mode"><kbd>${keysFor[md]}</kbd>${set[md].name}</span>`).join('');
       }
     }
+    // the rest prompt next to a Lodestone
+    const near = !!p.nearStone && mode === 'play';
+    if (near !== hud.near) { hud.near = near; $('restPrompt').hidden = !near; $('restPrompt').innerHTML = pad ? 'D-pad up · Rest' : '<kbd>W</kbd> Rest'; }
   }
 
   // ---------- what is under the mouse (a note in the corner) ----------
@@ -182,15 +285,18 @@
   function describe(wx, wy) {
     const pad = 1;
     for (const a of game.actors) {
-      if (a.dead || !game.inBox(a, wx, wy, pad)) continue;
+      if (a.dead || a.asleep || !game.inBox(a, wx, wy, pad)) continue;
       const hp = `Health ${Math.max(0, Math.ceil(a.hp))} of ${a.maxHp}`;
-      const slowed = a.slowT > 0 || a.inMud ? ' Slowed by mud.' : '';
-      if (a.kind === 'crawler') return [`Shale crawler · Level ${a.level}`, `${hp}.${slowed} Winds up, then lunges. A hard hit staggers it.`];
+      const status = (a.slowT > 0 || a.inMud ? ' Slowed by mud.' : '') + (window.KStatus ? window.KStatus.describe(a) : '');
+      if (a.kind === 'player') return [`You (${KData.golems[a.skin].name}) · Level ${a.level}`, `${hp}. Mana ${Math.round(a.mana)} of ${a.maxMana}.`];
       if (a.kind === 'dummy') return ['Training dummy', `${hp}. Heals when left alone.`];
-      if (a.kind === 'player') return [`You (${KData.golems[a.skin].name})`, `${hp}. Mana ${Math.round(a.mana)} of ${a.maxMana}.`];
+      const E = KData.enemies[a.kind];
+      if (E) return [`${a.elite ? 'Elite ' : ''}${E.name} · Level ${a.level}`, `${hp}.${status} ${E.desc || ''}`.trim()];
     }
     const w = game.world, x = Math.floor(wx), y = Math.floor(wy);
-    for (const wl of w.wells) if (Math.abs(wx - wl.x) < 4 && wy > wl.y - 9 && wy < wl.y + 1) return ['Mana well', 'Stand next to it to refill mana fast.'];
+    for (const l of w.lodestones) if (Math.abs(wx - l.x) < 5 && wy > l.y - 15 && wy < l.y + 1)
+      return [game.found.has(l.id) ? 'Lodestone' : 'Lodestone (not yet found)', 'Touch it to make it your checkpoint and repair. Stand by it and press W to rest: spend stat points and travel.'];
+    if (window.KLoot) { const d = window.KLoot.describe(game, wx, wy); if (d) return d; }
     if (!w.inb(x, y)) return null;
     const m = w.get(x, y);
     if (m === KData.M.EMPTY) return null;
@@ -225,7 +331,15 @@
       mbuf[o] = m === M.ROCK ? pk(52, 58, 84) : m === M.WATER ? pk(44, 90, 190) : m === M.MAGMA ? pk(230, 100, 40)
         : KWorld.SOLID[m] || m === M.MUD ? pk(B[0] * 0.75, B[1] * 0.75, B[2] * 0.75) : pk(24, 20, 34);
     }
-    for (const wl of w.wells) if (w.explored[(wl.y >> 5) * w.cw + (wl.x >> 5)]) { const o = Math.floor(wl.y / sy) * mm.width + Math.floor(wl.x / sx); mbuf[o] = pk(201, 182, 255); }
+    const dot = (wx, wy, c, big) => {
+      const X = Math.floor(wx / sx), Y = Math.floor(wy / sy);
+      for (const [dx, dy] of big ? [[0, 0], [1, 0], [0, 1], [1, 1]] : [[0, 0]]) if (X + dx >= 0 && Y + dy >= 0 && X + dx < mm.width && Y + dy < mm.height) mbuf[(Y + dy) * mm.width + X + dx] = c;
+    };
+    for (const l of w.lodestones) {
+      if (game.found.has(l.id)) dot(l.x, l.y - 4, pk(201, 182, 255), true);
+      else if (w.explored[(l.y >> 5) * w.cw + (l.x >> 5)]) dot(l.x, l.y - 4, pk(120, 108, 150), true);
+    }
+    if (window.KLoot) window.KLoot.mapDots(game, dot, pk);
     const p = game.players[0], px = Math.floor(p.x / sx), py = Math.floor((p.y - 8) / sy);
     for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 0], [0, -1]]) { const X = px + dx, Y = py + dy; if (X >= 0 && Y >= 0 && X < mm.width && Y < mm.height) mbuf[Y * mm.width + X] = pk(255, 255, 255); }
     mctx.putImageData(mimg, 0, 0);
@@ -244,7 +358,10 @@
       let n = 0;
       while (acc >= STEP && n < 4) { game.step([KInput.sample(origin)]); acc -= STEP; n++; }
       if (n === 4) acc = 0;
+      saveTimer += dt;
+      if (saveTimer > 20) save();
     }
+    handleEvents(mode === 'play' ? dt : 0);
     const p = game.players[0];
     let reticle = null;
     if (mode === 'play') {
@@ -261,5 +378,5 @@
   requestAnimationFrame(frame);
 
   // for testing from the console
-  window.cis = { game, R };
+  window.cis = { get game() { return game; }, set game(g) { game = g; }, R, save, setMode, toast };
 })();

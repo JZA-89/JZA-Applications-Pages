@@ -201,7 +201,7 @@ const KRender = (() => {
       this.cam.x = cx; this.cam.y = cy;
 
       this.drawCells(world, game.time);
-      this.drawWells(world, game.time);
+      this.drawLodestones(game, game.time);
       for (const d of game.dummies) this.drawDummy(d);
       for (const e of game.enemies) if (!e.asleep) this.drawCrawler(e, game.time);
       for (const pl of game.players) this.drawGolem(pl);
@@ -277,18 +277,18 @@ const KRender = (() => {
       }
     }
 
-    // Mana wells: a lilac crystal on a little plinth, gently pulsing.
-    drawWells(world, time) {
-      const CR = ['..k..', '.kak.', 'kabak', 'kabak', 'kabak', '.kak.', 'sssss', 'ddddd'];
-      const col = { k: [60, 40, 90], a: [201, 182, 255], b: [246, 236, 255], s: [150, 143, 138], d: [96, 90, 94] };
-      for (const wl of world.wells) {
-        const ox = Math.round(wl.x - this.cam.x) - 2, oy = Math.round(wl.y - this.cam.y) - CR.length;
-        if (ox < -6 || oy < -10 || ox > V.w || oy > V.h) continue;
-        const pulse = 0.85 + 0.15 * Math.sin(time * 3 + wl.x);
-        for (let y = 0; y < CR.length; y++) for (let x = 0; x < 5; x++) {
-          const ch = CR[y][x]; if (ch === '.') continue;
-          const c = col[ch], f = ch === 'a' || ch === 'b' ? pulse : 1;
-          this.plot(ox + x, oy + y, clamp(c[0] * f), clamp(c[1] * f), clamp(c[2] * f));
+    // Lodestones: a standing stone with a rune; the rune glows lilac once found.
+    drawLodestones(game, time) {
+      const S = ['..kkk..', '.kmmmk.', 'kmmhmmk', 'kmhrhmk', 'kmmrmmk', 'kmrrrmk', 'kmmrmmk', 'kmrmrmk', 'kmmmmmk', 'kmmmmdk', 'kmmmmdk', 'kmmmmdk', 'sssssss', 'ddddddd'];
+      const col = { k: [24, 20, 36], m: [70, 78, 108], h: [96, 106, 140], d: [50, 56, 80], s: [150, 143, 138], dd: [96, 90, 94] };
+      for (const l of game.world.lodestones) {
+        const ox = Math.round(l.x - this.cam.x) - 3, oy = Math.round(l.y - this.cam.y) - S.length;
+        if (ox < -8 || oy < -16 || ox > V.w || oy > V.h) continue;
+        const lit = game.found.has(l.id), pulse = 0.8 + 0.2 * Math.sin(time * 2.5 + l.x);
+        for (let y = 0; y < S.length; y++) for (let x = 0; x < 7; x++) {
+          const ch = S[y][x]; if (ch === '.') continue;
+          let c = ch === 'r' ? (lit ? [201 * pulse, 182 * pulse, 255 * pulse] : [44, 40, 60]) : (y >= 12 && ch === 'd' ? col.dd : col[ch]);
+          this.plot(ox + x, oy + y, clamp(c[0]), clamp(c[1]), clamp(c[2]));
         }
       }
     }
@@ -448,7 +448,7 @@ const KRender = (() => {
         else if (f.kind === 'trail') for (let i = 0; i < f.pts.length; i += 3) this.light(f.pts[i].x, f.pts[i].y, 7, f.color, a * 0.35);
         else if (f.kind === 'beam') for (let k = 0; k <= 6; k++) this.light(f.x0 + (f.x1 - f.x0) * k / 6, f.y0 + (f.y1 - f.y0) * k / 6, 9, f.color, a * 0.6);
       }
-      for (const wl of game.world.wells) this.light(wl.x, wl.y - 5, 16, [201, 182, 255], 0.5 + 0.1 * Math.sin(game.time * 3 + wl.x));
+      for (const l of game.world.lodestones) if (game.found.has(l.id)) this.light(l.x, l.y - 8, 18, [201, 182, 255], 0.5 + 0.12 * Math.sin(game.time * 2.5 + l.x));
       for (const e of game.enemies) {
         if (e.dead || e.asleep) continue;
         const ex = e.x + e.facing * 6, ey = e.y - 5;

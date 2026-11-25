@@ -89,6 +89,7 @@ const KWorld = (() => {
       const s = this.shift, cx = x >> s, cy = y >> s, cw = this.cw;
       const k = cy * cw + cx;
       this.awake[k] = 3; this.dirty[k] = 1;
+      if (this.changed) this.changed[k] = 1;
       const lx = x & (this.cs - 1), ly = y & (this.cs - 1), e = this.cs - 1;
       if (lx === 0 && cx > 0) { this.awake[k - 1] = 3; }
       if (lx === e && cx < cw - 1) { this.awake[k + 1] = 3; }
@@ -360,6 +361,40 @@ const KWorld = (() => {
       return charged;
     }
 
+    // ----- saving: only the chunks that changed since the cave was generated -----
+    // Each chunk's materials and life values are run-length encoded (value, run length
+    // up to 255) and stored as base64 text.
+    saveChunks() {
+      const out = {}, cs = this.cs;
+      const enc = bytes => {
+        const runs = [];
+        for (let i = 0; i < bytes.length;) { let n = 1; while (i + n < bytes.length && bytes[i + n] === bytes[i] && n < 255) n++; runs.push(bytes[i], n); i += n; }
+        let s = ''; for (const b of runs) s += String.fromCharCode(b);
+        return btoa(s);
+      };
+      for (let k = 0; k < this.changed.length; k++) {
+        if (!this.changed[k]) continue;
+        const cx = k % this.cw, cy = (k / this.cw) | 0, m = new Uint8Array(cs * cs), l = new Uint8Array(cs * cs);
+        for (let y = 0; y < cs; y++) for (let x = 0; x < cs; x++) { const i = (cy * cs + y) * this.w + cx * cs + x; m[y * cs + x] = this.mat[i]; l[y * cs + x] = this.life[i]; }
+        out[k] = enc(m) + '|' + enc(l);
+      }
+      return out;
+    }
+    loadChunks(saved) {
+      const cs = this.cs;
+      const dec = str => { const s = atob(str), out = []; for (let i = 0; i < s.length; i += 2) for (let n = 0; n < s.charCodeAt(i + 1); n++) out.push(s.charCodeAt(i)); return out; };
+      for (const k in saved) {
+        const [ms, ls] = saved[k].split('|'), m = dec(ms), l = dec(ls), cx = k % this.cw, cy = (k / this.cw) | 0;
+        if (m.length !== cs * cs) continue;
+        for (let y = 0; y < cs; y++) for (let x = 0; x < cs; x++) {
+          const i = (cy * cs + y) * this.w + cx * cs + x, v = m[y * cs + x];
+          if (v >= N) continue;
+          this.mat[i] = v; this.life[i] = l[y * cs + x] || 0; this.charge[i] = 0;
+        }
+        this.changed[k] = 1; this.awake[k] = 3; this.dirty[k] = 1;
+      }
+    }
+
     // Chunks changed since the last call (for sending to another player later).
     takeDirty() {
       const list = [];
@@ -371,7 +406,7 @@ const KWorld = (() => {
     // A web of caves spreading in every direction from a hub: chambers joined
     // by winding tunnels (every chamber reachable, plus extra links for loops
     // and forks), unbreakable rock masses that shape the routes, three regions
-    // with their own pools, dirt plugs to dig through, mana wells, and homes
+    // with their own pools, dirt plugs to dig through, Lodestones, and homes
     // for the crawlers. Everything comes from the seed.
     generate() {
       const { w, h } = this, mat = this.mat, s = this.seed % 997, C = KData.cave;
@@ -568,7 +603,18 @@ const KWorld = (() => {
       }
       const far = nodes.filter(n => !n.hub && n.dist > 220);
       for (let i = far.length - 1; i > 0; i--) { const j = (R() * (i + 1)) | 0; [far[i], far[j]] = [far[j], far[i]]; }
-      this.wells = far.map(n => spotIn(n, 12, 14)).filter(Boolean).slice(0, C.wells);
+      // Lodestones: one in the hub next to where you start, the rest spread through the cave
+      this.lodestones = [];
+      const hubStone = this.standSpot(this.spawn.x - 18, this.spawn.y - 4, 16) || { x: this.spawn.x - 18, y: this.spawn.y };
+      this.lodestones.push({ id: 0, x: hubStone.x, y: hubStone.y, hub: true });
+      for (const n of far) {
+        if (this.lodestones.length >= C.lodestones) break;
+        if (this.lodestones.some(l => Math.hypot(l.x - n.x, l.y - n.y) < 260)) continue;
+        const sp = spotIn(n, 12, 16);
+        if (sp) this.lodestones.push({ id: this.lodestones.length, x: sp.x, y: sp.y });
+      }
+      for (const l of this.lodestones) { l.region = KData.biomes[this.biomeAt(l.x, l.y - 8)].name; l.level = this.levelAt(l.x, l.y); }
+      this.changed = new Uint8Array(this.cw * this.ch); // chunks changed since generation (for saving)
     }
 
     // A place to stand near (x, y): climb out of anything solid, drop to the
