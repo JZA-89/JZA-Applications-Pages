@@ -74,8 +74,13 @@
         const r = p.runes[slot];
         html += `<div class="rsock" data-slot="${slot}">${tile(r, `data-worn="${slot}"`, picked && picked.slot === slot)}<small>${RU.slotNames[slot]}</small></div>`;
       }
+      // the bag, a row for each place a stone can be worn; best grade first, then highest level
       html += `</div><div class="bagside"><h3>${KIcon('rune')}Bag<small>${p.inventory.length} of ${RU.bag}</small></h3><div class="bag">`;
-      p.inventory.forEach((r, i) => { html += tile(r, `data-bag="${i}"`, picked && picked.bag === i); });
+      for (const slot of RU.slots) {
+        const list = p.inventory.map((r, i) => ({ r, i })).filter(o => RU.types[o.r.type].slot === slot).sort((a, b) => b.r.tier - a.r.tier || b.r.level - a.r.level || a.i - b.i);
+        html += `<div class="bagrow${list.length ? '' : ' none'}"><small>${RU.slotNames[slot]}</small><div>` +
+          (list.length ? list.map(o => tile(o.r, `data-bag="${o.i}"`, picked && picked.bag === o.i)).join('') : '<i>None</i>') + '</div></div>';
+      }
       html += '</div>';
       // the stone you picked
       if (stone) {

@@ -517,6 +517,7 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.26 (2026-11-26):** a new interface for the HUD and every panel (Jaisah: proper game UI, as in MORPHOS).
 - **v0.27 (2026-11-26):** music (a calm cave piece and an ominous one for bosses and champions, N to toggle) and motion for the golems (both Jaisah).
 - **v0.28 (2026-11-26):** resting works from near a Lodestone (46 to either side, 30 above, 50 below; it was 22 and 20), and every Lodestone stands on a base of rock that cannot be dug away, restored within 2 s if it is missing (Jaisah: stones left floating were hard to rest at). In the Stats tab the five general stats are on the left and the four elements on the right.
+- **v0.29 (2026-11-26):** the bag is split into a row for Head, Core, Arms and Legs, each sorted best grade first, then highest level (Jaisah).
 
 ## Checks run for v0.27
 
