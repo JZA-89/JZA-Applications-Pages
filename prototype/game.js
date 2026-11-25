@@ -29,6 +29,8 @@ const KGame = (() => {
       this.parts = [];
       this.fx = [];
       this.growths = [];
+      this._special = {};
+      this.storms = [];   // special spells that last a while (never saved)
       this.loot = [];
       this.sounds = [];   // [name, x, y, volume], played and cleared by main.js
       this.hitStop = 0;   // a brief freeze on heavy blows (main.js)
@@ -52,7 +54,7 @@ const KGame = (() => {
       return {
         kind: 'player', id, x: s.x, y: s.y, vx: 0, vy: 0, w: PD.w, h: PD.h,
         hp: PD.hp, maxHp: PD.hp, grounded: false, facing: 1, aim: 0,
-        slots: [null, null], cds: {}, lock: 0, mana: PD.mana, maxMana: PD.mana, manaWait: 0, manaFlash: 0,
+        slots: [null, null], queue: [], known: [], cds: {}, lock: 0, mana: PD.mana, maxMana: PD.mana, manaWait: 0, manaFlash: 0,
         stats: KData.baseStats(), skin: 0,
         coyote: 0, jumpBuf: 0, jumpHeld: false, rising: false, castHeld: false,
         channels: { shot: null, burst: null, lift: null, move: null }, dashT: 0, dashVX: 0, dashVY: 0, dashHit: null,
@@ -166,12 +168,131 @@ const KGame = (() => {
       const rune = crucible ? this.makeRune(c.level, { type: 'crucible', tier: 2 }) : this.makeRune(c.level, { tier: Math.min(2, RU.tierFor(c.level, this.rand()) + 1) });
       if (p.inventory.length < RU.bag) p.inventory.push(rune); else this.dropRune(c.x, c.y - 6, rune);
       this.events.push({ type: 'toast', kind: 'loot', text: `Relic cache opened · ${RU.types[rune.type].name} (${RU.tiers[rune.tier].name}) · ${shards} shards` });
+      if (this.rand() < 0.7) this.tome(p);
       this.gainXp(p, T.xp(c.level), 'cache');
       this.sfx('cache', c.x, c.y);
       this.burst(c.x, c.y - 4, 24, [[255, 211, 122], [255, 240, 200]], 120);
       this.fx.push({ kind: 'flash', x: c.x, y: c.y - 4, r: 30, t: 0, T: 0.4, color: [255, 211, 122] });
       this.events.push({ type: 'save' });
     }
+    // ---------- special spells ----------
+    learn(p, id, how) {
+      if (p.known.includes(id)) return false;
+      p.known.push(id);
+      this.events.push({ type: 'learn', id, how });
+      this.events.push({ type: 'save' });
+      return true;
+    }
+    // a tome teaches one special spell you do not know: one of the three cheapest, or a named one
+    tome(p, id) {
+      const S = KData.specials;
+      if (!id || p.known.includes(id)) {
+        const left = Object.keys(S).filter(k => !p.known.includes(k)).sort((a, b) => S[a].cost - S[b].cost).slice(0, 3);
+        if (!left.length) return;
+        id = left[(this.rand() * left.length) | 0];
+      }
+      this.learn(p, id, 'tome');
+    }
+    meteor(p, S, x, y) {
+      const w = this.world;
+      let sy = y;
+      for (let k = 0; k < 150 && sy > 4 && !BLOCKS(w.get(Math.round(x), Math.round(sy - 1))); k++) sy--;
+      const sp = { radius: S.radius, power: S.power, knock: 300, ignite: 0.6, color: [255, 150, 52] };
+      this.projectiles.push({ kind: 'fireball', sp, key: 'earth+fire', owner: p, x, y: sy + 3, vx: (this.rand() - 0.5) * 16, vy: 230, g: 220, age: 0 });
+      this.fx.push({ kind: 'flash', x, y: sy + 3, r: 20, t: 0, T: 0.25, color: [255, 150, 60] });
+    }
+    castSpecial(p, id) {
+      const S = KData.specials[id], w = this.world, R = this.rand;
+      this.learn(p, id, 'typed');
+      const c = this.chest(p), dx = Math.cos(p.aim), dy = Math.sin(p.aim);
+      const aimAt = () => { const h = w.ray(c.x, c.y, dx, dy, S.range); return { x: h.hit ? h.lx : h.x, y: h.hit ? h.ly : h.y }; };
+      const ring = (x, y, r, color) => { this.fx.push({ kind: 'ring', x, y, r0: 3, r1: r, t: 0, T: 0.3, color }); this.fx.push({ kind: 'flash', x, y, r: r + 10, t: 0, T: 0.2, color }); };
+      if (id === 'geyser') {
+        const t = aimAt();
+        let gy = t.y; for (let k = 0; k < 90 && !KWorld.SOLID[w.get(Math.round(t.x), Math.round(gy + 1))]; k++) gy++;
+        this.hitRadius(t.x, gy - 8, S.radius, S.power, 0, p, p, 'water+fire');
+        for (const o of this.actors) if (o !== p && !o.dead && Math.abs(o.x - t.x) < S.radius && Math.abs(o.y - gy) < S.radius + 6) o.vy = Math.min(o.vy, -300);
+        for (let k = 0; k < 60; k++) this.parts.push({ x: t.x + (R() - 0.5) * 8, y: gy - 1, vx: (R() - 0.5) * 60, vy: -200 - R() * 220, g: 380, mat: R() < 0.7 ? M.WATER : M.STEAM, life: 3, owner: p });
+        for (let k = 0; k < 40; k++) { const x = Math.round(t.x + (R() - 0.5) * 8), y = Math.round(gy - R() * 40); if (w.get(x, y) === M.EMPTY) w.set(x, y, M.STEAM); }
+        ring(t.x, gy - 6, S.radius, [200, 220, 255]);
+        this.sfx('splash', t.x, gy, 1.2); this.sfx('whoosh', t.x, gy, 1);
+        this.shake = Math.max(this.shake, 2);
+      } else if (id === 'haste') {
+        p.hasteT = S.time;
+        ring(p.x, p.y - 8, 20, [255, 220, 140]); this.sfx('blink', p.x, p.y, 1);
+      } else if (id === 'phase') {
+        const c0 = { x: p.x, y: p.y - p.h / 2 };
+        for (let d = S.dist; d >= 6; d -= 1) {
+          const x = p.x + dx * d, y = p.y + dy * d;
+          if (x > 8 && y > 20 && x < w.w - 8 && y < w.h - 8 && !this.collides(p, x, y)) { p.x = x; p.y = y; break; }
+        }
+        p.vx *= 0.2; p.vy = 0; p.safeT = 0.6;
+        this.fx.push({ kind: 'bolt', pts: this.jagged(c0.x, c0.y, p.x, p.y - p.h / 2), t: 0, T: 0.25, color: [200, 196, 255] });
+        ring(p.x, p.y - 8, 16, [200, 196, 255]); this.sfx('blink', p.x, p.y, 1);
+      } else if (id === 'meteor') {
+        const t = aimAt();
+        this.meteor(p, S, t.x, t.y); this.sfx('whoosh', t.x, t.y, 1);
+      } else if (id === 'cataclysm') {
+        const t = aimAt();
+        this.storms.push({ kind: 'meteors', x: t.x, y: t.y, t: S.count * 0.45, next: 0, left: S.count, owner: p });
+        this.sfx('stirs', p.x, p.y, 1);
+      } else if (id === 'quake') {
+        for (const o of this.actors) {
+          if (o === p || o.dead || o.kind === 'player') continue;
+          const d = Math.hypot(o.x - p.x, o.y - p.y);
+          if (d > S.radius) continue;
+          this.hurt(o, S.power * (1 - d / S.radius * 0.5), Math.sign(o.x - p.x) * 60, -170, 'quake', p, 'earth+earth+earth+water');
+          o.slowT = Math.max(o.slowT || 0, 2.5);
+        }
+        for (let k = 0; k < 14; k++) {
+          const x = p.x + (R() - 0.5) * 2 * S.radius;
+          let y = p.y - 12, n = 0;
+          while (n++ < 90 && !KWorld.SOLID[w.get(Math.round(x), Math.round(y))]) y--;
+          if (n < 90 && n > 6) for (let j = 0; j < 6; j++) this.parts.push({ x: x + (R() - 0.5) * 8, y: y + 2, vx: (R() - 0.5) * 30, vy: R() * 40, g: 380, mat: M.EARTH, life: 4, owner: p });
+        }
+        ring(p.x, p.y - 4, 60, [196, 152, 136]);
+        this.sfx('bigboom', p.x, p.y, 1); this.sfx('rumble', p.x, p.y, 1);
+        this.shake = Math.max(this.shake, 6);
+      } else if (id === 'stoneskin') {
+        p.skinT = S.time;
+        ring(p.x, p.y - 8, 18, [190, 196, 210]); this.sfx('earth', p.x, p.y, 1);
+      } else if (id === 'thunderstorm') {
+        const t = aimAt();
+        this.storms.push({ kind: 'storm', x: t.x, y: t.y, t: S.time, next: 0.2, owner: p });
+        this.sfx('stirs', t.x, t.y, 0.8);
+      }
+    }
+    updateStorms() {
+      if (!this.storms.length) return;
+      const w = this.world, R = this.rand, SP = KData.specials;
+      for (const s of this.storms) {
+        s.t -= DT; s.next -= DT;
+        if (s.kind === 'meteors') {
+          if (s.next <= 0 && s.left > 0) { s.left--; s.next = 0.45; this.meteor(s.owner, SP.cataclysm, s.x + (R() - 0.5) * 2 * SP.cataclysm.spread, s.y); this.sfx('whoosh', s.x, s.y, 0.8); }
+          continue;
+        }
+        const S = SP.thunderstorm;
+        // rain
+        for (let k = 0; k < 2; k++) {
+          const x = s.x + (R() - 0.5) * 2 * S.radius;
+          let y = s.y; for (let n = 0; n < 60 && !BLOCKS(w.get(Math.round(x), Math.round(y - 1))); n++) y--;
+          this.parts.push({ x, y: y + 1, vx: 0, vy: 160, g: 200, mat: M.WATER, life: 3, owner: s.owner });
+        }
+        if (s.next > 0) continue;
+        s.next = S.every;
+        const near = this.actors.filter(o => !o.dead && o.kind !== 'player' && Math.hypot(o.x - s.x, o.y - s.y) < S.radius);
+        let tx, ty, target = null;
+        if (near.length) { target = near[(R() * near.length) | 0]; tx = target.x; ty = target.y - target.h / 2; }
+        else { tx = s.x + (R() - 0.5) * 2 * S.radius; ty = s.y; for (let n = 0; n < 60 && !BLOCKS(w.get(Math.round(tx), Math.round(ty + 1))); n++) ty++; }
+        let top = ty; for (let n = 0; n < 90 && !BLOCKS(w.get(Math.round(tx), Math.round(top - 1))); n++) top--;
+        this.fx.push({ kind: 'bolt', pts: this.jagged(tx + (R() - 0.5) * 10, top, tx, ty), t: 0, T: 0.18, color: [190, 230, 255] });
+        this.fx.push({ kind: 'flash', x: tx, y: ty, r: 16, t: 0, T: 0.15, color: [190, 230, 255] });
+        if (target) { target.wetT = KData.statuses.wet.time; this.hurt(target, S.power, 0, -30, 'bolt', s.owner, 'lightning+water'); }
+        this.sfx('bolt', tx, ty, 0.8);
+      }
+      this.storms = this.storms.filter(s => s.t > 0);
+    }
+
     hasRune(p, type) { return Object.values(p.runes).some(r => r && r.type === type) || p.inventory.some(r => r.type === type); }
     describeTreasure(wx, wy) {
       for (const c of this.world.caches) if (Math.abs(wx - c.x) < 6 && wy > c.y - 7 && wy < c.y + 1) {
@@ -432,6 +553,7 @@ const KGame = (() => {
       this.defeated.add(b.type); this.cores.add(B.region);
       this.gainXp(p, KData.progression.killXp(b.level, 'crawler', false) * B.xpMul, 'boss');
       p.shards = (p.shards || 0) + B.shardsMul * b.level;
+      this.tome(p, 'cataclysm');
       const first = this.hasRune(p, 'crucible') ? this.makeRune(b.level + 1, { tier: 3 }) : this.makeRune(b.level + 1, { type: 'crucible', tier: 3 });
       const second = this.makeRune(b.level + 1, { tier: 2 + (this.rand() < 0.4 ? 1 : 0) });
       // straight into the bag (it usually dies under the magma); dropped beside you only if the bag is full
@@ -544,6 +666,7 @@ const KGame = (() => {
       for (const p of this.players) this.control(p, actions[p.id] || { move: 0, events: [], aim: p.aim });
       this.world.step();
       this.updateGrowths();
+      this.updateStorms();
       this.updateParticles();
       this.updateProjectiles();
       for (const e of this.enemies) this.enemyTick(e);
@@ -569,12 +692,15 @@ const KGame = (() => {
         return;
       }
       for (const e of a.events) {
-        if (e.type === 'load') {
-          if (!p.slots[0]) p.slots[0] = e.el;
-          else if (!p.slots[1]) p.slots[1] = e.el;
-          else { p.slots[0] = p.slots[1]; p.slots[1] = e.el; }
-        } else if (e.type === 'clear') p.slots = [null, null];
+        // the recipe: type elements onto the end (no slots; mana is the limit)
+        if (e.type === 'load') { if (p.queue.length < KData.recipe.max) p.queue.push(e.el); else p.slotFlash = 0.35; }
+        else if (e.type === 'clear') p.queue = [];
+        else if (e.type === 'undo') p.queue.pop();
       }
+      const RC = KRecipe.resolve(p.queue);
+      p.recipe = RC;
+      p.slots = RC ? [RC.form, RC.second] : [null, null];   // the golem's two colours: form and strongest modifier
+      for (const t of ['hasteT', 'skinT', 'guardT']) if (p[t] > 0) p[t] -= DT;
       p.aim = a.aim;
       const ax = Math.cos(p.aim);
       if (Math.abs(ax) > 0.15) p.facing = ax > 0 ? 1 : -1;
@@ -588,7 +714,7 @@ const KGame = (() => {
       if (p.slowT > 0) p.slowT -= DT;
       const muddy = (p.inMud || p.slowT > 0) && !this.has(p, 'diver');
       const slow = muddy ? KData.materials[M.MUD].slows : 1;
-      const run = PD.run * slow * (p.speedMul || 1);
+      const run = PD.run * slow * (p.speedMul || 1) * (p.hasteT > 0 ? KData.specials.haste.speed : 1);
       const target = p.moveX * run;
       if (p.dashT <= 0) {
         const acc = (p.grounded ? PD.accel : PD.airAccel) * (muddy ? 0.5 : 1);
@@ -607,7 +733,7 @@ const KGame = (() => {
       p.jumpBuf = Math.max(0, p.jumpBuf - DT);
       let jumpedNow = false;
       if (p.jumpBuf > 0 && p.coyote > 0 && p.dashT <= 0) {
-        p.vy = -PD.jump * (muddy ? 0.55 : 1) * (this.has(p, 'spring') ? 1.3 : 1);
+        p.vy = -PD.jump * (muddy ? 0.55 : 1) * (this.has(p, 'spring') ? 1.3 : 1) * (p.hasteT > 0 ? 1.15 : 1);
         p.jumpBuf = 0; p.coyote = 0; p.rising = true; p.grounded = false;
         p.jumpT = this.time; jumpedNow = true;
       }
@@ -630,7 +756,7 @@ const KGame = (() => {
       else p.mana = Math.min(p.maxMana, p.mana + (p.grounded ? PD.manaGroundRegen : PD.manaRegen) * (p.regenMul || 1) * DT);
 
       // the three ways to cast
-      const key = p.slots[0] && p.slots[1] ? spellKey(p.slots[0], p.slots[1]) : null;
+      const key = RC ? RC.key : null;
       const input = {
         shot: { held: a.cast, pressed: a.cast && !p.castHeld },
         burst: { held: !!a.burst, pressed: !!a.burst && !p.burstHeld },
@@ -649,7 +775,7 @@ const KGame = (() => {
         }
         if (!held) continue;
         if (!key) { if (pressed && mode !== 'move') p.slotFlash = 0.35; continue; }
-        const sp = spells[key][mode], cdKey = key + ':' + mode;
+        const sp = this.spec(p, mode), cdKey = key + ':' + mode;
         if ((p.cds[cdKey] || 0) > 0) continue;
         if (sp.drain) {
           if (p.mana < sp.min) { if (pressed) { p.manaFlash = 0.35; this.sfx('nomana', p.x, p.y); } continue; }
@@ -672,7 +798,42 @@ const KGame = (() => {
         this.alert(p, p.x, p.y, KData.enemies.crawler.hearing);
         if (mode !== 'shot') p.safeT = 0.8;   // your own Moves and Bursts never burn you
         this.cast(p, key, mode, sp);
+        if (mode === 'burst' && sp.mods) { const r = (sp.radius || sp.reach || 20) * 0.7; this.landing(p.x - r, p.y - 6, sp, p); this.landing(p.x + r, p.y - 6, sp, p); }
         if (mode === 'burst' && this.has(p, 'mudburst')) this.mireAround(p, 20, 1);
+      }
+    }
+
+    // The spell a way of casting gives right now. An exact special sequence
+    // takes over the Shot once your mana bar could hold its cost.
+    spec(p, mode) {
+      const RC = p.recipe;
+      if (!RC) return null;
+      if (mode === 'shot' && RC.special) {
+        const S = KData.specials[RC.special];
+        if (p.maxMana >= S.cost) return this._special[RC.special] || (this._special[RC.special] = { kind: 'special', id: RC.special, name: S.name, cost: S.cost, cd: S.cd, special: true });
+      }
+      return RC[mode];
+    }
+
+    // What a Shot or Burst's modifier elements do where it lands:
+    // fire scatters flames, water splashes, earth digs and throws rubble,
+    // lightning electrifies water. (What they do to whoever is hit is in hurt().)
+    landing(x, y, sp, owner) {
+      const m = sp.mods;
+      if (!m || !(m.fire || m.water || m.earth || m.lightning)) return;
+      const w = this.world, R = this.rand, ix = Math.round(x), iy = Math.round(y);
+      if (m.earth) {
+        w.explode(x, y, Math.min(9, 2 + 1.5 * m.earth));
+        for (let k = 0; k < Math.min(20, 5 * m.earth); k++) this.parts.push({ x: x + (R() - 0.5) * 6, y: y - 2, vx: (R() - 0.5) * 120, vy: -60 - R() * 90, g: 380, mat: M.EARTH, life: 3, owner });
+      }
+      if (m.fire) {
+        const r = 3 + 2 * Math.min(4, m.fire);
+        for (let k = 0; k < Math.min(30, 7 * m.fire); k++) { const fx = ix + ((R() - 0.5) * 2 * r | 0), fy = iy + ((R() - 0.5) * 2 * r | 0); if (w.get(fx, fy) === M.EMPTY) w.set(fx, fy, M.FIRE); }
+      }
+      if (m.water) for (let k = 0; k < Math.min(36, 9 * m.water); k++) this.parts.push({ x: x + (R() - 0.5) * 6, y: y - 2, vx: (R() - 0.5) * 150, vy: -40 - R() * 110, g: 300, mat: M.WATER, life: 3, owner });
+      if (m.lightning) {
+        this.fx.push({ kind: 'flash', x, y, r: 10 + 4 * m.lightning, t: 0, T: 0.15, color: [255, 246, 170] });
+        for (let dy = -6; dy <= 6; dy += 3) for (let dx = -6; dx <= 6; dx += 3) if (w.get(ix + dx, iy + dy) === M.WATER) { w.electrify(ix + dx, iy + dy, 40 + 15 * m.lightning, 800); dy = 99; break; }
       }
     }
 
@@ -713,6 +874,7 @@ const KGame = (() => {
       const R = this.rand, w = this.world;
       const md = mode === 'move' ? this.moveDir(p, sp) : null;
       switch (sp.kind) {
+        case 'special': this.castSpecial(p, sp.id); break;
         // ----- shots -----
         case 'projectile':
           this.projectiles.push({ kind: 'fireball', sp, key, owner: p, x: ox, y: oy, vx: dx * sp.speed, vy: dy * sp.speed, g: sp.gravity, age: 0 });
@@ -937,7 +1099,7 @@ const KGame = (() => {
     // (Spark hops), a slow glide (Storm glide) and floating above the ground
     // (Magnet float). Lifts never hurt you.
     liftTick(p, a, key) {
-      const sp = key && spells[key].lift;
+      const sp = key && p.recipe.lift;
       if (p.grounded) p.hops = 0;
       const ok = sp && a.jump && p.liftArmed && !p.dead && !p.inWater && p.dashT <= 0 && !p.slam && !p.channels.move &&
         (!p.grounded || sp.kind === 'lcolumn');
@@ -953,6 +1115,7 @@ const KGame = (() => {
         if (p.mana <= 0) { p.channels.lift = null; p.liftArmed = false; return; }
       }
       p.safeT = Math.max(p.safeT || 0, 0.4);
+      if (sp.guard) { p.guard = sp.guard; p.guardT = 0.2; }
       p.rising = false; p.coyote = 0;
       const steer = (speed, acc) => { const tx = (p.moveX || 0) * speed; p.vx += Math.sign(tx - p.vx) * Math.min(Math.abs(tx - p.vx), acc * DT); };
       const free = this.has(p, 'tidal') && this.nearWater(p) && (kind === 'lthrust' || kind === 'lhover' || kind === 'lglide');
@@ -1066,7 +1229,7 @@ const KGame = (() => {
 
     // Held spells: water jet and scald (shots); wall climb and drill (moves).
     channelTick(p, mode) {
-      const key = p.channels[mode], sp = spells[key][mode], R = this.rand, w = this.world;
+      const key = p.channels[mode], sp = this.spec(p, mode), R = this.rand, w = this.world;
       const dx = Math.cos(p.aim), dy = Math.sin(p.aim), c = this.chest(p);
       let drain = sp.drain;
       if (mode === 'move') p.safeT = Math.max(p.safeT || 0, 0.4);
@@ -1118,7 +1281,7 @@ const KGame = (() => {
     }
     endChannel(p, mode) {
       const key = p.channels[mode];
-      if (key) p.cds[key + ':' + mode] = spells[key][mode].cd || 0;
+      if (key && mode !== 'lift') p.cds[key + ':' + mode] = KRecipe.resolve(key.split('+'))[mode].cd || 0;
       p.channels[mode] = null;
     }
     endAllChannels(p) { for (const m of KData.modes) this.endChannel(p, m); p.liftArmed = false; }
@@ -1222,6 +1385,7 @@ const KGame = (() => {
       }
       this.fx.push({ kind: 'bolt', pts: this.jagged(c.x + dx * 3, c.y + dy * 3, ex, ey), t: 0, T: 0.16, color: sp.color });
       if (target) this.hurt(target, sp.power, dx * sp.knock, dy * sp.knock - 30, 'bolt', p, key);
+      this.landing(ex - dx * 2, ey - dy * 2, sp, p);
       if (water) {
         const n = w.electrify(water.x, water.y, sp.charge, sp.chargeCells);
         this.fx.push({ kind: 'flash', x: ex, y: ey, r: 18 + Math.min(40, n / 30), t: 0, T: 0.2, color: [180, 220, 255] });
@@ -1264,6 +1428,7 @@ const KGame = (() => {
           break;
         }
       }
+      this.landing(ex - dx * 2, ey - dy * 2, sp, p);
       this.fx.push({ kind: 'beam', x0: c.x + dx * 4, y0: c.y + dy * 4, x1: ex, y1: ey, t: 0, T: 0.14, color: sp.color });
       this.fx.push({ kind: 'flash', x: ex, y: ey, r: 12, t: 0, T: 0.12, color: sp.color });
     }
@@ -1323,6 +1488,7 @@ const KGame = (() => {
 
     impact(pr, px, py, hit) {
       const w = this.world, sp = pr.sp;
+      if (!pr.mini) this.landing(px, py, sp, pr.owner);
       if (pr.kind === 'fireball') {
         const x = pr.x, y = pr.y;
         w.explode(x, y, sp.radius * (pr.mini ? 0.55 : 1), { fire: sp.ignite, boil: 0.5, melt: this.has(pr.owner, 'melt') });
@@ -1447,20 +1613,20 @@ const KGame = (() => {
 
     // Damage from stats. base: the spell's power (or a hazard's rate).
     // src: who cast it (null for hazards). spell: the spell key, whose two
-    // elements set which element powers apply.
+    // elements (the whole recipe, averaged) set which element powers apply.
     //   damage = base x element power x 2A/(A+D) x modifiers
     // With equal attack and defence the middle term is 1, so base is the damage.
     damage(src, target, base, spell) {
       const ts = target.stats || KData.baseStats();
       const atk = src && src.stats ? src.stats.attack : ts.defence;
       let pow = 1;
-      if (src && src.stats && spell) { const [e1, e2] = spell.split('+'); pow = (src.stats.power[e1] + src.stats.power[e2]) / 2; }
+      const els = spell ? KRecipe.parse(spell).q : null;
+      if (src && src.stats && els) { pow = 0; for (const e of els) pow += src.stats.power[e] || 1; pow /= els.length; }
       // the target's element affinity (averaged over the spell's two elements) and status combos
       let mods = 1;
       if (spell) {
-        const [e1, e2] = spell.split('+'), S = KData.statuses;
-        mods = (this.affinity(target, e1) + this.affinity(target, e2)) / 2;
-        const els = [e1, e2];
+        const S = KData.statuses;
+        mods = 0; for (const e of els) mods += this.affinity(target, e); mods /= els.length;
         if (target.wetT > 0 && els.includes(S.wet.boosts)) mods *= S.wet.by;
         if (target.stranded) mods *= KData.bosses[target.type].strandMul;
         if ((target.slowT > 0 || target.inMud) && els.includes(S.muddy.boosts)) mods *= S.muddy.by;
@@ -1484,8 +1650,32 @@ const KGame = (() => {
       if (spell && spell.includes('earth') && this.has(src, 'quarry')) { kx = (kx || 0) * 1.6; ky = (ky || 0) * 1.6; }
       if (this.has(a, 'anchor')) { kx = (kx || 0) * 0.25; ky = (ky || 0) * 0.25; }
       if (kind !== 'burn' && spell && spell.includes('fire') && this.has(src, 'burn') && a !== src) { a.burnT = 3; a.burnBy = src; }
+      // what a recipe's modifier elements do to whoever is hit
+      let chain = 0;
+      const raw = amount;
+      if (spell && src && src.kind === 'player' && a !== src && kind !== 'chain' && kind !== 'burn') {
+        const o = KRecipe.parse(spell).other, RC = KData.recipe;
+        if (o.fire) { a.burnT = Math.max(a.burnT || 0, RC.burn + o.fire - 1); a.burnBy = src; }
+        if (o.earth) { kx = (kx || 0) * (1 + RC.knock * o.earth); ky = (ky || 0) * (1 + RC.knock * o.earth); }
+        chain = o.lightning;
+      }
       amount = this.damage(src || null, a, amount, spell);
+      if (a.kind === 'player') { if (a.skinT > 0) amount *= 1 - KData.specials.stoneskin.reduce; if (a.guardT > 0) amount *= 1 - (a.guard || 0); }
       this.showDamage(a, amount, kind, src);
+      if (chain) {
+        // lightning jumps on to one more enemy per copy, for a share of the damage (held spells: in pulses)
+        a._chainAcc = (a._chainAcc || 0) + raw;
+        if (this.time - (a._chainAt || -9) > 0.3) {
+          const share = a._chainAcc * KData.recipe.chainShare; a._chainAcc = 0; a._chainAt = this.time;
+          const near = this.actors.filter(o => o !== a && o !== src && !o.dead && o.kind !== 'player' && Math.hypot(o.x - a.x, o.y - a.y) < KData.recipe.chainRange)
+            .sort((u, v) => Math.hypot(u.x - a.x, u.y - a.y) - Math.hypot(v.x - a.x, v.y - a.y)).slice(0, chain);
+          for (const o of near) {
+            this.fx.push({ kind: 'bolt', pts: this.jagged(a.x, a.y - a.h / 2, o.x, o.y - o.h / 2), t: 0, T: 0.14, color: [255, 246, 170] });
+            this.hurt(o, share, 0, -20, 'chain', src, 'lightning');
+          }
+          if (near.length) this.sfx('shock', a.x, a.y, 0.4);
+        }
+      }
       if (spell && spell.includes('water')) { if (a.burnT > 0) { a.burnT = 0; this.burst(a.x, a.y - a.h / 2, 6, [[204, 206, 230]], 50); } a.wetT = KData.statuses.wet.time; }
       a.hp -= amount; a.lastHurt = this.time;
       a.vx += kx || 0; a.vy += ky || 0;

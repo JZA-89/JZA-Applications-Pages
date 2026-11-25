@@ -181,6 +181,49 @@ const KData = (() => {
     },
   };
   const modes = ['shot', 'burst', 'lift', 'move'];
+
+  // ---------- Recipes ----------
+  // You type elements into a recipe (recipe.js has the rules). There are no
+  // slots: mana is the limit, up to `max` elements. Each element after the
+  // second multiplies the cost by costStep (lifts and moves: costStepGentle)
+  // and the power by powerStep, so long recipes are costly bursts.
+  // owner: first>modifier pairs that are a hand-made spell in that mode.
+  const recipe = {
+    max: 7, costStep: 1.75, costStepGentle: 1.4, powerStep: 1.4, sizeStep: 0.2, sizeMax: 2,
+    owner: {
+      shot: ['earth>fire', 'earth>water', 'earth>lightning', 'lightning>water', 'lightning>fire', 'water>fire'],
+      burst: ['fire>water', 'earth>fire', 'earth>water', 'lightning>water', 'earth>lightning', 'fire>lightning'],
+      lift: ['fire>water', 'earth>fire', 'earth>water', 'lightning>water', 'lightning>earth', 'fire>lightning'],
+      move: ['fire>water', 'earth>fire', 'earth>water', 'lightning>water', 'earth>lightning', 'fire>lightning'],
+    },
+    // what a modifier element adds to a Shot or Burst, per copy
+    burn: 2,            // seconds of burning, +1 per extra copy
+    knock: 0.3,         // earth: more knockback
+    chainRange: 46, chainShare: 0.5,   // lightning: jumps to one more enemy per copy for half the damage
+  };
+
+  // ---------- Special spells ----------
+  // An exact sequence (order matters). It replaces the Shot while the recipe
+  // matches and your mana bar is big enough to hold its cost; until then you
+  // cannot tell it exists. Learned from tomes in relic caches, or by typing it.
+  const specials = {
+    geyser: { name: 'Geyser', seq: ['water', 'fire', 'water'], cost: 32, cd: 0.8,
+      desc: 'Boiling water bursts from the ground where you aim, throwing enemies into the air.', power: 44, radius: 18, range: 170 },
+    haste: { name: 'Haste', seq: ['fire', 'lightning', 'fire'], cost: 30, cd: 1,
+      desc: 'For 8 seconds you run half again as fast and jump higher.', time: 8, speed: 1.5 },
+    phase: { name: 'Phase', seq: ['lightning', 'earth', 'lightning'], cost: 30, cd: 0.6,
+      desc: 'Step through walls: you appear at the furthest open spot within reach the way you aim.', dist: 72 },
+    meteor: { name: 'Meteor', seq: ['earth', 'fire', 'earth', 'fire'], cost: 55, cd: 0.9,
+      desc: 'A burning rock falls from above onto the place you aim at.', power: 95, radius: 16, range: 220 },
+    quake: { name: 'Quake', seq: ['earth', 'earth', 'earth', 'water'], cost: 50, cd: 1.2,
+      desc: 'The ground heaves: everything near you is hurt, thrown and slowed, and rubble falls from the roof.', power: 38, radius: 140 },
+    stoneskin: { name: 'Stoneskin', seq: ['earth', 'earth', 'lightning', 'earth', 'earth'], cost: 80, cd: 1,
+      desc: 'For 10 seconds you take 60% less damage.', time: 10, reduce: 0.6 },
+    thunderstorm: { name: 'Thunderstorm', seq: ['water', 'water', 'lightning', 'water', 'lightning'], cost: 90, cd: 1.5,
+      desc: 'A storm hangs where you aim for 6 seconds: rain soaks everything under it and lightning strikes again and again.', power: 34, radius: 80, time: 6, every: 0.35, range: 200 },
+    cataclysm: { name: 'Cataclysm', seq: ['fire', 'earth', 'fire', 'earth', 'lightning', 'fire', 'earth'], cost: 240, cd: 2,
+      desc: 'Seven meteors rain down around the place you aim at.', power: 95, radius: 16, range: 220, count: 7, spread: 70 },
+  };
   function spellKey(a, b) { return a <= b ? a + '+' + b : b + '+' + a; }
   for (const k in spells) { const [a, b] = k.split('+'); if (spellKey(a, b) !== k) throw new Error('Spell key out of order: ' + k); }
 
@@ -459,6 +502,6 @@ const KData = (() => {
       ] },
   ];
 
-  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, statuses, elites, bosses, modes, biomes, cave, progression, runes, treasure,
+  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, statuses, elites, bosses, modes, recipe, specials, biomes, cave, progression, runes, treasure,
     world: { w: 2048, h: 1024, chunk: 32 }, view: { w: 320, h: 180 }, step: 1 / 60 };
 })();

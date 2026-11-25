@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#0d0a14">
-<title>Cast in Stone | Prototype · v0.20</title>
-<link rel="stylesheet" href="style.css?v=0.20">
+<title>Cast in Stone | Prototype · v0.21</title>
+<link rel="stylesheet" href="style.css?v=0.21">
 </head>
 <body data-mode="start">
 
@@ -52,9 +52,8 @@
 
     <div class="element-bar">
       <div class="loaded">
-        <span class="slot" id="slot0"></span>
-        <span class="slot" id="slot1"></span>
-        <span class="spell-name" id="spellName">Load two elements</span>
+        <span class="queue" id="queue"><span class="slot"></span></span>
+        <span class="spell-name" id="spellName">Type elements: Q W E S</span>
       </div>
       <div class="els" id="els"></div>
     </div>
@@ -82,7 +81,7 @@
           <div><dt>Jump · Lift</dt><dd><kbd>Space</kbd> (keep holding in the air to lift)</dd></div>
           <div><dt>Aim</dt><dd>Mouse</dd></div>
           <div><dt>Fire · Water · Lightning · Earth</dt><dd><kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>S</kbd></dd></div>
-          <div><dt>Clear the elements</dt><dd><kbd>X</kbd></dd></div>
+          <div><dt>Take off the last element · clear all</dt><dd><kbd>C</kbd> · <kbd>X</kbd></dd></div>
           <div><dt>Rest at a Lodestone</dt><dd><kbd>F</kbd></dd></div>
         </dl>
         <dl class="keys">
@@ -93,13 +92,14 @@
           <div><dt>Sound on or off</dt><dd><kbd>M</kbd></dd></div>
         </dl>
       </div>
-      <p class="note">Hold any of them to keep casting until your mana runs out. Each pair lifts you its own way: fire thrusts, water rises slowly and cheaply, earth builds steps, lightning hops and glides. Your own Lifts, Moves and Bursts never hurt you. Controller: left stick run, right stick aim, B X A Y elements, RT shot, LT burst, LB jump and lift, RB move, d-pad up rests, View clears, Menu pauses.</p>
+      <p class="note">Type up to seven elements. The first is the form of the spell and the rest change it; longer recipes cost much more mana. What you typed stays until you change it. Some exact sequences are special spells, learned from tomes in the cave. Your own Lifts, Moves and Bursts never hurt you. Controller: left stick run, right stick aim, B X A Y elements, RT shot, LT burst, LB jump and lift, RB move, d-pad up rests, View clears, d-pad down takes off the last element, Menu pauses.</p>
       <p class="note touch-note">Touch controls come later. For now, play with a keyboard and mouse, or a controller.</p>
     </div>
 
     <div class="view-book" id="viewBook" hidden>
       <div class="book" id="book" role="grid" aria-label="Spell book"></div>
-      <div class="book-detail" id="bookDetail" aria-live="polite"><b>Point at a spell</b><span>Every pair of elements gives you four spells: Shot, Burst, Lift and Move.</span></div>
+      <div class="book-detail" id="bookDetail" aria-live="polite"><b>Point at a spell</b><span>The first element you type is the form. Each one after it adds its property, in any order: fire burns, water soaks, earth adds weight, lightning chains. Typing the form's own element again makes it bigger. Each element after the second costs more than the last. Up to seven.</span></div>
+      <div class="specials" id="specials"></div>
     </div>
 
     <footer>
@@ -141,14 +141,15 @@
 
 <noscript><p class="noscript">This prototype needs JavaScript.</p></noscript>
 
-<script src="data.js?v=0.20"></script>
-<script src="world.js?v=0.20"></script>
-<script src="audio.js?v=0.20"></script>
-<script src="input.js?v=0.20"></script>
-<script src="game.js?v=0.20"></script>
-<script src="save.js?v=0.20"></script>
-<script src="render.js?v=0.20"></script>
-<script src="loot.js?v=0.20"></script>
-<script src="main.js?v=0.20"></script>
+<script src="data.js?v=0.21"></script>
+<script src="recipe.js?v=0.21"></script>
+<script src="world.js?v=0.21"></script>
+<script src="audio.js?v=0.21"></script>
+<script src="input.js?v=0.21"></script>
+<script src="game.js?v=0.21"></script>
+<script src="save.js?v=0.21"></script>
+<script src="render.js?v=0.21"></script>
+<script src="loot.js?v=0.21"></script>
+<script src="main.js?v=0.21"></script>
 </body>
 </html>

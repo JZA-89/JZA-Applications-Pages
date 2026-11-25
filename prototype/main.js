@@ -8,7 +8,7 @@
 
 (() => {
   const { elements, elementOrder, spells, spellKey, view: V, step: STEP } = KData;
-  const VERSION = 'v0.20';
+  const VERSION = 'v0.21';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -40,27 +40,39 @@
     els.appendChild(b);
   }
 
-  // ---------- spell book: ten pairs x four ways to cast ----------
+  // ---------- spell book: the forms, what a second element does, and special spells ----------
   const book = $('book');
   const MODE_LABEL = { shot: ['Shot', 'left click'], burst: ['Burst', 'right click'], lift: ['Lift', 'hold Space in the air'], move: ['Move', 'Shift'] };
+  const MOD_TEXT = {
+    shot: { fire: 'sets what it hits burning and scatters flames where it lands', water: 'soaks what it hits and splashes water where it lands', earth: 'hits with more knockback, digs where it lands and throws rubble', lightning: 'jumps on to another enemy for half the damage and electrifies water' },
+    lift: { fire: 'lifts 12% harder', water: 'costs 12% less', earth: 'you take 15% less damage while lifting', lightning: 'moves 15% faster sideways' },
+    move: { fire: 'hits 25% harder and leaves fire', water: 'goes 20% further', earth: 'digs through dirt', lightning: 'is 12% faster' },
+  };
+  MOD_TEXT.burst = MOD_TEXT.shot;
+  const dots = q => q.map(e => `<i style="--c:${elements[e].css}" title="${elements[e].name}"></i>`).join('');
   book.insertAdjacentHTML('beforeend', '<span></span>' + KData.modes.map(md => `<span class="hd">${MODE_LABEL[md][0]}<small>${MODE_LABEL[md][1]}</small></span>`).join(''));
-  const showSpell = (btn, key, md) => {
-    const [a, b] = key.split('+'), sp = spells[key][md];
+  const showSpell = (btn, q, md) => {
+    const sp = KRecipe.resolve(q)[md], [a, b] = q;
     book.querySelectorAll('button.on').forEach(x => x.classList.remove('on'));
     btn.classList.add('on');
-    $('bookDetail').innerHTML = `<b>${sp.name} <small style="color:var(--dim);font-weight:500">· ${elements[a].name} + ${elements[b].name} · ${MODE_LABEL[md][0]} · ${sp.drain ? sp.drain + ' mana a second' : sp.cost + ' mana'}</small></b><span>${sp.desc}</span>`;
+    const extra = Object.keys(sp.mods).filter(e => sp.mods[e] > 0).map(e => `${elements[e].name}: ${MOD_TEXT[md][e]}.`).join(' ');
+    $('bookDetail').innerHTML = `<b>${sp.name} <small style="color:var(--dim);font-weight:500">· ${elements[a].name} first, then ${elements[b].name} · ${MODE_LABEL[md][0]} · ${sp.drain ? sp.drain + ' mana a second' : sp.cost + ' mana'}</small></b><span>${sp.desc}${extra ? ' ' + extra : ''}</span>`;
   };
-  for (const key of Object.keys(spells)) {
-    const [a, b] = key.split('+');
-    book.insertAdjacentHTML('beforeend', `<span class="pairc" title="${elements[a].name} + ${elements[b].name}"><i style="--c:${elements[a].css}"></i><i style="--c:${elements[b].css}"></i></span>`);
+  for (const a of elementOrder) for (const b of [a, ...elementOrder.filter(e => e !== a)]) {
+    book.insertAdjacentHTML('beforeend', `<span class="pairc" title="${elements[a].name} first, then ${elements[b].name}">${dots([a, b])}</span>`);
     for (const md of KData.modes) {
       const btn = document.createElement('button');
-      btn.type = 'button'; btn.textContent = spells[key][md].name;
-      btn.addEventListener('mouseenter', () => showSpell(btn, key, md));
-      btn.addEventListener('focus', () => showSpell(btn, key, md));
-      btn.addEventListener('click', () => showSpell(btn, key, md));
+      btn.type = 'button'; btn.textContent = KRecipe.resolve([a, b])[md].name;
+      for (const ev of ['mouseenter', 'focus', 'click']) btn.addEventListener(ev, () => showSpell(btn, [a, b], md));
       book.appendChild(btn);
     }
+  }
+  // special spells: the ones you know show their sequence; the rest stay hidden
+  function renderSpecials() {
+    const known = game.players[0].known, S = KData.specials, ids = Object.keys(S);
+    $('specials').innerHTML = `<h2 class="bag-title">Special spells · ${known.length} of ${ids.length} known</h2>` + ids.map(id => known.includes(id)
+      ? `<div class="special"><span class="pairc">${dots(S[id].seq)}</span><div><b>${S[id].name} <small>· ${S[id].cost} mana · type it in this order, then left click</small></b><span>${S[id].desc}</span></div></div>`
+      : `<div class="special unknown"><span class="pairc"><i></i><i></i><i></i></span><div><b>Unknown</b><span>Written in a tome somewhere in the cave, or found by trying sequences.</span></div></div>`).join('');
   }
 
   // ---------- golem picker (the look; also kept in the save) ----------
@@ -110,6 +122,7 @@
   view.tabIndex = -1;
   function showBook(on) {
     $('viewBook').hidden = !on; $('viewMain').hidden = on;
+    if (on) renderSpecials();
     document.querySelector('.picker').hidden = on; $('panelLede').hidden = on;
     $('btnBook').textContent = on ? 'Controls' : 'Spell book';
   }
@@ -227,6 +240,7 @@
       else if (e.type === 'save') save();
       else if (e.type === 'died') toast('Your golem crumbled. It rises again at the last Lodestone.', '');
       else if (e.type === 'toast') toast(e.text, e.kind || '');
+      else if (e.type === 'learn') { const S = KData.specials[e.id]; toast(`${e.how === 'tome' ? 'A tome' : 'Discovered'}: ${S.name} · ${S.seq.map(x => elements[x].label).join(' ')} · ${S.cost} mana`, 'big'); }
     }
     game.events.length = 0;
     if (xpPending && (xpTimer -= dt) <= 0) { toast(`+${xpPending} experience`, 'xp'); xpPending = 0; }
@@ -238,7 +252,7 @@
   }
 
   // ---------- HUD ----------
-  const hud = { hp: -1, mana: -1, maxHp: -1, maxMana: -1, s0: undefined, s1: undefined, name: '', flash: 0, mflash: 0, lv: '' };
+  const hud = { hp: -1, mana: -1, maxHp: -1, maxMana: -1, q: null, name: '', flash: 0, mflash: 0, lv: '' };
   function updateHud() {
     const p = game.players[0];
     const hp = Math.round(p.hp);
@@ -267,28 +281,30 @@
       $('ptsBadge').hidden = !p.points;
       $('ptsBadge').textContent = `+${p.points}`;
     }
-    for (const i of [0, 1]) {
-      const el = p.slots[i];
-      if (el !== hud['s' + i]) {
-        hud['s' + i] = el;
-        const s = $('slot' + i);
-        s.classList.toggle('on', !!el);
-        s.style.setProperty('--c', el ? elements[el].css : 'transparent');
-      }
+    // the recipe: one dot per element typed, then what each way of casting gives and costs
+    const qsig = p.queue.join('+');
+    if (qsig !== hud.q) {
+      hud.q = qsig;
+      $('queue').innerHTML = p.queue.map(e => `<span class="slot on" style="--c:${elements[e].css}"></span>`).join('') || '<span class="slot"></span>';
     }
-    if (p.slotFlash > 0.3 && hud.flash <= 0.3) for (const i of [0, 1]) { const s = $('slot' + i); s.classList.remove('flash'); void s.offsetWidth; s.classList.add('flash'); }
+    if (p.slotFlash > 0.3 && hud.flash <= 0.3) { const s = $('queue'); s.classList.remove('flash'); void s.offsetWidth; s.classList.add('flash'); }
     hud.flash = p.slotFlash;
     const pad = KInput.device === 'pad';
-    const set = p.slots[0] && p.slots[1] ? spells[spellKey(p.slots[0], p.slots[1])] : null;
-    const name = (set ? KData.modes.map(md => set[md].name).join('|') : p.slots[0] ? 'Load one more' : 'Load two elements') + (pad ? '#pad' : '');
+    const RC = KRecipe.resolve(p.queue);
+    p.recipe = RC;
+    const specs = RC ? KData.modes.map(md => game.spec(p, md)) : null;
+    const name = (specs ? qsig + specs.map(sp => (sp.special ? 'S' : '') + (p.mana >= (sp.drain ? sp.min : sp.cost) ? 1 : 0)).join('') : 'idle') + (pad ? '#pad' : '');
     if (name !== hud.name) {
       hud.name = name;
       const n = $('spellName');
-      n.classList.toggle('idle', !set);
-      if (!set) n.textContent = name.replace('#pad', '');
+      n.classList.toggle('idle', !specs);
+      if (!specs) n.textContent = pad ? 'Press an element' : 'Type elements: Q W E S';
       else {
         const keysFor = pad ? { shot: 'RT', burst: 'LT', lift: 'LB', move: 'RB' } : { shot: 'L', burst: 'R', lift: 'Space', move: 'Shift' };
-        n.innerHTML = KData.modes.map(md => `<span class="mode"><kbd>${keysFor[md]}</kbd>${set[md].name}</span>`).join('');
+        n.innerHTML = KData.modes.map((md, i) => {
+          const sp = specs[i], ok = p.mana >= (sp.drain ? sp.min : sp.cost);
+          return `<span class="mode${sp.special ? ' special' : ''}${ok ? '' : ' no'}" title="${sp.name}"><kbd>${keysFor[md]}</kbd>${sp.special ? sp.name : sp.baseName}<small>${sp.drain ? Math.round(sp.drain) + '/s' : sp.cost}</small></span>`;
+        }).join('');
       }
     }
     // the boss's health while you fight it
@@ -391,7 +407,7 @@
     for (const [name, x, y, v] of game.sounds) KAudio.play(name, x, y, me.x, me.y - 8, v);
     game.sounds.length = 0;
     const held = new Set();
-    if (mode === 'play' && !me.dead) for (const md of KData.modes) { const k = me.channels[md]; if (k) held.add(KData.spells[k][md].kind); }
+    if (mode === 'play' && !me.dead) for (const md of KData.modes) { const k = me.channels[md]; if (k) { const sp = game.spec(me, md); if (sp) held.add(sp.kind); } }
     KAudio.hold(held);
     const p = game.players[0];
     let reticle = null;

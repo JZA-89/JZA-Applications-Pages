@@ -21,6 +21,7 @@ Plain scripts sharing one global scope, loaded in this order, no build step:
 | File | What it holds |
 |---|---|
 | `data.js` | Every number and table: materials, reactions, elements, spells, player and dummy stats. |
+| `recipe.js` | Turns the typed elements (the recipe) into the four spells it casts: form, modifiers, size, cost, name (`KRecipe.resolve`). |
 | `world.js` | The falling-sand grid, chunks, map generation, and tools spells use (explode, electrify, ray). |
 | `input.js` | Keyboard, mouse and controller → actions. |
 | `game.js` | Rules: player control, spells, projectiles, particles, actor physics, damage, levels, Lodestones. |
@@ -302,9 +303,41 @@ Damage is not a fixed number of hits. Every actor has stats (`KData.baseStats`):
 - Everyone starts with attack 10, defence 10 and power 1 in every element, so the game plays as before until upgrade cards (PvP) and finds (co-op) change stats. The formula is `game.damage()`.
 
 
+## Recipes (v0.21): how elements become spells
+
+Jaisah's direction: typing combinations from memory is the skill (as in Magicka), but with no fixed number of slots, so it is not a copy of Magicka's five. **Mana is the limit.**
+
+- **You type elements into a recipe**, up to 7 (`KData.recipe.max`; a practical cap, about what can be memorised). C or Z takes off the last one, X clears. **The recipe stays loaded** after casting: mana, not retyping, stops you repeating a big spell.
+- **The first element is the form**: what each way of casting makes. The four forms are the old same-element pairs (Fire: Fireball, Fire nova, Flame jet, Flame dash; Water: Water jet, Tidal wave, Water jet, Surf; Earth: Boulder, Stone shell, Stone steps, Shoulder charge; Lightning: Bolt, Shock field, Spark hops, Blink). One element alone casts a "Lesser" form (80% size, 71% power, 57% cost).
+- **Every element after it is a modifier, in any order.**
+  - The form's own element again: bigger (+20% size per copy, at most ×2).
+  - A different element adds its property to Shots and Bursts. **Fire**: what is hit burns (2 s, +1 s per extra copy) and flames scatter where it lands. **Water**: soaks (wet) and splashes water where it lands. **Earth**: +30% knockback per copy, digs where it lands and throws rubble. **Lightning**: jumps to one more enemy per copy (within 46) for half the damage, and electrifies water where it lands.
+  - On Lifts: fire +12% thrust or jump, water −12% cost, earth 15% less damage taken while lifting (at most 45%), lightning +15% sideways speed. On Moves: fire +25% power and a fire trail, water +20% distance, earth digs, lightning +12% speed.
+- **Some first-then-modifier pairs are a hand-made spell** (`KData.recipe.owner`), using up one copy of that modifier: the old mixed-pair spells. Shots: Earth→Fire Magma, Earth→Water Mud, Earth→Lightning Stone spear, Lightning→Water Arc, Lightning→Fire Ember lance, Water→Fire Scald. Bursts: Fire→Water Steam cloud, Earth→Fire Eruption, Earth→Water Mire, Lightning→Water Storm, Earth→Lightning Spikes, Fire→Lightning Flare. Lifts: Fire→Water Steam flight, Earth→Fire Ember steps, Earth→Water Mud tower, Lightning→Water Storm glide, Lightning→Earth Magnet float, Fire→Lightning Plasma thrust. Moves: Fire→Water Vanish, Earth→Fire Magma slam, Earth→Water Wall climb, Lightning→Water Arc dash, Earth→Lightning Drill, Fire→Lightning Blast dash. The other order is the form plus the property (Fire→Earth is a Heavy Fireball). So order matters only for which element is first.
+- **Cost rises faster than power.** Each element after the second multiplies cost by 1.75 (Lifts and Moves 1.4) and power by 1.4. A Fireball recipe costs 8, 14, 25, 43, 75, 131, 230 for 1 to 7 elements, for 0.7, 1, 1.4, 2, 2.7, 3.8, 5.4 times the power. Short recipes are the efficient spells; long ones are bursts that need a big mana bar. Damage uses the average element power and enemy affinity over the whole recipe.
+- **The HUD** shows a dot per element, then each way of casting with its cost (dimmed and red when you cannot afford it). The golem's two colours are the form and its strongest modifier.
+- The spell book lists all 16 two-element recipes and what each element adds.
+
+### Special spells (`KData.specials`, `game.castSpecial`)
+
+An exact sequence, order and all. While the recipe matches **and your mana bar could hold its cost**, the Shot becomes the special spell (gold in the HUD); with too small a bar nothing shows that it exists. Learned from **tomes** (70% of relic caches teach one of the three cheapest you do not know; the Emberwyrm teaches Cataclysm) or by typing one; known ones are listed in the spell book with their sequence and saved.
+
+| Spell | Sequence | Mana | What it does |
+|---|---|---|---|
+| Geyser | Water Fire Water | 32 | boiling water bursts from the ground where you aim: power 44 within 18, enemies thrown up |
+| Haste | Fire Lightning Fire | 30 | 8 s: run ×1.5, jump ×1.15 |
+| Phase | Lightning Earth Lightning | 30 | appear at the furthest open spot within 72 the way you aim, through walls |
+| Meteor | Earth Fire Earth Fire | 55 | a burning rock falls from the roof onto where you aim: power 95, blast 16 |
+| Quake | Earth Earth Earth Water | 50 | power 38 to everything within 140, thrown up and slowed 2.5 s; rubble falls from the roof |
+| Stoneskin | Earth Earth Lightning Earth Earth | 80 | 10 s: 60% less damage |
+| Thunderstorm | Water Water Lightning Water Lightning | 90 | 6 s where you aim: rain soaks, a bolt (power 34) every 0.35 s onto an enemy within 80 |
+| Cataclysm | Fire Earth Fire Earth Lightning Fire Earth | 240 | seven meteors around where you aim |
+
 ## Elements and spells
 
-Load two elements (order does not matter). Every pair gives **four spells**, one per way of casting:
+*(The tables below give each hand-made spell's numbers. Since v0.21 a pair here means "first element, then modifier" as listed under Recipes; same-element pairs are the forms.)*
+
+Every recipe gives **four spells**, one per way of casting:
 
 | Mode | Input | Job in combat |
 |---|---|---|
@@ -361,7 +394,8 @@ Standing in mud, or being hit by mud spray, slows. A spray hit coats the target 
 | Run | A / D (or arrows) | Left stick, d-pad |
 | Jump, swim up; hold in the air to Lift | Space (or up arrow) | LB |
 | Aim | Mouse | Right stick (or the left stick's direction) |
-| Load Fire / Water / Lightning / Earth | **Q / W / E / S** (or 1–4: fire, water, earth, lightning) | B / X / Y / A |
+| Take off the last element / clear the recipe | C or Z / X | d-pad down / View |
+| Add Fire / Water / Lightning / Earth to the recipe | **Q / W / E / S** (or 1–4: fire, water, earth, lightning) | B / X / Y / A |
 | Shot | Left click (hold repeats) | RT |
 | Burst | Right click (hold repeats) | LT |
 | Move | **Shift**: tap for one-shot Moves, hold for held ones | RB |
@@ -417,6 +451,11 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.18 (2026-11-26):** Q W E S load Fire, Water, Lightning, Earth; Space only jumps; Shift is the Move key; F rests; your own Moves and Bursts never hurt you (all Jaisah). The generated cave starts at rest instead of simulating every chunk for its first steps (removed a 60 ms stutter at the start).
 - **v0.19 (2026-11-26):** fixes from an independent code review and the final check: the game froze if you died while a Glowmoth glowed; a controller's Menu button paused and resumed at once; the four newer enemies came back after 2 s instead of 25; the wyrm's runestones (and stones left in the cave) were not saved and sank in magma (now straight into the bag, loose stones saved and floating); wet and muddy never wore off on dummies, nor burning or muddy on the boss; the wyrm could sink out of the world in a fully cooled lair (now kept in its lair, and returned to its magma when it calms); unaware delvers floated in the air; shards could be lost when a lot of crystal broke at once, and crawlers chewing crystal gave none; Reset map wiped the explored map.
 - **v0.20 (2026-11-26):** Lift: holding Space in the air lifts you, differently for each pair (fire thrusts, water rises slowly and cheaply, earth builds steps or a tower, lightning hops, glides and floats; steam is the strongest), and never hurts you; the Shift Moves that only went up became dashes (Flame dash, Surf, Shoulder charge, Vanish). Levelling is about three times slower, enemies well below your level give less experience, and a level-up notice points to the nearest Lodestone (all Jaisah: level 7 before finding anywhere to spend points).
+- **v0.21 (2026-11-26):** recipes. No slots: type up to seven elements, limited by mana (Jaisah: five slots would copy Magicka; mana as the limit is more fluid and grows with you). The first element is the form, the rest are modifiers in any order; cost rises faster than power; the recipe stays loaded. Special spells are exact sequences, hidden until your mana bar can hold them, learned from tomes or by typing. C/Z takes off the last element.
+
+## Checks run for v0.21
+
+All 84 one-, two- and three-element recipes and a seven-element one cast in every mode in a test arena with enemies (340 casts, no errors or broken numbers); all eight special spells cast, charged the right mana and were learned; Cataclysm stays hidden with a 100-mana bar; three minutes of random play with random typing, undo and clear and a large mana bar (no errors, worst step 5 ms); real key presses: typing, C, a held click, a special spell, and the recipe and known spells surviving save and reload.
 
 ## Checks run for v0.20
 

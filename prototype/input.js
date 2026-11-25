@@ -6,7 +6,7 @@
    move: A/D. moveY: only a controller's stick (up/down). jump: Space. cast:
    left click (Shot). burst: right click (Burst). moveSpell: Shift (Move).
    events: load an element (Q W S E), clear (X), interact (F, rest at a Lodestone).
-   events: { type: 'load', el: 'fire' } and { type: 'clear' }.
+   events: { type: 'load', el: 'fire' } (adds to the recipe), { type: 'undo' } (C or Z: removes the last) and { type: 'clear' } (X).
    A second player's actions will later arrive over the network in this same
    form, so nothing in the game has to change for online play. */
 
@@ -38,7 +38,8 @@ const KInput = (() => {
       if (e.repeat) { keys.add(e.code); return; }
       keys.add(e.code);
       if (keyToEl[e.code]) events.push({ type: 'load', el: keyToEl[e.code] });
-      else if (e.code === 'KeyX' || e.code === 'KeyC') events.push({ type: 'clear' });
+      else if (e.code === 'KeyX') events.push({ type: 'clear' });
+      else if (e.code === 'KeyC' || e.code === 'KeyZ') events.push({ type: 'undo' });
       else if (e.code === 'KeyF') events.push({ type: 'interact' });
       else if (e.code === 'Escape' || e.code === 'KeyP') hooks.onPause && hooks.onPause();
       else if (e.code === 'KeyH') hooks.onHelp && hooks.onHelp();
@@ -83,6 +84,7 @@ const KInput = (() => {
       if (device === 'pad') {
         for (const el of elementOrder) if (pressed(elements[el].pad)) out.events.push({ type: 'load', el });
         if (PAD.clear.some(pressed)) out.events.push({ type: 'clear' });
+        if (pressed(13)) out.events.push({ type: 'undo' });
         if (PAD.interact.some(pressed)) out.events.push({ type: 'interact' });
         if (pressed(PAD.pause)) hooks.onPause && hooks.onPause();
         const ly = pad.axes[1] || 0;

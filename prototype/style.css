@@ -205,3 +205,20 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .compact .hp { width: 100px; }
 .compact .mana { width: 80px; }
 .compact .tool .full { display: none; }
+
+/* the recipe: a row of element dots, and special spells in the book */
+.queue { display: flex; align-items: center; gap: 4px; }
+.queue.flash .slot { animation: flash .35s; }
+.spell-name .mode small { margin-left: 5px; font-size: 11px; font-weight: 600; color: var(--dim); }
+.spell-name .mode.no { opacity: .5; }
+.spell-name .mode.no small { color: #ff8a7a; }
+.spell-name .mode.special { color: #ffd37a; }
+.specials { margin-top: 14px; display: grid; gap: 6px; }
+.special { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: #ffffff05; }
+.special .pairc { display: flex; gap: 4px; min-width: 96px; }
+.special .pairc i { width: 11px; height: 11px; border-radius: 50%; background: var(--c, #ffffff1f); }
+.special div { display: grid; gap: 2px; }
+.special b { font-size: 13px; }
+.special b small { font-weight: 500; color: var(--dim); font-size: 11.5px; }
+.special span { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.special.unknown { opacity: .55; }

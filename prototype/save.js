@@ -19,7 +19,7 @@ const KSave = (() => {
       chunks: w.saveChunks(),
       player: {
         x: Math.round(p.x), y: Math.round(p.y), hp: Math.round(p.hp), mana: Math.round(p.mana),
-        level: p.level, xp: p.xp, points: p.points, alloc: p.alloc, slots: p.slots, skin: p.skin,
+        level: p.level, xp: p.xp, points: p.points, alloc: p.alloc, queue: p.queue, known: p.known, skin: p.skin,
         runes: p.runes || null, inventory: p.inventory || null, shards: p.shards || 0, bought: p.bought || 0,
       },
       extra: game.saveExtra ? game.saveExtra() : null,
@@ -52,7 +52,9 @@ const KSave = (() => {
     p.level = num(s.level, 1, 999, 1); p.xp = num(s.xp, 0, 1e7, 0); p.points = num(s.points, 0, 9999, 0);
     p.alloc = {};
     for (const st of KData.progression.stats) if (s.alloc && Number.isFinite(s.alloc[st.id])) p.alloc[st.id] = num(s.alloc[st.id], 0, 999, 0);
-    if (Array.isArray(s.slots)) p.slots = s.slots.map(e => KData.elements[e] ? e : null).slice(0, 2);
+    const q = Array.isArray(s.queue) ? s.queue : Array.isArray(s.slots) ? s.slots : [];   // slots: saves from before recipes
+    p.queue = q.filter(e => KData.elements[e]).slice(0, KData.recipe.max);
+    if (Array.isArray(s.known)) p.known = s.known.filter(k => KData.specials[k]);
     if (Number.isFinite(s.skin)) p.skin = num(s.skin, 0, KData.golems.length - 1, 0);
     const RU = KData.runes;
     const okRune = r => r && RU.types[r.type] && Number.isInteger(r.tier) && r.tier >= 0 && r.tier < RU.tiers.length && Number.isFinite(r.level)
