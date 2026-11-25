@@ -11,6 +11,8 @@ const KGame = (() => {
   const { World, makeRng, STATE, SOLID, ST } = KWorld;
   const counts = new Int32Array(KData.materials.length);
   const UI_CALLS = new Set(['spendPoint', 'equip', 'unequip', 'buyPoint', 'levelUpRune', 'breakRune', 'travel']);
+  // water: how much of the weight it carries when fully under, the extra for things that float, drag, and splashes
+  const WATER = { lift: 0.72, floatLift: 1.1, dragX: 2.5, dragY: 3, shotDrag: 4, entry: 0.45, paddle: 22, splashFrom: 45, splashMax: 14 };
   const MUD_COAT = 2.5;     // seconds a mud hit keeps slowing
   // what stops spells: anything solid, and mud (you can wade through mud, spells cannot)
   const BLOCKS = m => SOLID[m] === 1 || m === M.MUD;
@@ -250,6 +252,8 @@ const KGame = (() => {
         L.t += DT;
         // runestones float on water and magma (so a drop is never lost at the bottom of a lake)
         const inLiquid = KWorld.STATE[w.get(Math.round(L.x), Math.round(L.y))] === KWorld.ST.liquid;
+        if (inLiquid && !L.wet && L.vy > 0 && w.get(Math.round(L.x), Math.round(L.y)) === M.WATER) this.splash(L.x, L.y, L.vy * 0.8, null, 4);
+        L.wet = inLiquid;
         L.vy = inLiquid ? Math.max(L.vy - 600 * DT, -40) : Math.min(L.vy + 300 * DT, 200);
         const nx = L.x + L.vx * DT, ny = L.y + L.vy * DT;
         if (!SOLID[w.get(Math.round(nx), Math.round(ny))]) { L.x = nx; L.y = ny; }
@@ -1140,6 +1144,7 @@ const KGame = (() => {
         p.jumpBuf = 0; p.coyote = 0; p.rising = true; p.grounded = false;
         p.jumpT = this.time; jumpedNow = true;
       }
+      if (p.inWater && p.moveY > 0) p.vy += 320 * DT;   // push down to dive
       if (p.inWater && a.jump && p.dashT <= 0 && !p.channels.move) p.vy = Math.max(p.vy - (this.has(p, 'diver') ? 900 : 520) * DT, this.has(p, 'diver') ? -160 : -95);
       if (!a.jump && p.rising && p.vy < 0) { p.vy *= 0.5; p.rising = false; }
       if (p.vy >= 0) p.rising = false;
@@ -1871,6 +1876,11 @@ const KGame = (() => {
           const ix = Math.floor(pr.x), iy = Math.floor(pr.y);
           if (!w.inb(ix, iy)) { pr.dead = true; break; }
           const m = w.mat[iy * w.w + ix];
+          // into water: a splash where it goes in, and the water slows it (a fireball is put out, below)
+          if (m === M.WATER && pr.kind !== 'fireball') {
+            if (!pr.wet) { pr.wet = true; this.splash(pr.x, pr.y, sp * 0.45, pr.owner, 4); }
+            const k = Math.exp(-WATER.shotDrag * DT / n); pr.vx *= k; pr.vy *= k; if (!pr.g) pr.vy += 60 * DT / n;   // a spent shard sinks
+          } else if (pr.wet && m === M.EMPTY) pr.wet = false;
           // your own projectiles can hit you after a moment; an enemy's never hit itself
           let hit = this.actorAt(pr.x, pr.y, pr.age < 0.15 || pr.owner.kind !== 'player' ? pr.owner : null, 1);
           if (hit && pr.owner.kind !== 'player' && hit.kind !== 'player') hit = null;   // creatures never hit each other
@@ -3021,6 +3031,29 @@ const KGame = (() => {
       e.facing = e.dir || 1;
     }
 
+    // Something hits or leaves the water: drops are thrown up from the surface (real water, lifted out
+    // and falling back, so none is made or lost), a ring spreads, and it is heard. `speed` sets the size.
+    splash(x, y, speed, by, width = 6) {
+      if (speed < WATER.splashFrom) return;
+      const w = this.world, ix = Math.round(x), n = Math.min(WATER.splashMax, Math.floor(speed / 20)), half = Math.max(3, Math.round(width / 2) + 2);
+      let sy = Math.round(y);
+      for (let k = 0; k < 30 && w.get(ix, sy) !== M.WATER; k++) sy++;
+      for (let k = 0; k < 40 && w.get(ix, sy - 1) === M.WATER; k++) sy--;
+      if (w.get(ix, sy) !== M.WATER) return;
+      let took = 0;
+      for (let k = 0; k <= half * 2 && took < n; k++) {
+        const dx = (k % 2 ? 1 : -1) * Math.ceil(k / 2), cx = ix + dx; let cy = sy - 2;
+        while (cy < sy + 3 && w.get(cx, cy) !== M.WATER) cy++;
+        if (w.get(cx, cy) !== M.WATER || w.get(cx, cy - 1) !== M.EMPTY) continue;
+        w.set(cx, cy, M.EMPTY);
+        this.parts.push({ x: cx + 0.5, y: cy - 1, vx: dx * 10 + (this.rand() - 0.5) * 34, vy: -speed * (0.3 + this.rand() * 0.4), g: 380, mat: M.WATER, life: 3, owner: by });
+        took++;
+      }
+      this.burst(x, sy, Math.min(10, 2 + n), [[150, 200, 255], [220, 240, 255]], Math.min(150, 30 + speed * 0.5));
+      this.fx.push({ kind: 'ring', x, y: sy, r0: 2, r1: 4 + Math.min(6, speed * 0.02), t: 0, T: 0.3, color: [170, 210, 255] });
+      this.sfx('splash', x, sy, Math.max(0.25, Math.min(1, speed / 240)));
+    }
+
     // one touch hit during a swoop or a lunge
     contactHit(e, E) {
       if (e.hit) return;
@@ -3302,7 +3335,11 @@ const KGame = (() => {
       this.unstick(a);
       const charged = w.sample(a.x - a.w / 2, a.y - a.h, a.x + a.w / 2, a.y, counts);
       const area = a.w * a.h;
-      a.inWater = counts[M.WATER] > area * 0.3;
+      // how much of it is under water (0 to 1), and the moment it goes in or comes out
+      const sub = Math.min(1, counts[M.WATER] / area), was = a.sub || 0;
+      a.sub = sub; a.inWater = sub > 0.3;
+      if (sub > 0.3 !== was > 0.3 && !a.flying) this.splash(a.x, a.y - (sub > 0.3 ? 0 : a.h), Math.hypot(a.vx * 0.5, a.vy) * (sub > 0.3 ? 1 : 0.6), a, a.w);
+      if (sub > 0.3 && was <= 0.3 && a.vy > 0) a.vy *= WATER.entry;   // the surface takes most of a fall
       a.inMud = counts[M.MUD] > 4;
       const proof = this.has(a, 'magmaproof') || a.safeT > 0;
       const fireMul = proof ? 0 : this.affinity(a, 'fire');
@@ -3341,10 +3378,21 @@ const KGame = (() => {
         if (tr) { tr.pts.push({ x: a.x, y: a.y - a.h / 2 }); tr.t = 0; }
         if (a.dashT <= 0) { a.vx *= 0.4; a.vy *= 0.4; }
       } else {
-        const water = a.inWater;
+        // Water: the deeper in, the more it carries the weight and the more it drags. What floats
+        // (`float` above 0) rises until it sits part out of the water and bobs there; the golem and most
+        // creatures are stone and sink slowly; the heavy ones sink faster.
+        const sub = a.flying ? 0 : a.sub || 0, fl = a.kind === 'player' ? 0 : a.kind === 'dummy' ? 1 : (KData.enemies[a.kind] || {}).float || 0;
         if (a.flying) { a.vx *= Math.exp(-0.8 * DT); a.vy *= Math.exp(-0.8 * DT); }
-        else if (!a.noGravity) a.vy += PD.gravity * DT * (water ? 0.28 : 1);
-        if (water && !this.has(a, 'diver')) { a.vx *= Math.exp(-2.5 * DT); a.vy *= Math.exp(-3 * DT); }
+        else if (!a.noGravity) a.vy += PD.gravity * DT * (1 - sub * (WATER.lift + fl * WATER.floatLift));
+        if (sub > 0 && !this.has(a, 'diver')) { a.vx *= Math.exp(-WATER.dragX * sub * DT); a.vy *= Math.exp(-WATER.dragY * sub * DT); }
+        if (sub > 0.3) {
+          // creatures paddle after what they are chasing; a wake and bubbles show anything moving under water
+          if (a.kind !== 'player' && a.kind !== 'dummy' && !a.grounded && a.state === 'chase' && a.dir) { const sw = (KData.enemies[a.kind] || {}).swim || WATER.paddle; a.vx += (a.dir * sw - a.vx) * Math.min(1, 2 * DT); }
+          const v = Math.hypot(a.vx, a.vy);
+          if (v > 28 && this.rand() < v * 0.004) this.burst(a.x - Math.sign(a.vx) * a.w / 2, a.y - a.h * this.rand(), 1, [[170, 210, 255], [225, 240, 255]], 26);
+          if (sub > 0.9 && this.rand() < 0.04) this.burst(a.x + (this.rand() - 0.5) * a.w, a.y - a.h, 1, [[200, 225, 255]], 14);   // a bubble now and then
+          if (a.kind === 'imp') { this.hurt(a, 40 * DT, 0, 0, 'water'); if (this.rand() < 0.2) this.burst(a.x, a.y - a.h, 1, [[230, 235, 240]], 30); }   // water snuffs a cinder imp
+        }
         if (a.inMud && !this.has(a, 'diver')) { a.vx *= Math.exp(-7 * DT); a.vy *= Math.exp(-5 * DT); }
         if (!a.grounded && a.kind === 'player') a.vx *= Math.exp(-0.6 * DT);
         if ((a.kind === 'dummy' || (a.kind === 'spitter' && !a.anchored)) && a.grounded) a.vx *= Math.exp(-10 * DT);

@@ -319,7 +319,7 @@ const KData = (() => {
     spitter: { name: 'Cinder spitter', desc: 'Sits in a wall and lobs magma. Fire does nothing to it; water hurts it badly.', w: 11, h: 11, hp: 55, attack: 10, defence: 10,
       range: 190, every: 2.4, speed: 175, power: 14, glob: 10,
       affinity: { fire: 0, water: 1.8, lightning: 1.1 }, xp: 1.2, spawn: { weights: [0.15, 0.1, 0.7], from: 1 } },
-    warden: { name: 'Slate warden', desc: 'Armoured. Slow, but its ground slam hits hard. Fire and lightning glance off; earth and water crack it.', w: 17, h: 16, hp: 170, attack: 14, defence: 18,
+    warden: { name: 'Slate warden', float: -0.3, desc: 'Armoured. Slow, but its ground slam hits hard. Fire and lightning glance off; earth and water crack it.', w: 17, h: 16, hp: 170, attack: 14, defence: 18,
       walk: 22, slamRange: 30, windup: 0.9, radius: 30, power: 30, knock: 260, recover: 1.1,
       affinity: { fire: 0.4, lightning: 0.4, earth: 1.6, water: 1.3 }, xp: 2.5, spawn: { weights: [0.15, 0.25, 0.25], from: 3 } },
   };
@@ -327,16 +327,16 @@ const KData = (() => {
   // crawler and moth homes into them by region and level (KData.remix, game.kindFor), so the
   // cave and old saves stay the same.
   Object.assign(enemies, {
-    slinger: { name: 'Shard slinger', desc: 'Keeps its distance and hurls stone shards on an arc. Get close or burn it: it is weak to fire.', w: 11, h: 12, hp: 62, attack: 10, defence: 6,
+    slinger: { name: 'Shard slinger', float: 0.3, desc: 'Keeps its distance and hurls stone shards on an arc. Get close or burn it: it is weak to fire.', w: 11, h: 12, hp: 62, attack: 10, defence: 6,
       walk: 36, near: 60, far: 115, range: 175, windup: 0.6, every: 2.3, speed: 165, power: 16, knock: 130,
       affinity: { fire: 1.4, earth: 0.6 }, xp: 1.2, spawn: { weights: [0, 0, 0], from: 99 } },
     wisp: { name: 'Stormwisp', desc: 'Hovers out of reach, takes aim along a line, then fires lightning down it. Step off the line. Earth shatters it.', w: 9, h: 9, hp: 42, attack: 11, defence: 5,
       fly: 55, keep: 86, aim: 0.8, every: 2.8, range: 210, power: 18, knock: 110,
       affinity: { earth: 1.7, lightning: 0.3, water: 1.2 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
-    frog: { name: 'Mirehopper', desc: 'Crouches, then leaps at you. Where it lands it spatters mud that slows you. Weak to lightning.', w: 13, h: 8, hp: 70, attack: 10, defence: 7,
+    frog: { name: 'Mirehopper', float: 1, swim: 70, desc: 'Crouches, then leaps at you. Where it lands it spatters mud that slows you. Weak to lightning.', w: 13, h: 8, hp: 70, attack: 10, defence: 7,
       crouch: 0.35, hop: 95, lift: 175, rest: 0.6, power: 16, knock: 150, mud: 8,
       affinity: { lightning: 1.5, water: 0.5, fire: 1.2 }, xp: 1.1, spawn: { weights: [0, 0, 0], from: 99 } },
-    imp: { name: 'Cinder imp', desc: 'Runs straight at you, flares, and bursts. Kill it before it reaches you, or get clear. Fire does nothing to it; water snuffs it.', w: 9, h: 10, hp: 36, attack: 12, defence: 4,
+    imp: { name: 'Cinder imp', float: 0.6, desc: 'Runs straight at you, flares, and bursts. Kill it before it reaches you, or get clear. Fire does nothing to it; water snuffs it.', w: 9, h: 10, hp: 36, attack: 12, defence: 4,
       run: 84, fuseRange: 17, fuse: 0.55, radius: 26, power: 30, knock: 220,
       affinity: { fire: 0, water: 1.9 }, xp: 1.1, spawn: { weights: [0, 0, 0], from: 99 } },
   });
@@ -351,9 +351,9 @@ const KData = (() => {
   // The second cave's creatures (the Sunless Deep). Like the four above, the generator never places them:
   // the game turns the first cave's kinds into them (acts[1].remix).
   Object.assign(enemies, {
-    shade: { name: 'Shade', desc: 'Fades out and steps out of the air behind you, then slashes. Watch for the shimmer where it will appear. Weak to fire.', w: 9, h: 13, hp: 74, attack: 13, defence: 6,
+    shade: { name: 'Shade', float: 0.5, desc: 'Fades out and steps out of the air behind you, then slashes. Watch for the shimmer where it will appear. Weak to fire.', w: 9, h: 13, hp: 74, attack: 13, defence: 6,
       walk: 40, blinkEvery: 3.2, fade: 0.5, behind: 16, power: 20, knock: 170, affinity: { fire: 1.4, earth: 0.7 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
-    urchin: { name: 'Glass urchin', desc: 'Rolls slowly towards you, swells, and throws spines in every direction. Keep your distance or get under cover. Weak to water.', w: 11, h: 9, hp: 70, attack: 11, defence: 10,
+    urchin: { name: 'Glass urchin', float: -0.2, desc: 'Rolls slowly towards you, swells, and throws spines in every direction. Keep your distance or get under cover. Weak to water.', w: 11, h: 9, hp: 70, attack: 11, defence: 10,
       roll: 20, trigger: 75, swell: 0.6, spikes: 8, speed: 150, power: 13, reach: 100, every: 3.0, affinity: { water: 1.5, earth: 0.5 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
     wraith: { name: 'Ash wraith', desc: 'Drifts straight through rock towards you, slowly, and burns on touch. Walls will not save you; lightning will.', w: 11, h: 11, hp: 68, attack: 12, defence: 4,
       fly: 38, power: 18, knock: 120, touchCd: 0.8, affinity: { lightning: 1.6, fire: 1.2, earth: 0.4 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
@@ -362,11 +362,11 @@ const KData = (() => {
   });
   // The third cave's creatures (the Root of the World).
   Object.assign(enemies, {
-    boar: { name: 'Rootboar', desc: 'Paws the ground, then charges flat out and does not stop until it hits something. Jump it; when it hits a wall it is dazed. Weak to lightning.', w: 15, h: 9, hp: 110, attack: 13, defence: 9,
+    boar: { name: 'Rootboar', float: -0.3, desc: 'Paws the ground, then charges flat out and does not stop until it hits something. Jump it; when it hits a wall it is dazed. Weak to lightning.', w: 15, h: 9, hp: 110, attack: 13, defence: 9,
       walk: 28, see: 170, paw: 0.6, charge: 230, chargeTime: 1.6, daze: 1.4, every: 3, power: 24, knock: 260, affinity: { lightning: 1.5, earth: 0.6 }, xp: 1.4, spawn: { weights: [0, 0, 0], from: 99 } },
     mender: { name: 'Bloomwisp', desc: 'Harmless itself. It keeps away from you and mends any hurt creature near it along a green thread. Kill it first. Weak to fire.', w: 9, h: 9, hp: 60, attack: 8, defence: 4,
       fly: 60, keep: 115, reach: 115, mend: 0.06, shot: 14, shotEvery: 1.7, affinity: { fire: 1.7, water: 0.6 }, xp: 1.4, spawn: { weights: [0, 0, 0], from: 99 } },
-    lasher: { name: 'Lasher', desc: 'Barely moves. It throws out a vine and drags you to its mouth. Get out of its sight, or kill it while it pulls. Weak to fire.', w: 9, h: 13, hp: 95, attack: 13, defence: 8,
+    lasher: { name: 'Lasher', float: 0.8, desc: 'Barely moves. It throws out a vine and drags you to its mouth. Get out of its sight, or kill it while it pulls. Weak to fire.', w: 9, h: 13, hp: 95, attack: 13, defence: 8,
       walk: 12, reach: 100, wind: 0.5, pullTime: 1.1, pull: 420, every: 3.5, power: 24, knock: 140, affinity: { fire: 1.5, water: 0.7 }, xp: 1.4, spawn: { weights: [0, 0, 0], from: 99 } },
   });
   // shared by every enemy kind

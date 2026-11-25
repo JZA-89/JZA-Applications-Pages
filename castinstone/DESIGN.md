@@ -496,6 +496,17 @@ Two players, online, in the host's cave. Each keeps their own golem: a guest's l
 
 **Home screen:** `icon-180.png` (the Brute golem, also the page's tab icon), `manifest.webmanifest` and the `apple-mobile-web-app-*` tags in `index.html` give the game its icon, the name "Cast in Stone" and a full screen when added to a phone's home screen. On iPhone a home-screen web app keeps its own saves, separate from Safari's.
 
+## Water (v0.53, `WATER` in game.js, `game.splash`)
+
+Jaisah: water physics for the golem, creatures and objects falling into water or moving in it. Before, being in water was on or off: a third of the weight and some drag.
+
+- **How deep you are matters.** Each body knows how much of it is under water (`a.sub`, 0 to 1). The water carries up to 72% of its weight when it is fully under (`lift`), and drag grows the same way (`dragX` 2.5, `dragY` 3 a second).
+- **Going in.** The surface takes most of a fall: downward speed is cut to 45% on entry. A splash throws up to 14 drops from the surface (real water cells lifted out and falling back, so none is made or lost), a ripple spreads, and it is heard; the size follows the speed. Coming out makes a smaller one.
+- **What floats and what sinks** (`float` on each creature): the golem is stone and sinks slowly, as before; hold jump to swim up, push down to dive. Mirehoppers (1), lashers (0.8), cinder imps (0.6), shades (0.5) and slingers (0.3) float: they rise until part of them is out of the water and bob there. Wardens, rootboars (−0.3) and urchins (−0.2) are heavy and sink faster. Training dummies float.
+- **In the water.** Creatures off the bottom paddle after what they are chasing (22 a second; a mirehopper 70). Anything moving under water leaves a wake, and a body fully under lets out a bubble now and then. Water snuffs a cinder imp (40 damage a second).
+- **Objects.** Boulders, blobs and shards splash where they enter and are slowed (`shotDrag` 4 a second); a spent shard sinks. Fireballs are still put out. Runestones still float, and now splash.
+- Checked with scratchpad `wt.js`: a golem dropped 120 cells entered at 330, left the surface at 152 and settled on the bed; 4 s of jump brought it back to the top; water cells before and after 18,090 and 18,090; mirehopper floating 61% under, crawler and warden on the bed, imp dead.
+
 ## Act 3: the Root of the World (v0.52)
 
 Levels 17 to 24. Regions: **Verdant Hollow** (green, mossy, some water and mud), **Bone Orchard** (pale stone, dry), **Heartwood** (deep red, magma).
