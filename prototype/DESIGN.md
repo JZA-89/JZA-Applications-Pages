@@ -1,6 +1,6 @@
-# KILN — prototype design notes
+# Cast in Stone — prototype design notes
 
-Working title. A one-player prototype at `jza.app/prototype/` to test whether the core is fun before building more. Unlisted (no links to it, `noindex`), but public to anyone with the URL.
+Working title **Cast in Stone** (was KILN until v0.5). Jaisah may never sell it; if it does get sold, the name gets more thought then (it is a common phrase, hard to trademark, and several games are called *Set in Stone*). A one-player prototype at `jza.app/prototype/` to test whether the core is fun before building more. Unlisted (no links to it, `noindex`), but public to anyone with the URL.
 
 ## The goal of this prototype
 
@@ -77,7 +77,7 @@ One hand-shaped cave (seed 20261125): rock frame; a long cavern with a wavy floo
 
 ## The character
 
-A **rock golem**, chosen by the player from four looks (`KData.golems`). The choice only changes the drawing; all four play the same. It is shown on the start and pause panel and remembered in that browser (`localStorage` key `kiln.golem`). In multiplayer it travels with the player (`p.skin`).
+A **rock golem**, chosen by the player from four looks (`KData.golems`). The choice only changes the drawing; all four play the same. It is shown on the start and pause panel and remembered in that browser (`localStorage` key `castinstone.golem`). In multiplayer it travels with the player (`p.skin`).
 
 | Golem | Look | Where the two loaded elements show |
 |---|---|---|
@@ -174,6 +174,7 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 
 - **v0.3 (2026-11-25):** the player is a rock golem, with four looks to choose from (Brute, Titan, Crystal, Sentinel; Jaisah: keep all four, the player picks). A mana bar replaces bursts (Jaisah: bursts did not make sense). Steam is now held, continuous thrust instead of a single burst (Jaisah). Damage now goes through a stat formula (Jaisah: damage should be RPG-like, from attack, defence, the move, buffs and debuffs, not a fixed number of hits); everyone starts equal. Decided by Jaisah: slots stay loaded after a cast; holding cast repeats. Hitbox 11 × 17; earth pillar 7 wide and 26 long, stone spear tunnels radius 3, so the bigger golem fits through.
 - **v0.4 (2026-11-25):** Steam drains 18 mana/s (was 36), so a full bar flies for about 5.6 s (Jaisah: at least 5 s; some parts of the game will need flight).
+- **v0.5 (2026-11-25):** renamed from KILN to Cast in Stone (Jaisah). The golem choice is now stored as `castinstone.golem` (the old `kiln.golem` is still read). The URL stays `/prototype/`.
 
 ## Open questions to test
 

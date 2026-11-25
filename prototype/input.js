@@ -1,5 +1,5 @@
 'use strict';
-/* KILN prototype — input.js
+/* Cast in Stone prototype — input.js
    Turns keyboard, mouse and controller into ACTIONS. The game never reads a
    device directly: each fixed step it receives one action object per player:
      { move: -1..1, jump: bool, cast: bool, aim: radians, events: [...] }

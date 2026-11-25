@@ -1,5 +1,5 @@
 'use strict';
-/* KILN prototype — main.js
+/* Cast in Stone prototype — main.js
    Starts everything: fits the 16:9 stage to the screen, runs the fixed-step
    loop (60 steps a second, independent of the screen's frame rate), passes
    each step's actions to the game, draws, and keeps the HUD and the panel
@@ -46,7 +46,7 @@
 
   // ---------- golem picker (remembered in this browser only) ----------
   let skin = 0;
-  try { const v = parseInt(localStorage.getItem('kiln.golem'), 10); if (v >= 0 && v < KData.golems.length) skin = v; } catch {}
+  try { const v = parseInt(localStorage.getItem('castinstone.golem') ?? localStorage.getItem('kiln.golem'), 10); if (v >= 0 && v < KData.golems.length) skin = v; } catch {}
   game.players[0].skin = skin;
   const golemBtns = KData.golems.map((g, i) => {
     const b = document.createElement('button');
@@ -63,7 +63,7 @@
   function pickGolem(i) {
     skin = i; game.players[0].skin = i;
     golemBtns.forEach((b, k) => b.setAttribute('aria-checked', k === i ? 'true' : 'false'));
-    try { localStorage.setItem('kiln.golem', String(i)); } catch {}
+    try { localStorage.setItem('castinstone.golem', String(i)); } catch {}
   }
   pickGolem(skin);
 
@@ -74,7 +74,7 @@
     document.body.dataset.mode = m;
     KInput.clearHeld();
     if (m === 'play') { view.focus({ preventScroll: true }); return; }
-    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spells and controls' : 'Prototype · one player · v0.4';
+    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spells and controls' : 'Prototype · one player · v0.5';
     $('btnGo').textContent = m === 'start' ? 'Start' : 'Resume';
     $('btnPanelReset').hidden = m === 'start';
     $('panelLede').hidden = m === 'help';
@@ -175,5 +175,5 @@
   requestAnimationFrame(frame);
 
   // for testing from the console
-  window.kiln = { game, R };
+  window.cis = { game, R };
 })();

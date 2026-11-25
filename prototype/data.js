@@ -1,5 +1,5 @@
 'use strict';
-/* KILN prototype — data.js
+/* Cast in Stone prototype — data.js
    Every material, element and spell is described here as data. The rest of the
    game reads these tables; adding a material or element should mostly mean
    adding entries here (plus a spell "kind" in game.js only if it needs a new
