@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.29';
+  const VERSION = 'v0.30';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -465,7 +465,7 @@
 
   // ---------- loop ----------
   let acc = 0, last = performance.now();
-  const origin = () => { const p = game.players[0]; const c = game.chest(p); return R.worldToClient(c.x, c.y); };
+  const origin = () => { const p = game.players[0]; const c = game.chest(p), q = R.worldToClient(c.x, c.y); q.scale = view.getBoundingClientRect().width / V.w; return q; };
   function frame(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
     pollPadMenu();
@@ -495,7 +495,10 @@
       if (KInput.device === 'pad') { const c = game.chest(p); reticle = { x: c.x + Math.cos(p.aim) * 26, y: c.y + Math.sin(p.aim) * 26 }; }
       else if (KInput.mouse.moved) reticle = R.clientToWorld(KInput.mouse.x, KInput.mouse.y);
     }
-    R.draw(game, { reticle, reduced: reduced.matches, dt: mode === 'play' ? dt : 0 });
+    // an aimed special spell shows where it will land
+    let mark = null;
+    if (mode === 'play' && !p.dead && p.recipe) { const sp = game.spec(p, 'shot'); if (sp && sp.special && p.mana >= sp.cost) mark = game.specialTarget(p, sp.id); }
+    R.draw(game, { reticle, mark, reduced: reduced.matches, dt: mode === 'play' ? dt : 0 });
     updateHud();
     updateLook();
     updateMap();

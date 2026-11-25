@@ -16,7 +16,7 @@ const KInput = (() => {
   let events = [];
   const mouse = { x: 0, y: 0, moved: false, left: false, right: false };
   let device = 'kbm';
-  let aim = 0;
+  let aim = 0, aimDist = 90;   // aimDist: how far the pointer is from the golem, in world cells
   let padPrev = [];
   let hooks = {};
   const keyToEl = {};
@@ -72,7 +72,7 @@ const KInput = (() => {
 
   // Called once per fixed step. origin(): the player's chest in client pixels.
   function sample(origin) {
-    const out = { move: 0, moveY: 0, jump: false, cast: false, burst: false, moveSpell: false, aim, events };
+    const out = { move: 0, moveY: 0, jump: false, cast: false, burst: false, moveSpell: false, aim, aimDist, events };
     events = [];
 
     const pad = readPad();
@@ -98,7 +98,7 @@ const KInput = (() => {
         padCast = PAD.cast.some(i => now[i]);
         padBurst = PAD.burst.some(i => now[i]);
         padMoveSpell = PAD.move.some(i => now[i]);
-        if (Math.hypot(rx, ry) > 0.3) aim = Math.atan2(ry, rx);
+        if (Math.hypot(rx, ry) > 0.3) { aim = Math.atan2(ry, rx); aimDist = 30 + 130 * Math.min(1, Math.hypot(rx, ry)); }
         else if (Math.abs(lx) > 0.5) aim = lx > 0 ? 0 : Math.PI;
       }
       padPrev = now;
@@ -116,10 +116,10 @@ const KInput = (() => {
       out.burst = mouse.right;
       if (mouse.moved) {
         const o = origin();
-        if (o) aim = Math.atan2(mouse.y - o.y, mouse.x - o.x);
+        if (o) { aim = Math.atan2(mouse.y - o.y, mouse.x - o.x); aimDist = Math.hypot(mouse.y - o.y, mouse.x - o.x) / (o.scale || 1); }
       }
     }
-    out.aim = aim;
+    out.aim = aim; out.aimDist = aimDist;
     return out;
   }
 

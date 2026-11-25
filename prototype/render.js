@@ -221,6 +221,12 @@ const KRender = (() => {
       this.drawProjectiles(game);
       this.drawParticles(game);
       this.drawFx(game);
+      if (opt.mark) {
+        // where an aimed special spell will land: a gold dotted ring its size
+        const m = opt.mark, mx = m.x - this.cam.x, my = m.y - this.cam.y - (m.feet ? 8 : 0), n = Math.max(10, Math.round(m.r * 2.2));
+        for (let i = 0; i < n; i++) { const an = i / n * Math.PI * 2 + game.time * 1.5; this.plot(mx + Math.cos(an) * m.r, my + Math.sin(an) * m.r, 255, 211, 122, 0.9); }
+        this.plot(mx, my, 255, 240, 200, 0.9);
+      }
       if (opt.reticle && !p.dead) this.drawReticle(opt.reticle);
       this.ctx.putImageData(this.img, 0, 0);
       this.drawGlow(game);

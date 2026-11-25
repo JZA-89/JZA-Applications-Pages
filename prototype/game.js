@@ -231,15 +231,35 @@ const KGame = (() => {
       this.projectiles.push({ kind: 'fireball', sp, key: 'earth+fire', owner: p, x, y: sy + 3, vx: (this.rand() - 0.5) * 16, vy: 230, g: 220, age: 0 });
       this.fx.push({ kind: 'flash', x, y: sy + 3, r: 20, t: 0, T: 0.25, color: [255, 150, 60] });
     }
+    // Where an aimed special spell lands: at the pointer, no further than the
+    // spell's range, and never through a wall (it stops at the first one on the
+    // way). Geyser, Meteor and Cataclysm then drop to the ground below that
+    // point. Phase is the exception: it goes through walls, to the open spot
+    // nearest the pointer along the line. Returns { x, y, r } or null.
+    specialTarget(p, id) {
+      const S = KData.specials[id], w = this.world;
+      if (!S || !(S.range || S.dist)) return null;
+      const c = this.chest(p), dx = Math.cos(p.aim), dy = Math.sin(p.aim);
+      if (id === 'phase') {
+        for (let d = Math.min(S.dist, Math.max(8, p.aimDist)); d >= 6; d -= 1) {
+          const x = p.x + dx * d, y = p.y + dy * d;
+          if (x > 8 && y > 20 && x < w.w - 8 && y < w.h - 8 && !this.collides(p, x, y)) return { x, y, r: 8, feet: true };
+        }
+        return null;
+      }
+      const h = w.ray(c.x, c.y, dx, dy, Math.min(S.range, Math.max(10, p.aimDist)));
+      const t = { x: h.hit ? h.lx - dx : h.x, y: h.hit ? h.ly - dy : h.y, r: S.radius || 10 };
+      if (id !== 'thunderstorm') for (let k = 0; k < 140 && !SOLID[w.get(Math.round(t.x), Math.round(t.y + 1))]; k++) t.y++;
+      return t;
+    }
     castSpecial(p, id) {
       const S = KData.specials[id], w = this.world, R = this.rand;
       this.learn(p, id, 'typed');
       const c = this.chest(p), dx = Math.cos(p.aim), dy = Math.sin(p.aim);
-      const aimAt = () => { const h = w.ray(c.x, c.y, dx, dy, S.range); return { x: h.hit ? h.lx : h.x, y: h.hit ? h.ly : h.y }; };
+      const aimAt = () => this.specialTarget(p, id);
       const ring = (x, y, r, color) => { this.fx.push({ kind: 'ring', x, y, r0: 3, r1: r, t: 0, T: 0.3, color }); this.fx.push({ kind: 'flash', x, y, r: r + 10, t: 0, T: 0.2, color }); };
       if (id === 'geyser') {
-        const t = aimAt();
-        let gy = t.y; for (let k = 0; k < 90 && !KWorld.SOLID[w.get(Math.round(t.x), Math.round(gy + 1))]; k++) gy++;
+        const t = aimAt(), gy = t.y;
         this.hitRadius(t.x, gy - 8, S.radius, S.power, 0, p, p, 'water+fire');
         for (const o of this.actors) if (o !== p && !o.dead && Math.abs(o.x - t.x) < S.radius && Math.abs(o.y - gy) < S.radius + 6) o.vy = Math.min(o.vy, -300);
         for (let k = 0; k < 60; k++) this.parts.push({ x: t.x + (R() - 0.5) * 8, y: gy - 1, vx: (R() - 0.5) * 60, vy: -200 - R() * 220, g: 380, mat: R() < 0.7 ? M.WATER : M.STEAM, life: 3, owner: p });
@@ -252,10 +272,8 @@ const KGame = (() => {
         ring(p.x, p.y - 8, 20, [255, 220, 140]); this.sfx('blink', p.x, p.y, 1);
       } else if (id === 'phase') {
         const c0 = { x: p.x, y: p.y - p.h / 2 };
-        for (let d = S.dist; d >= 6; d -= 1) {
-          const x = p.x + dx * d, y = p.y + dy * d;
-          if (x > 8 && y > 20 && x < w.w - 8 && y < w.h - 8 && !this.collides(p, x, y)) { p.x = x; p.y = y; break; }
-        }
+        const t = this.specialTarget(p, id);
+        if (t) { p.x = t.x; p.y = t.y; }
         p.vx *= 0.2; p.vy = 0; p.safeT = 0.6;
         this.fx.push({ kind: 'bolt', pts: this.jagged(c0.x, c0.y, p.x, p.y - p.h / 2), t: 0, T: 0.25, color: [200, 196, 255] });
         ring(p.x, p.y - 8, 16, [200, 196, 255]); this.sfx('blink', p.x, p.y, 1);
@@ -705,6 +723,7 @@ const KGame = (() => {
       for (const p of this.players) this.control(p, actions[p.id] || { move: 0, events: [], aim: p.aim });
       this.world.step();
       this.updateGrowths();
+      if ((this._settleT = (this._settleT || 0) - DT) <= 0) { this._settleT = 0.5; this.world.settle(); }
       this.updateStorms();
       this.updateParticles();
       this.updateProjectiles();
@@ -746,6 +765,7 @@ const KGame = (() => {
       p.slots = RC ? [RC.form, RC.second] : [null, null];   // the golem's two colours: form and strongest modifier
       for (const t of ['hasteT', 'skinT', 'guardT']) if (p[t] > 0) p[t] -= DT;
       p.aim = a.aim;
+      p.aimDist = Number.isFinite(a.aimDist) ? a.aimDist : 90;
       const ax = Math.cos(p.aim);
       if (Math.abs(ax) > 0.15) p.facing = ax > 0 ? 1 : -1;
       p.moveX = a.move || 0; p.moveY = a.moveY || 0;
@@ -1201,14 +1221,15 @@ const KGame = (() => {
         // when you start to fall, a step forms under your feet and you jump off it
         if (p.vy > -10 && this.time - (p.stepT || -9) > sp.gap) {
           if (p.mana < sp.cost) return noMana();
-          const half = sp.width >> 1, y0 = Math.round(p.y) + 1;
+          // a step is 5 thick and at least 11 wide, so it is never small enough to crumble
+          const half = Math.max(5, sp.width >> 1), y0 = Math.round(p.y) + 1;
           let placed = 0;
-          for (let y = 0; y < 2; y++) for (let x = -half; x <= half; x++) {
+          for (let y = 0; y < 5; y++) for (let x = -half; x <= half; x++) {
             const cx = Math.round(p.x + x), cy = y0 + y, m = w.get(cx, cy);
             if ((m === M.EMPTY || m === M.STEAM || m === M.FIRE) && !this.actorAt(cx, cy, p)) { w.set(cx, cy, M.DIRT); placed++; }
             else if (KWorld.SOLID[m]) placed++;
           }
-          if (placed < sp.width) return;   // no room for a step here
+          if (placed < 22) return;   // no room for a step here
           this.spend(p, sp.cost);
           p.stepT = this.time; p.vy = -sp.jump * (this.has(p, 'spring') ? 1.15 : 1); p.grounded = false;
           this.alert(p, p.x, p.y, KData.enemies.crawler.hearing);
@@ -2176,6 +2197,23 @@ const KGame = (() => {
       if (this.time - d.lastHurt > DD.regenDelay) d.hp = Math.min(d.maxHp, d.hp + 60 * DT);
     }
 
+    // Walking into loose earth pushes through it: if everything in the way
+    // (the column just ahead, the golem's height) is loose earth, it is thrown
+    // aside. Dirt, rock and crystal still block.
+    plough(a, dir) {
+      const w = this.world, cx = Math.floor(a.x + dir * (a.w / 2 + 0.6)), cells = [];
+      for (let cy = Math.floor(a.y - a.h); cy <= Math.floor(a.y - 0.001); cy++) {
+        const m = w.get(cx, cy);
+        if (m === M.EARTH) cells.push(cy); else if (SOLID[m]) return false;
+      }
+      if (!cells.length) return false;
+      for (const cy of cells) {
+        w.set(cx, cy, M.EMPTY);
+        if (this.rand() < 0.5) this.parts.push({ x: cx + 0.5, y: cy, vx: -dir * (30 + this.rand() * 60), vy: -50 - this.rand() * 60, g: 380, mat: M.EARTH, life: 2, owner: a });
+      }
+      return true;
+    }
+
     collides(a, x, y) {
       const w = this.world;
       const x0 = Math.floor(x - a.w / 2), x1 = Math.floor(x + a.w / 2 - 0.001);
@@ -2272,6 +2310,7 @@ const KGame = (() => {
             let up = 0;
             for (let k = 1; k <= 3; k++) if (!this.collides(a, a.x + sx, a.y - k)) { up = k; break; }
             if (up && a.vy >= -40) { a.x += sx; a.y -= up; }
+            else if (a.kind === 'player' && this.plough(a, Math.sign(sx))) a.vx *= 0.8;   // loose earth gives way
             else { a.vx = a.kind === 'dummy' ? -a.vx * 0.3 : 0; if (a.dashT > 0) a.dashVX = 0; }
           }
         }

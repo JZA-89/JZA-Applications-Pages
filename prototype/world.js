@@ -74,7 +74,7 @@ const KWorld = (() => {
       this.seed = seed;
       this.rand = makeRng(seed);
       this.spawn = { x: 40, y: 100 };
-      this.broken = [];   // crystal cells broken since the game last looked (x, y pairs)
+      this.broken = []; this.cooled = [];   // crystal cells broken since the game last looked (x, y pairs)
       this.caches = [];
       this.dummySpots = [];
       this.generate();
@@ -181,7 +181,7 @@ const KWorld = (() => {
           if (this.life[i] > 0) this.life[i]--;
           if (this.life[i] === 0) {
             if (st === ST.gas) this.put(i, R() < materials[m].condense ? M.WATER : M.EMPTY);
-            else if (COOL[m]) this.put(i, COOL[m]);
+            else if (COOL[m]) { this.put(i, COOL[m]); if (this.cooled.length < 4000) this.cooled.push(i); }   // cooled magma is checked for crumbs (settle)
             else this.put(i, M.EMPTY);
             return;
           }
@@ -293,27 +293,49 @@ const KWorld = (() => {
       if (!this.seenAt) this.seenAt = new Uint16Array(mat.length);
       if (++this.seenStamp >= 65535 || !this.seenStamp) { this.seenAt.fill(0); this.seenStamp = 1; }
       const seenAt = this.seenAt, st = this.seenStamp;
-      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-        const i = y * w + x;
-        if (!breakable(mat[i]) || seenAt[i] === st) continue;
-        const piece = [i], q = [i];
-        seenAt[i] = st;
-        while (q.length && piece.length < MIN) {
-          const j = q.pop();
-          for (const k of [j - 1, j + 1, j - w, j + w]) {
-            if (seenAt[k] !== st && breakable(mat[k])) { seenAt[k] = st; piece.push(k); q.push(k); }
-          }
-        }
-        if (piece.length < MIN && !q.length) for (const k of piece) this.put(k, into);
-      }
+      const crumb = k => this.put(k, into === M.EARTH && this.rand() > 0.35 ? M.EMPTY : into);   // mostly dust; a third falls as loose earth
+      // first, single cells sticking out with at most one solid neighbour
       for (let pass = 0; pass < 2; pass++) {
         for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
           const i = y * w + x;
           if (!breakable(mat[i])) continue;
           const n = SOLID[mat[i - 1]] + SOLID[mat[i + 1]] + SOLID[mat[i - w]] + SOLID[mat[i + w]];
-          if (n <= 1) this.put(i, into);
+          if (n <= 1) crumb(i);
         }
       }
+      // then whole pieces smaller than MIN. A fill stops at MIN cells, so the rest of a big
+      // piece is met again from another side: touching dirt already counted means "part of
+      // something bigger", not a small piece.
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+        const i = y * w + x;
+        if (!breakable(mat[i]) || seenAt[i] === st) continue;
+        const piece = [i], q = [i];
+        seenAt[i] = st;
+        let joined = false;
+        while (q.length && piece.length < MIN && !joined) {
+          const j = q.pop();
+          for (const k of [j - 1, j + 1, j - w, j + w]) {
+            if (!breakable(mat[k])) continue;
+            if (seenAt[k] !== st) { seenAt[k] = st; piece.push(k); q.push(k); }
+            else if (!piece.includes(k)) { joined = true; break; }
+          }
+        }
+        if (piece.length < MIN && !q.length && !joined) for (const k of piece) crumb(k);
+      }
+    }
+
+    // Dirt that formed where magma cooled is checked for crumbs, a few chunks at a time.
+    settle() {
+      if (!this.cooled.length) return;
+      const cs = this.cs, done = new Set(), later = [];
+      for (const i of this.cooled) {
+        const cx = ((i % this.w) / cs) | 0, cy = ((i / this.w) / cs) | 0, k = cy * this.cw + cx;
+        if (done.has(k)) continue;
+        if (done.size >= 6) { later.push(i); continue; }   // the rest wait for the next call
+        done.add(k);
+        this.cleanup(cx * cs - 6, cy * cs - 6, (cx + 1) * cs + 6, (cy + 1) * cs + 6);
+      }
+      this.cooled = later;
     }
 
     // The Crucible: rock within r of (cx, cy) melts into (cooling) magma.
@@ -778,6 +800,8 @@ const KWorld = (() => {
         if (sp) this.lodestones.push({ id: this.lodestones.length, x: sp.x, y: sp.y });
       }
       for (const l of this.lodestones) { l.region = KData.biomes[this.biomeAt(l.x, l.y - 8)].name; l.level = this.levelAt(l.x, l.y); }
+      // specks left by the last steps (shelves under high caches are 13 cells and stay)
+      { const keep = World.MIN_PIECE; World.MIN_PIECE = 10; this.cleanup(0, 0, w, h, M.EMPTY); World.MIN_PIECE = keep; }
       this.changed = new Uint8Array(this.cw * this.ch); // chunks changed since generation (for saving)
     }
 
@@ -807,6 +831,6 @@ const KWorld = (() => {
     }
   }
 
-  World.MIN_PIECE = 10;
+  World.MIN_PIECE = 48;   // a loose piece of dirt smaller than this (about 8 x 6) crumbles
   return { World, makeRng, ST, STATE, SOLID, CONDUCT };
 })();

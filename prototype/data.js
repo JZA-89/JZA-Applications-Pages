@@ -210,21 +210,21 @@ const KData = (() => {
   // cannot tell it exists. Learned from tomes in relic caches, or by typing it.
   const specials = {
     geyser: { name: 'Geyser', seq: ['water', 'fire', 'water'], cost: 32, cd: 0.8,
-      desc: 'Boiling water bursts from the ground where you aim, throwing enemies into the air.', power: 44, radius: 18, range: 170 },
+      desc: 'Boiling water bursts from the ground under your pointer, throwing enemies into the air.', power: 44, radius: 18, range: 170 },
     haste: { name: 'Haste', seq: ['fire', 'lightning', 'fire'], cost: 30, cd: 1,
       desc: 'For 8 seconds you run half again as fast and jump higher.', time: 8, speed: 1.5 },
     phase: { name: 'Phase', seq: ['lightning', 'earth', 'lightning'], cost: 30, cd: 0.6,
-      desc: 'Step through walls: you appear at the furthest open spot within reach the way you aim.', dist: 72 },
+      desc: 'Step through walls: you appear at your pointer, or the nearest open spot to it along the way.', dist: 72 },
     meteor: { name: 'Meteor', seq: ['earth', 'fire', 'earth', 'fire'], cost: 55, cd: 0.9,
-      desc: 'A burning rock falls from above onto the place you aim at.', power: 95, radius: 16, range: 220 },
+      desc: 'A burning rock falls from above onto the ground under your pointer.', power: 95, radius: 16, range: 220 },
     quake: { name: 'Quake', seq: ['earth', 'earth', 'earth', 'water'], cost: 50, cd: 1.2,
       desc: 'The ground heaves: everything near you is hurt, thrown and slowed, and rubble falls from the roof.', power: 38, radius: 140 },
     stoneskin: { name: 'Stoneskin', seq: ['earth', 'earth', 'lightning', 'earth', 'earth'], cost: 80, cd: 1,
       desc: 'For 10 seconds you take 60% less damage.', time: 10, reduce: 0.6 },
     thunderstorm: { name: 'Thunderstorm', seq: ['water', 'water', 'lightning', 'water', 'lightning'], cost: 90, cd: 1.5,
-      desc: 'A storm hangs where you aim for 6 seconds: rain soaks everything under it and lightning strikes again and again.', power: 34, radius: 80, time: 6, every: 0.35, range: 200 },
+      desc: 'A storm hangs at your pointer for 6 seconds: rain soaks everything under it and lightning strikes again and again.', power: 34, radius: 80, time: 6, every: 0.35, range: 200 },
     cataclysm: { name: 'Cataclysm', seq: ['fire', 'earth', 'fire', 'earth', 'lightning', 'fire', 'earth'], cost: 240, cd: 2,
-      desc: 'Seven meteors rain down around the place you aim at.', power: 95, radius: 16, range: 220, count: 7, spread: 70 },
+      desc: 'Seven meteors rain down around the ground under your pointer.', power: 95, radius: 16, range: 220, count: 7, spread: 70 },
   };
   function spellKey(a, b) { return a <= b ? a + '+' + b : b + '+' + a; }
   for (const k in spells) { const [a, b] = k.split('+'); if (spellKey(a, b) !== k) throw new Error('Spell key out of order: ' + k); }

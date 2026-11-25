@@ -321,6 +321,8 @@ Jaisah's direction: typing combinations from memory is the skill (as in Magicka)
 
 ### Special spells (`KData.specials`, `game.castSpecial`)
 
+**Where aimed ones land (v0.30, `game.specialTarget`):** at your pointer, no further than the spell's range, and not through walls: if a wall is in the way it lands just in front of it. Geyser, Meteor and Cataclysm then drop to the ground below that point; Thunderstorm stays at the point. Phase goes through walls: to the pointer, or the nearest open spot to it back along the line, up to 72 away. While such a spell is loaded and affordable a gold dotted ring its size shows the landing place. Input now carries the pointer's distance (`aimDist`; a controller's right stick gives 30 to 160).
+
 An exact sequence, order and all. While the recipe matches **and your mana bar could hold its cost**, the Shot becomes the special spell (gold in the HUD); with too small a bar nothing shows that it exists. Learned from **tomes** (25% of relic caches teach one of the three cheapest you do not know, each champion teaches one, and the Emberwyrm teaches Cataclysm) or by typing one; known ones are listed in the spell book with their sequence and saved.
 
 | Spell | Sequence | Mana | What it does |
@@ -518,6 +520,11 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.27 (2026-11-26):** music (a calm cave piece and an ominous one for bosses and champions, N to toggle) and motion for the golems (both Jaisah).
 - **v0.28 (2026-11-26):** resting works from near a Lodestone (46 to either side, 30 above, 50 below; it was 22 and 20), and every Lodestone stands on a base of rock that cannot be dug away, restored within 2 s if it is missing (Jaisah: stones left floating were hard to rest at). In the Stats tab the five general stats are on the left and the four elements on the right.
 - **v0.29 (2026-11-26):** the bag is split into a row for Head, Core, Arms and Legs, each sorted best grade first, then highest level (Jaisah).
+- **v0.30 (2026-11-26):** no small bits of dirt (Jaisah, again: they still appeared and blocked him). The minimum loose piece is 48 cells (was 10); dirt formed by cooling magma is now cleaned up too (`world.settle`, the spitters' globs were the main source); the clean-up had a counting flaw that could miss pieces and, rarely, crumble part of something large (fixed: single cells first, then pieces, and a fill that meets dirt already counted is part of something bigger); a crumbled piece is two-thirds dust, one-third loose earth; the golem pushes through loose earth (`game.plough`); Stone and Ember steps are 5 thick and at least 11 wide so they never crumble. Aimed special spells land at the pointer (below), with a gold ring showing where. The rest and start panels keep one height on every tab.
+
+## Checks run for v0.30
+
+A new cave has no loose piece under 48 cells (counted over the whole cave, and again after a second clean-up); eight magma globs left to cool leave none; walking into a 10-high pile of loose earth goes through it and into dirt of the same size does not; steps survive a blast beside them; Geyser lands under the pointer at 60 away, at the edge of its range when the pointer is beyond it, and in front of a wall that is in the way; Phase lands behind the wall; the rest panel is 680 high on all four tabs; boss, recipe, random-play and save tests again.
 
 ## Checks run for v0.27
 
