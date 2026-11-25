@@ -21,7 +21,7 @@ const KSave = (() => {
   function serialize(game) {
     const p = game.players[0], w = game.world;
     return {
-      v: VERSION, seed: game.seed, at: Date.now(),
+      v: VERSION, seed: game.seed, depth: game.depth, at: Date.now(),
       found: [...game.found], checkpoint: game.checkpoint,
       explored: btoa(String.fromCharCode(...packBits(w.explored))),
       chunks: w.saveChunks(),
@@ -66,7 +66,7 @@ const KSave = (() => {
   // world: in co-op, a cave already built (the host's), used as it is
   function restore(data, world) {
     if (!data || data.v !== VERSION || !Number.isFinite(data.seed)) return null;
-    const game = new KGame.Game(data.seed, world);
+    const game = new KGame.Game(data.seed, world, data.depth);
     const w = game.world, p = game.players[0], s = data.player || {};
     if (!world) w.loadChunks(data.chunks || {});
     if (data.explored) { const e = unpackBits(data.explored, w.explored.length); w.explored.set(e); }

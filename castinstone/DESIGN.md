@@ -496,6 +496,16 @@ Two players, online, in the host's cave. Each keeps their own golem: a guest's l
 
 **Home screen:** `icon-180.png` (the Brute golem, also the page's tab icon), `manifest.webmanifest` and the `apple-mobile-web-app-*` tags in `index.html` give the game its icon, the name "Cast in Stone" and a full screen when added to a phone's home screen. On iPhone a home-screen web app keeps its own saves, separate from Safari's.
 
+## The goal (v0.45)
+
+Jaisah: it needs to be a proper game with purpose. The cave now has an aim, an ending and a reason to go on.
+
+- **Three seals.** The three champions each hold a seal on the Emberwyrm. While any stands (`game.sealsLeft()`), the wyrm sleeps: entering its lair does not wake it and nothing harms it (a notice says how many champions still stand). Each champion's fall announces a seal breaking.
+- **What to do next** is always on screen under the map (`objective` in main.js): "Break the seals · N of 3" with the nearest champion's name, compass direction and region; then "Wake the Emberwyrm" with the lair's direction; then that the cave is won.
+- **The ending.** When the Emberwyrm falls, after two seconds the ending page opens (`#endWrap`): level, time in the cave, creatures felled, times crumbled, special spells and Lodestones (`game.played`, `kills`, `deaths`, kept in the save).
+- **Deeper caves.** From the ending page, or the Golem tab once the cave is won, "Descend to a deeper cave" builds a new cave at `game.depth + 1`: every level in it is 4 higher per depth (`KData.cave.depthLevels`, `world.lift`), so enemies, the champions, the wyrm and treasure all scale. The golem keeps its level, stats, runestones, spells and shards; the cave's own boons (core, champions, tablets) are earned again. Not offered in co-op.
+- The opening text and a first notice state the premise.
+
 ## Menus (v0.44)
 
 Jaisah: the menus should be as polished as MORPHOS's and fit the screen without scrolling or being cut off. Each menu (pause, rest, map) is now a full-screen page: one bar across the top holds what it is, its tabs (a pill row), a few facts as chips, and the button that returns to the game; the open tab fills the rest. There is no footer.
@@ -620,6 +630,8 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.43:** Jaisah: fill the screen on everything from a phone to an ultrawide as MORPHOS does, fade to black rather than let a wide screen see further, fan the touch elements round the buttons, F for full screen. Rest moved to R rather than Alt: browsers use Alt themselves (the menu bar on Windows; Alt with D or the arrow keys moves the address bar or the page), and D is the run key. The cast plates now say LMB and RMB so R is not read as the right mouse button.
 
 - **v0.44:** menus rebuilt as full-screen pages (see Menus). Checked by screenshot at 844 × 390, 1180 × 820 and 1600 × 900 for every tab.
+
+- **v0.45:** the goal: seals, objective line, ending, deeper caves (see The goal). Chosen over new bosses because it gives every existing piece (champions, the wyrm, levels) a place in one arc, and an endless reason to continue, without new art.
 
 ## Checks run for v0.42
 

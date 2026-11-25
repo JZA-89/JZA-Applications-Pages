@@ -17,13 +17,13 @@ const KGame = (() => {
   const MUD_SLOW = 0.35;    // enemy speed while in mud or coated
 
   class Game {
-    constructor(seed, world) { this.seed = seed; this.found = new Set(); this.opened = new Set(); this.defeated = new Set(); this.cores = new Set(); this.checkpoint = 0; this.events = []; this.reset(false, world); }
+    constructor(seed, world, depth) { this.seed = seed; this.found = new Set(); this.opened = new Set(); this.defeated = new Set(); this.cores = new Set(); this.checkpoint = 0; this.events = []; this.depth = Math.max(0, depth | 0); this.played = 0; this.deaths = 0; this.kills = 0; this.reset(false, world); }
 
     // Build (or rebuild) the cave from the seed. keepPlayers keeps the golems'
     // progress (levels, stats, runestones) and puts them at their checkpoint.
     reset(keepPlayers, world) {
       const kept = keepPlayers ? this.players : null, explored = keepPlayers && this.world ? this.world.explored : null;
-      this.world = world || new World(this.seed);   // co-op hands over a cave already built
+      this.world = world || new World(this.seed, this.depth * KData.cave.depthLevels);   // co-op hands over a cave already built
       if (explored) this.world.explored.set(explored);
       this.rand = makeRng(this.seed + 17);
       this.time = 0;
@@ -670,7 +670,12 @@ const KGame = (() => {
       this.applyStats(p);
       return true;
     }
-    saveExtra() { return { opened: [...this.opened], defeated: [...this.defeated], cores: [...this.cores], read: [...this.read] }; }
+    saveExtra() { return { opened: [...this.opened], defeated: [...this.defeated], cores: [...this.cores], read: [...this.read], played: Math.round(this.played), deaths: this.deaths, kills: this.kills }; }
+    // ---------- the goal ----------
+    // Three champions hold the seals on the Emberwyrm's lair. While any stands, the wyrm sleeps under
+    // its magma and nothing wakes or harms it. When it falls the cave is won, and a deeper one opens.
+    sealsLeft() { let n = 0; for (const e of this.enemies) if (e.champion && !this.defeated.has('champ:' + e.kind)) n++; return n; }
+    get won() { return !!this.world.lair && this.defeated.has(this.world.lair.boss); }
     loadExtra(x) {
       if (!x) return;
       if (Array.isArray(x.opened)) this.opened = new Set(x.opened.filter(Number.isInteger));
@@ -679,6 +684,7 @@ const KGame = (() => {
       for (const e of this.enemies) if (e.champion && this.defeated.has('champ:' + e.kind)) { e.dead = true; e.hp = 0; }
       if (Array.isArray(x.cores)) this.cores = new Set(x.cores.filter(c => typeof c === 'string'));
       if (this.boss && this.defeated.has(this.boss.type)) this.boss = null;
+      for (const k of ['played', 'deaths', 'kills']) if (Number.isFinite(x[k]) && x[k] >= 0) this[k] = x[k];
       for (const pl of this.players) this.applyStats(pl);
     }
 
@@ -738,6 +744,11 @@ const KGame = (() => {
         }
       } else {
         b.awayT = 0;
+        const seals = this.sealsLeft();
+        if (seals > 0) {   // still sealed: it sleeps, and says so now and then
+          if (this.time - (b.sealSaid ?? -99) > 25) { b.sealSaid = this.time; this.events.push({ type: 'toast', kind: 'big', text: `${B.name} sleeps under its seals. ${seals === 1 ? 'One champion still stands' : seals + ' champions still stand'}.` }); }
+          return;
+        }
         if (!b.engaged) { b.engaged = true; this.events.push({ type: 'toast', kind: 'big', text: `${B.name} stirs in the magma` }); this.sfx('stirs', b.x, b.y, 1.4); }
       }
       const set = s => { b.state = s; b.t = 0; };
@@ -902,6 +913,7 @@ const KGame = (() => {
     bossDefeated(b) {
       const B = KData.bosses[b.type], RU = KData.runes, p = b.lastHitBy && !b.lastHitBy.dead ? b.lastHitBy : this.players[0];
       b.dead = true; b.hp = 0;
+      this.events.push({ type: 'ending' });
       this.defeated.add(b.type); this.cores.add(B.region); for (const pl of this.players) this.applyStats(pl);
       this.gainXp(p, KData.progression.killXp(b.level, 'crawler', false) * B.xpMul, 'boss');
       p.shards = (p.shards || 0) + B.shardsMul * b.level;
@@ -1024,7 +1036,7 @@ const KGame = (() => {
 
     // ---------- one fixed step ----------
     step(actions) {
-      this.time += DT;
+      this.time += DT; this.played += DT;
       for (const p of this.players) this.control(p, actions[p.id] || { move: 0, events: [], aim: p.aim });
       this.world.step();
       this.updateGrowths();
@@ -2036,6 +2048,7 @@ const KGame = (() => {
 
     hurt(a, amount, kx, ky, kind, src, spell) {
       if (a.dead || amount <= 0 || a.away) return;
+      if (a.kind === 'boss' && this.sealsLeft() > 0) return;   // sealed
       if (a.kind === 'player' && src && src.kind === 'player' && src !== a) amount *= 0.3;   // co-op: a friend's spell hurts, but much less
       if (src && src.kind === 'player') { a.lastHitBy = src; a.lastHitAt = this.time; }
       if (spell && spell.includes('earth') && this.has(src, 'quarry')) { kx = (kx || 0) * 1.6; ky = (ky || 0) * 1.6; }
@@ -2130,7 +2143,9 @@ const KGame = (() => {
         this.sfx('level', a.x, a.y, 1.2); this.shake = Math.max(this.shake, 5);
         this.events.push({ type: 'save' });
       }
-      if (a.kind === 'player') this.events.push({ p: a.id, type: 'died' });
+      if (a.kind === 'player') { this.deaths++; this.events.push({ p: a.id, type: 'died' }); } else if (a.kind !== 'dummy') this.kills++;
+      if (a.champion) { const n = this.sealsLeft(); this.events.push({ type: 'toast', kind: 'big', text: n ? `A seal breaks. ${n === 1 ? 'One remains' : n + ' remain'}.` : 'The last seal breaks. The Emberwyrm can be woken.' }); }
+      if (a.kind === 'player') ;
       else if (a.kind !== 'dummy' && a.lastHitBy && (a.elite || a.boss || this.rand() < KData.runes.dropChance)) {
         const n = a.boss ? 2 : 1;
         for (let k = 0; k < n; k++) this.dropRune(a.x, a.y - a.h / 2, this.makeRune(a.level || 1, a.boss ? { tier: Math.min(3, 2 + k) } : a.elite ? { tier: Math.max(1, KData.runes.tierFor(a.level, this.rand())) } : {}));

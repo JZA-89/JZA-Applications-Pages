@@ -73,7 +73,9 @@ const KWorld = (() => {
   }
 
   class World {
-    constructor(seed) {
+    // lift: levels added everywhere in the cave (a deeper cave after the Emberwyrm falls: game.depth)
+    constructor(seed, lift = 0) {
+      this.lift = lift | 0;
       const { w, h, chunk } = KData.world;
       this.w = w; this.h = h; this.cs = chunk; this.shift = Math.log2(chunk);
       this.cw = Math.ceil(w / chunk); this.ch = Math.ceil(h / chunk);
@@ -445,11 +447,12 @@ const KWorld = (() => {
     meta() {
       const b64 = a => { let s = ''; for (let i = 0; i < a.length; i += 4096) s += String.fromCharCode.apply(null, a.subarray(i, i + 4096)); return btoa(s); };
       return { spawn: this.spawn, caches: this.caches, dummySpots: this.dummySpots, hub: this.hub, lair: this.lair, nodes: this.nodes, edges: this.edges, enemyHomes: this.enemyHomes, lodestones: this.lodestones,
-        broken: this.broken, cooled: this.cooled, bw: this.bw, biomeMap: b64(this.biomeMap), awake: b64(this.awake), changed: b64(this.changed) };
+        broken: this.broken, cooled: this.cooled, bw: this.bw, lift: this.lift, biomeMap: b64(this.biomeMap), awake: b64(this.awake), changed: b64(this.changed) };
     }
     adopt(m) {
       const put = (a, text) => { const s = atob(text); if (s.length === a.length) for (let i = 0; i < a.length; i++) a[i] = s.charCodeAt(i); };
       for (const k of ['spawn', 'caches', 'dummySpots', 'hub', 'lair', 'nodes', 'edges', 'enemyHomes', 'lodestones', 'broken', 'cooled']) this[k] = m[k];
+      this.lift = m.lift | 0;
       put(this.biomeMap, m.biomeMap); put(this.awake, m.awake); put(this.changed, m.changed);
     }
     // both devices call this at the same moment, so the cave's clock and dice agree from here on
@@ -876,7 +879,7 @@ const KWorld = (() => {
       return y;
     }
     biomeAt(x, y) { return this.biomeMap[(Math.max(0, Math.min(this.h - 1, y | 0)) >> 4) * this.bw + (Math.max(0, Math.min(this.w - 1, x | 0)) >> 4)]; }
-    levelAt(x, y) { return 1 + Math.floor(Math.hypot(x - this.hub.x, y - this.hub.y) / KData.cave.levelEvery); }
+    levelAt(x, y) { return 1 + this.lift + Math.floor(Math.hypot(x - this.hub.x, y - this.hub.y) / KData.cave.levelEvery); }
     // kept for tests: the first floor below the first open cell from the top
     surfaceAt(x) {
       let y = 6;

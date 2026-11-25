@@ -395,7 +395,7 @@ const KData = (() => {
     { id: 'ember', name: 'Ember Veins', bg: [34, 16, 24], lichen: 0.3, hang: 0.12, pool: 'MAGMA', poolFrom: 0.8, mud: 0,
       strata: [[112, 58, 52], [128, 70, 58], [88, 46, 48], [148, 88, 66], [74, 40, 44], [118, 64, 56]] },
   ];
-  const cave = { chambers: 104, spacing: 150, hubRadius: 320, regionDistance: 800, levelEvery: 200,
+  const cave = { chambers: 104, spacing: 150, hubRadius: 320, regionDistance: 800, levelEvery: 200, depthLevels: 4,
     tunnel: [12, 17], plugChance: 0.16, loopChance: 0.55, lodestones: 15, stoneReach: 46, stoneUp: 30, stoneDown: 50,   // how near counts as at a Lodestone: sideways, above it, below it
     stoneRepair: 90 };
 

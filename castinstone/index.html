@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0d0a14">
 <meta name="description" content="Cast in Stone: a golem of living rock in a cave of falling sand. Type the elements to shape a spell. A browser game in beta, by JZA Applications.">
 <link rel="canonical" href="https://jza.app/castinstone/">
-<title>Cast in Stone | Beta · v0.44</title>
+<title>Cast in Stone | Beta · v0.45</title>
 <!-- added to a phone's home screen: the icon, a short name, and no browser bars -->
 <link rel="icon" type="image/png" href="icon-180.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="stylesheet" href="style.css?v=0.44">
+<link rel="stylesheet" href="style.css?v=0.45">
 </head>
 <body data-mode="start">
 
@@ -30,6 +30,9 @@
       <canvas id="minimap" width="128" height="64" aria-hidden="true"></canvas>
       <span class="mapbox-foot"><b id="region">Rose Hollows</b><i id="regionLv">Level 1</i><kbd>Tab</kbd></span>
     </button>
+
+    <!-- under the map: what to do next -->
+    <div class="objective" id="objective"><b id="objTitle"></b><span id="objHint"></span></div>
 
     <!-- top right: round stone buttons -->
     <div class="hud-tr">
@@ -97,12 +100,13 @@
 
     <div class="shell-body">
       <div class="view view-game" data-view="game" id="viewGame">
-        <p class="lede" id="panelLede">A golem of living rock in a web of caves. Type elements to shape a spell: the first is its form, the rest change it. Explore out from the hub; the further you go, the tougher it gets. The cave and your golem are saved in this browser.</p>
+        <p class="lede" id="panelLede">You are a golem of living rock, woken in a web of caves. Somewhere in it the Emberwyrm sleeps in a lake of magma, under three seals, and each seal is held by a champion. Break the seals, wake the wyrm and bring it down. Type elements to shape a spell: the first is its form, the rest change it. The further from the hub, the tougher it gets.</p>
         <h2 class="rule first" id="journeyTitle"><span>Your journey</span></h2>
         <div class="journey" id="journey"></div>
         <h2 class="rule"><span>Your golem</span></h2>
         <div class="golems" id="golems" role="radiogroup" aria-label="Your golem"></div>
         <div class="game-actions">
+          <button type="button" class="btn small" id="btnDeeper" hidden>Descend to a deeper cave</button>
           <button type="button" class="btn ghost small" id="btnPanelReset" hidden title="Rebuild the cave from its seed. Your golem keeps its progress.">Reset the cave</button>
           <button type="button" class="btn ghost small" id="btnNewCave">New game</button>
         </div>
@@ -161,6 +165,23 @@
   </section>
 </div>
 
+<!-- the cave is won -->
+<div class="panel-wrap" id="endWrap" hidden>
+  <section class="shell end" role="dialog" aria-modal="true" aria-labelledby="endTitle">
+    <div class="end-body">
+      <p class="eyebrow" id="endEyebrow">The cave is won</p>
+      <h1 class="logo" id="endTitle">The Emberwyrm has fallen</h1>
+      <p class="lede" id="endText"></p>
+      <div class="journey" id="endStats"></div>
+      <div class="end-actions">
+        <button type="button" class="btn primary" id="btnDescend">Descend to a deeper cave</button>
+        <button type="button" class="btn ghost" id="btnStay">Keep exploring this one</button>
+      </div>
+      <p class="note" id="endNote">A deeper cave is a new cave where everything is four levels stronger and the treasure is better. Your golem keeps its level, runestones, spells and shards. This cave is left behind for good.</p>
+    </div>
+  </section>
+</div>
+
 <!-- the full map -->
 <div class="panel-wrap" id="mapWrap" hidden>
   <section class="shell map-panel" role="dialog" aria-modal="true" aria-label="Map">
@@ -213,18 +234,18 @@
 
 <noscript><p class="noscript">Cast in Stone needs JavaScript.</p></noscript>
 
-<script src="dmath.js?v=0.44"></script>
-<script src="data.js?v=0.44"></script>
-<script src="recipe.js?v=0.44"></script>
-<script src="world.js?v=0.44"></script>
-<script src="audio.js?v=0.44"></script>
-<script src="input.js?v=0.44"></script>
-<script src="game.js?v=0.44"></script>
-<script src="save.js?v=0.44"></script>
-<script src="render.js?v=0.44"></script>
-<script src="loot.js?v=0.44"></script>
-<script src="net.js?v=0.44"></script>
-<script src="touch.js?v=0.44"></script>
-<script src="main.js?v=0.44"></script>
+<script src="dmath.js?v=0.45"></script>
+<script src="data.js?v=0.45"></script>
+<script src="recipe.js?v=0.45"></script>
+<script src="world.js?v=0.45"></script>
+<script src="audio.js?v=0.45"></script>
+<script src="input.js?v=0.45"></script>
+<script src="game.js?v=0.45"></script>
+<script src="save.js?v=0.45"></script>
+<script src="render.js?v=0.45"></script>
+<script src="loot.js?v=0.45"></script>
+<script src="net.js?v=0.45"></script>
+<script src="touch.js?v=0.45"></script>
+<script src="main.js?v=0.45"></script>
 </body>
 </html>
