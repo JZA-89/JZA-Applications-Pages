@@ -323,6 +323,31 @@ const KData = (() => {
       walk: 22, slamRange: 30, windup: 0.9, radius: 30, power: 30, knock: 260, recover: 1.1,
       affinity: { fire: 0.4, lightning: 0.4, earth: 1.6, water: 1.3 }, xp: 2.5, spawn: { weights: [0.15, 0.25, 0.25], from: 3 } },
   };
+  // Four kinds that the cave's generator never places itself (spawn.from 99): the game turns some
+  // crawler and moth homes into them by region and level (KData.remix, game.kindFor), so the
+  // cave and old saves stay the same.
+  Object.assign(enemies, {
+    slinger: { name: 'Shard slinger', desc: 'Keeps its distance and hurls stone shards on an arc. Get close or burn it: it is weak to fire.', w: 11, h: 12, hp: 44, attack: 10, defence: 6,
+      walk: 36, near: 60, far: 115, range: 175, windup: 0.6, every: 2.3, speed: 165, power: 16, knock: 130,
+      affinity: { fire: 1.4, earth: 0.6 }, xp: 1.2, spawn: { weights: [0, 0, 0], from: 99 } },
+    wisp: { name: 'Stormwisp', desc: 'Hovers out of reach, takes aim along a line, then fires lightning down it. Step off the line. Earth shatters it.', w: 9, h: 9, hp: 30, attack: 11, defence: 5,
+      fly: 55, keep: 86, aim: 0.8, every: 2.8, range: 210, power: 18, knock: 110,
+      affinity: { earth: 1.7, lightning: 0.3, water: 1.2 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
+    frog: { name: 'Mirehopper', desc: 'Crouches, then leaps at you. Where it lands it spatters mud that slows you. Weak to lightning.', w: 13, h: 8, hp: 50, attack: 10, defence: 7,
+      crouch: 0.35, hop: 95, lift: 175, rest: 0.6, power: 16, knock: 150, mud: 8,
+      affinity: { lightning: 1.5, water: 0.5, fire: 1.2 }, xp: 1.1, spawn: { weights: [0, 0, 0], from: 99 } },
+    imp: { name: 'Cinder imp', desc: 'Runs straight at you, flares, and bursts. Kill it before it reaches you, or get clear. Fire does nothing to it; water snuffs it.', w: 9, h: 10, hp: 26, attack: 12, defence: 4,
+      run: 84, fuseRange: 17, fuse: 0.55, radius: 26, power: 30, knock: 220,
+      affinity: { fire: 0, water: 1.9 }, xp: 1.1, spawn: { weights: [0, 0, 0], from: 99 } },
+  });
+  // The warden's two extra attacks: a thrown boulder at range, and a wave along the ground after its slam.
+  Object.assign(enemies.warden, { throwNear: 55, throwFar: 190, throwWind: 0.7, throwEvery: 3.4, throwSpeed: 175, throwPower: 22, waveSpeed: 150, waveTime: 0.6, wavePower: 15,
+    desc: 'Armoured. Hurls boulders from range; up close it slams the ground, and a wave runs out along the floor: jump it. Fire and lightning glance off; earth and water crack it.' });
+  // Which homes change kind: [kind it becomes, from level, share out of 100] by region (0 Rose Hollows, 1 Drowned Galleries, 2 Ember Veins)
+  const remix = {
+    crawler: [[['slinger', 2, 30]], [['frog', 2, 45], ['slinger', 3, 15]], [['imp', 2, 40], ['slinger', 2, 18]]],
+    moth: [[['wisp', 4, 25]], [['wisp', 3, 50]], [['wisp', 4, 25]]],
+  };
   // shared by every enemy kind
   for (const k in enemies) Object.assign(enemies[k], { sight: enemies.crawler.sight, sense: enemies.crawler.sense, hearing: enemies.crawler.hearing, forget: enemies.crawler.forget,
     respawn: 25, awake: 380, respawnClear: 300, perLevel: enemies.crawler.perLevel }, { ...enemies[k] });
@@ -571,6 +596,6 @@ const KData = (() => {
       ] },
   ];
 
-  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, statuses, elites, bosses, modes, recipe, specials, champions, biomes, cave, progression, runes, treasure,
+  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, statuses, elites, bosses, modes, recipe, specials, champions, remix, biomes, cave, progression, runes, treasure,
     world: { w: 3072, h: 1536, chunk: 32 }, view: { w: 320, h: 180 }, step: 1 / 60 };
 })();

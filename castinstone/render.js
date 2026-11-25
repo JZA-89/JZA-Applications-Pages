@@ -50,10 +50,75 @@ const KRender = (() => {
   const SHALE = { k: [14, 10, 20], h: [154, 144, 174], m: [108, 100, 128], d: [72, 64, 88], s: [50, 42, 62], e: [255, 70, 160] };
   // the other enemies, facing right (frames for animation where there are two)
   const ENEMY_ART = {"moth": [[".www.....www.", "wwwww...wwwww", "wwwwwkbkwwwww", ".wwwkbbbekww.", "..wwkbbbkww..", ".....kbk....."], [".............", ".....kbk.....", "..wwkbbbekw..", ".wwwkbbbkwww.", "wwwwwkbkwwwww", ".www.....www."]], "delver": [["....kkkkk....", "..kkmmmmmkk..", ".kmmhhhhhmmk.", "kmmhmmmmmhmek", "kmmmmmmmmmmtk", ".kmmmmmmmmmk.", "..kddddddk...", "...kk.kk....."]], "spitter": [["...kkkkk...", "..kmmmmmk..", ".kmhhmmmmk.", "kmhmmmmoook", "kmmmmmmooo.", "kmmmmmmoook", "kmmmmmmmmk.", ".kmmdmmmk..", "..kddddk...", "...kkkk...."]], "warden": [["......kkkkk......", ".....kmmmmmk.....", ".....kmememk.....", "..kkkkmmmmmkkkk..", ".kpppkkkkkkkpppk.", "kpppkmmmmmmmkpppk", "kmmkmmmmmmmmmkmmk", "kmmkmmmssmmmmkmmk", "kmmkmmmmmmmmmkmmk", "kffkmmmmmmmmmkffk", "kffkkmmmmmmmkkffk", ".kk..kmmmmmk..kk.", ".....kmmkmmk.....", ".....kmmkmmk.....", "....kddk.kddk....", "....kkkk.kkkk...."]]};
+
+  // the four kinds added in v0.40 (see KData.remix)
+  Object.assign(ENEMY_ART, {
+    slinger: [[
+      "....kkk....",
+      "...kmhmk.pp",
+      "...kemek.pp",
+      "...kmmmk.k.",
+      "..kkmmmkkk.",
+      ".kmhmmmmk..",
+      ".kmmmmmdk..",
+      ".kmmmmmdk..",
+      "..kmmmdk...",
+      "..kdkkdk...",
+      "..kdk.kdk..",
+      ".kkk..kkk..",
+    ]],
+    wisp: [[
+      "....o....",
+      "..o.w.o..",
+      "...www...",
+      ".owwewwo.",
+      "owwekeww.",
+      ".owwewwo.",
+      "...www...",
+      "..o.w.o..",
+      "....o....",
+    ], [
+      ".........",
+      "...owo...",
+      "..owwwo..",
+      ".owwewwo.",
+      ".wwekeww.",
+      ".owwewwo.",
+      "..owwwo..",
+      "...owo...",
+      ".........",
+    ]],
+    frog: [[
+      "...kk...kk...",
+      "..kehk.kehk..",
+      ".kmmmmkmmmmk.",
+      "kmhmmmmmmmhmk",
+      "kmmmmmmmmmmmk",
+      "kddmmmmmmmddk",
+      "kdkkddddkkkdk",
+      "kk..kkkk...kk",
+    ]],
+    imp: [[
+      ".k.....k.",
+      ".kk...kk.",
+      ".kmkkkmk.",
+      ".kemmmek.",
+      ".kmmommk.",
+      "kkmooomkk",
+      "kmkooomkm",
+      ".kmmommk.",
+      ".kdk.kdk.",
+      ".kk...kk.",
+    ]],
+  });
   const ENEMY_COL = {
     moth: { w: [222, 196, 244], k: [40, 30, 50], b: [124, 104, 146], e: [255, 70, 160] },
     delver: { k: [24, 16, 20], m: [122, 98, 92], h: [154, 126, 112], d: [84, 66, 64], t: [240, 230, 210], e: [255, 70, 160] },
     spitter: { k: [24, 14, 18], m: [92, 62, 60], h: [134, 92, 82], d: [60, 40, 42], o: [255, 140, 50] },
+    slinger: { k: [26, 20, 18], m: [150, 120, 96], h: [196, 166, 132], d: [100, 78, 66], p: [168, 160, 150], e: [255, 70, 160] },
+    wisp: { k: [20, 26, 60], w: [150, 190, 255], o: [80, 120, 230], e: [240, 250, 255] },
+    frog: { k: [14, 28, 30], m: [70, 132, 110], h: [120, 180, 140], d: [44, 88, 84], e: [255, 220, 90] },
+    imp: { k: [36, 12, 10], m: [150, 52, 36], d: [100, 34, 28], o: [255, 150, 50], e: [255, 230, 120] },
     warden: { k: [16, 14, 22], m: [112, 120, 142], p: [156, 162, 184], s: [72, 76, 94], f: [128, 134, 154], d: [72, 76, 94], e: [255, 70, 160] },
   };
   const SACK = { k: [44, 36, 56], s: [138, 128, 160], x: [206, 198, 226], p: [96, 70, 74] };
@@ -438,9 +503,9 @@ const KRender = (() => {
       const rows = frames.length > 1 ? frames[Math.floor(time * (e.state === 'swoop' ? 18 : 8) + e.id) & 1] : frames[0];
       const W = rows[0].length, H = rows.length, flip = (e.kind === 'spitter' ? e.face : e.facing) < 0;
       const S = e.champion ? 2 : 1;   // champions are drawn at twice the size
-      const lift = e.kind === 'warden' && e.state === 'windup' ? 1 : 0;
+      const lift = (e.kind === 'warden' && (e.state === 'windup' || e.state === 'throw') ? 1 : 0) - (e.kind === 'frog' && e.state === 'windup' ? 1 : 0);
       const ox = Math.round(e.x - this.cam.x) - ((W * S) >> 1), oy = Math.round(e.y - this.cam.y) - H * S - lift;
-      const warn = (e.state === 'windup' || (e.kind === 'spitter' && e.charging)) ? 0.5 + 0.5 * Math.sin((e.t || time) * 40) : 0;
+      const warn = (e.state === 'windup' || e.state === 'throw' || (e.kind === 'spitter' && e.charging)) ? 0.5 + 0.5 * Math.sin((e.t || time) * 40) : 0;
       const muddy = e.slowT > 0 || e.inMud;
       const a = e.ghost ? 0.45 : 1; // a delver inside the ground shows faintly
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
@@ -664,10 +729,10 @@ const KRender = (() => {
       }
       for (const e of game.enemies) {
         if (e.dead || e.asleep) continue;
-        const col = e.elite ? [255, 200, 90] : e.kind === 'spitter' ? [255, 140, 50] : e.kind === 'moth' ? [222, 196, 244] : [255, 70, 160];
+        const col = e.elite ? [255, 200, 90] : e.kind === 'spitter' ? [255, 140, 50] : e.kind === 'moth' ? [222, 196, 244] : e.kind === 'wisp' ? [150, 190, 255] : e.kind === 'imp' ? [255, 150, 50] : [255, 70, 160];
         const hot = e.state === 'windup' || (e.kind === 'spitter' && e.charging) || e.state === 'swoop';
         const ex = e.x + (e.kind === 'spitter' ? e.face : e.facing) * (e.w / 2 - 1), ey = e.y - e.h * 0.6;
-        this.light(ex, ey, hot ? 14 : e.kind === 'moth' ? 10 : 6, col, (hot ? 0.75 : 0.35) * (e.ghost ? 0.4 : 1));
+        this.light(ex, ey, hot ? 14 : e.kind === 'moth' || e.kind === 'wisp' ? 10 : 6, col, (hot ? 0.75 : 0.35) * (e.ghost ? 0.4 : 1));
         if (e.elite) this.light(e.x, e.y - e.h / 2, 16, [255, 200, 90], 0.25);
       }
       for (const p of game.players) {

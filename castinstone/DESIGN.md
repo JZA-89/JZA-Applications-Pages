@@ -258,6 +258,23 @@ All enemies share: a home chamber, levels (+30% health, +2 attack, +1 defence a 
 
 **Elites:** 8% of enemies from level 2: ×1.8 health, ×1.3 attack, gold eyes and a gold glow, a gold health bar; always drop a runestone and give triple experience. Experience per kill also scales by kind (warden ×2.5, delver ×1.3, spitter ×1.2).
 
+### More kinds by region (v0.40, `KData.remix`, `game.kindFor`)
+
+The cave's generator still places only the five original kinds, so the cave and saves are unchanged. When the game builds its enemies, some crawler and moth homes hold a different creature, chosen from the home's number and the seed (not the random stream): Rose Hollows crawlers become **Shard slingers** (level 2+, 30%); Drowned Galleries crawlers become **Mirehoppers** (level 2+, 45%) or slingers (level 3+, 15%) and moths become **Stormwisps** (level 3+, 50%); Ember Veins crawlers become **Cinder imps** (level 2+, 40%) or slingers (18%); moths elsewhere become wisps from level 4 (25%). Champion homes never change. Tablets are still placed from the original crawler and warden homes.
+
+| Kind | Health · attack · defence | What it does | Weak / strong |
+|---|---|---|---|
+| **Shard slinger** (11 × 12) | 44 · 10 · 6 | keeps 60 to 115 away (backs off if you close in, never off a ledge); raises its arm 0.6 s, then lobs a shard on an arc (speed 165, power 16) every 2.3 s, leading you slightly | fire ×1.4, earth ×0.6 |
+| **Stormwisp** (9 × 9, flies) | 30 · 11 · 5 | hovers about 86 to one side; takes aim along a line you can see for 0.8 s (it does not track you), then fires lightning down it (power 18, reach 210, 7 either side of the line) every 2.8 s | earth ×1.7, water ×1.2, lightning ×0.3 |
+| **Mirehopper** (13 × 8) | 50 · 10 · 7 | rests 0.6 s, crouches 0.35 s, leaps at you (contact power 16) and spatters 8 mud where it lands | lightning ×1.5, fire ×1.2, water ×0.5 |
+| **Cinder imp** (9 × 10) | 26 · 12 · 4 | runs at 84 and hops steps; within 17 it flares 0.55 s and bursts (power 30 falling to 15 at radius 26, leaves fire). It dies either way and gives its experience only if you kill it | water ×1.9, fire ×0 |
+
+**Slate warden, new in v0.40:** between 55 and 190 away with a clear view it raises a boulder for 0.7 s and throws it on an arc (power 22) about every 3.4 s; after its slam a wave runs out along the floor both ways (speed 150 for 0.6 s, power 15) and hits a golem standing on the ground: jump it.
+
+Creatures' thrown rocks and blobs no longer hurt other creatures.
+
+**Calm after a rest (v0.40):** rising after death, resting and travelling give `p.calmT` 5 s. While every living player is calm, no enemy notices them unless that enemy was hurt in the last 2 s; casting ends the calm. Resting or dying also sends home every living enemy that was aware of you in the last 12 s, so nothing that was chasing you is waiting at the Lodestone.
+
 ### Status effects (`KData.statuses`)
 
 | Status | Comes from | Effect |
@@ -556,6 +573,12 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.37 (2026-11-27):** digging without a spell (Jaisah: "maybe we could just add a dig, like in Liero"). **Keep walking into dirt and the golem claws through it** (`game.clawDig`, `KData.player.dig`): after 0.3 s of pushing, a stroke every 0.1 s clears 4 cells ahead, the body's height plus 2; about 12 cells a second (running is 72). Free, makes a little noise (enemies within 70 hear it), digs dirt, lichen and loose earth, never rock or crystal. **Holding Space as well digs 2 higher each stroke**, which makes a ramp upwards. A quick bump does nothing. The input is deliberately not Liero's hold-forward-tap-back: pushing into the wall is simpler and is this game's own. Spells still dig far faster; this is for squeezing through and never being stuck.
 - **v0.38 (2026-11-27):** digging also breaks crystal (Jaisah was stopped by a crystal vein at head height that the dig refused to touch; it now breaks into shards as it does for a digging spell). When what blocks you cannot be dug (rock), pushing against it throws sparks at the exact spot every half second, so the thing in the way is visible.
 - **v0.39 (2026-11-27):** a 27th special spell, **Meltdown** (fourth circle: Fire Earth Fire Fire Earth Fire, 165 mana): rock within 14 of your pointer, or of the wall face in the way, melts into magma that cools to dirt; power 70 to anything there. It is the only way into rock-sealed caches without wearing the Crucible (Jaisah: in case he wants something else in the core socket). The Runestones tab now has the golem in the middle with a station for each socket round it (Head above, Arms left, Core right, Legs below), each with its spare stones beside it, and the picked stone's card below (Jaisah: like MORPHOS's Mutations screen). With a controller the ring is walked row by row as drawn (`KRest.padMove`): left and right along a row, up and down to the nearest thing in the next row, up from Head to the tab, down from the last row to Leave; down from any tab enters that tab at its first control.
+
+- **v0.40:** Jaisah: the two blob creatures were duplicates, the warden was a tank that did nothing, more ranged enemies and kinds per region were wanted, and enemies swarmed him at a rest point. Added four kinds (two ranged) by re-labelling existing homes rather than changing cave generation, so saves carry over; gave the warden a throw and a ground wave; added the calm after a rest and sent chasing enemies home.
+
+## Checks run for v0.40
+
+Same seed built in v0.39 and v0.40: tablets, elites and champions identical. Each new kind against a standing golem in an open room for 20 s: slinger 6 hits, wisp 5, mirehopper 7, imp bursts once and dies, warden 8 (throws and slams). Calm: an enemy 40 away first hits at 5.8 s. Soak, save, champion and controller tests pass with no errors.
 
 ## Checks run for v0.37
 
