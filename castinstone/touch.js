@@ -36,7 +36,7 @@ const KTouch = (() => {
     const reach = () => base.offsetWidth * 0.5;
     const stickEnd = e => {
       if (e && e.pointerId !== stickId) return;
-      stickId = null; T.move = 0; T.moveY = 0;
+      stickId = null; T.move = 0; T.moveY = 0; T.tilt = 0;
       base.classList.remove('on'); base.style.removeProperty('--x'); base.style.removeProperty('--y'); knob.style.removeProperty('--kx'); knob.style.removeProperty('--ky');
     };
     zone.addEventListener('pointerdown', e => {
@@ -52,6 +52,7 @@ const KTouch = (() => {
       if (d > 1) { dx /= d; dy /= d; }
       knob.style.setProperty('--kx', (dx * R) + 'px'); knob.style.setProperty('--ky', (dy * R) + 'px');
       T.move = Math.abs(dx) > 0.22 ? dx : 0; T.moveY = dy > 0.6 ? 1 : dy < -0.6 ? -1 : 0;
+      T.tilt = Math.abs(dy) > 0.25 ? Math.max(-1, Math.min(1, dy * 1.3)) : 0;   // which way a tunnel slopes while digging
     });
     zone.addEventListener('pointerup', stickEnd); zone.addEventListener('pointercancel', stickEnd);
 

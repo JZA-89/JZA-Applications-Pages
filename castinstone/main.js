@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.45';
+  const VERSION = 'v0.46';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -126,13 +126,13 @@
   // ---------- controls, as key caps ----------
   const K = (t, cls = '') => `<kbd class="${cls}">${t}</kbd>`, EK = el => `<kbd style="--c:${elements[el].css}">${elements[el].label}</kbd>`;
   const KEYCARDS = [
-    ['golem', 'Move', [[K('A') + K('D'), 'Run. Walk into dirt to dig (hold Space too, to dig upwards)'], [K('Space', 'w'), 'Jump. Keep holding in the air to Lift'], [K('Shift', 'w'), 'Move: a dash, a blink, a climb'], [K('R'), 'Rest at a Lodestone']]],
+    ['golem', 'Move', [[K('A') + K('D'), 'Run. Walk into dirt to dig; the tunnel slopes up or down towards the pointer'], [K('Space', 'w'), 'Jump. Keep holding in the air to Lift'], [K('Shift', 'w'), 'Move: a dash, a blink, a climb'], [K('R'), 'Rest at a Lodestone']]],
     ['shot', 'Cast', [[KIcon('mouse'), 'Aim with the mouse'], [K('Left', 'w'), 'Shot, aimed where you point'], [K('Right', 'w'), 'Burst, around you'], ['', 'Hold any of them to keep casting']]],
     ['rune', 'Recipe', [[elementOrder.map(EK).join(''), 'Add Fire, Water, Earth or Lightning'], [K('C'), 'Take off the last element'], [K('X'), 'Clear the recipe'], ['', 'After a cast, the next element starts a new recipe']]],
     ['keys', 'Menus', [[K('Tab', 'w'), 'Map'], [K('H'), 'Spell book'], [K('M') + K('N'), 'All sound · music, on or off'], [K('F'), 'Full screen'], [K('Esc', 'w'), 'Pause']]],
-    ['golem', 'Touch', [['Left thumb', 'A stick appears where you touch: run, and push into dirt to dig'], ['Shot', 'Hold to cast. The golem aims at the nearest creature; drag from the button to aim yourself'], ['Jump · Move · Burst', 'The three buttons round Shot. Hold Jump in the air to Lift'],
+    ['golem', 'Touch', [['Left thumb', 'A stick appears where you touch: run, and push into dirt to dig. Push it up or down as well to slope the tunnel'], ['Shot', 'Hold to cast. The golem aims at the nearest creature; drag from the button to aim yourself'], ['Jump · Move · Burst', 'The three buttons round Shot. Hold Jump in the air to Lift'],
       ['Elements', 'The four buttons above; the arrow takes off the last one'], ['', 'Tap the Lodestone notice to rest; the map and the round buttons at the top open the menus']]],
-    ['move', 'Controller: play', [[K('L stick', 'w') + K('R stick', 'w'), 'Run (push into dirt to dig) · aim'], [K('LT') + K('RT'), 'Jump and Lift · Shot'], [K('LB') + K('RB'), 'Move (dash) · Burst'],
+    ['move', 'Controller: play', [[K('L stick', 'w') + K('R stick', 'w'), 'Run (push into dirt to dig; the tunnel slopes with your aim) · aim'], [K('LT') + K('RT'), 'Jump and Lift · Shot'], [K('LB') + K('RB'), 'Move (dash) · Burst'],
       [`<kbd style="--c:${elements.fire.css}">B</kbd><kbd style="--c:${elements.water.css}">X</kbd><kbd style="--c:${elements.earth.css}">A</kbd><kbd style="--c:${elements.lightning.css}">Y</kbd>`, 'Fire, Water, Earth, Lightning']]],
     ['keys', 'Controller: the rest', [[K('D-pad', 'w'), 'Up rest · down take off the last element · left map · right spell book'], [K('View', 'w') + K('Menu', 'w'), 'Clear the recipe · pause'],
       [K('D-pad', 'w') + K('A') + K('B'), 'In a menu: move, press, go back'], [K('LB') + K('RB'), 'In a menu: change tab']]],

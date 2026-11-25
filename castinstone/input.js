@@ -49,8 +49,8 @@ const KInput = (() => {
   let padBlocked = new Set();    // buttons that were down when the controller lost control: ignored until let go
   let navHeld = null, navAt = 0; // menu direction being held, and when it next repeats
   // what the on-screen controls are holding; aim is null while the golem aims by itself
-  const touch = { move: 0, moveY: 0, jump: false, cast: false, burst: false, moveSpell: false, aim: null, dist: 90 };
-  const touchDrop = () => { Object.assign(touch, { move: 0, moveY: 0, jump: false, cast: false, burst: false, moveSpell: false, aim: null }); hooks.onTouchDrop && hooks.onTouchDrop(); };
+  const touch = { move: 0, moveY: 0, tilt: 0, jump: false, cast: false, burst: false, moveSpell: false, aim: null, dist: 90 };
+  const touchDrop = () => { Object.assign(touch, { move: 0, moveY: 0, tilt: 0, jump: false, cast: false, burst: false, moveSpell: false, aim: null }); hooks.onTouchDrop && hooks.onTouchDrop(); };
 
   function setDevice(d) {
     if (d === device) return;
@@ -185,7 +185,7 @@ const KInput = (() => {
     const out = { move: 0, moveY: 0, jump: false, cast: false, burst: false, moveSpell: false, aim, aimDist, events };
     events = [];
     if (device === 'touch') {
-      out.move = touch.move; out.moveY = touch.moveY; out.jump = touch.jump; out.cast = touch.cast; out.burst = touch.burst; out.moveSpell = touch.moveSpell;
+      out.move = touch.move; out.moveY = touch.moveY; out.tilt = touch.tilt; out.jump = touch.jump; out.cast = touch.cast; out.burst = touch.burst; out.moveSpell = touch.moveSpell;
       const auto = touch.aim === null && hooks.autoAim ? hooks.autoAim() : null;
       if (touch.aim !== null) { aim = touch.aim; aimDist = touch.dist; }
       else if (auto) { aim = auto.aim; aimDist = auto.dist; }

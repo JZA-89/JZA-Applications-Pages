@@ -496,6 +496,10 @@ Two players, online, in the host's cave. Each keeps their own golem: a guest's l
 
 **Home screen:** `icon-180.png` (the Brute golem, also the page's tab icon), `manifest.webmanifest` and the `apple-mobile-web-app-*` tags in `index.html` give the game its icon, the name "Cast in Stone" and a full screen when added to a phone's home screen. On iPhone a home-screen web app keeps its own saves, separate from Safari's.
 
+## Digging on a slope (v0.46, `game.digSlope`, `game.clawDig`)
+
+Jaisah: dig towards the mouse, up or down on an angle; on touch the left stick sets it. Walking into dirt still digs; the tunnel now slopes the way you point. `slope` is cells down per cell forward (negative is up): from the aim with a mouse or right stick, or from how far the run stick is pushed up or down on touch (`tilt` in the action, sent in co-op). Down goes to 45°. Up is limited to `dig.maxUp` 0.35 (about 18°): steeper than that the golem cannot climb the steps it leaves, and it made slower progress in tests. Holding jump still tips the tunnel up. Because the golem is nine cells wide, each stroke also clears over its head (up) or under its feet (down) across its width (`dig.lean`). Measured over 8 s of digging: level 110 across; up 89 across and 29 up; down at 45° aim 111 across and 69 down.
+
 ## The goal (v0.45)
 
 Jaisah: it needs to be a proper game with purpose. The cave now has an aim, an ending and a reason to go on.

@@ -1060,7 +1060,7 @@ const KGame = (() => {
 
     // ---------- player control ----------
     control(p, a) {
-      p.away = !!a.away;   // in a menu during co-op: nothing can hurt this golem
+      p.away = !!a.away; p.tilt = Number.isFinite(a.tilt) ? Math.max(-1, Math.min(1, a.tilt)) : null;   // in a menu during co-op: nothing can hurt this golem
       p.flash = Math.max(0, p.flash - DT);
       p.slotFlash = Math.max(0, p.slotFlash - DT);
       p.manaFlash = Math.max(0, p.manaFlash - DT);
@@ -2735,15 +2735,29 @@ const KGame = (() => {
     // One stroke of digging: clears dirt, lichen and loose earth just ahead of the golem, as tall
     // as its body plus a little. Holding jump as well digs a step higher each stroke, which makes
     // a ramp upwards. Crystal breaks into shards. Only rock stops it. Returns whether anything was dug.
+    // The tunnel slopes the way you point: `slope` is cells down (or, negative, up) per cell forward,
+    // from level to 45 degrees. With the mouse or right stick it comes from the aim; on touch from how
+    // far the run stick is pushed up or down (a.tilt). Holding jump still tips it upward. Upward it
+    // leaves a stair of one-cell steps, which is as steep as the golem can walk.
+    digSlope(a, dir) {
+      let s = 0;
+      if (a.tilt != null) s = a.tilt;
+      else { const c = Math.cos(a.aim) * dir, v = Math.sin(a.aim); s = c > 0.2 ? v / c : Math.abs(v) > 0.7 ? Math.sign(v) : 0; }
+      if (a.jumpHeld) s = Math.min(s, -0.5);
+      return Math.max(-PD.dig.maxUp, Math.min(1, s));   // it can walk down any ramp it digs, but can only climb a gentle one
+    }
     clawDig(a, dir) {
-      const w = this.world, D = PD.dig, up = a.jumpHeld ? D.rise : 0;
-      const top = Math.floor(a.y - a.h) - D.room - up, bottom = Math.floor(a.y - 0.001) - up;
-      let dug = 0, x0 = 1e9, x1 = -1e9;
+      const w = this.world, D = PD.dig, slope = this.digSlope(a, dir);
+      const top0 = Math.floor(a.y - a.h) - D.room, bottom0 = Math.floor(a.y - 0.001);
+      let dug = 0, x0 = 1e9, x1 = -1e9, top = top0, bottom = bottom0;
       for (let k = 0; k < D.depth; k++) {
         const cx = dir > 0 ? Math.floor(a.x + a.w / 2) + k : Math.floor(a.x - a.w / 2 - 0.001) - k;
         if (cx < 10 || cx > w.w - 10) break;
         let rock = false;
-        for (let cy = top; cy <= bottom; cy++) {
+        // down: the floor ahead goes too; up: the whole opening rises, leaving a step
+        const off = Math.round(slope * (k + 1)), ct = top0 + Math.min(0, off), cb = bottom0 + off;
+        top = Math.min(top, ct); bottom = Math.max(bottom, cb);
+        for (let cy = ct; cy <= cb; cy++) {
           const m = w.get(cx, cy);
           if (m === M.DIRT || m === M.MOSS || m === M.EARTH || m === M.CRYSTAL) {
             if (m === M.CRYSTAL) w.broken.push(cx, cy);   // crystal breaks into shards, as it does for a digging spell
@@ -2752,6 +2766,18 @@ const KGame = (() => {
           } else if (SOLID[m]) rock = true;
         }
         if (rock) break;   // something it cannot dig is in the way: no further this stroke
+      }
+      // The golem is wider than one cell, so a sloping tunnel also needs room over its head (going up)
+      // or the ground taken from under it (going down), across its own width.
+      const lean = Math.round(slope * D.depth * D.lean);
+      if (lean) {
+        const bx0 = Math.floor(a.x - a.w / 2), bx1 = Math.floor(a.x + a.w / 2);
+        const r0 = lean < 0 ? top0 + lean : bottom0 + 1, r1 = lean < 0 ? top0 - 1 : bottom0 + lean;
+        for (let cx = bx0; cx <= bx1; cx++) for (let cy = r0; cy <= r1; cy++) {
+          const m = w.get(cx, cy);
+          if (m === M.DIRT || m === M.MOSS || m === M.EARTH || m === M.CRYSTAL) { if (m === M.CRYSTAL) w.broken.push(cx, cy); w.set(cx, cy, M.EMPTY); dug++; x0 = Math.min(x0, cx); x1 = Math.max(x1, cx); }
+        }
+        top = Math.min(top, r0); bottom = Math.max(bottom, r1);
       }
       if (!dug) return false;
       w.cleanup(x0 - 6, top - 6, x1 + 6, bottom + 6);

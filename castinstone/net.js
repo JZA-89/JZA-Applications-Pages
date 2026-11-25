@@ -29,7 +29,7 @@ const KNet = (() => {
   const ICE = { iceServers: [{ urls: 'stun:stun.cloudflare.com:3478' }, { urls: 'stun:stun.l.google.com:19302' }] };
   const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';   // no I or O: they read as 1 and 0
   const SUM_EVERY = 120, PART = 12000;
-  const EMPTY = [0, 0, 0, 0, 90, null];
+  const EMPTY = [0, 0, 0, 0, 90, null, null];
 
   let H = {};                 // hooks from main.js
   let pc = null, dc = null, role = null, state = 'off', code = '', session = 0;
@@ -266,7 +266,7 @@ const KNet = (() => {
     if (state !== 'on') return false;
     if (frame >= delay && !theirs.has(frame)) return false;
     const a = sample(), ev = (a.events || []).filter(okEvent);
-    const packed = [a.move || 0, a.moveY || 0, (a.jump ? 1 : 0) | (a.cast ? 2 : 0) | (a.burst ? 4 : 0) | (a.moveSpell ? 8 : 0) | (a.away ? 16 : 0), a.aim || 0, a.aimDist || 0, ev.length ? ev : null];
+    const packed = [a.move || 0, a.moveY || 0, (a.jump ? 1 : 0) | (a.cast ? 2 : 0) | (a.burst ? 4 : 0) | (a.moveSpell ? 8 : 0) | (a.away ? 16 : 0), a.aim || 0, a.aimDist || 0, ev.length ? ev : null, Number.isFinite(a.tilt) ? a.tilt : null];
     mine.set(frame + delay, packed);
     send({ t: 'i', e: epoch, f: frame + delay, a: packed });
     const acts = [];
@@ -281,7 +281,7 @@ const KNet = (() => {
   const num = (v, lo, hi) => Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : 0;
   function unpack(a) {
     const b = a[2] | 0;
-    return { move: num(a[0], -1, 1), moveY: num(a[1], -1, 1), jump: !!(b & 1), cast: !!(b & 2), burst: !!(b & 4), moveSpell: !!(b & 8), away: !!(b & 16), aim: num(a[3], -7, 7), aimDist: num(a[4], 0, 400), events: Array.isArray(a[5]) ? a[5].filter(okEvent).slice(0, 12) : [] };
+    return { move: num(a[0], -1, 1), moveY: num(a[1], -1, 1), jump: !!(b & 1), cast: !!(b & 2), burst: !!(b & 4), moveSpell: !!(b & 8), away: !!(b & 16), aim: num(a[3], -7, 7), aimDist: num(a[4], 0, 400), events: Array.isArray(a[5]) ? a[5].filter(okEvent).slice(0, 12) : [], tilt: Number.isFinite(a[6]) ? num(a[6], -1, 1) : undefined };
   }
 
   return {

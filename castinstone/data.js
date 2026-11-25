@@ -285,7 +285,7 @@ const KData = (() => {
     w: 9, h: 15,
     // clawing through dirt by walking into it: starts after `wait` s of pushing, then a stroke every
     // `every` s that clears `depth` cells ahead, the body's height plus `room` (measured: about 12 cells a second; running is 72)
-    dig: { wait: 0.3, every: 0.1, depth: 4, room: 2, rise: 2 }, hp: 100, run: 72, accel: 900, airAccel: 520, friction: 14,
+    dig: { wait: 0.3, every: 0.1, depth: 4, room: 2, lean: 0.5, maxUp: 0.35 }, hp: 100, run: 72, accel: 900, airAccel: 520, friction: 14,
     jump: 168, gravity: 480, maxFall: 330, coyote: 0.1, buffer: 0.12,
     regenDelay: 3, regen: 12, respawn: 1.4,
     // mana: refills on its own, faster on the ground. Spending pauses the refill
