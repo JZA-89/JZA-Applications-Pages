@@ -8,7 +8,7 @@
 
 (() => {
   const { elements, elementOrder, spells, spellKey, view: V, step: STEP } = KData;
-  const VERSION = 'v0.18';
+  const VERSION = 'v0.19';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -146,14 +146,14 @@
     onReset: resetMap,
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) { save(); if (mode === 'play') setMode('pause'); } });
-  // a controller's Menu or A button resumes from a panel
+  // a controller's Menu button resumes from a panel (in play, input.js pauses on it). The
+  // button's real state is tracked all the time, so the press that paused does not also resume.
   let padMenuPrev = false;
   function pollPadMenu() {
-    if (mode === 'play') { padMenuPrev = false; return; }
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
     const p = [...pads].find(x => x && x.connected);
     const down = !!(p && p.buttons[9] && p.buttons[9].pressed);
-    if (down && !padMenuPrev) resume();
+    if (mode !== 'play' && mode !== 'start' && down && !padMenuPrev) resume();
     padMenuPrev = down;
   }
 

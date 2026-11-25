@@ -20,8 +20,9 @@ const KGame = (() => {
     // Build (or rebuild) the cave from the seed. keepPlayers keeps the golems'
     // progress (levels, stats, runestones) and puts them at their checkpoint.
     reset(keepPlayers) {
-      const kept = keepPlayers ? this.players : null;
+      const kept = keepPlayers ? this.players : null, explored = keepPlayers && this.world ? this.world.explored : null;
       this.world = new World(this.seed);
+      if (explored) this.world.explored.set(explored);
       this.rand = makeRng(this.seed + 17);
       this.time = 0;
       this.projectiles = [];
@@ -103,7 +104,9 @@ const KGame = (() => {
       const w = this.world, RU = KData.runes;
       for (const L of this.loot) {
         L.t += DT;
-        L.vy = Math.min(L.vy + 300 * DT, 200);
+        // runestones float on water and magma (so a drop is never lost at the bottom of a lake)
+        const inLiquid = KWorld.STATE[w.get(Math.round(L.x), Math.round(L.y))] === KWorld.ST.liquid;
+        L.vy = inLiquid ? Math.max(L.vy - 600 * DT, -40) : Math.min(L.vy + 300 * DT, 200);
         const nx = L.x + L.vx * DT, ny = L.y + L.vy * DT;
         if (!SOLID[w.get(Math.round(nx), Math.round(ny))]) { L.x = nx; L.y = ny; }
         else { L.vx *= -0.3; L.vy = 0; if (!SOLID[w.get(Math.round(L.x), Math.round(L.y) + 1)]) L.y += 0.5; }
@@ -125,11 +128,10 @@ const KGame = (() => {
     treasureTick() {
       const w = this.world, T = KData.treasure;
       // each broken crystal cell throws out a shard that flies to the nearest player
-      for (let k = 0; k < w.broken.length; k += 2) {
-        if (this.bits.length > 400) break;
-        this.bits.push({ x: w.broken[k] + 0.5, y: w.broken[k + 1] + 0.5, vx: (this.rand() - 0.5) * 120, vy: -40 - this.rand() * 80, t: 0 });
-      }
-      w.broken.length = 0;
+      // (at most 400 in flight; the rest wait their turn instead of being lost)
+      let k = 0;
+      for (; k < w.broken.length && this.bits.length < 400; k += 2) this.bits.push({ x: w.broken[k] + 0.5, y: w.broken[k + 1] + 0.5, vx: (this.rand() - 0.5) * 120, vy: -40 - this.rand() * 80, t: 0 });
+      w.broken.splice(0, k);
       for (const b of this.bits) {
         b.t += DT;
         let tgt = null, best = 160;
@@ -245,12 +247,22 @@ const KGame = (() => {
       const B = KData.bosses[b.type], L = this.world.lair, w = this.world;
       b.flash = Math.max(0, b.flash - DT); b.t += DT; b.touchT = Math.max(0, b.touchT - DT);
       if (b.wetT > 0) b.wetT -= DT;
+      if (b.slowT > 0) b.slowT -= DT;
+      if (b.burnT > 0) b.burnT -= DT;
       const inLair = q => ((q.x - L.x) / (L.rx * 1.15)) ** 2 + ((q.y - L.y) / (L.ry * 1.5)) ** 2 < 1;
       let p = null, best = 1e9;
       for (const q of this.players) if (!q.dead && inLair(q)) { const d = Math.hypot(q.x - b.x, q.y - b.y); if (d < best) { best = d; p = q; } }
       if (!p) {
         b.awayT += DT;
-        if (b.engaged && b.awayT > B.reset) { b.engaged = false; b.hp = b.maxHp; b.state = 'swim'; b.stranded = false; }
+        if (b.engaged && b.awayT > B.reset) {
+          // calm again: heals, and returns to the deepest magma in its lair
+          b.engaged = false; b.hp = b.maxHp; b.state = 'swim'; b.stranded = false;
+          if (w.get(Math.round(b.x), Math.round(b.y - 6)) !== M.MAGMA) {
+            let best = null;
+            for (let x = Math.floor(L.x - L.rx); x <= L.x + L.rx && !best; x += 3) for (let y = Math.floor(L.y + L.ry * 1.6); y > L.surface; y -= 2) if (w.get(x, y) === M.MAGMA && w.get(x, y - 6) === M.MAGMA) { best = { x, y }; break; }
+            if (best) { b.x = best.x; b.y = best.y + 6; b.trail.forEach(s => { s.x = best.x; s.y = best.y; }); }
+          }
+        }
       } else {
         b.awayT = 0;
         if (!b.engaged) { b.engaged = true; this.events.push({ type: 'toast', kind: 'big', text: `${B.name} stirs in the magma` }); this.sfx('stirs', b.x, b.y, 1.4); }
@@ -402,6 +414,8 @@ const KGame = (() => {
           break;
         }
       }
+      // never below the bottom of its lair
+      b.y = Math.min(b.y, L.y + L.ry * 1.9);
       // the body follows the head
       const h0 = b.trail[0];
       if (Math.hypot(b.x - h0.x, b.y - 6 - h0.y) > 1.5) { b.trail.unshift({ x: b.x, y: b.y - 6 }); b.trail.length = 80; }
@@ -420,7 +434,11 @@ const KGame = (() => {
       p.shards = (p.shards || 0) + B.shardsMul * b.level;
       const first = this.hasRune(p, 'crucible') ? this.makeRune(b.level + 1, { tier: 3 }) : this.makeRune(b.level + 1, { type: 'crucible', tier: 3 });
       const second = this.makeRune(b.level + 1, { tier: 2 + (this.rand() < 0.4 ? 1 : 0) });
-      this.dropRune(b.x - 6, b.y - 10, first); this.dropRune(b.x + 6, b.y - 10, second);
+      // straight into the bag (it usually dies under the magma); dropped beside you only if the bag is full
+      for (const r of [first, second]) {
+        if (p.inventory.length < RU.bag) { p.inventory.push(r); this.events.push({ type: 'toast', kind: 'loot', text: `Found: ${RU.types[r.type].name} · ${RU.tiers[r.tier].name} · level ${r.level}` }); }
+        else this.dropRune(p.x, p.y - 10, r);
+      }
       for (const s of b.trail.filter((_, i) => i % 6 === 0)) this.burst(s.x, s.y, 8, [[255, 140, 50], [90, 40, 36], [255, 220, 140]], 160);
       this.fx.push({ kind: 'flash', x: b.x, y: b.y - 6, r: 60, t: 0, T: 0.6, color: [255, 160, 70] });
       this.shake = Math.max(this.shake, 4); this.hitStop = 0.25;
@@ -1391,7 +1409,7 @@ const KGame = (() => {
         const n = a.boss ? 2 : 1;
         for (let k = 0; k < n; k++) this.dropRune(a.x, a.y - a.h / 2, this.makeRune(a.level || 1, a.boss ? { tier: Math.min(3, 2 + k) } : a.elite ? { tier: Math.max(1, KData.runes.tierFor(a.level, this.rand())) } : {}));
       }
-      a.respawnT = a.kind === 'player' ? PD.respawn : a.kind === 'crawler' ? KData.enemies.crawler.respawn : DD.respawn;
+      a.respawnT = a.kind === 'player' ? PD.respawn : KData.enemies[a.kind] ? KData.enemies[a.kind].respawn : DD.respawn;
       const col = a.kind === 'player' ? [[240, 228, 206], [198, 178, 160], [44, 28, 36]] : a.kind === 'dummy' ? [[150, 140, 165], [200, 194, 214], [74, 58, 48]] : [[78, 72, 94], [112, 104, 128], [255, 70, 160]];
       if (a.kind === 'crawler' || a.kind === 'warden' || a.kind === 'delver') {
         // it crumbles into loose earth
@@ -1457,6 +1475,7 @@ const KGame = (() => {
           break;
         }
         case 'windup':
+          if (!p) { set('recover'); break; }
           e.vx *= Math.exp(-6 * DT); e.vy *= Math.exp(-6 * DT);
           if (e.t > E.windup / Math.sqrt(slow)) {
             const dx = p.x - e.x, dy = (p.y - p.h / 2) - e.y, d = Math.hypot(dx, dy) || 1;
@@ -1483,6 +1502,8 @@ const KGame = (() => {
       switch (e.state) {
         case 'idle':
         case 'chase': {
+          // only a delver inside the ground swims through it; above ground it walks until it can dive
+          if (!inDirt && e.t > 0.6) { e.ghost = false; set('out'); break; }   // (0.6 s to sink in after a dive)
           e.ghost = true;
           if (!aware) { e.vx *= 0.9; e.vy *= 0.9; break; }
           // head for a spot just under the ground beside you, on the side it is coming from
@@ -1494,7 +1515,7 @@ const KGame = (() => {
           if (!this.diggableAt(nx, ny - e.h / 2) && d > E.emergeRange) { vx *= 0.2; vy = this.diggableAt(e.x, e.y - e.h / 2 + 4) ? 20 : vy; }
           e.vx = vx; e.vy = vy;
           if (d < 10 && p && Math.abs(p.x - e.x) < E.emergeRange + 10) { set('emerge'); this.sfx('warnDelver', e.x, e.y); }
-          if (!inDirt && e.t > 0.5) { e.ghost = false; set('out'); }
+
           break;
         }
         case 'emerge': {
@@ -1524,7 +1545,7 @@ const KGame = (() => {
           e.ghost = false;
           if (e.grounded && this.diggableAt(e.x, e.y + 3)) { if (e.t > E.surface) { e.ghost = true; e.vy = 40; set('chase'); } }
           else if (e.grounded && p) e.vx = Math.sign(p.x - e.x) * 30 * slow;
-          if (e.t > 6) { e.ghost = true; set('chase'); }
+          if (e.t > 6 && this.diggableAt(e.x, e.y + 3)) { e.ghost = true; e.vy = 40; set('chase'); }
           break;
         default: set('chase');
       }
@@ -1732,7 +1753,7 @@ const KGame = (() => {
         for (let cx = x0; cx !== x0 + e.dir * 3; cx += e.dir)
           for (let cy = Math.floor(e.y - e.h); cy < e.y; cy++) {
             const m = w.get(cx, cy);
-            if (KWorld.SOLID[m] && !w.isHard(m) && this.rand() < 0.35) { w.set(cx, cy, M.EMPTY); chewed++; }
+            if (KWorld.SOLID[m] && !w.isHard(m) && this.rand() < 0.35) { if (m === M.CRYSTAL) w.broken.push(cx, cy); w.set(cx, cy, M.EMPTY); chewed++; }
           }
         if (chewed) w.cleanup(x0 - 4, e.y - e.h - 4, x0 + 4, e.y + 2);
         if (chewed && this.rand() < 0.5) this.burst(x0, e.y - 4, 2, [[132, 84, 100], [184, 140, 128]], 50);
@@ -1764,10 +1785,12 @@ const KGame = (() => {
 
     dummyTick(d) {
       d.flash = Math.max(0, d.flash - DT);
+      if (d.wetT > 0) d.wetT -= DT;
+      if (d.slowT > 0) d.slowT -= DT;
       if (d.dead) {
         d.respawnT -= DT;
         if (d.respawnT <= 0) {
-          Object.assign(d, { x: d.home.x, y: this.world.floorBelow(d.home.x, d.home.y - 10), vx: 0, vy: 0, hp: d.maxHp, dead: false, lastHurt: -9 });
+          Object.assign(d, { x: d.home.x, y: this.world.floorBelow(d.home.x, d.home.y - 10), vx: 0, vy: 0, hp: d.maxHp, dead: false, lastHurt: -9, wetT: 0, slowT: 0, burnT: 0 });
         }
         return;
       }

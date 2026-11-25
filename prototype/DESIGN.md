@@ -215,7 +215,7 @@ The golem has four slots: **head, core, arms, legs**. A runestone adds stats (co
 | Swift legs | legs | Speed 1.5 | Blink, Arc dash and Blast dash cost half |
 | Diver legs | legs | Water 1 | no water drag, swim up fast (160), mud never slows you |
 
-Speed is +5% run speed a point. **Drops:** 14% of kills, every elite, two Epic or better from bosses; grade odds rise with the level (Epic 3% + 2% a level up to 20%, Rare 18% + 4% a level up to 45%). Stones fall, rest on the ground (a small stone in its grade's colour, glowing, gold dot on the map) and are picked up by touch into a **bag of 24**. At a Lodestone's **Runestones** tab: equip (the worn one goes back to the bag), take off, or **break** a stone into shards ((3 + 2 × level) × 1, 2.5, 6 or 15 by grade), spent at Lodestones (see Treasure).
+Speed is +5% run speed a point. **Drops:** 14% of kills, every elite, two Epic or better from bosses; grade odds rise with the level (Epic 3% + 2% a level up to 20%, Rare 18% + 4% a level up to 45%). Stones fall, rest on the ground (a small stone in its grade's colour, glowing, gold dot on the map), float up through water and magma (so none is lost at the bottom of a lake), are saved while they lie there, and are picked up by touch into a **bag of 24**. At a Lodestone's **Runestones** tab: equip (the worn one goes back to the bag), take off, or **break** a stone into shards ((3 + 2 × level) × 1, 2.5, 6 or 15 by grade), spent at Lodestones (see Treasure).
 
 ### Treasure (`KData.treasure`)
 
@@ -248,7 +248,7 @@ All enemies share: a home chamber, levels (+30% health, +2 attack, +1 defence a 
 | Enemy | Health · attack · defence | Behaviour | Affinity | Where (weights R/D/E, from level) |
 |---|---|---|---|---|
 | **Glowmoth** (13 × 7, flies) | 36 · 9 · 6 | drifts near home; aware, hovers 40 to one side and 28 above you, **glows for 0.55 s**, swoops at 230 for 0.45 s (power 14, one hit), flutters away for 0.9 s. A hit of 10+ during its glow cancels the swoop. | lightning ×1.6, earth ×0.8 | 0.5 / 0.8 / 0.4, from 1; placed in open air |
-| **Delver** (13 × 9) | 70 · 12 · 9 | inside dirt it swims at 48 with no collision (shown faint, throwing crumbs) towards a spot under the ground 26 to your side; feels you within 150 without sight; **bursts out** (digs a hole), winds up 0.4 s, leaps at you (power 22); then dives back into the nearest dirt after 1.6 s on it | water ×1.6, earth ×0.4 | 0.35 / 0.35 / 0.3, from 2 |
+| **Delver** (13 × 9) | 70 · 12 · 9 | starts on a chamber floor and dives into the dirt (above ground it walks, never floats); inside dirt it swims at 48 with no collision (shown faint, throwing crumbs) towards a spot under the ground 26 to your side; feels you within 150 without sight; **bursts out** (digs a hole), winds up 0.4 s, leaps at you (power 22); then dives back into the nearest dirt after 1.6 s on it | water ×1.6, earth ×0.4 | 0.35 / 0.35 / 0.3, from 2 |
 | **Cinder spitter** (11 × 10) | 55 · 10 · 10 | set into a chamber wall facing in; looks from its mouth (sight 190); every 2.4 s, **its mouth glows for 0.5 s**, then it lobs a magma glob on an arc aimed to land on you (power 14, 10 magma cells). If its wall is dug away it falls and keeps spitting. | fire ×0, water ×1.8, lightning ×1.1 | 0.15 / 0.1 / 0.7, from 1 |
 | **Slate warden** (17 × 16) | 170 · 14 · 18 | walks at 22, jumps low walls; close (30), **raises its shoulders for 0.9 s**, then slams: power 30 (less towards the edge) within 30, knock 260 up; 1.1 s to recover. Only a hit of 40+ during its wind-up cancels the slam. | fire ×0.4, lightning ×0.4, earth ×1.6, water ×1.3 | 0.15 / 0.25 / 0.25, from 3; one per chamber |
 
@@ -279,7 +279,7 @@ The first boss, in the Ember Veins. **Lair:** the biggest Ember chamber more tha
 - **Stranded:** if a leap lands on solid ground with magma close by, it is only stunned (1.1 s); with no magma near (or when the magma around its head has been **cooled into dirt with water**) it is stranded for 4.5 s, takes **double damage**, then wriggles to open lake and drops back in.
 - Affinity: fire ×0, water ×1.6, lightning ×1.2.
 
-**Rewards:** experience (15 × a crawler of its level), shards (40 × level), two runestones dropped where it dies (the Crucible at Legendary if you have none, otherwise a Legendary; plus an Epic or Legendary), and the **Ember core**. Defeated bosses and claimed cores are saved; it does not return.
+**Rewards:** experience (15 × a crawler of its level), shards (40 × level), two runestones straight into the bag (dropped beside you only if the bag is full) (the Crucible at Legendary if you have none, otherwise a Legendary; plus an Epic or Legendary), and the **Ember core**. Defeated bosses and claimed cores are saved; it does not return.
 
 Measured over three seeds (60 s each, a player standing on a ledge, put back if knocked off): it cycles swim / bubble / breach / spit, deals 380–860 damage a minute to a player who never dodges, and strands itself on ledges for short spells. Its magma lake loses no cells over a fight.
 
@@ -390,6 +390,11 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.16 (2026-11-26):** the first boss, the Emberwyrm, in a magma-lake lair: breaches marked by bubbling, spit volleys, enrage with a rising lake, stranding when its lake is cooled; drops the Crucible and the Ember core. Large magma areas glow more softly.
 - **v0.17 (2026-11-26):** sound (all synthesized, with warning sounds for every wind-up), damage numbers, hit-stop.
 - **v0.18 (2026-11-26):** Q W E S load Fire, Water, Lightning, Earth; Space only jumps; Shift is the Move key; F rests; your own Moves and Bursts never hurt you (all Jaisah). The generated cave starts at rest instead of simulating every chunk for its first steps (removed a 60 ms stutter at the start).
+- **v0.19 (2026-11-26):** fixes from an independent code review and the final check: the game froze if you died while a Glowmoth glowed; a controller's Menu button paused and resumed at once; the four newer enemies came back after 2 s instead of 25; the wyrm's runestones (and stones left in the cave) were not saved and sank in magma (now straight into the bag, loose stones saved and floating); wet and muddy never wore off on dummies, nor burning or muddy on the boss; the wyrm could sink out of the world in a fully cooled lair (now kept in its lair, and returned to its magma when it calms); unaware delvers floated in the air; shards could be lost when a lot of crystal broke at once, and crawlers chewing crystal gave none; Reset map wiped the explored map.
+
+## Checks run for v0.19
+
+All with Playwright against the page, scripts in the session scratchpad: all 30 spells cast without errors; three minutes of random play (random elements, every mode, jumps between regions) with no errors, no broken numbers, worst step 6–9 ms; each enemy attacking in a cleared arena; the boss over 60 s on three seeds and its lake over 120 s on four (no loss); save and reload with stats, runestones, caches, loose stones, the defeated boss and cores; phone width (844 × 390) for the start panel, play and every rest tab; a simulated controller (load, run, cast, pause); the new controls with real key presses (Space only jumps, Shift moves, F rests, own Moves and Bursts do no damage); performance in the boss fight (1 ms simulation, 2.4 ms drawing a frame).
 
 ## Open questions to test
 

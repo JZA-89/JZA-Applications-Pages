@@ -23,6 +23,7 @@ const KSave = (() => {
         runes: p.runes || null, inventory: p.inventory || null, shards: p.shards || 0, bought: p.bought || 0,
       },
       extra: game.saveExtra ? game.saveExtra() : null,
+      loot: game.loot.map(L => ({ x: Math.round(L.x), y: Math.round(L.y), rune: L.rune })),
     };
   }
 
@@ -67,6 +68,8 @@ const KSave = (() => {
       if (game.collides(p, p.x, p.y)) game.respawn(p);
     } else game.respawn(p);
     if (game.loadExtra && data.extra) game.loadExtra(data.extra);
+    // runestones lying in the cave
+    if (Array.isArray(data.loot)) for (const L of data.loot.slice(0, 60)) { const r = okRune(L.rune); if (r && Number.isFinite(L.x) && Number.isFinite(L.y)) game.loot.push({ x: L.x, y: L.y, vx: 0, vy: 0, rune: r, t: 1 }); }
     return game;
   }
 
