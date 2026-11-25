@@ -693,9 +693,14 @@ const KGame = (() => {
       }
       for (const e of a.events) {
         // the recipe: type elements onto the end (no slots; mana is the limit)
-        if (e.type === 'load') { if (p.queue.length < KData.recipe.max) p.queue.push(e.el); else p.slotFlash = 0.35; }
-        else if (e.type === 'clear') p.queue = [];
-        else if (e.type === 'undo') p.queue.pop();
+        // Once a recipe has been cast (or tried without the mana), the next
+        // element starts a new recipe, so you are never stuck with a full one.
+        if (e.type === 'load') {
+          if (p.used) { p.queue = [e.el]; p.used = false; }
+          else if (p.queue.length < KData.recipe.max) p.queue.push(e.el);
+          else p.slotFlash = 0.35;
+        } else if (e.type === 'clear') { p.queue = []; p.used = false; }
+        else if (e.type === 'undo') { p.queue.pop(); p.used = false; }
       }
       const RC = KRecipe.resolve(p.queue);
       p.recipe = RC;
@@ -776,6 +781,7 @@ const KGame = (() => {
         if (!held) continue;
         if (!key) { if (pressed && mode !== 'move') p.slotFlash = 0.35; continue; }
         const sp = this.spec(p, mode), cdKey = key + ':' + mode;
+        p.used = true;
         if ((p.cds[cdKey] || 0) > 0) continue;
         if (sp.drain) {
           if (p.mana < sp.min) { if (pressed) { p.manaFlash = 0.35; this.sfx('nomana', p.x, p.y); } continue; }
@@ -1104,6 +1110,7 @@ const KGame = (() => {
       const ok = sp && a.jump && p.liftArmed && !p.dead && !p.inWater && p.dashT <= 0 && !p.slam && !p.channels.move &&
         (!p.grounded || sp.kind === 'lcolumn');
       if (!ok) { p.channels.lift = null; p.liftNoMana = false; return; }
+      p.used = true;
       const R = this.rand, w = this.world, kind = sp.kind;
       const noMana = () => { if (!p.liftNoMana) { p.liftNoMana = true; p.manaFlash = 0.35; this.sfx('nomana', p.x, p.y); } };
       if (sp.drain) {

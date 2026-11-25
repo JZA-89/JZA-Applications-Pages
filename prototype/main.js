@@ -8,7 +8,7 @@
 
 (() => {
   const { elements, elementOrder, spells, spellKey, view: V, step: STEP } = KData;
-  const VERSION = 'v0.21';
+  const VERSION = 'v0.22';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
