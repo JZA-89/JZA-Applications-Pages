@@ -29,6 +29,8 @@ const KGame = (() => {
       this.fx = [];
       this.growths = [];
       this.loot = [];
+      this.sounds = [];   // [name, x, y, volume], played and cleared by main.js
+      this.hitStop = 0;   // a brief freeze on heavy blows (main.js)
       this.shake = 0;
       this.players = kept || [this.makePlayer(0)];
       if (kept) for (const p of kept) this.respawn(p);
@@ -110,7 +112,7 @@ const KGame = (() => {
         for (const p of this.players) {
           if (p.dead || Math.abs(p.x - L.x) > 10 || Math.abs((p.y - p.h / 2) - L.y) > 14) continue;
           if (p.inventory.length >= RU.bag) { if (!L.fullWarned) { this.events.push({ type: 'toast', text: 'Your bag of runestones is full. Break some at a Lodestone.' }); L.fullWarned = true; } continue; }
-          p.inventory.push(L.rune); L.taken = true;
+          p.inventory.push(L.rune); L.taken = true; this.sfx('rune', L.x, L.y);
           const T = RU.types[L.rune.type];
           this.events.push({ type: 'toast', kind: 'loot', text: `Found: ${T.name} · ${RU.tiers[L.rune.tier].name} · level ${L.rune.level}` });
           this.events.push({ type: 'save' });
@@ -136,7 +138,7 @@ const KGame = (() => {
           const dx = tgt.x - b.x, dy = tgt.y - tgt.h / 2 - b.y, d = Math.hypot(dx, dy) || 1, a = 900;
           b.vx += dx / d * a * DT; b.vy += dy / d * a * DT;
           b.vx *= Math.exp(-2 * DT); b.vy *= Math.exp(-2 * DT);
-          if (d < 6) { tgt.shards = (tgt.shards || 0) + 1; b.done = true; this.events.push({ type: 'shard' }); }
+          if (d < 6) { tgt.shards = (tgt.shards || 0) + 1; b.done = true; this.events.push({ type: 'shard' }); if (this.time - (this.shardSndAt || -1) > 0.05) { this.shardSndAt = this.time; this.sfx('shard', b.x, b.y, 0.7); } }
         } else { b.vy += 200 * DT; b.vx *= Math.exp(-3 * DT); }
         b.x += b.vx * DT; b.y += b.vy * DT;
         if (b.t > 6) b.done = true;
@@ -163,6 +165,7 @@ const KGame = (() => {
       if (p.inventory.length < RU.bag) p.inventory.push(rune); else this.dropRune(c.x, c.y - 6, rune);
       this.events.push({ type: 'toast', kind: 'loot', text: `Relic cache opened · ${RU.types[rune.type].name} (${RU.tiers[rune.tier].name}) · ${shards} shards` });
       this.gainXp(p, T.xp(c.level), 'cache');
+      this.sfx('cache', c.x, c.y);
       this.burst(c.x, c.y - 4, 24, [[255, 211, 122], [255, 240, 200]], 120);
       this.fx.push({ kind: 'flash', x: c.x, y: c.y - 4, r: 30, t: 0, T: 0.4, color: [255, 211, 122] });
       this.events.push({ type: 'save' });
@@ -250,7 +253,7 @@ const KGame = (() => {
         if (b.engaged && b.awayT > B.reset) { b.engaged = false; b.hp = b.maxHp; b.state = 'swim'; b.stranded = false; }
       } else {
         b.awayT = 0;
-        if (!b.engaged) { b.engaged = true; this.events.push({ type: 'toast', kind: 'big', text: `${B.name} stirs in the magma` }); }
+        if (!b.engaged) { b.engaged = true; this.events.push({ type: 'toast', kind: 'big', text: `${B.name} stirs in the magma` }); this.sfx('stirs', b.x, b.y, 1.4); }
       }
       const set = s => { b.state = s; b.t = 0; };
       const headIn = () => w.get(Math.round(b.x), Math.round(b.y - 6));
@@ -273,6 +276,7 @@ const KGame = (() => {
           for (let k = 1; k <= B.rise; k++) if (w.get(x, top - k) === M.EMPTY) { w.set(x, top - k, M.MAGMA); w.life[(top - k) * w.w + x] = 255; }
         }
         this.events.push({ type: 'toast', kind: 'big', text: 'The magma lake rises' });
+        this.sfx('bigboom', b.x, b.y, 1.3);
         this.shake = Math.max(this.shake, 3);
       }
       if (!b.engaged || (!p && b.state !== 'breach' && b.state !== 'stranded')) {
@@ -305,7 +309,7 @@ const KGame = (() => {
             };
             if (this.rand() < 0.62) {
               const t = spot([26, -26, 40, -40, 14, -14, 56, -56, 0]);
-              if (t) { b.target = t; set('bubble'); } else set('spit');
+              if (t) { b.target = t; set('bubble'); this.sfx('bubble', t.x, t.y, 1.2); } else set('spit');
             } else {
               // spitting lobs over edges, so it only needs some distance from you
               b.target = null;
@@ -328,6 +332,7 @@ const KGame = (() => {
             b.hitDone = false;
             this.burst(b.x, b.y - 6, 26, [[255, 196, 96], [255, 120, 40]], 160);
             this.shake = Math.max(this.shake, 2);
+            this.sfx('roar', b.x, b.y, 1.3);
             set('breach');
           }
           break;
@@ -390,6 +395,7 @@ const KGame = (() => {
             const disc = v ** 4 - g * (g * dx * dx + 2 * dy * v * v);
             // a high lob that comes down on you over ledges
             const an = disc >= 0 ? Math.atan2(v * v + Math.sqrt(disc), g * Math.abs(dx)) : Math.PI / 3;
+            this.sfx('magma', mx, my, 0.9);
             this.projectiles.push({ kind: 'blob', sp: { power: B.globPower, count: B.glob, mat: 'MAGMA' }, key: 'earth+fire', owner: b, x: mx, y: my, vx: Math.cos(an) * v * Math.sign(dx || 1), vy: -Math.sin(an) * v, g, age: 0 });
           }
           if (b.spat >= n && b.t > 0.6 + n * 0.3 + 0.4) { b.spat = 0; set('swim'); }
@@ -403,7 +409,7 @@ const KGame = (() => {
       if (b.engaged && !b.touchT) for (const q of this.players) {
         if (q.dead) continue;
         const n = this.bossNearest(b, q.x, q.y - q.h / 2);
-        if (n.d < b.segR + 6) { this.hurt(q, B.contact, Math.sign(q.x - n.x || 1) * B.knock, -B.knock * 0.6, 'wyrm', b, null); b.touchT = B.touchCd; }
+        if (n.d < b.segR + 6) { this.hurt(q, B.contact, Math.sign(q.x - n.x || 1) * B.knock, -B.knock * 0.6, 'wyrm', b, null); b.touchT = B.touchCd; this.hitStop = Math.max(this.hitStop, 0.08); }
       }
     }
     bossDefeated(b) {
@@ -417,7 +423,8 @@ const KGame = (() => {
       this.dropRune(b.x - 6, b.y - 10, first); this.dropRune(b.x + 6, b.y - 10, second);
       for (const s of b.trail.filter((_, i) => i % 6 === 0)) this.burst(s.x, s.y, 8, [[255, 140, 50], [90, 40, 36], [255, 220, 140]], 160);
       this.fx.push({ kind: 'flash', x: b.x, y: b.y - 6, r: 60, t: 0, T: 0.6, color: [255, 160, 70] });
-      this.shake = Math.max(this.shake, 4);
+      this.shake = Math.max(this.shake, 4); this.hitStop = 0.25;
+      this.sfx('bigboom', b.x, b.y, 1.5); this.sfx('level', b.x, b.y);
       this.events.push({ type: 'toast', kind: 'big', text: `${B.name} falls · ${B.core} claimed · ${B.shardsMul * b.level} shards` });
       this.events.push({ type: 'save' });
     }
@@ -437,6 +444,7 @@ const KGame = (() => {
       this.applyStats(p);
     }
     has(a, trait) { return !!(a && a.traits && a.traits.has(trait)); }
+    sfx(name, x, y, vol = 1) { if (this.sounds.length < 40) this.sounds.push([name, x, y, vol]); }
 
     spendPoint(p, id) {
       if (p.points <= 0 || !KData.progression.stats.some(s => s.id === id)) return false;
@@ -452,6 +460,7 @@ const KGame = (() => {
         p.xp -= P.xpFor(p.level); p.level++; p.points += P.pointsPerLevel;
         p.hp = p.maxHp; p.mana = p.maxMana;
         this.events.push({ type: 'level', level: p.level, points: p.points });
+        this.sfx('level', p.x, p.y);
       }
     }
 
@@ -472,6 +481,7 @@ const KGame = (() => {
         if (!this.found.has(l.id)) {
           this.found.add(l.id);
           this.events.push({ type: 'found', stone: l });
+          this.sfx('stone', l.x, l.y);
           this.gainXp(p, KData.progression.lodestoneXp, 'Lodestone found');
         }
         if (this.checkpoint !== l.id) { this.checkpoint = l.id; this.events.push({ type: 'checkpoint', stone: l }); }
@@ -620,7 +630,7 @@ const KGame = (() => {
         const sp = spells[key][mode], cdKey = key + ':' + mode;
         if ((p.cds[cdKey] || 0) > 0) continue;
         if (sp.drain) {
-          if (p.mana < sp.min) { if (pressed) p.manaFlash = 0.35; continue; }
+          if (p.mana < sp.min) { if (pressed) { p.manaFlash = 0.35; this.sfx('nomana', p.x, p.y); } continue; }
           p.channels[mode] = key;
           this.alert(p, p.x, p.y, KData.enemies.crawler.hearing);
           this.channelTick(p, mode);
@@ -630,7 +640,7 @@ const KGame = (() => {
         if (mode !== 'move' && p.lock > 0) continue;
         let cost = sp.cost;
         if (this.has(p, 'swift') && (sp.kind === 'blink' || sp.kind === 'dash' || sp.kind === 'blastdash')) cost *= 0.5;
-        if (p.mana < cost) { if (pressed) p.manaFlash = 0.35; continue; }
+        if (p.mana < cost) { if (pressed) { p.manaFlash = 0.35; this.sfx('nomana', p.x, p.y); } continue; }
         if (mode === 'shot' && this.has(p, 'thrifty') && ++p.shotCount % 4 === 0) cost = 0;
         p.cds[cdKey] = sp.cd;
         if (mode !== 'move') p.lock = 0.12;
@@ -669,6 +679,10 @@ const KGame = (() => {
     }
 
     cast(p, key, mode, sp) {
+      const SND = { projectile: 'fireball', boulder: 'earth', lob: 'magma', spear: 'spear', spray: 'mud', bolt: 'bolt', lance: 'lance', nova: 'nova', wave: 'splash',
+        shell: 'earth', field: 'shock', cloud: 'whoosh', eruption: 'rumble', mire: 'mud', storm: 'bolt', spikes: 'earth', flare: 'nova', rocket: 'explosion',
+        pillar: 'rumble', blink: 'blink', slam: 'whoosh', dash: 'bolt', blastdash: 'nova' };
+      if (SND[sp.kind]) this.sfx(SND[sp.kind], p.x, p.y - 8, mode === 'burst' ? 1 : 0.8);
       const dx = Math.cos(p.aim), dy = Math.sin(p.aim);
       const c = this.chest(p), ox = c.x + dx * 6, oy = c.y + dy * 6;
       const R = this.rand, w = this.world;
@@ -1175,17 +1189,20 @@ const KGame = (() => {
         this.fx.push({ kind: 'ring', x, y, r0: 3, r1: sp.radius + 4, t: 0, T: 0.25, color: [255, 190, 90] });
         this.fx.push({ kind: 'flash', x, y, r: 34, t: 0, T: 0.18, color: [255, 160, 70] });
         this.burst(x, y, 26, [[184, 140, 128], [132, 84, 100], [255, 170, 70]], 150);
+        this.sfx('explosion', x, y, pr.mini ? 0.5 : 1);
         this.shake = Math.max(this.shake, 3);
       } else if (pr.kind === 'blob') {
         if (hit) this.hurt(hit, sp.power, pr.vx * 0.3, -40, 'magma', pr.owner, pr.key);
         this.fillBlob(Math.floor(px), Math.floor(py), M[sp.mat], sp.count);
         this.burst(px, py, 8, [[255, 168, 64], [255, 120, 40]], 70);
+        this.sfx('magma', px, py, 0.7);
       } else if (pr.kind === 'boulder') {
         const s = Math.hypot(pr.vx, pr.vy) || 1;
         if (hit) this.hurt(hit, sp.power, pr.vx / s * sp.knock, pr.vy / s * sp.knock - 60, 'boulder', pr.owner, pr.key);
         else this.hitRadius(pr.x, pr.y, 8, sp.power * 0.5, sp.knock * 0.5, null, pr.owner, pr.key);
         w.explode(pr.x, pr.y, sp.dig);
         this.fillBlob(Math.floor(px), Math.floor(py), M.EARTH, sp.rubble);
+        this.sfx('earth', px, py);
         this.burst(px, py, 14, [[184, 140, 128], [150, 143, 138], [96, 90, 94]], 100);
         this.shake = Math.max(this.shake, 2);
       }
@@ -1324,6 +1341,7 @@ const KGame = (() => {
       if (this.has(a, 'anchor')) { kx = (kx || 0) * 0.25; ky = (ky || 0) * 0.25; }
       if (kind !== 'burn' && spell && spell.includes('fire') && this.has(src, 'burn') && a !== src) { a.burnT = 3; a.burnBy = src; }
       amount = this.damage(src || null, a, amount, spell);
+      this.showDamage(a, amount, kind, src);
       if (spell && spell.includes('water')) { if (a.burnT > 0) { a.burnT = 0; this.burst(a.x, a.y - a.h / 2, 6, [[204, 206, 230]], 50); } a.wetT = KData.statuses.wet.time; }
       a.hp -= amount; a.lastHurt = this.time;
       a.vx += kx || 0; a.vy += ky || 0;
@@ -1339,8 +1357,26 @@ const KGame = (() => {
       if (a.hp <= 0) this.kill(a);
     }
 
+    // Damage numbers, hit sounds and the hit-stop. Damage over time adds up
+    // and shows every 4 points or so.
+    showDamage(a, amount, kind, src) {
+      if (amount <= 0) return;
+      const dot = kind === 'fire' || kind === 'magma' || kind === 'shock' || kind === 'burn' || kind === 'scald' || kind === 'drill';
+      let show = amount;
+      if (dot) { a.dotAcc = (a.dotAcc || 0) + amount; if (a.dotAcc < 4) return; show = a.dotAcc; a.dotAcc = 0; }
+      const color = a.kind === 'player' ? [255, 110, 100] : a.elite || a.kind === 'boss' ? [255, 211, 122] : [240, 236, 228];
+      const n = this.bossNearest && a.kind === 'boss' ? this.bossNearest(a, a.x, a.y) : { x: a.x, y: a.y - a.h };
+      this.fx.push({ kind: 'num', x: n.x + (this.rand() - 0.5) * 6, y: (a.kind === 'boss' ? n.y - 8 : a.y - a.h - 2), val: Math.max(1, Math.round(show)), t: 0, T: 0.8, color });
+      if (dot) return;
+      const now = this.time;
+      if (now - (a.sndAt || -1) > 0.06) { a.sndAt = now; this.sfx(a.kind === 'player' ? 'hurt' : 'hit', a.x, a.y - a.h / 2, Math.min(1, 0.4 + amount / 40)); }
+      if (a.kind === 'player' && amount >= 15) this.hitStop = Math.max(this.hitStop, 0.06);
+      else if (src && src.kind === 'player' && amount >= 30) this.hitStop = Math.max(this.hitStop, 0.045);
+    }
+
     kill(a) {
       if (a.kind === 'boss') return this.bossDefeated(a);
+      this.sfx('crumble', a.x, a.y - a.h / 2, a.kind === 'player' ? 1.2 : 0.8);
       a.dead = true; a.hp = 0;
       // experience to whoever hit it last (hazards a player caused count for 8 s)
       if (a.kind !== 'player' && a.kind !== 'dummy' && a.lastHitBy && this.time - a.lastHitAt < 8 && !a.lastHitBy.dead)
@@ -1412,7 +1448,7 @@ const KGame = (() => {
           if (!aware) { set('idle'); break; }
           const side = e.x < p.x ? -1 : 1, tx = p.x + side * 40, ty = p.y - p.h - 28;
           steer(tx, ty, E.fly * slow, 3);
-          if (see && Math.hypot(e.x - tx, e.y - ty) < 16 && e.t > 0.6) set('windup');
+          if (see && Math.hypot(e.x - tx, e.y - ty) < 16 && e.t > 0.6) { set('windup'); this.sfx('warnMoth', e.x, e.y); }
           break;
         }
         case 'windup':
@@ -1452,7 +1488,7 @@ const KGame = (() => {
           const nx = e.x + vx * DT * 4, ny = e.y + vy * DT * 4;
           if (!this.diggableAt(nx, ny - e.h / 2) && d > E.emergeRange) { vx *= 0.2; vy = this.diggableAt(e.x, e.y - e.h / 2 + 4) ? 20 : vy; }
           e.vx = vx; e.vy = vy;
-          if (d < 10 && p && Math.abs(p.x - e.x) < E.emergeRange + 10) set('emerge');
+          if (d < 10 && p && Math.abs(p.x - e.x) < E.emergeRange + 10) { set('emerge'); this.sfx('warnDelver', e.x, e.y); }
           if (!inDirt && e.t > 0.5) { e.ghost = false; set('out'); }
           break;
         }
@@ -1504,7 +1540,9 @@ const KGame = (() => {
       }
       if (p) e.face = Math.sign(p.x - e.x) || e.face;
       e.fireT -= DT * slow;
+      const wasCharging = e.charging;
       e.charging = e.fireT < 0.5;
+      if (e.charging && !wasCharging && see) this.sfx('warnSpitter', e.x, e.y);
       if (e.fireT <= 0) {
         e.fireT = E.every;
         if (!p || !see || Math.hypot(p.x - e.x, p.y - e.y) > E.range) return;
@@ -1518,6 +1556,7 @@ const KGame = (() => {
         const vx = Math.cos(an) * v * Math.sign(dx || 1), vy = -Math.sin(an) * v;
         const sp = { power: E.power, count: E.glob, mat: 'MAGMA' };
         this.projectiles.push({ kind: 'blob', sp, key: 'earth+fire', owner: e, x: mx, y: my, vx, vy, g, age: 0 });
+        this.sfx('magma', mx, my, 0.6);
         this.burst(mx, my, 6, [[255, 168, 64], [255, 120, 40]], 60);
       }
     }
@@ -1539,7 +1578,7 @@ const KGame = (() => {
             const fx = Math.round(e.x + e.dir * (e.w / 2 + 1));
             if (SOLID[w.get(fx, Math.round(e.y - 3))] && SOLID[w.get(fx, Math.round(e.y - 6))] && this.time - (e.jumpedAt || -9) > 0.6) { e.vy = -150; e.jumpedAt = this.time; }
           }
-          if (p && e.grounded && Math.abs(p.x - e.x) < E.slamRange && Math.abs(p.y - e.y) < 24) set('windup');
+          if (p && e.grounded && Math.abs(p.x - e.x) < E.slamRange && Math.abs(p.y - e.y) < 24) { set('windup'); this.sfx('warnWarden', e.x, e.y); }
           break;
         case 'windup':
           e.vx *= Math.exp(-10 * DT);
@@ -1551,6 +1590,7 @@ const KGame = (() => {
               if (d < E.radius) this.hurt(a, E.power * (1 - d / E.radius * 0.5), Math.sign(a.x - e.x) * E.knock * 0.6, -E.knock, 'slam', e, 'earth+earth');
             }
             w.explode(e.x, e.y + 2, 4);
+            this.sfx('slam', e.x, e.y);
             this.fx.push({ kind: 'ring', x: e.x, y: e.y - 2, r0: 4, r1: E.radius, t: 0, T: 0.3, color: [200, 190, 180] });
             this.burst(e.x, e.y - 2, 20, [[150, 143, 138], [184, 140, 128]], 140);
             this.shake = Math.max(this.shake, 3);
@@ -1636,7 +1676,7 @@ const KGame = (() => {
             e.vx = toward(e.vx, e.dir * E.run * slow, 160 * slow); // steer a little in the air
           }
           this.crawlerStuck(e, false);
-          if (see && e.grounded && Math.abs(dx) < E.lungeRange && Math.abs(dy) < 18) set('windup');
+          if (see && e.grounded && Math.abs(dx) < E.lungeRange && Math.abs(dy) < 18) { set('windup'); this.sfx('warnCrawler', e.x, e.y); }
           break;
         }
         case 'windup':

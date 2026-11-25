@@ -75,6 +75,8 @@ const KRender = (() => {
   // Rock is faceted slate.
   const SLATE0 = [34, 40, 64], SLATE1 = [66, 76, 110], SLATE_EDGE = [22, 24, 40];
 
+  // a 3x5 pixel font for damage numbers (each row is 3 bits)
+  const DIGITS = { 0: [7, 5, 5, 5, 7], 1: [2, 6, 2, 2, 7], 2: [7, 1, 7, 4, 7], 3: [7, 1, 7, 1, 7], 4: [5, 5, 7, 1, 1], 5: [7, 4, 7, 1, 7], 6: [7, 4, 7, 5, 7], 7: [7, 1, 1, 2, 2], 8: [7, 5, 7, 5, 7], 9: [7, 5, 7, 1, 7] };
   const pack = (r, g, b) => (255 << 24) | (b << 16) | (g << 8) | r;
   const clamp = v => v < 0 ? 0 : v > 255 ? 255 : v | 0;
 
@@ -516,6 +518,16 @@ const KRender = (() => {
           for (let i = 0; i < n; i++) {
             const an = i / n * Math.PI * 2;
             this.plot(f.x - this.cam.x + Math.cos(an) * r, f.y - this.cam.y + Math.sin(an) * r, f.color[0], f.color[1], f.color[2], a * 0.8);
+          }
+        } else if (f.kind === 'num') {
+          // rises and fades
+          const s = String(f.val), y = Math.round(f.y - this.cam.y - k * 10), x0 = Math.round(f.x - this.cam.x - s.length * 2);
+          for (let i = 0; i < s.length; i++) {
+            const g = DIGITS[s[i]];
+            for (let r2 = 0; r2 < 5; r2++) for (let c = 0; c < 3; c++) if (g[r2] >> (2 - c) & 1) {
+              this.plot(x0 + i * 4 + c + 1, y + r2 + 1, 20, 14, 24, Math.min(1, a * 1.6) * 0.8);
+              this.plot(x0 + i * 4 + c, y + r2, f.color[0], f.color[1], f.color[2], Math.min(1, a * 1.6));
+            }
           }
         } else if (f.kind === 'beam') {
           this.line(f.x0 - this.cam.x, f.y0 - this.cam.y, f.x1 - this.cam.x, f.y1 - this.cam.y, [255, 240, 200], Math.min(1, a * 1.5));

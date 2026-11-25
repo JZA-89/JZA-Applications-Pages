@@ -8,7 +8,7 @@
 
 (() => {
   const { elements, elementOrder, spells, spellKey, view: V, step: STEP } = KData;
-  const VERSION = 'v0.16';
+  const VERSION = 'v0.17';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -117,7 +117,14 @@
   const resume = () => setMode('play');
   // Reset map: rebuild the cave from its seed, keeping the golem's progress.
   const resetMap = () => { game.reset(true); game.players[0].skin = skin; acc = 0; mapTick = 0; save(); };
-  $('btnGo').addEventListener('click', resume);
+  $('btnGo').addEventListener('click', () => { KAudio.start(); resume(); });
+  addEventListener('pointerdown', () => KAudio.start(), { once: true });
+  addEventListener('keydown', () => KAudio.start(), { once: true });
+  const muteBtn = $('btnMute');
+  const showMute = () => { muteBtn.setAttribute('aria-pressed', KAudio.muted ? 'true' : 'false'); muteBtn.innerHTML = KAudio.muted ? 'Sound off <kbd>M</kbd>' : 'Sound on <kbd>M</kbd>'; };
+  muteBtn.addEventListener('click', () => { KAudio.start(); KAudio.setMuted(!KAudio.muted); showMute(); view.focus(); });
+  addEventListener('keydown', e => { if (e.code === 'KeyM' && !e.repeat && !e.metaKey && !e.ctrlKey) { KAudio.start(); KAudio.setMuted(!KAudio.muted); showMute(); } });
+  showMute();
   $('btnPanelReset').addEventListener('click', () => { resetMap(); resume(); });
   $('btnNewCave').addEventListener('click', () => {
     // a second press confirms: this replaces the saved world and the golem's progress
@@ -363,7 +370,8 @@
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
     pollPadMenu();
     if (mode === 'play') {
-      acc += dt;
+      if (game.hitStop > 0) { game.hitStop -= dt; acc = 0; }   // a brief freeze on heavy blows
+      else acc += dt;
       let n = 0;
       while (acc >= STEP && n < 4) { game.step([KInput.sample(origin)]); acc -= STEP; n++; }
       if (n === 4) acc = 0;
@@ -371,6 +379,13 @@
       if (saveTimer > 20) save();
     }
     handleEvents(mode === 'play' ? dt : 0);
+    // sounds, heard from the golem
+    const me = game.players[0];
+    for (const [name, x, y, v] of game.sounds) KAudio.play(name, x, y, me.x, me.y - 8, v);
+    game.sounds.length = 0;
+    const held = new Set();
+    if (mode === 'play' && !me.dead) for (const md of KData.modes) { const k = me.channels[md]; if (k) held.add(KData.spells[k][md].kind); }
+    KAudio.hold(held);
     const p = game.players[0];
     let reticle = null;
     if (mode === 'play') {

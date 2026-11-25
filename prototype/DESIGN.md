@@ -25,7 +25,8 @@ Plain scripts sharing one global scope, loaded in this order, no build step:
 | `input.js` | Keyboard, mouse and controller → actions. |
 | `game.js` | Rules: player control, spells, projectiles, particles, actor physics, damage, levels, Lodestones. |
 | `save.js` | Saving and loading the ongoing world in the browser. |
-| `loot.js` | The Runestones tab of the rest panel, and hover notes and map dots for loot. |
+| `loot.js` | The Runestones and Forge tabs of the rest panel, and hover notes and map dots for loot. |
+| `audio.js` | All sound, synthesized. |
 | `render.js` | Drawing: cells, the clay character, dummies, effects, glow. |
 | `main.js` | Startup, the fixed-step loop, HUD, the panel (start, spells, pause). |
 | `style.css` | Page and HUD styles. |
@@ -350,6 +351,14 @@ The last device used takes over. Touch controls are not built yet.
 
 The start/pause panel holds the title, the golem picker, a two-column controls list and the buttons (Start or Resume, Spell book, Reset map). The **Spell book** (button, H, or the HUD button) replaces the controls with a 10 × 3 grid of spell names (rows are pairs, columns Shot / Burst / Move); pointing at or focusing a name shows its elements, mode, mana and description underneath (Jaisah: the long list was messy).
 
+## Sound and impact
+
+**Sound** (`audio.js`, `KAudio`): every sound is synthesized with the Web Audio API (oscillators and filtered noise), so there are no sound files. The game reports named sounds with a position (`game.sfx`); they play quieter with distance from the golem (silent beyond 320) and panned left or right. Spells each have a sound by kind (whoosh, crackle, thud, hiss, squelch…); explosions, hits on enemies and on you, crumbling deaths, shards, runestones, caches, level-ups, Lodestones and running out of mana have their own. **Every enemy wind-up has a warning sound** (crawler chitter, moth rising whine, delver rumble, spitter hiss, warden groan) so attacks can be heard as well as seen; the wyrm stirs, gurgles where it will breach, roars as it leaps, and booms when the lake rises. Held spells (Water jet, Scald, Steam flight, Hover, Drill, Wall climb) play a continuous sound while held. Sound starts on the first click or key (browsers require one), and **M** or the HUD's sound button turns it off (remembered, `castinstone.mute`). A compressor on the master keeps big moments from clipping.
+
+**Damage numbers:** a small number in a 3 × 5 pixel font rises and fades from whatever is hit: white on enemies, gold on elites and the boss, red on you. Damage over time (burning, fire, magma, shocks, scald, drill) adds up and shows every 4 points or so.
+
+**Hit-stop:** the game freezes for a moment on heavy blows: 0.045 s when you deal 30 or more, 0.06 s when you take 15 or more, 0.08 s when the wyrm's body hits you, 0.25 s when it dies.
+
 ## Hover note
 
 Pointing the mouse at something shows a small note in the bottom-left corner (`#look`, `describe()` in `main.js`): creatures with their health (and your own mana), or the material under the cursor with a one-line description (`desc` in each material; electrified water has its own). Hidden over empty space, with a controller, outside play, and on screens narrow enough to use the compact layout.
@@ -378,6 +387,7 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.14 (2026-11-26):** crystal veins and shards, relic caches sealed in five ways, the Forge.
 - **v0.15 (2026-11-26):** four new enemies (Glowmoth, Delver, Cinder spitter, Slate warden), element affinities, status effects (wet, muddy, burning), elites.
 - **v0.16 (2026-11-26):** the first boss, the Emberwyrm, in a magma-lake lair: breaches marked by bubbling, spit volleys, enrage with a rising lake, stranding when its lake is cooled; drops the Crucible and the Ember core. Large magma areas glow more softly.
+- **v0.17 (2026-11-26):** sound (all synthesized, with warning sounds for every wind-up), damage numbers, hit-stop.
 
 ## Open questions to test
 
