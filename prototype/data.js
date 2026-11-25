@@ -63,43 +63,98 @@ const KData = (() => {
   const elementOrder = ['fire', 'water', 'earth', 'lightning'];
 
   // ---------- Spells ----------
-  // Keyed by the two element names in alphabetical order ("fire+water").
-  // kind: which behaviour in game.js runs it. Everything else is its numbers.
-  // cd: seconds before the same spell can be cast again.
-  // cost: mana per cast. drain: mana per second while held (jet, thrust).
-  // power: base damage, before stats (see game.js damage()).
+  // Each pair of elements (keyed by the two names in alphabetical order,
+  // "fire+water") gives three spells:
+  //   shot  (left click)  aimed at the cursor
+  //   burst (right click) an area around you
+  //   move  (hold Space after jumping) moves you, in the direction you press
+  // kind: the behaviour in game.js. cd: seconds before that spell again.
+  // cost: mana per cast. drain/min: held spells use mana per second and need
+  // min to start. power: base damage before stats (game.js damage()).
+  // dir (moves): direction when no direction key is held: up, down or facing.
   const spells = {
-    'fire+fire': { name: 'Fireball', kind: 'projectile', cd: 0.5, cost: 14,
-      desc: 'Explodes, carves dirt and starts fires.',
-      speed: 230, gravity: 70, radius: 9, power: 40, knock: 210, ignite: 0.55, color: [255, 150, 52] },
-    'water+water': { name: 'Water jet', kind: 'jet', cd: 0.25, drain: 14, min: 5,
-      desc: 'Hold to spray water. Pushes things and fills hollows.',
-      speed: 210, spread: 0.12, perTick: 3, push: 0.008, recoil: 70, mat: 'WATER' },
-    'earth+earth': { name: 'Earth pillar', kind: 'pillar', cd: 0.55, cost: 16,
-      desc: 'Grows dirt out of the surface you aim at. Aim down to rise.',
-      range: 70, length: 26, width: 7, growRate: 70 },
-    'lightning+lightning': { name: 'Bolt', kind: 'bolt', cd: 0.55, cost: 16,
-      desc: 'An instant bolt. Electrifies any water it touches.',
-      range: 170, power: 30, knock: 90, charge: 70, chargeCells: 2200, color: [255, 246, 170] },
-    'fire+water': { name: 'Steam', kind: 'thrust', cd: 0, drain: 18, min: 6,
-      desc: 'Hold to fly away from where you aim. Drains mana fast.',
-      accel: 1050, maxSpeed: 190, steamPerTick: 2 },
-    'earth+fire': { name: 'Magma', kind: 'lob', cd: 0.7, cost: 16,
-      desc: 'A lobbed blob of magma. Burns, then cools into dirt.',
-      speed: 175, gravity: 380, count: 38, mat: 'MAGMA', power: 15, color: [255, 140, 50] },
-    'earth+water': { name: 'Mud', kind: 'spray', cd: 0.6, cost: 12,
-      desc: 'A spray of mud that slows anything inside it.',
-      speed: 190, spread: 0.32, count: 50, gravity: 300, mat: 'MUD' },
-    'lightning+water': { name: 'Arc dash', kind: 'dash', cd: 0.35, cost: 22, freshPress: true,
-      desc: 'Dash where you aim. Goes further from water.',
-      speed: 310, time: 0.12, waterTime: 0.2, power: 20 },
-    'earth+lightning': { name: 'Stone spear', kind: 'spear', cd: 0.6, cost: 18,
-      desc: 'A fast shard that bores a tunnel through dirt.',
-      speed: 380, bore: 3, boreLength: 90, power: 45, knock: 160, range: 260, color: [190, 196, 210] },
-    'fire+lightning': { name: 'Flare', kind: 'blast', cd: 0.75, cost: 18,
-      desc: 'A close-range blast that throws things back hard.',
-      reach: 15, radius: 11, power: 35, knock: 330, recoil: 90, ignite: 0.3, color: [255, 220, 140] },
+    'fire+fire': {
+      shot: { name: 'Fireball', kind: 'projectile', cd: 0.5, cost: 14, desc: 'Explodes, carves dirt and starts fires.',
+        speed: 230, gravity: 70, radius: 9, power: 40, knock: 210, ignite: 0.55, color: [255, 150, 52] },
+      burst: { name: 'Fire nova', kind: 'nova', cd: 1.4, cost: 26, desc: 'A ring of flame bursts out around you.',
+        radius: 24, power: 26, knock: 220, color: [255, 150, 60] },
+      move: { name: 'Rocket jump', kind: 'rocket', cd: 0.45, cost: 16, dir: 'up', desc: 'A blast under you throws you upwards. It does not hurt you.',
+        impulse: 250, radius: 5, power: 18, knock: 160 },
+    },
+    'water+water': {
+      shot: { name: 'Water jet', kind: 'jet', cd: 0.25, drain: 14, min: 5, desc: 'Hold to spray water. Pushes things and fills hollows.',
+        speed: 210, spread: 0.12, perTick: 3, push: 0.008, recoil: 70 },
+      burst: { name: 'Tidal wave', kind: 'wave', cd: 1.4, cost: 24, desc: 'Water surges out both sides and shoves enemies away.',
+        reach: 42, power: 10, knock: 320, count: 56 },
+      move: { name: 'Hover', kind: 'hover', drain: 10, min: 4, dir: 'up', desc: 'Hold to hover on jets of water. Slower than steam, but cheaper.',
+        rise: 45, sink: 14, perTick: 2 },
+    },
+    'earth+earth': {
+      shot: { name: 'Boulder', kind: 'boulder', cd: 0.7, cost: 16, desc: 'A heavy lobbed rock. Big knockback, leaves rubble.',
+        speed: 200, gravity: 380, power: 32, knock: 300, dig: 3, rubble: 18 },
+      burst: { name: 'Stone shell', kind: 'shell', cd: 2, cost: 24, desc: 'A ring of dirt rises around you: instant cover.',
+        radius: 14, thick: 2, knock: 140 },
+      move: { name: 'Pillar', kind: 'pillar', cd: 0.55, cost: 16, dir: 'up', desc: 'Earth rises under you and lifts you up.',
+        range: 70, length: 26, width: 7, growRate: 80 },
+    },
+    'lightning+lightning': {
+      shot: { name: 'Bolt', kind: 'bolt', cd: 0.55, cost: 16, desc: 'An instant bolt. Electrifies any water it touches.',
+        range: 170, power: 30, knock: 90, chains: 1, chainRange: 16, charge: 70, chargeCells: 2200, color: [255, 246, 170] },
+      burst: { name: 'Shock field', kind: 'field', cd: 1.4, cost: 26, desc: 'Shocks everything near you.',
+        radius: 34, power: 28, knock: 80, charge: 60, color: [255, 246, 170] },
+      move: { name: 'Blink', kind: 'blink', cd: 0.5, cost: 20, dir: 'facing', desc: 'Jump through space in the direction you press.',
+        dist: 36 },
+    },
+    'fire+water': {
+      shot: { name: 'Scald', kind: 'cone', cd: 0.2, drain: 20, min: 5, desc: 'Hold: a short cone of scalding steam.',
+        range: 34, spread: 0.45, power: 32, perTick: 3 },
+      burst: { name: 'Steam cloud', kind: 'cloud', cd: 1.6, cost: 20, desc: 'A thick cloud to hide in. Scalds anyone inside.',
+        radius: 24, power: 14, fill: 0.6 },
+      move: { name: 'Steam flight', kind: 'thrust', drain: 18, min: 6, dir: 'up', desc: 'Hold to fly in the direction you press. Drains mana.',
+        accel: 1050, maxSpeed: 190, steamPerTick: 2 },
+    },
+    'earth+fire': {
+      shot: { name: 'Magma', kind: 'lob', cd: 0.7, cost: 16, desc: 'A lobbed blob of magma. Burns, then cools into dirt.',
+        speed: 175, gravity: 380, count: 38, mat: 'MAGMA', power: 15, color: [255, 140, 50] },
+      burst: { name: 'Eruption', kind: 'eruption', cd: 1.8, cost: 28, desc: 'Magma bursts out of the ground around you.',
+        reach: 28, power: 24, knock: 260, count: 40 },
+      move: { name: 'Magma slam', kind: 'slam', cd: 0.6, cost: 22, dir: 'down', desc: 'Dive and smash down, splashing magma.',
+        speed: 360, radius: 20, power: 30, knock: 240, count: 26 },
+    },
+    'earth+water': {
+      shot: { name: 'Mud', kind: 'spray', cd: 0.6, cost: 12, desc: 'A spray of mud. Anything it hits, or that walks through it, is slowed.',
+        speed: 220, spread: 0.28, count: 50, gravity: 220, mat: 'MUD' },
+      burst: { name: 'Mire', kind: 'mire', cd: 2, cost: 22, desc: 'The ground around you turns to mud.',
+        radius: 32, depth: 2 },
+      move: { name: 'Wall climb', kind: 'climb', drain: 8, min: 3, dir: 'up', desc: 'Hold next to a wall to cling to it and climb.',
+        speed: 55 },
+    },
+    'lightning+water': {
+      shot: { name: 'Arc', kind: 'bolt', cd: 0.55, cost: 18, desc: 'Lightning that jumps between nearby targets.',
+        range: 140, power: 20, knock: 60, chains: 3, chainRange: 45, charge: 50, chargeCells: 1500, color: [190, 230, 255] },
+      burst: { name: 'Storm', kind: 'storm', cd: 1.6, cost: 28, desc: 'Lightning arcs to every enemy near you.',
+        range: 75, power: 22, knock: 90, color: [190, 230, 255] },
+      move: { name: 'Arc dash', kind: 'dash', cd: 0.35, cost: 22, dir: 'facing', desc: 'Dash in the direction you press. Further from water.',
+        speed: 310, time: 0.12, waterTime: 0.2, power: 20 },
+    },
+    'earth+lightning': {
+      shot: { name: 'Stone spear', kind: 'spear', cd: 0.6, cost: 18, desc: 'A fast shard that bores a tunnel through dirt.',
+        speed: 380, bore: 3, boreLength: 90, power: 45, knock: 160, range: 260, color: [190, 196, 210] },
+      burst: { name: 'Spikes', kind: 'spikes', cd: 1.6, cost: 26, desc: 'Stone spikes burst from the ground around you.',
+        reach: 30, power: 30, knock: 240, height: 7 },
+      move: { name: 'Drill', kind: 'drill', drain: 24, min: 6, dir: 'facing', desc: 'Hold to bore through dirt in the direction you press.',
+        speed: 110, radius: 10 },
+    },
+    'fire+lightning': {
+      shot: { name: 'Ember lance', kind: 'lance', cd: 0.4, cost: 14, desc: 'A fast burning beam that pierces through enemies.',
+        range: 150, power: 24, knock: 60, color: [255, 170, 80] },
+      burst: { name: 'Flare', kind: 'flare', cd: 1.2, cost: 24, desc: 'A blast all around you that throws things back hard.',
+        radius: 24, power: 32, knock: 340, ignite: 0.3, color: [255, 220, 140] },
+      move: { name: 'Blast dash', kind: 'blastdash', cd: 0.45, cost: 18, dir: 'facing', desc: 'An explosion behind you throws you forward.',
+        speed: 280, power: 16 },
+    },
   };
+  const modes = ['shot', 'burst', 'move'];
   function spellKey(a, b) { return a <= b ? a + '+' + b : b + '+' + a; }
   for (const k in spells) { const [a, b] = k.split('+'); if (spellKey(a, b) !== k) throw new Error('Spell key out of order: ' + k); }
 
@@ -226,6 +281,6 @@ const KData = (() => {
       ] },
   ];
 
-  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies,
+  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, modes,
     world: { w: 512, h: 192, chunk: 32 }, view: { w: 320, h: 180 }, step: 1 / 60 };
 })();

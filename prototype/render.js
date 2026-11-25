@@ -311,6 +311,7 @@ const KRender = (() => {
         if (ch === '.') continue;
         let col = SHALE[ch];
         if (ch === 'e' && warn) col = [255, 170 + 85 * warn, 230];
+        if ((e.slowT > 0 || e.inMud) && ch !== 'e' && ch !== 'k') col = [col[0] * 0.55 + 96 * 0.45, col[1] * 0.55 + 84 * 0.45, col[2] * 0.55 + 104 * 0.45]; // coated in mud
         if (e.flash > 0 || e.state === 'stagger' && e.t < 0.08) col = [255, 246, 236];
         this.plot(ox + (flip ? W - 1 - x : x), oy + y + (y === rows.length - 1 ? rear : 0), col[0], col[1], col[2]);
       }
@@ -344,6 +345,9 @@ const KRender = (() => {
           for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) this.plot(x + dx, y + dy, 255, dx || dy ? 170 : 245, dx || dy ? 70 : 200);
         } else if (pr.kind === 'blob') {
           for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) this.plot(x + dx, y + dy, 255, dx || dy ? 120 : 190, dx || dy ? 40 : 90);
+        } else if (pr.kind === 'boulder') {
+          const B = [[0, -1], [-1, 0], [0, 0], [1, 0], [-1, 1], [0, 1], [1, 1], [0, 2], [1, -1], [2, 0], [2, 1]];
+          for (const [dx, dy] of B) { const lit = dy < 1 && dx < 1; this.plot(x + dx - 0.5, y + dy - 0.5, lit ? 196 : 130, lit ? 186 : 120, lit ? 176 : 118); }
         } else if (pr.kind === 'spear') {
           this.line(x - ux * 5, y - uy * 5, x, y, [150, 156, 170]);
           this.plot(x, y, 255, 252, 230); this.plot(x + ux, y + uy, 230, 232, 240);
@@ -369,6 +373,9 @@ const KRender = (() => {
             const an = i / n * Math.PI * 2;
             this.plot(f.x - this.cam.x + Math.cos(an) * r, f.y - this.cam.y + Math.sin(an) * r, f.color[0], f.color[1], f.color[2], a * 0.8);
           }
+        } else if (f.kind === 'beam') {
+          this.line(f.x0 - this.cam.x, f.y0 - this.cam.y, f.x1 - this.cam.x, f.y1 - this.cam.y, [255, 240, 200], Math.min(1, a * 1.5));
+          this.line(f.x0 - this.cam.x, f.y0 - this.cam.y + 1, f.x1 - this.cam.x, f.y1 - this.cam.y + 1, f.color, a * 0.8);
         } else if (f.kind === 'bolt' || f.kind === 'trail') {
           const core = f.kind === 'bolt' ? [255, 255, 245] : f.color;
           for (let i = 1; i < f.pts.length; i++) {
@@ -406,6 +413,7 @@ const KRender = (() => {
         if (f.kind === 'flash') this.light(f.x, f.y, f.r, f.color, a);
         else if (f.kind === 'bolt') for (let i = 0; i < f.pts.length; i += 2) this.light(f.pts[i].x, f.pts[i].y, 11, [255, 246, 190], a * 0.7);
         else if (f.kind === 'trail') for (let i = 0; i < f.pts.length; i += 3) this.light(f.pts[i].x, f.pts[i].y, 7, f.color, a * 0.35);
+        else if (f.kind === 'beam') for (let k = 0; k <= 6; k++) this.light(f.x0 + (f.x1 - f.x0) * k / 6, f.y0 + (f.y1 - f.y0) * k / 6, 9, f.color, a * 0.6);
       }
       for (const e of game.enemies) {
         if (e.dead) continue;

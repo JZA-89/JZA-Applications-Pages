@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#0d0a14">
-<title>Cast in Stone | Prototype · v0.8</title>
-<link rel="stylesheet" href="style.css?v=0.8">
+<title>Cast in Stone | Prototype · v0.9</title>
+<link rel="stylesheet" href="style.css?v=0.9">
 </head>
 <body data-mode="start">
 
@@ -50,9 +50,9 @@
 <div class="panel-wrap" id="panelWrap">
   <section class="panel" id="panel" role="dialog" aria-modal="true" aria-labelledby="panelTitle">
     <header>
-      <p class="eyebrow" id="panelEyebrow">Prototype · one player · v0.8</p>
+      <p class="eyebrow" id="panelEyebrow">Prototype · one player · v0.9</p>
       <h1 id="panelTitle">CAST IN STONE</h1>
-      <p class="lede" id="panelLede">A rock golem in a cave, with four elements. Load two, then cast: every pair is a different spell. Dig, build, burn, flood and shock your way around, try them on the training dummies, and fight the shale crawlers.</p>
+      <p class="lede" id="panelLede">A rock golem in a cave, with four elements. Load two: every pair gives you an aimed Shot, a Burst around you and a way to Move. Dig, build, burn, flood and shock your way around, try them on the training dummies, and fight the shale crawlers.</p>
     </header>
 
     <section class="picker" aria-labelledby="pickTitle">
@@ -65,19 +65,22 @@
         <h2>Controls</h2>
         <table class="keys">
           <tr><th scope="row">Move</th><td><kbd>A</kbd> <kbd>D</kbd></td><td class="pad">Left stick</td></tr>
-          <tr><th scope="row">Jump · swim up</th><td><kbd>W</kbd> or <kbd>Space</kbd></td><td class="pad">LB or LT</td></tr>
+          <tr><th scope="row">Jump · swim up</th><td><kbd>Space</kbd></td><td class="pad">LB or RB</td></tr>
           <tr><th scope="row">Aim</th><td>Mouse</td><td class="pad">Right stick</td></tr>
           <tr><th scope="row">Load an element</th><td><kbd>Q</kbd> <kbd>E</kbd> <kbd>R</kbd> <kbd>F</kbd> or <kbd>1</kbd>–<kbd>4</kbd></td><td class="pad">B X A Y</td></tr>
-          <tr><th scope="row">Cast</th><td>Left click (hold to repeat)</td><td class="pad">RB or RT</td></tr>
-          <tr><th scope="row">Clear the elements</th><td><kbd>X</kbd> or right click</td><td class="pad">D-pad down</td></tr>
-          <tr><th scope="row">Spells · pause</th><td><kbd>H</kbd> · <kbd>Esc</kbd></td><td class="pad">View · Menu</td></tr>
+          <tr><th scope="row">Shot (aimed)</th><td>Left click, hold to repeat</td><td class="pad">RT</td></tr>
+          <tr><th scope="row">Burst (around you)</th><td>Right click</td><td class="pad">LT</td></tr>
+          <tr><th scope="row">Move</th><td>Hold <kbd>Space</kbd> after jumping</td><td class="pad">Hold LB</td></tr>
+          <tr><th scope="row">Move direction</th><td><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></td><td class="pad">Left stick</td></tr>
+          <tr><th scope="row">Clear the elements</th><td><kbd>X</kbd></td><td class="pad">View</td></tr>
+          <tr><th scope="row">Spells · pause</th><td><kbd>H</kbd> · <kbd>Esc</kbd></td><td class="pad">Menu</td></tr>
           <tr><th scope="row">Reset the map</th><td><kbd>Backspace</kbd></td><td class="pad">—</td></tr>
         </table>
-        <p class="note">Loading a third element pushes out the first. Your golem's eyes (or crystals) show what is loaded. Every spell costs mana; Steam and Water jet drain it while held. Mana refills on its own, faster on the ground. Run dry and you can't cast until it refills.</p>
+        <p class="note">Every pair of elements gives you three spells: a <b>Shot</b> you aim, a <b>Burst</b> around you, and a <b>Move</b>. Jump, then keep holding Space to use the Move; steer it with W A S D, so you can move one way and shoot another. Loading a third element pushes out the first; your golem's eyes (or crystals) show what is loaded. Every spell costs mana, and held spells drain it. Mana refills on its own, faster on the ground.</p>
         <p class="note touch-note">Touch controls come later. For now, play with a keyboard and mouse, or a controller.</p>
       </div>
       <div>
-        <h2>The ten spells</h2>
+        <h2>The thirty spells</h2>
         <ul class="spells" id="spellList"></ul>
       </div>
     </div>
@@ -91,11 +94,11 @@
 
 <noscript><p class="noscript">This prototype needs JavaScript.</p></noscript>
 
-<script src="data.js?v=0.8"></script>
-<script src="world.js?v=0.8"></script>
-<script src="input.js?v=0.8"></script>
-<script src="game.js?v=0.8"></script>
-<script src="render.js?v=0.8"></script>
-<script src="main.js?v=0.8"></script>
+<script src="data.js?v=0.9"></script>
+<script src="world.js?v=0.9"></script>
+<script src="input.js?v=0.9"></script>
+<script src="game.js?v=0.9"></script>
+<script src="render.js?v=0.9"></script>
+<script src="main.js?v=0.9"></script>
 </body>
 </html>

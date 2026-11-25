@@ -266,7 +266,40 @@ const KWorld = (() => {
           }
         }
       }
+      if (removed) this.cleanup(cx - ring - 2, cy - ring - 2, cx + ring + 2, cy + ring + 2);
       return removed;
+    }
+
+    // No crumbs: after terrain breaks, any loose piece of dirt or lichen smaller
+    // than MIN_PIECE cells, and any single cell sticking out with at most one
+    // neighbour, crumbles into loose earth and falls. Rock is never changed.
+    cleanup(x0, y0, x1, y1, into = M.EARTH) {
+      const { w, h, mat } = this, MIN = World.MIN_PIECE;
+      x0 = Math.max(1, Math.floor(x0)); y0 = Math.max(1, Math.floor(y0));
+      x1 = Math.min(w - 2, Math.ceil(x1)); y1 = Math.min(h - 2, Math.ceil(y1));
+      const breakable = m => m === M.DIRT || m === M.MOSS;
+      const seen = new Set();
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+        const i = y * w + x;
+        if (!breakable(mat[i]) || seen.has(i)) continue;
+        const piece = [i], q = [i];
+        seen.add(i);
+        while (q.length && piece.length < MIN) {
+          const j = q.pop();
+          for (const k of [j - 1, j + 1, j - w, j + w]) {
+            if (!seen.has(k) && breakable(mat[k])) { seen.add(k); piece.push(k); q.push(k); }
+          }
+        }
+        if (piece.length < MIN && !q.length) for (const k of piece) this.put(k, into);
+      }
+      for (let pass = 0; pass < 2; pass++) {
+        for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+          const i = y * w + x;
+          if (!breakable(mat[i])) continue;
+          const n = SOLID[mat[i - 1]] + SOLID[mat[i + 1]] + SOLID[mat[i - w]] + SOLID[mat[i + w]];
+          if (n <= 1) this.put(i, into);
+        }
+      }
     }
 
     // Electrify the body of water touching (x,y). Returns cells charged.
@@ -389,6 +422,7 @@ const KWorld = (() => {
         }
       }
       for (let i = 0; i < mat.length; i++) this.shade[i] = (R() * 255) | 0;
+      this.cleanup(0, 0, w, h, M.EMPTY); // no crumbs in the starting cave either
       this.awake.fill(3);
       this.dirty.fill(1);
 
@@ -405,5 +439,6 @@ const KWorld = (() => {
     }
   }
 
+  World.MIN_PIECE = 10;
   return { World, makeRng, ST, STATE, SOLID, CONDUCT };
 })();

@@ -9,6 +9,8 @@ const KGame = (() => {
   const { M, spells, spellKey, player: PD, dummy: DD, step: DT } = KData;
   const { World, makeRng, STATE, SOLID, ST } = KWorld;
   const counts = new Int32Array(KData.materials.length);
+  const MUD_COAT = 2.5;     // seconds a mud hit keeps slowing
+  const MUD_SLOW = 0.35;    // enemy speed while in mud or coated
 
   class Game {
     constructor(seed) { this.seed = seed; this.reset(); }
@@ -41,7 +43,7 @@ const KGame = (() => {
         slots: [null, null], cds: {}, lock: 0, mana: PD.mana, maxMana: PD.mana, manaWait: 0, manaFlash: 0,
         stats: KData.baseStats(), skin: 0,
         coyote: 0, jumpBuf: 0, jumpHeld: false, rising: false, castHeld: false,
-        channel: null, dashT: 0, dashVX: 0, dashVY: 0, dashHit: null,
+        channels: { shot: null, burst: null, move: null }, dashT: 0, dashVX: 0, dashVY: 0, dashHit: null,
         dead: false, respawnT: 0, lastHurt: -9, flash: 0, slotFlash: 0, lastSpell: null,
         chips, inWater: false, inMud: false, hurtBy: {},
       };
@@ -97,58 +99,89 @@ const KGame = (() => {
       p.aim = a.aim;
       const ax = Math.cos(p.aim);
       if (Math.abs(ax) > 0.15) p.facing = ax > 0 ? 1 : -1;
+      p.moveX = a.move || 0; p.moveY = a.moveY || 0;
 
       for (const k in p.cds) if (p.cds[k] > 0) p.cds[k] -= DT;
       p.lock = Math.max(0, p.lock - DT);
 
       // run
-      const slow = p.inMud ? KData.materials[M.MUD].slows : 1;
+      if (p.slowT > 0) p.slowT -= DT;
+      const muddy = p.inMud || p.slowT > 0;
+      const slow = muddy ? KData.materials[M.MUD].slows : 1;
       const run = PD.run * slow;
-      const target = a.move * run;
+      const target = p.moveX * run;
       if (p.dashT <= 0) {
-        const acc = (p.grounded ? PD.accel : PD.airAccel) * (p.inMud ? 0.5 : 1);
-        if (a.move !== 0) {
-          if (Math.abs(p.vx) <= run || Math.sign(a.move) !== Math.sign(p.vx)) {
+        const acc = (p.grounded ? PD.accel : PD.airAccel) * (muddy ? 0.5 : 1);
+        if (p.moveX !== 0) {
+          if (Math.abs(p.vx) <= run || Math.sign(p.moveX) !== Math.sign(p.vx)) {
             const dv = target - p.vx;
             p.vx += Math.sign(dv) * Math.min(Math.abs(dv), acc * DT);
           }
         } else if (p.grounded) p.vx *= Math.exp(-PD.friction * DT);
       }
 
-      // jump
-      if (a.jump && !p.jumpHeld) p.jumpBuf = PD.buffer;
+      // jump: Space. A press on the ground jumps; holding it in the air (or a
+      // fresh press in the air) uses the loaded pair's Move.
+      const jumpPressed = a.jump && !p.jumpHeld;
+      if (jumpPressed) p.jumpBuf = PD.buffer;
       if (p.grounded) p.coyote = PD.coyote; else p.coyote = Math.max(0, p.coyote - DT);
       p.jumpBuf = Math.max(0, p.jumpBuf - DT);
+      let jumpedNow = false;
       if (p.jumpBuf > 0 && p.coyote > 0 && p.dashT <= 0) {
-        p.vy = -PD.jump * (p.inMud ? 0.55 : 1);
+        p.vy = -PD.jump * (muddy ? 0.55 : 1);
         p.jumpBuf = 0; p.coyote = 0; p.rising = true; p.grounded = false;
+        p.jumpT = this.time; jumpedNow = true;
       }
-      if (p.inWater && a.jump && p.dashT <= 0) p.vy = Math.max(p.vy - 520 * DT, -95);
+      if (p.inWater && a.jump && p.dashT <= 0 && !p.channels.move) p.vy = Math.max(p.vy - 520 * DT, -95);
       if (!a.jump && p.rising && p.vy < 0) { p.vy *= 0.5; p.rising = false; }
       if (p.vy >= 0) p.rising = false;
       p.jumpHeld = a.jump;
+      const airborne = !p.grounded || p.channels.move;
+      const moveActive = a.jump && airborne && !jumpedNow &&
+        (p.channels.move || (jumpPressed && !p.grounded) || (this.time - (p.jumpT ?? -9) > 0.15));
+      const movePressed = moveActive && !p.moveWas;
+      p.moveWas = moveActive;
 
       // mana refills on its own, faster on the ground
       if (p.manaWait > 0) p.manaWait -= DT;
       else p.mana = Math.min(p.maxMana, p.mana + (p.grounded ? PD.manaGroundRegen : PD.manaRegen) * DT);
 
-      // cast
-      const pressed = a.cast && !p.castHeld;
-      p.castHeld = a.cast;
+      // the three ways to cast
       const key = p.slots[0] && p.slots[1] ? spellKey(p.slots[0], p.slots[1]) : null;
-      if (p.channel) {
-        // held spells (water jet, steam) run while held and while there is mana
-        if (a.cast && key === p.channel && p.mana > 0) this.channelTick(p);
-        else this.endChannel(p);
-        return;
+      const input = {
+        shot: { held: a.cast, pressed: a.cast && !p.castHeld },
+        burst: { held: !!a.burst, pressed: !!a.burst && !p.burstHeld },
+        move: { held: moveActive, pressed: movePressed },
+      };
+      p.castHeld = a.cast; p.burstHeld = !!a.burst;
+      for (const mode of KData.modes) {
+        const { held, pressed } = input[mode];
+        const ch = p.channels[mode];
+        if (ch) {
+          if (held && ch === key && p.mana > 0) this.channelTick(p, mode);
+          else this.endChannel(p, mode);
+          continue;
+        }
+        if (!held) continue;
+        if (!key) { if (pressed && mode !== 'move') p.slotFlash = 0.35; continue; }
+        const sp = spells[key][mode], cdKey = key + ':' + mode;
+        if ((p.cds[cdKey] || 0) > 0) continue;
+        if (sp.drain) {
+          if (p.mana < sp.min) { if (pressed) p.manaFlash = 0.35; continue; }
+          p.channels[mode] = key;
+          this.alert(p, p.x, p.y, KData.enemies.crawler.hearing);
+          this.channelTick(p, mode);
+          continue;
+        }
+        if (mode === 'move' && !pressed) continue;       // one-shot moves: once per press
+        if (mode !== 'move' && p.lock > 0) continue;
+        if (p.mana < sp.cost) { if (pressed) p.manaFlash = 0.35; continue; }
+        p.cds[cdKey] = sp.cd;
+        if (mode !== 'move') p.lock = 0.12;
+        this.spend(p, sp.cost);
+        this.alert(p, p.x, p.y, KData.enemies.crawler.hearing);
+        this.cast(p, key, mode, sp);
       }
-      if (!a.cast) return;
-      if (!key) { if (pressed) p.slotFlash = 0.35; return; }
-      const sp = spells[key];
-      if (sp.freshPress && !pressed) return; // dash only on a fresh press
-      if (p.lock > 0 || (p.cds[key] || 0) > 0) return;
-      if (p.mana < (sp.drain ? sp.min : sp.cost)) { if (pressed) p.manaFlash = 0.35; return; }
-      this.cast(p, key, sp);
     }
 
     spend(p, amount) {
@@ -159,27 +192,32 @@ const KGame = (() => {
 
     chest(p) { return { x: p.x, y: p.y - p.h * 0.55 }; }
 
-    cast(p, key, sp) {
+    // Direction for a Move: the keys held, or the spell's default.
+    moveDir(p, sp) {
+      let x = p.moveX || 0, y = p.moveY || 0;
+      if (!x && !y) { if (sp.dir === 'down') y = 1; else if (sp.dir === 'facing') x = p.facing; else y = -1; }
+      const l = Math.hypot(x, y);
+      return { x: x / l, y: y / l };
+    }
+
+    cast(p, key, mode, sp) {
       const dx = Math.cos(p.aim), dy = Math.sin(p.aim);
-      const c = this.chest(p), ox = c.x + dx * 4, oy = c.y + dy * 4;
-      p.cds[key] = sp.cd; p.lock = 0.12; p.lastSpell = key;
-      if (sp.cost) this.spend(p, sp.cost);
-      this.alert(p, p.x, p.y, KData.enemies.crawler.hearing);
-      const R = this.rand;
+      const c = this.chest(p), ox = c.x + dx * 6, oy = c.y + dy * 6;
+      const R = this.rand, w = this.world;
+      const md = mode === 'move' ? this.moveDir(p, sp) : null;
       switch (sp.kind) {
+        // ----- shots -----
         case 'projectile':
-          this.projectiles.push({ kind: 'fireball', sp, owner: p, x: ox, y: oy, vx: dx * sp.speed, vy: dy * sp.speed, g: sp.gravity, age: 0 });
+          this.projectiles.push({ kind: 'fireball', sp, key, owner: p, x: ox, y: oy, vx: dx * sp.speed, vy: dy * sp.speed, g: sp.gravity, age: 0 });
+          break;
+        case 'boulder':
+          this.projectiles.push({ kind: 'boulder', sp, key, owner: p, x: ox, y: oy, vx: dx * sp.speed + p.vx * 0.3, vy: dy * sp.speed + p.vy * 0.2, g: sp.gravity, age: 0 });
           break;
         case 'lob':
-          this.projectiles.push({ kind: 'blob', sp, owner: p, x: ox, y: oy, vx: dx * sp.speed + p.vx * 0.3, vy: dy * sp.speed + p.vy * 0.2, g: sp.gravity, age: 0 });
+          this.projectiles.push({ kind: 'blob', sp, key, owner: p, x: ox, y: oy, vx: dx * sp.speed + p.vx * 0.3, vy: dy * sp.speed + p.vy * 0.2, g: sp.gravity, age: 0 });
           break;
         case 'spear':
-          this.projectiles.push({ kind: 'spear', sp, owner: p, x: ox, y: oy, vx: dx * sp.speed, vy: dy * sp.speed, g: 0, age: 0, bore: sp.boreLength, travelled: 0 });
-          break;
-        case 'jet':
-        case 'thrust':
-          p.channel = key; p.cds[key] = 0;
-          this.channelTick(p);
+          this.projectiles.push({ kind: 'spear', sp, key, owner: p, x: ox, y: oy, vx: dx * sp.speed, vy: dy * sp.speed, g: 0, age: 0, bore: sp.boreLength, travelled: 0 });
           break;
         case 'spray':
           for (let i = 0; i < sp.count; i++) {
@@ -187,65 +225,300 @@ const KGame = (() => {
             this.parts.push({ x: ox, y: oy, vx: Math.cos(an) * s, vy: Math.sin(an) * s, g: sp.gravity, mat: M[sp.mat], life: 3, owner: p });
           }
           break;
-        case 'pillar': this.castPillar(p, sp, c, dx, dy); break;
-        case 'bolt': this.castBolt(p, sp, c, dx, dy); break;
+        case 'bolt': this.castBolt(p, sp, key, c, dx, dy); break;
+        case 'lance': this.castLance(p, sp, key, c, dx, dy); break;
+        // ----- bursts (around you) -----
+        case 'nova': {
+          this.hitRadius(c.x, c.y, sp.radius, sp.power, sp.knock, p, p, key);
+          for (let k = 0; k < 90; k++) {
+            const an = k / 90 * Math.PI * 2, r = sp.radius - 3 + R() * 4;
+            const x = Math.round(c.x + Math.cos(an) * r), y = Math.round(c.y + Math.sin(an) * r), m = w.get(x, y);
+            if (m === M.EMPTY && R() < 0.7) w.set(x, y, M.FIRE);
+            else if (m === M.MOSS) w.set(x, y, M.FIRE);
+          }
+          this.fx.push({ kind: 'ring', x: c.x, y: c.y, r0: 4, r1: sp.radius, t: 0, T: 0.25, color: sp.color });
+          this.fx.push({ kind: 'flash', x: c.x, y: c.y, r: sp.radius * 2, t: 0, T: 0.2, color: sp.color });
+          this.shake = Math.max(this.shake, 2);
+          break;
+        }
+        case 'wave': {
+          for (let i = 0; i < sp.count; i++) {
+            const side = i % 2 ? 1 : -1;
+            this.parts.push({ x: p.x + side * 6, y: p.y - 3 - R() * 6, vx: side * (150 + R() * 120), vy: -40 - R() * 90, g: 300, mat: M.WATER, life: 3, owner: p, push: 0.02 });
+          }
+          for (const o of this.actors) {
+            if (o === p || o.dead) continue;
+            const ddx = o.x - p.x, ddy = (o.y - o.h / 2) - c.y;
+            if (Math.abs(ddx) < sp.reach && Math.abs(ddy) < 22) this.hurt(o, sp.power, Math.sign(ddx || 1) * sp.knock, -90, 'wave', p, key);
+          }
+          this.fx.push({ kind: 'ring', x: c.x, y: p.y - 4, r0: 4, r1: sp.reach * 0.6, t: 0, T: 0.25, color: [120, 180, 255] });
+          break;
+        }
+        case 'shell': {
+          for (let k = 0; k < 160; k++) {
+            const an = k / 160 * Math.PI * 2;
+            for (let r = sp.radius; r < sp.radius + sp.thick + 0.5; r += 0.7) {
+              const x = Math.round(c.x + Math.cos(an) * r), y = Math.round(c.y + Math.sin(an) * r);
+              if (!KWorld.SOLID[w.get(x, y)] && !this.actorAt(x + 0.5, y + 0.5)) w.set(x, y, M.DIRT);
+            }
+          }
+          for (const o of this.actors) {
+            if (o === p || o.dead) continue;
+            const ddx = o.x - c.x, ddy = (o.y - o.h / 2) - c.y, d = Math.hypot(ddx, ddy);
+            if (d < sp.radius + 8) { o.vx += ddx / (d || 1) * sp.knock; o.vy += ddy / (d || 1) * sp.knock - 40; }
+          }
+          this.burst(c.x, c.y, 18, [[184, 140, 128], [132, 84, 100]], 90);
+          break;
+        }
+        case 'field': {
+          let water = null;
+          for (const o of this.actors) {
+            if (o === p || o.dead) continue;
+            const oc = { x: o.x, y: o.y - o.h / 2 }, d = Math.hypot(oc.x - c.x, oc.y - c.y);
+            if (d > sp.radius) continue;
+            this.hurt(o, sp.power, (oc.x - c.x) / (d || 1) * sp.knock, -40, 'shock', p, key);
+            this.fx.push({ kind: 'bolt', pts: this.jagged(c.x, c.y, oc.x, oc.y), t: 0, T: 0.18, color: sp.color });
+          }
+          for (let k = 0; k < 5; k++) {
+            const an = R() * Math.PI * 2, r = sp.radius * (0.5 + R() * 0.5);
+            this.fx.push({ kind: 'bolt', pts: this.jagged(c.x, c.y, c.x + Math.cos(an) * r, c.y + Math.sin(an) * r), t: 0, T: 0.14, color: sp.color });
+          }
+          for (let y = -sp.radius; y <= sp.radius && !water; y += 2) for (let x = -sp.radius; x <= sp.radius; x += 2) {
+            if (x * x + y * y > sp.radius * sp.radius) continue;
+            if (w.get(Math.round(c.x + x), Math.round(c.y + y)) === M.WATER) { water = [Math.round(c.x + x), Math.round(c.y + y)]; break; }
+          }
+          if (water) w.electrify(water[0], water[1], sp.charge, 1500);
+          this.fx.push({ kind: 'flash', x: c.x, y: c.y, r: sp.radius * 1.4, t: 0, T: 0.2, color: sp.color });
+          break;
+        }
+        case 'cloud': {
+          for (let y = -sp.radius; y <= sp.radius; y++) for (let x = -sp.radius; x <= sp.radius; x++) {
+            if (x * x + y * y > sp.radius * sp.radius || R() > sp.fill) continue;
+            const cx = Math.round(c.x + x), cy = Math.round(c.y + y);
+            if (w.get(cx, cy) === M.EMPTY) w.set(cx, cy, M.STEAM);
+          }
+          this.hitRadius(c.x, c.y, sp.radius, sp.power, 40, p, p, key);
+          break;
+        }
+        case 'eruption': {
+          for (let i = 0; i < sp.count; i++) {
+            const x = p.x + (R() - 0.5) * 2 * sp.reach;
+            let y = Math.floor(p.y - 10);
+            while (y < p.y + 24 && !KWorld.SOLID[w.get(Math.round(x), y)]) y++;
+            this.parts.push({ x, y: y - 1, vx: (R() - 0.5) * 40, vy: -120 - R() * 120, g: 380, mat: M.MAGMA, life: 3, owner: p });
+          }
+          for (const o of this.actors) {
+            if (o === p || o.dead) continue;
+            if (Math.abs(o.x - p.x) < sp.reach && Math.abs(o.y - p.y) < 26) this.hurt(o, sp.power, Math.sign(o.x - p.x || 1) * 80, -sp.knock, 'magma', p, key);
+          }
+          this.fx.push({ kind: 'flash', x: p.x, y: p.y - 4, r: sp.reach * 1.6, t: 0, T: 0.25, color: [255, 120, 40] });
+          this.shake = Math.max(this.shake, 2);
+          break;
+        }
+        case 'mire': {
+          for (let x = Math.round(p.x - sp.radius); x <= p.x + sp.radius; x++) {
+            if (Math.abs(x - p.x) < p.w / 2 + 2) continue; // not under your own feet
+            let y = Math.floor(p.y - 12);
+            while (y < p.y + 20 && !KWorld.SOLID[w.get(x, y)]) y++;
+            for (let k = 0; k < sp.depth; k++) { const m = w.get(x, y + k); if (m === M.DIRT || m === M.EARTH || m === M.MOSS) w.set(x, y + k, M.MUD); }
+          }
+          this.burst(p.x, p.y, 14, [[96, 84, 104], [104, 92, 112]], 70);
+          break;
+        }
+        case 'storm': {
+          let n = 0;
+          for (const o of this.actors) {
+            if (o === p || o.dead || o.kind === 'player') continue;
+            const oc = { x: o.x, y: o.y - o.h / 2 }, d = Math.hypot(oc.x - c.x, oc.y - c.y);
+            if (d > sp.range || w.ray(c.x, c.y, (oc.x - c.x) / d, (oc.y - c.y) / d, d).hit) continue;
+            this.hurt(o, sp.power, (oc.x - c.x) / d * sp.knock, -40, 'shock', p, key);
+            this.fx.push({ kind: 'bolt', pts: this.jagged(c.x, c.y, oc.x, oc.y), t: 0, T: 0.2, color: sp.color });
+            n++;
+          }
+          if (!n) for (let k = 0; k < 4; k++) { const an = R() * Math.PI * 2; this.fx.push({ kind: 'bolt', pts: this.jagged(c.x, c.y, c.x + Math.cos(an) * 30, c.y + Math.sin(an) * 30), t: 0, T: 0.14, color: sp.color }); }
+          this.fx.push({ kind: 'flash', x: c.x, y: c.y, r: 30, t: 0, T: 0.18, color: sp.color });
+          break;
+        }
+        case 'spikes': {
+          for (let x = Math.round(p.x - sp.reach); x <= p.x + sp.reach; x += 4) {
+            if (Math.abs(x - p.x) < p.w / 2 + 3) continue;
+            let y = Math.floor(p.y - 12);
+            while (y < p.y + 20 && !KWorld.SOLID[w.get(x, y)]) y++;
+            if (y >= p.y + 20) continue;
+            for (let k = 1; k <= sp.height; k++) {
+              const half = k < sp.height - 2 ? 1 : 0;
+              for (let ox2 = -half; ox2 <= half; ox2++) if (!KWorld.SOLID[w.get(x + ox2, y - k)] && !this.actorAt(x + ox2 + 0.5, y - k + 0.5)) w.set(x + ox2, y - k, M.DIRT);
+            }
+            for (const o of this.actors) if (o !== p && !o.dead && Math.abs(o.x - x) < o.w / 2 + 2 && Math.abs(o.y - y) < 10) {
+              if (!o._spiked) { o._spiked = true; this.hurt(o, sp.power, 0, -sp.knock, 'spikes', p, key); }
+            }
+          }
+          for (const o of this.actors) o._spiked = false;
+          this.burst(p.x, p.y, 14, [[184, 140, 128], [132, 84, 100]], 80);
+          break;
+        }
+        case 'flare': {
+          this.hitRadius(c.x, c.y, sp.radius, sp.power, sp.knock, p, p, key);
+          for (let k = 0; k < 40; k++) {
+            const an = R() * Math.PI * 2, r = sp.radius * (0.6 + R() * 0.5);
+            const x = Math.round(c.x + Math.cos(an) * r), y = Math.round(c.y + Math.sin(an) * r), m = w.get(x, y);
+            if (m === M.MOSS || (m === M.EMPTY && R() < sp.ignite)) w.set(x, y, M.FIRE);
+          }
+          this.fx.push({ kind: 'ring', x: c.x, y: c.y, r0: 4, r1: sp.radius + 3, t: 0, T: 0.22, color: sp.color });
+          this.fx.push({ kind: 'flash', x: c.x, y: c.y, r: 34, t: 0, T: 0.16, color: sp.color });
+          this.burst(c.x, c.y, 18, [[255, 220, 140], [255, 160, 60]], 130);
+          this.shake = Math.max(this.shake, 2);
+          break;
+        }
+        // ----- moves (in the direction you press) -----
+        case 'rocket': {
+          p.vx = p.vx * 0.5 + md.x * sp.impulse * 0.7; p.vy = md.y * sp.impulse;
+          p.grounded = false; p.rising = false;
+          const bx = p.x - md.x * 6, by = p.y - md.y * 2 + 2;
+          w.explode(bx, by, sp.radius, { fire: 0.5 });
+          this.hitRadius(bx, by, sp.radius + 9, sp.power, sp.knock, p, p, key);
+          this.fx.push({ kind: 'ring', x: bx, y: by, r0: 2, r1: 12, t: 0, T: 0.22, color: [255, 170, 80] });
+          this.fx.push({ kind: 'flash', x: bx, y: by, r: 24, t: 0, T: 0.16, color: [255, 150, 60] });
+          this.burst(bx, by, 14, [[255, 170, 70], [184, 140, 128]], 110);
+          break;
+        }
+        case 'pillar': this.castPillar(p, sp, { x: p.x, y: p.y - 2 }, 0, 1, true); break;
+        case 'blink': {
+          const c0 = { x: p.x, y: p.y - p.h / 2 };
+          let tx = p.x, ty = p.y;
+          for (let d = sp.dist; d > 0; d -= 1) {
+            const x = p.x + md.x * d, y = p.y + md.y * d;
+            if (!this.collides(p, x, y) && !w.ray(c0.x, c0.y, md.x, md.y, d).hit) { tx = x; ty = y; break; }
+            if (!this.collides(p, x, y) && d < sp.dist * 0.5) { tx = x; ty = y; break; }
+          }
+          p.x = tx; p.y = ty; p.vx *= 0.3; p.vy = Math.min(p.vy, 0) * 0.3;
+          this.fx.push({ kind: 'bolt', pts: this.jagged(c0.x, c0.y, p.x, p.y - p.h / 2), t: 0, T: 0.2, color: [255, 246, 170] });
+          this.fx.push({ kind: 'flash', x: p.x, y: p.y - p.h / 2, r: 18, t: 0, T: 0.15, color: [255, 246, 170] });
+          break;
+        }
+        case 'slam': {
+          p.vx = md.x * sp.speed; p.vy = md.y * sp.speed; p.slam = { sp, key, t: 0 };
+          p.rising = false;
+          break;
+        }
         case 'dash': {
           this.world.sample(p.x - p.w / 2, p.y - p.h, p.x + p.w / 2, p.y, counts);
           const wet = counts[M.WATER] > 6 || p.inWater;
           p.dashT = wet ? sp.waterTime : sp.time;
-          p.dashVX = dx * sp.speed; p.dashVY = dy * sp.speed;
-          p.dashHit = new Set(); p.dashSp = sp;
+          p.dashVX = md.x * sp.speed; p.dashVY = md.y * sp.speed;
+          p.dashHit = new Set(); p.dashSp = sp; p.dashKey = key;
           p.rising = false;
           this.fx.push({ kind: 'trail', pts: [{ x: c.x, y: c.y }], owner: p, t: 0, T: 0.45, color: [255, 246, 170] });
           break;
         }
-        case 'blast': {
-          const bx = c.x + dx * sp.reach, by = c.y + dy * sp.reach;
-          this.world.explode(bx, by, 5, { fire: sp.ignite });
-          this.hitRadius(bx, by, sp.radius + 4, sp.power, sp.knock, p, p, key);
-          p.vx -= dx * sp.recoil; p.vy -= dy * sp.recoil * 0.8;
-          this.fx.push({ kind: 'ring', x: bx, y: by, r0: 3, r1: sp.radius + 3, t: 0, T: 0.22, color: sp.color });
-          this.fx.push({ kind: 'flash', x: bx, y: by, r: 26, t: 0, T: 0.14, color: sp.color });
-          this.burst(bx, by, 14, [[255, 220, 140], [255, 160, 60]], 120);
-          this.shake = Math.max(this.shake, 2);
+        case 'blastdash': {
+          p.vx = md.x * sp.speed; p.vy = md.y * sp.speed - (md.y === 0 ? 40 : 0);
+          p.grounded = false; p.rising = false;
+          const bx = c.x - md.x * 8, by = c.y - md.y * 8;
+          this.hitRadius(bx, by, 14, sp.power, 200, p, p, key);
+          for (let k = 0; k < 14; k++) { const x = Math.round(bx + (R() - 0.5) * 8), y = Math.round(by + (R() - 0.5) * 8); if (w.get(x, y) === M.EMPTY) w.set(x, y, M.FIRE); }
+          this.fx.push({ kind: 'flash', x: bx, y: by, r: 22, t: 0, T: 0.15, color: [255, 200, 120] });
+          this.burst(bx, by, 12, [[255, 220, 140], [255, 160, 60]], 120);
           break;
         }
       }
     }
 
-    channelTick(p) {
-      const sp = spells[p.channel], R = this.rand;
+    // Held spells: water jet and scald (shots); hover, steam flight, wall climb and drill (moves).
+    channelTick(p, mode) {
+      const key = p.channels[mode], sp = spells[key][mode], R = this.rand, w = this.world;
       const dx = Math.cos(p.aim), dy = Math.sin(p.aim), c = this.chest(p);
+      let drain = sp.drain;
       if (sp.kind === 'jet') {
         for (let i = 0; i < sp.perTick; i++) {
           const an = p.aim + (R() - 0.5) * 2 * sp.spread, s = sp.speed * (0.85 + R() * 0.3);
           this.parts.push({ x: c.x + dx * 6, y: c.y + dy * 6, vx: Math.cos(an) * s, vy: Math.sin(an) * s, g: 170, mat: M.WATER, life: 3, owner: p, push: sp.push });
         }
         if (!p.grounded) { p.vx -= dx * sp.recoil * DT; p.vy -= dy * sp.recoil * DT; }
+      } else if (sp.kind === 'cone') {
+        for (let i = 0; i < sp.perTick; i++) {
+          const an = p.aim + (R() - 0.5) * 2 * sp.spread, d = 6 + R() * sp.range;
+          const x = Math.round(c.x + Math.cos(an) * d), y = Math.round(c.y + Math.sin(an) * d);
+          if (w.get(x, y) === M.EMPTY && R() < 0.6) w.set(x, y, M.STEAM);
+        }
+        for (const o of this.actors) {
+          if (o === p || o.dead) continue;
+          const ox = o.x - c.x, oy = (o.y - o.h / 2) - c.y, d = Math.hypot(ox, oy);
+          let da = Math.atan2(oy, ox) - p.aim; da = Math.atan2(Math.sin(da), Math.cos(da));
+          if (d < sp.range + o.w / 2 && Math.abs(da) < sp.spread + 0.15) this.hurt(o, sp.power * DT, ox / (d || 1) * 4, 0, 'scald', p, key);
+        }
       } else if (sp.kind === 'thrust') {
-        // steam pushes you away from where you aim, for as long as it is held
-        p.vx -= dx * sp.accel * DT; p.vy -= dy * sp.accel * DT;
+        const md = this.moveDir(p, sp);
+        p.vx += md.x * sp.accel * DT; p.vy += md.y * sp.accel * DT;
         const s = Math.hypot(p.vx, p.vy);
         if (s > sp.maxSpeed) { p.vx *= sp.maxSpeed / s; p.vy *= sp.maxSpeed / s; }
-        if (dy > 0.3) { p.grounded = false; p.coyote = 0; }
+        if (md.y < -0.3) { p.grounded = false; p.coyote = 0; }
         p.rising = false;
-        const w = this.world;
         for (let i = 0; i < sp.steamPerTick; i++) {
           const d = 5 + R() * 7, side = (R() - 0.5) * 5;
-          const x = Math.round(c.x + dx * d - dy * side), y = Math.round(c.y + dy * d + dx * side);
+          const x = Math.round(c.x - md.x * d - md.y * side), y = Math.round(c.y - md.y * d + md.x * side + 4);
           if (w.get(x, y) === M.EMPTY) w.set(x, y, M.STEAM);
         }
+      } else if (sp.kind === 'hover') {
+        const target = p.moveY < 0 ? -sp.rise : p.moveY > 0 ? 70 : sp.sink;
+        p.vy += Math.sign(target - p.vy) * Math.min(Math.abs(target - p.vy), 1100 * DT);
+        p.rising = false;
+        for (let i = 0; i < sp.perTick; i++) this.parts.push({ x: p.x + (R() - 0.5) * 6, y: p.y, vx: (R() - 0.5) * 30, vy: 120 + R() * 60, g: 200, mat: M.WATER, life: 2, owner: p });
+      } else if (sp.kind === 'climb') {
+        const touching = this.collides(p, p.x + 1.5, p.y) || this.collides(p, p.x - 1.5, p.y);
+        if (touching) {
+          p.noGravity = true;
+          p.vy = p.moveY < 0 ? -sp.speed : p.moveY > 0 ? sp.speed : 0;
+          if (p.moveY < 0 && R() < 0.3) this.burst(p.x, p.y - 4, 1, [[96, 84, 104]], 20);
+        } else drain = 0; // only costs mana while clinging
+      } else if (sp.kind === 'drill') {
+        const md = this.moveDir(p, sp);
+        p.noGravity = true;
+        p.vx = md.x * sp.speed; p.vy = md.y * sp.speed;
+        const bx = p.x + md.x * 6, by = p.y - p.h / 2 + md.y * 8;
+        w.explode(bx, by, sp.radius);
+        if (R() < 0.4) this.burst(bx + md.x * 6, by + md.y * 6, 2, [[184, 140, 128], [132, 84, 100]], 60);
+        for (const o of this.actors) if (o !== p && !o.dead && Math.hypot(o.x - bx, (o.y - o.h / 2) - by) < sp.radius) {
+          if (!o._drillT || this.time - o._drillT > 0.3) { o._drillT = this.time; this.hurt(o, 12, md.x * 120, md.y * 120 - 40, 'drill', p, key); }
+        }
       }
-      this.spend(p, sp.drain * DT);
-      if (p.mana <= 0) this.endChannel(p);
+      if (drain) this.spend(p, drain * DT);
+      if (p.mana <= 0) this.endChannel(p, mode);
     }
-    endChannel(p) { if (p.channel) p.cds[p.channel] = spells[p.channel].cd; p.channel = null; }
+    endChannel(p, mode) {
+      const key = p.channels[mode];
+      if (key) p.cds[key + ':' + mode] = spells[key][mode].cd || 0;
+      p.channels[mode] = null;
+    }
+    endAllChannels(p) { for (const m of KData.modes) this.endChannel(p, m); }
 
-    castPillar(p, sp, c, dx, dy) {
+    // Magma slam lands
+    slamImpact(p) {
+      const { sp, key } = p.slam;
+      p.slam = null;
+      this.fillBlob(Math.round(p.x), Math.round(p.y) - 1, M.MAGMA, sp.count);
+      this.hitRadius(p.x, p.y - 4, sp.radius, sp.power, sp.knock, p, p, key);
+      this.fx.push({ kind: 'ring', x: p.x, y: p.y - 2, r0: 3, r1: sp.radius, t: 0, T: 0.25, color: [255, 140, 50] });
+      this.fx.push({ kind: 'flash', x: p.x, y: p.y - 2, r: 34, t: 0, T: 0.2, color: [255, 120, 40] });
+      this.burst(p.x, p.y - 2, 20, [[255, 168, 64], [255, 120, 40], [184, 140, 128]], 140);
+      this.shake = Math.max(this.shake, 3);
+    }
+
+    castPillar(p, sp, c, dx, dy, underSelf) {
       const w = this.world;
       const hit = w.ray(c.x, c.y, dx, dy, sp.range);
       const snap = Math.round(Math.atan2(-dy, -dx) / (Math.PI / 4)) * (Math.PI / 4);
       const gx = Math.round(Math.cos(snap)), gy = Math.round(Math.sin(snap));
+      if (!hit.hit && underSelf) {
+        // nothing below: a slab right under your feet to stand on
+        for (let y = 0; y <= 2; y++) for (let x = -6; x <= 6; x++) {
+          const cx = Math.round(p.x + x), cy = Math.round(p.y + 1 + y);
+          if (w.get(cx, cy) === M.EMPTY) w.set(cx, cy, M.DIRT);
+        }
+        p.vy = Math.min(p.vy, 0);
+        this.burst(p.x, p.y + 2, 10, [[184, 140, 128]], 50);
+        return;
+      }
       if (!hit.hit) {
         // nothing in range: a small slab where the ray ended
         for (let y = -1; y <= 1; y++) for (let x = -5; x <= 5; x++) {
@@ -296,7 +569,9 @@ const KGame = (() => {
       if (gx) a.vx = gx * Math.max(Math.abs(a.vx), rate * 0.6);
     }
 
-    castBolt(p, sp, c, dx, dy) {
+    // Bolt and Arc: an instant line that stops at the first enemy, water or
+    // solid. It then jumps to up to sp.chains more targets within sp.chainRange.
+    castBolt(p, sp, key, c, dx, dy) {
       const w = this.world;
       let ex = c.x, ey = c.y, target = null, water = null;
       for (let d = 3; d <= sp.range; d += 1) {
@@ -311,21 +586,50 @@ const KGame = (() => {
           break;
         }
       }
-      if (target) this.hurt(target, sp.power, dx * sp.knock, dy * sp.knock - 30, 'bolt', p, 'lightning+lightning');
+      this.fx.push({ kind: 'bolt', pts: this.jagged(c.x + dx * 3, c.y + dy * 3, ex, ey), t: 0, T: 0.16, color: sp.color });
+      if (target) this.hurt(target, sp.power, dx * sp.knock, dy * sp.knock - 30, 'bolt', p, key);
       if (water) {
         const n = w.electrify(water.x, water.y, sp.charge, sp.chargeCells);
         this.fx.push({ kind: 'flash', x: ex, y: ey, r: 18 + Math.min(40, n / 30), t: 0, T: 0.2, color: [180, 220, 255] });
       }
-      // chain to one more target near the end
-      const pts = this.jagged(c.x + dx * 3, c.y + dy * 3, ex, ey);
-      this.fx.push({ kind: 'bolt', pts, t: 0, T: 0.16, color: sp.color });
-      const near = this.actors.find(a => a !== p && a !== target && !a.dead && Math.hypot(a.x - ex, a.y - a.h / 2 - ey) < 16);
-      if (near && !water) {
-        this.hurt(near, sp.power * 0.5, dx * sp.knock * 0.5, -20, 'bolt', p, 'lightning+lightning');
-        this.fx.push({ kind: 'bolt', pts: this.jagged(ex, ey, near.x, near.y - near.h / 2), t: 0, T: 0.16, color: sp.color });
+      // jump on to nearby targets
+      const hitSet = new Set([p, target]);
+      let lx = ex, ly = ey;
+      for (let k = 0; k < (sp.chains || 0) && !water; k++) {
+        let next = null, best = sp.chainRange;
+        for (const a of this.actors) {
+          if (hitSet.has(a) || a.dead) continue;
+          const d = Math.hypot(a.x - lx, a.y - a.h / 2 - ly);
+          if (d < best && !w.ray(lx, ly, (a.x - lx) / d, (a.y - a.h / 2 - ly) / d, d).hit) { best = d; next = a; }
+        }
+        if (!next) break;
+        hitSet.add(next);
+        this.hurt(next, sp.power * 0.7, (next.x - lx) / best * sp.knock * 0.5, -20, 'bolt', p, key);
+        this.fx.push({ kind: 'bolt', pts: this.jagged(lx, ly, next.x, next.y - next.h / 2), t: 0, T: 0.18, color: sp.color });
+        lx = next.x; ly = next.y - next.h / 2;
       }
       this.fx.push({ kind: 'flash', x: ex, y: ey, r: 14, t: 0, T: 0.1, color: sp.color });
       this.burst(ex, ey, 6, [[255, 246, 170], [255, 255, 255]], 90);
+    }
+
+    // Ember lance: a straight burning beam that passes through enemies.
+    castLance(p, sp, key, c, dx, dy) {
+      const w = this.world, hit = new Set([p]);
+      let ex = c.x, ey = c.y;
+      for (let d = 3; d <= sp.range; d += 1) {
+        const x = c.x + dx * d, y = c.y + dy * d, ix = Math.floor(x), iy = Math.floor(y);
+        ex = x; ey = y;
+        const a = this.actorAt(x, y, null);
+        if (a && !hit.has(a)) { hit.add(a); this.hurt(a, sp.power, dx * sp.knock, dy * sp.knock - 20, 'lance', p, key); }
+        const m = w.get(ix, iy);
+        if (m === M.WATER) { w.set(ix, iy, M.STEAM); break; }
+        if (SOLID[m]) {
+          for (let k = 0; k < 6; k++) { const fx = ix + ((this.rand() - 0.5) * 6 | 0), fy = iy + ((this.rand() - 0.5) * 6 | 0), fm = w.get(fx, fy); if (fm === M.MOSS || (fm === M.EMPTY && this.rand() < 0.5)) w.set(fx, fy, M.FIRE); }
+          break;
+        }
+      }
+      this.fx.push({ kind: 'beam', x0: c.x + dx * 4, y0: c.y + dy * 4, x1: ex, y1: ey, t: 0, T: 0.14, color: sp.color });
+      this.fx.push({ kind: 'flash', x: ex, y: ey, r: 12, t: 0, T: 0.12, color: sp.color });
     }
 
     jagged(x0, y0, x1, y1) {
@@ -354,7 +658,7 @@ const KGame = (() => {
           const hit = this.actorAt(pr.x, pr.y, pr.age < 0.15 ? pr.owner : null, 1);
           if (pr.kind === 'spear') {
             pr.travelled += sp * DT / n;
-            if (hit) { this.hurt(hit, pr.sp.power, pr.vx / sp * pr.sp.knock, pr.vy / sp * pr.sp.knock - 30, 'spear', pr.owner, 'earth+lightning'); this.spark(pr.x, pr.y); pr.dead = true; break; }
+            if (hit) { this.hurt(hit, pr.sp.power, pr.vx / sp * pr.sp.knock, pr.vy / sp * pr.sp.knock - 30, 'spear', pr.owner, pr.key); this.spark(pr.x, pr.y); pr.dead = true; break; }
             if (m === M.ROCK) { this.spark(pr.x, pr.y); pr.dead = true; break; }
             if (SOLID[m]) {
               w.explode(pr.x, pr.y, pr.sp.bore);
@@ -385,15 +689,23 @@ const KGame = (() => {
       if (pr.kind === 'fireball') {
         const x = pr.x, y = pr.y;
         w.explode(x, y, sp.radius, { fire: sp.ignite, boil: 0.5 });
-        this.hitRadius(x, y, sp.radius + 6, sp.power, sp.knock, null, pr.owner, 'fire+fire');
+        this.hitRadius(x, y, sp.radius + 6, sp.power, sp.knock, null, pr.owner, pr.key);
         this.fx.push({ kind: 'ring', x, y, r0: 3, r1: sp.radius + 4, t: 0, T: 0.25, color: [255, 190, 90] });
         this.fx.push({ kind: 'flash', x, y, r: 34, t: 0, T: 0.18, color: [255, 160, 70] });
         this.burst(x, y, 26, [[184, 140, 128], [132, 84, 100], [255, 170, 70]], 150);
         this.shake = Math.max(this.shake, 3);
       } else if (pr.kind === 'blob') {
-        if (hit) this.hurt(hit, sp.power, pr.vx * 0.3, -40, 'magma', pr.owner, 'earth+fire');
+        if (hit) this.hurt(hit, sp.power, pr.vx * 0.3, -40, 'magma', pr.owner, pr.key);
         this.fillBlob(Math.floor(px), Math.floor(py), M[sp.mat], sp.count);
         this.burst(px, py, 8, [[255, 168, 64], [255, 120, 40]], 70);
+      } else if (pr.kind === 'boulder') {
+        const s = Math.hypot(pr.vx, pr.vy) || 1;
+        if (hit) this.hurt(hit, sp.power, pr.vx / s * sp.knock, pr.vy / s * sp.knock - 60, 'boulder', pr.owner, pr.key);
+        else this.hitRadius(pr.x, pr.y, 8, sp.power * 0.5, sp.knock * 0.5, null, pr.owner, pr.key);
+        w.explode(pr.x, pr.y, sp.dig);
+        this.fillBlob(Math.floor(px), Math.floor(py), M.EARTH, sp.rubble);
+        this.burst(px, py, 14, [[184, 140, 128], [150, 143, 138], [96, 90, 94]], 100);
+        this.shake = Math.max(this.shake, 2);
       }
     }
 
@@ -438,6 +750,11 @@ const KGame = (() => {
             if (a) { a.vx += pt.vx * pt.push; a.vy += pt.vy * pt.push * 0.6; pt.pushed = true; pt.vx *= 0.3; }
           }
           if (pt.mat === M.WATER && m === M.FIRE) { w.set(ix, iy, M.STEAM); pt.life = 0; break; }
+          if (pt.mat === M.MUD) {
+            // mud that hits someone coats them and slows them for a while
+            const a = this.actorAt(pt.x, pt.y, pt.owner);
+            if (a) { a.slowT = Math.max(a.slowT || 0, MUD_COAT); pt.life = 0; pt.landed = true; break; }
+          }
           if (m !== M.EMPTY) {
             const lx = Math.floor(ox), ly = Math.floor(oy);
             if (w.get(lx, ly) === M.EMPTY) w.set(lx, ly, pt.mat);
@@ -524,7 +841,7 @@ const KGame = (() => {
         }
       }
       this.burst(a.x, a.y - a.h / 2, 40, col, 140);
-      if (a.kind === 'player') { this.endChannel(a); a.dashT = 0; this.shake = Math.max(this.shake, 3); }
+      if (a.kind === 'player') { this.endAllChannels(a); a.slam = null; a.dashT = 0; this.shake = Math.max(this.shake, 3); }
     }
 
     // ---------- Shale crawler ----------
@@ -538,6 +855,8 @@ const KGame = (() => {
         return;
       }
       const set = s => { e.state = s; e.t = 0; };
+      if (e.slowT > 0) e.slowT -= DT;
+      const slow = (e.inMud || e.slowT > 0) ? MUD_SLOW : 1;
       // nearest living player, and whether it can be seen
       let p = null, best = 1e9;
       for (const q of this.players) if (!q.dead) { const dd = Math.hypot(q.x - e.x, q.y - e.y); if (dd < best) { best = dd; p = q; } }
@@ -563,7 +882,7 @@ const KGame = (() => {
           if (e.grounded) {
             if (ledgeAhead(e.dir) || (wallAhead(e.dir) && e.stuckT >= 1)) { e.dir = -e.dir; e.stuckT = 0; }
             else if (wallAhead(e.dir)) this.crawlerJump(e, 1);
-            e.vx = toward(e.vx, e.dir * E.walk, 300);
+            e.vx = toward(e.vx, e.dir * E.walk * slow, 300 * slow);
           }
           this.crawlerStuck(e, true);
           if (aware) set('chase');
@@ -578,7 +897,7 @@ const KGame = (() => {
           let moveDir = e.dir;
           if (e.flankT > 0) { e.flankT -= DT; moveDir = e.flankDir; if (!roof) e.flankT = 0; }
           if (e.grounded) {
-            e.vx = toward(e.vx, moveDir * E.run, 500);
+            e.vx = toward(e.vx, moveDir * E.run * slow, 500 * slow);
             // jump at walls, onto ledges you stand on, and across gaps towards you
             // (after a second of no progress it stops jumping and chews instead)
             if (e.stuckT >= 1) { /* chewing: see crawlerStuck */ }
@@ -586,7 +905,7 @@ const KGame = (() => {
             else if (above && !roof && Math.abs(dx) < 70) this.crawlerJump(e, Math.min(1.4, Math.sqrt(2 * PD.gravity * (-dy + 10)) / E.jump));
             else if (ledgeAhead(moveDir) && Math.abs(dx) > 16 && dy < 30) this.crawlerJump(e, 0.9);
           } else {
-            e.vx = toward(e.vx, e.dir * E.run, 160); // steer a little in the air
+            e.vx = toward(e.vx, e.dir * E.run * slow, 160 * slow); // steer a little in the air
           }
           this.crawlerStuck(e, false);
           if (see && e.grounded && Math.abs(dx) < E.lungeRange && Math.abs(dy) < 18) set('windup');
@@ -596,7 +915,7 @@ const KGame = (() => {
           // the warning: it stops, rears up and its eyes flare
           e.vx *= Math.exp(-12 * DT);
           if (p && Math.abs(dx) > 2) e.dir = Math.sign(dx);
-          if (e.t > E.windup) { set('lunge'); e.vx = e.dir * E.lungeSpeed; e.vy = -E.lungeLift; e.grounded = false; e.hit = false; }
+          if (e.t > E.windup / Math.sqrt(slow)) { set('lunge'); e.vx = e.dir * E.lungeSpeed * Math.sqrt(slow); e.vy = -E.lungeLift * Math.sqrt(slow); e.grounded = false; e.hit = false; }
           break;
         case 'lunge':
           if (!e.hit) for (const q of this.players) {
@@ -618,7 +937,8 @@ const KGame = (() => {
 
     crawlerJump(e, k) {
       if (!e.grounded || this.time - (e.jumpedAt || -9) < 0.35) return;
-      e.vy = -KData.enemies.crawler.jump * k; e.grounded = false; e.jumpedAt = this.time;
+      const slow = (e.inMud || e.slowT > 0) ? 0.7 : 1;
+      e.vy = -KData.enemies.crawler.jump * k * slow; e.grounded = false; e.jumpedAt = this.time;
     }
 
     // Trying to get somewhere but not making progress (jumps included):
@@ -641,6 +961,7 @@ const KGame = (() => {
             const m = w.get(cx, cy);
             if (KWorld.SOLID[m] && !w.isHard(m) && this.rand() < 0.35) { w.set(cx, cy, M.EMPTY); chewed++; }
           }
+        if (chewed) w.cleanup(x0 - 4, e.y - e.h - 4, x0 + 4, e.y + 2);
         if (chewed && this.rand() < 0.5) this.burst(x0, e.y - 4, 2, [[132, 84, 100], [184, 140, 128]], 50);
         if (e.stuckT > 5) { e.dir = -e.dir; e.stuckT = 0; } // rock or worse: try the other way
       }
@@ -665,7 +986,8 @@ const KGame = (() => {
 
     respawn(p) {
       const s = this.world.spawn;
-      Object.assign(p, { x: s.x, y: s.y, vx: 0, vy: 0, hp: p.maxHp, dead: false, mana: p.maxMana, manaWait: 0, dashT: 0, channel: null, lastHurt: -9 });
+      Object.assign(p, { x: s.x, y: s.y, vx: 0, vy: 0, hp: p.maxHp, dead: false, mana: p.maxMana, manaWait: 0, dashT: 0, slam: null, lastHurt: -9 });
+      this.endAllChannels(p);
     }
 
     dummyTick(d) {
@@ -699,6 +1021,7 @@ const KGame = (() => {
         const m = w.get(cx, cy);
         if (SOLID[m] && !w.isHard(m)) w.set(cx, cy, M.EMPTY);
       }
+      w.cleanup(a.x - a.w, a.y - a.h - 3, a.x + a.w, a.y + 3);
       if (this.collides(a, a.x, a.y)) a.y -= 1;
     }
 
@@ -722,7 +1045,7 @@ const KGame = (() => {
           if (o === a || o.dead || a.dashHit.has(o)) continue;
           if (Math.abs(o.x - a.x) < (o.w + a.w) / 2 && Math.abs((o.y - o.h / 2) - (a.y - a.h / 2)) < (o.h + a.h) / 2) {
             a.dashHit.add(o);
-            this.hurt(o, a.dashSp.power, a.dashVX * 0.4, a.dashVY * 0.4 - 40, 'dash', a, 'lightning+water');
+            this.hurt(o, a.dashSp.power, a.dashVX * 0.4, a.dashVY * 0.4 - 40, 'dash', a, a.dashKey);
           }
         }
         const tr = this.fx.find(f => f.kind === 'trail' && f.owner === a);
@@ -730,12 +1053,12 @@ const KGame = (() => {
         if (a.dashT <= 0) { a.vx *= 0.4; a.vy *= 0.4; }
       } else {
         const water = a.inWater;
-        a.vy += PD.gravity * DT * (water ? 0.28 : 1);
+        if (!a.noGravity) a.vy += PD.gravity * DT * (water ? 0.28 : 1);
         if (water) { a.vx *= Math.exp(-2.5 * DT); a.vy *= Math.exp(-3 * DT); }
         if (a.inMud) { a.vx *= Math.exp(-7 * DT); a.vy *= Math.exp(-5 * DT); }
         if (!a.grounded && a.kind === 'player') a.vx *= Math.exp(-0.6 * DT);
         if (a.kind === 'dummy' && a.grounded) a.vx *= Math.exp(-10 * DT);
-        a.vy = Math.min(a.vy, PD.maxFall);
+        if (!a.slam) a.vy = Math.min(a.vy, PD.maxFall);
       }
 
       // move in steps of at most one cell
@@ -766,6 +1089,8 @@ const KGame = (() => {
         }
       }
       if (!a.grounded && this.collides(a, a.x, a.y + 0.6)) a.grounded = true;
+      a.noGravity = false; // climbing and drilling set it again each step
+      if (a.slam) { a.slam.t += DT; if (a.grounded || a.slam.t > 1.5) this.slamImpact(a); }
       if (a.grounded && a.vy > 0) a.vy = 0;
       a.x = Math.max(4, Math.min(w.w - 4, a.x));
 

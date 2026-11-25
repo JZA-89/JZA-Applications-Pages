@@ -37,10 +37,12 @@
     els.appendChild(b);
   }
   const list = $('spellList');
+  const MODE_LABEL = { shot: 'Shot', burst: 'Burst', move: 'Move' };
   for (const key of Object.keys(spells)) {
-    const sp = spells[key], [a, b] = key.split('+'), li = document.createElement('li');
+    const [a, b] = key.split('+'), li = document.createElement('li');
     li.innerHTML = `<span class="pair"><i style="--c:${elements[a].css}"></i><i style="--c:${elements[b].css}"></i></span>` +
-      `<b>${sp.name} <small style="color:var(--dim);font-weight:500">· ${elements[a].name} + ${elements[b].name}</small></b><span class="desc">${sp.desc}</span>`;
+      `<b>${elements[a].name} + ${elements[b].name}</b>` +
+      KData.modes.map(md => `<span class="desc"><em>${MODE_LABEL[md]}</em> <strong>${spells[key][md].name}</strong>: ${spells[key][md].desc}</span>`).join('');
     list.appendChild(li);
   }
 
@@ -74,7 +76,7 @@
     document.body.dataset.mode = m;
     KInput.clearHeld();
     if (m === 'play') { view.focus({ preventScroll: true }); return; }
-    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spells and controls' : 'Prototype · one player · v0.8';
+    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spells and controls' : 'Prototype · one player · v0.9';
     $('btnGo').textContent = m === 'start' ? 'Start' : 'Resume';
     $('btnPanelReset').hidden = m === 'start';
     $('panelLede').hidden = m === 'help';
@@ -140,12 +142,18 @@
     }
     if (p.slotFlash > 0.3 && hud.flash <= 0.3) for (const i of [0, 1]) { const s = $('slot' + i); s.classList.remove('flash'); void s.offsetWidth; s.classList.add('flash'); }
     hud.flash = p.slotFlash;
-    const name = p.slots[0] && p.slots[1] ? spells[spellKey(p.slots[0], p.slots[1])].name : p.slots[0] ? 'Load one more' : 'Load two elements';
+    const pad = KInput.device === 'pad';
+    const set = p.slots[0] && p.slots[1] ? spells[spellKey(p.slots[0], p.slots[1])] : null;
+    const name = (set ? KData.modes.map(md => set[md].name).join('|') : p.slots[0] ? 'Load one more' : 'Load two elements') + (pad ? '#pad' : '');
     if (name !== hud.name) {
       hud.name = name;
       const n = $('spellName');
-      n.textContent = name;
-      n.classList.toggle('idle', !(p.slots[0] && p.slots[1]));
+      n.classList.toggle('idle', !set);
+      if (!set) n.textContent = name.replace('#pad', '');
+      else {
+        const keysFor = pad ? { shot: 'RT', burst: 'LT', move: 'LB' } : { shot: 'L', burst: 'R', move: 'Space' };
+        n.innerHTML = KData.modes.map(md => `<span class="mode"><kbd>${keysFor[md]}</kbd>${set[md].name}</span>`).join('');
+      }
     }
   }
 
@@ -156,7 +164,8 @@
     for (const a of game.actors) {
       if (a.dead || !game.inBox(a, wx, wy, pad)) continue;
       const hp = `Health ${Math.max(0, Math.ceil(a.hp))} of ${a.maxHp}`;
-      if (a.kind === 'crawler') return ['Shale crawler', `${hp}. Winds up, then lunges. A hard hit staggers it.`];
+      const slowed = a.slowT > 0 || a.inMud ? ' Slowed by mud.' : '';
+      if (a.kind === 'crawler') return ['Shale crawler', `${hp}.${slowed} Winds up, then lunges. A hard hit staggers it.`];
       if (a.kind === 'dummy') return ['Training dummy', `${hp}. Heals when left alone.`];
       if (a.kind === 'player') return [`You (${KData.golems[a.skin].name})`, `${hp}. Mana ${Math.round(a.mana)} of ${a.maxMana}.`];
     }

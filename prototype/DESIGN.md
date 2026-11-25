@@ -71,7 +71,11 @@ Each is linked with `?v=<version>`; bump them all together with the version in t
 
 Fireball explosions boil 50% of the water they reach. A bolt that reaches water electrifies up to 2,200 connected water cells for 70 steps.
 
-### The map
+#### No crumbs (minimum terrain size)
+
+After terrain breaks (`world.explode`, which every digging spell uses, crawler chewing, and the unstick check), `world.cleanup` looks at the area: any loose piece of dirt or lichen smaller than 10 cells (`World.MIN_PIECE`, 4-connected), and any single cell with at most one solid neighbour (thin spikes and strands, two passes), crumbles into loose earth and falls. Rock never changes. The starting cave is cleaned the same way (crumbs removed outright). This keeps pixel-sized floating bits out of the world, so creatures do not snag on them.
+
+## The map
 
 One hand-shaped cave (seed 20261125): rock frame; a long cavern with a wavy floor and ceiling; dirt above and below to dig; three floating dirt ledges; a rock spur in the middle; rock lumps; a pool on the right lined with rock; moss on floors and ceilings. Spawn on the left. Four training dummies.
 
@@ -153,32 +157,47 @@ Damage is not a fixed number of hits. Every actor has stats (`KData.baseStats`):
 
 ## Elements and spells
 
-Load two elements (order does not matter), then cast. A third element pushes out the first. The slots stay loaded after a cast, so you can cast the same spell again. Holding cast repeats a spell when its cooldown ends; Arc dash only casts on a fresh press. A global 0.12 s lock follows any cast. Damage below is base power (see Damage and stats).
+Load two elements (order does not matter). Every pair gives **three spells**, one per way of casting:
 
-| Spell | Elements | Kind | Mana | Numbers |
-|---|---|---|---|---|
-| Fireball | Fire + Fire | projectile | 14 | 230/s, gravity 70; blast radius 9 (dirt removed, fire on the rim); power 40 at the centre; knockback 210; cd 0.5 s. Into water: steam, no blast. |
-| Water jet | Water + Water | held | 14/s | 3 water particles a step while held, 210/s, spread ±0.12 rad; each particle pushes an actor once (× 0.008 of its speed); recoil 70/s² in the air; cd 0.25 s after it ends. |
-| Earth pillar | Earth + Earth | growth | 16 | Finds the surface along the aim (range 70) and grows dirt out of it, opposite the aim, snapped to 8 directions: 26 rows, 7 wide, 70 rows/s. Pushes actors one cell per row. Aim down to rise. No surface in range: an 11 × 3 slab. cd 0.55 s. |
-| Bolt | Lightning + Lightning | instant | 16 | Range 170; stops at the first actor, water or solid. Power 30. Into water: electrifies it. Chains to one more target within 16 for half. Sets lichen alight. cd 0.55 s. |
-| Steam | Fire + Water | held thrust | 18/s | While held, accelerates you 1,050/s² away from the aim (top speed 190) and leaves steam behind. Aim down to rise, sideways to fly across. A full bar lasts about 5.6 s. |
-| Magma | Earth + Fire | lob | 16 | 175/s, gravity 380; lands as 38 magma cells; power 15 on a direct hit. cd 0.7 s. |
-| Mud | Earth + Water | spray | 12 | 50 mud particles, 190/s (× 0.7–1.2), spread ±0.32 rad, gravity 300. cd 0.6 s. |
-| Arc dash | Lightning + Water | movement | 22 | 310/s for 0.12 s (37 cells), 0.2 s (62 cells) when starting in water. Power 20 to each actor passed through. Keeps 40% speed after. Fresh press only. cd 0.35 s. |
-| Stone spear | Earth + Lightning | projectile | 18 | 380/s, no gravity; bores a tunnel 3 cells in radius for up to 90 cells of dirt; stops at rock; power 45, knockback 160; range 260. cd 0.6 s. |
-| Flare | Fire + Lightning | blast | 18 | Centre 15 cells along the aim, radius 11 (+4 for actors); removes dirt within 5; power 35 at the centre; knockback 330; recoil 90 on the caster; some fire. cd 0.75 s. |
+| Mode | Input | Job in combat |
+|---|---|---|
+| **Shot** | left click (hold to repeat), RT | aimed at the cursor; ranged pressure; cheapest |
+| **Burst** | right click, LT | an area around you; close-range defence; costs more, longer cooldown |
+| **Move** | jump, then keep holding Space (or press Space again in the air), LB | moves you in the direction you press (W A S D / left stick), so you can move one way and shoot another |
+
+A third element pushes out the first; slots stay loaded after a cast. Held spells (Water jet, Scald, Hover, Steam flight, Wall climb, Drill) drain mana while held; the rest cost a set amount. One-shot Moves fire once per press. Each spell has its own cooldown (`key:mode`). A Shot or Burst is followed by a 0.12 s lock on Shots and Bursts. One spell of each mode can run at once (you can fly and shoot). Every cast alerts enemies within 110. All numbers live in `KData.spells`; power is base damage before stats.
+
+| Pair | Shot | Burst | Move |
+|---|---|---|---|
+| Fire + Fire | **Fireball** 14 mana: 230/s, gravity 70, blast radius 9 (digs, fire on the rim), power 40, knock 210, cd 0.5 | **Fire nova** 26: power 26 within 24, knock 220, ring of fire; cd 1.4 | **Rocket jump** 16: 250 up (or the pressed direction), a small blast where you were (power 18 to others, never you); cd 0.45 |
+| Water + Water | **Water jet** 14/s held: 3 particles a step, pushes | **Tidal wave** 24: 56 water particles both ways; enemies within 42 sideways shoved 320, power 10; cd 1.4 | **Hover** 10/s held: rise 45 (W), slow sink 14, drop faster (S); water drips below |
+| Earth + Earth | **Boulder** 16: lobbed 200/s, gravity 380, power 32, knock 300, digs radius 3, leaves 18 loose earth; cd 0.7 | **Stone shell** 24: a 2-thick ring of dirt at radius 14, pushes enemies out; cd 2 | **Pillar** 16: dirt grows up under you (26 rows, 7 wide, 80/s); no ground in range 70: a slab under your feet; cd 0.55 |
+| Lightning + Lightning | **Bolt** 16: instant, range 170, power 30, chains once within 16, electrifies water; cd 0.55 | **Shock field** 26: power 28 to all within 34, electrifies nearby water; cd 1.4 | **Blink** 20: teleport up to 36 in the pressed direction (default facing) to the furthest free spot; cd 0.5 |
+| Fire + Water | **Scald** 20/s held: steam cone, range 34, ±0.45 rad, power 32 a second | **Steam cloud** 20: steam fills radius 24 (60%), power 14 inside; cd 1.6 | **Steam flight** 18/s held: 1,050/s² in the pressed direction (default up), top speed 190; a full bar lasts about 5.6 s |
+| Earth + Fire | **Magma** 16: lob, 38 magma cells, power 15 direct; cd 0.7 | **Eruption** 28: 40 magma particles fountain from the ground within 28; power 24, knock 260 up; cd 1.8 | **Magma slam** 22: dive at 360 (default down); on landing 26 magma cells, power 30 within 20, knock 240; cd 0.6 |
+| Earth + Water | **Mud** 12: 50 particles, 220/s, ±0.28 rad, gravity 220. A hit coats and slows (below); cd 0.6 | **Mire** 22: the top 2 cells of ground within 32 (not under you) turn to mud; cd 2 | **Wall climb** 8/s, only while touching a wall: cling, climb with W (55/s), down with S |
+| Lightning + Water | **Arc** 18: like Bolt (range 140, power 20) but jumps to 3 more targets within 45 (×0.7); cd 0.55 | **Storm** 28: power 22 to every enemy within 75 in line of sight; cd 1.6 | **Arc dash** 22: 310/s for 0.12 s (0.2 s from water) in the pressed direction, power 20 to each actor passed; cd 0.35 |
+| Earth + Lightning | **Stone spear** 18: 380/s, bores radius 3 for 90 cells of dirt, power 45, knock 160; cd 0.6 | **Spikes** 26: dirt spikes (7 tall) every 4 cells within 30 on the ground; power 30, knock 240 up; cd 1.6 | **Drill** 24/s held: move 110/s in the pressed direction (default facing), boring radius 10, no gravity; 12 to anything touched (every 0.3 s) |
+| Fire + Lightning | **Ember lance** 14: instant straight beam, range 150, pierces every enemy (power 24), stops at solid (fire there) or water (steam); cd 0.4 | **Flare** 24: power 32 within 24, knock 340, sparks fire; cd 1.2 | **Blast dash** 18: thrown 280 in the pressed direction (default facing); blast behind you (power 16 to others); cd 0.45 |
+
+### Mud slows
+
+Standing in mud, or being hit by mud spray, slows. A spray hit coats the target for 2.5 s (`slowT`), even after it leaves the mud. Enemies move at 35% speed, wind up more slowly and lunge at about 60% speed; players run at 38% with weaker jumps. Coated enemies are drawn muddy and the hover note says "Slowed by mud". Measured: a crawler that takes 1.1 s to reach you takes 2.5 s after one Mud shot.
 
 ## Controls
 
 | Action | Keyboard and mouse | Controller |
 |---|---|---|
-| Move | A / D (or arrows) | Left stick, d-pad |
-| Jump, swim up | W, Space, Up | LB or LT |
+| Run | A / D (or arrows) | Left stick, d-pad |
+| Jump, swim up | Space | LB or RB |
 | Aim | Mouse | Right stick (or the left stick's direction) |
 | Load Fire / Water / Earth / Lightning | Q / E / R / F or 1–4 | B / X / A / Y |
-| Cast | Left click | RB or RT |
-| Clear the elements | X or right click | D-pad down |
-| Spells, pause | H, Esc or P | View, Menu |
+| Shot | Left click (hold repeats) | RT |
+| Burst | Right click | LT |
+| Move | Hold Space after jumping, or press it again in the air | Hold LB |
+| Move direction | W A S D (or arrows) | Left stick, d-pad |
+| Clear the elements | X | View |
+| Spells, pause | H, Esc or P | Menu |
 | Reset the map | Backspace | — |
 
 The last device used takes over. Touch controls are not built yet.
@@ -203,6 +222,7 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.6 (2026-11-25):** first enemy, the Shale crawler (patrol, chase, wind-up, lunge, recover; staggered by big hits; respawns). Jaisah asked for an enemy to test combat.
 - **v0.7 (2026-11-25):** crawlers no longer get stuck (Jaisah): they notice you by closeness, hits and spell noise as well as sight; walk out from under ledges and jump up; and chew through dirt when nothing else works. Tested: on a ledge above it, behind the rock spur, and sealed behind a dirt wall, it reaches and hits you.
 - **v0.8 (2026-11-25):** hover note: point at anything to see what it is (Jaisah).
+- **v0.9 (2026-11-25):** three ways to cast, approved by Jaisah: every pair has a Shot (left click), a Burst around you (right click) and a Move (hold Space after jumping), 30 spells in all; W/S now steer Moves (Space alone jumps) and X clears. No terrain crumbs: pieces under 10 cells and one-cell spikes crumble (Jaisah: 1-pixel bits snag bots). Mud now really slows enemies, and a spray hit coats and slows for 2.5 s (Jaisah).
 
 ## Open questions to test
 
