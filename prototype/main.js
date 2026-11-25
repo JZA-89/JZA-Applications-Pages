@@ -8,7 +8,7 @@
 
 (() => {
   const { elements, elementOrder, spells, spellKey, view: V, step: STEP } = KData;
-  const VERSION = 'v0.19';
+  const VERSION = 'v0.20';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -40,9 +40,9 @@
     els.appendChild(b);
   }
 
-  // ---------- spell book: ten pairs x three ways to cast ----------
+  // ---------- spell book: ten pairs x four ways to cast ----------
   const book = $('book');
-  const MODE_LABEL = { shot: ['Shot', 'left click'], burst: ['Burst', 'right click'], move: ['Move', 'Shift'] };
+  const MODE_LABEL = { shot: ['Shot', 'left click'], burst: ['Burst', 'right click'], lift: ['Lift', 'hold Space in the air'], move: ['Move', 'Shift'] };
   book.insertAdjacentHTML('beforeend', '<span></span>' + KData.modes.map(md => `<span class="hd">${MODE_LABEL[md][0]}<small>${MODE_LABEL[md][1]}</small></span>`).join(''));
   const showSpell = (btn, key, md) => {
     const [a, b] = key.split('+'), sp = spells[key][md];
@@ -214,7 +214,14 @@
     for (const e of game.events) {
       if (e.type === 'xp') { xpPending += e.amount; xpTimer = 0.6; }
       else if (e.type === 'shard') { shardPending++; shardTimer = 0.7; }
-      else if (e.type === 'level') toast(`Level ${e.level} · ${e.points} stat point${e.points === 1 ? '' : 's'} to spend at a Lodestone`, 'big');
+      else if (e.type === 'level') {
+        // point the way to the nearest Lodestone you have found, where points are spent
+        const p = game.players[0];
+        let best = null, bd = 1e9;
+        for (const id of game.found) { const l = game.world.lodestones[id]; if (!l) continue; const d = Math.hypot(l.x - p.x, l.y - p.y); if (d < bd) { bd = d; best = l; } }
+        const where = !best ? '' : bd < 40 ? ' · press F at the Lodestone here' : ` · nearest Lodestone ${Math.round(bd)} ${Math.abs(best.x - p.x) > Math.abs(best.y - p.y) ? (best.x < p.x ? 'west' : 'east') : (best.y < p.y ? 'up' : 'down')}`;
+        toast(`Level ${e.level} · ${e.points} stat point${e.points === 1 ? '' : 's'} to spend at a Lodestone${where}`, 'big');
+      }
       else if (e.type === 'found') toast(`Lodestone found · ${e.stone.hub ? 'the hub' : e.stone.region}`, 'stone');
       else if (e.type === 'rest') { save(); setMode('rest'); }
       else if (e.type === 'save') save();
@@ -280,7 +287,7 @@
       n.classList.toggle('idle', !set);
       if (!set) n.textContent = name.replace('#pad', '');
       else {
-        const keysFor = pad ? { shot: 'RT', burst: 'LT', move: 'RB' } : { shot: 'L', burst: 'R', move: 'Shift' };
+        const keysFor = pad ? { shot: 'RT', burst: 'LT', lift: 'LB', move: 'RB' } : { shot: 'L', burst: 'R', lift: 'Space', move: 'Shift' };
         n.innerHTML = KData.modes.map(md => `<span class="mode"><kbd>${keysFor[md]}</kbd>${set[md].name}</span>`).join('');
       }
     }

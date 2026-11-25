@@ -95,8 +95,11 @@ const KAudio = (() => {
   const LOOPS = {
     jet: { type: 'lowpass', f: 900, q: 0.8, vol: 0.22 },
     cone: { type: 'bandpass', f: 2500, q: 0.8, vol: 0.2 },
-    thrust: { type: 'highpass', f: 1800, q: 0.5, vol: 0.2 },
-    hover: { type: 'lowpass', f: 600, q: 1, vol: 0.2 },
+    lthrust: { type: 'highpass', f: 1500, q: 0.5, vol: 0.2 },
+    lhover: { type: 'lowpass', f: 600, q: 1, vol: 0.2 },
+    lcolumn: { type: 'lowpass', f: 260, q: 2, vol: 0.3 },
+    lglide: { type: 'bandpass', f: 1200, q: 0.6, vol: 0.1 },
+    lmagnet: { type: 'bandpass', f: 140, q: 4, vol: 0.3 },
     drill: { type: 'bandpass', f: 220, q: 2, vol: 0.4 },
     climb: { type: 'lowpass', f: 300, q: 2, vol: 0.12 },
   };

@@ -55,7 +55,7 @@ const KGame = (() => {
         slots: [null, null], cds: {}, lock: 0, mana: PD.mana, maxMana: PD.mana, manaWait: 0, manaFlash: 0,
         stats: KData.baseStats(), skin: 0,
         coyote: 0, jumpBuf: 0, jumpHeld: false, rising: false, castHeld: false,
-        channels: { shot: null, burst: null, move: null }, dashT: 0, dashVX: 0, dashVY: 0, dashHit: null,
+        channels: { shot: null, burst: null, lift: null, move: null }, dashT: 0, dashVX: 0, dashVY: 0, dashHit: null,
         dead: false, respawnT: 0, lastHurt: -9, flash: 0, slotFlash: 0, lastSpell: null,
         chips, inWater: false, inMud: false, hurtBy: {},
         level: 1, xp: 0, points: 0, alloc: {}, regenMul: 1,
@@ -615,6 +615,11 @@ const KGame = (() => {
       if (!a.jump && p.rising && p.vy < 0) { p.vy *= 0.5; p.rising = false; }
       if (p.vy >= 0) p.rising = false;
       p.jumpHeld = a.jump;
+      // Lift: holding Space in the air. It starts when you press Space while
+      // already in the air, or when a held jump reaches its top (so a full
+      // jump is still just a jump).
+      if (!a.jump) p.liftArmed = false;
+      else if ((jumpPressed && !jumpedNow && !p.grounded) || (!p.grounded && p.vy > -40)) p.liftArmed = true;
       const moveActive = !!a.moveSpell, movePressed = moveActive && !p.moveWas;
       p.moveWas = moveActive;
       if (p.safeT > 0) p.safeT -= DT;
@@ -632,7 +637,9 @@ const KGame = (() => {
         move: { held: moveActive, pressed: movePressed },
       };
       p.castHeld = a.cast; p.burstHeld = !!a.burst;
+      this.liftTick(p, a, key);
       for (const mode of KData.modes) {
+        if (mode === 'lift') continue;
         const { held, pressed } = input[mode];
         const ch = p.channels[mode];
         if (ch) {
@@ -698,8 +705,8 @@ const KGame = (() => {
 
     cast(p, key, mode, sp) {
       const SND = { projectile: 'fireball', boulder: 'earth', lob: 'magma', spear: 'spear', spray: 'mud', bolt: 'bolt', lance: 'lance', nova: 'nova', wave: 'splash',
-        shell: 'earth', field: 'shock', cloud: 'whoosh', eruption: 'rumble', mire: 'mud', storm: 'bolt', spikes: 'earth', flare: 'nova', rocket: 'explosion',
-        pillar: 'rumble', blink: 'blink', slam: 'whoosh', dash: 'bolt', blastdash: 'nova' };
+        shell: 'earth', field: 'shock', cloud: 'whoosh', eruption: 'rumble', mire: 'mud', storm: 'bolt', spikes: 'earth', flare: 'nova',
+        blink: 'blink', slam: 'whoosh', dash: 'whoosh', blastdash: 'nova' };
       if (SND[sp.kind]) this.sfx(SND[sp.kind], p.x, p.y - 8, mode === 'burst' ? 1 : 0.8);
       const dx = Math.cos(p.aim), dy = Math.sin(p.aim);
       const c = this.chest(p), ox = c.x + dx * 6, oy = c.y + dy * 6;
@@ -874,18 +881,6 @@ const KGame = (() => {
           break;
         }
         // ----- moves (in the direction you press) -----
-        case 'rocket': {
-          p.vx = p.vx * 0.5 + (p.moveX || 0) * sp.impulse * 0.35; p.vy = -sp.impulse;
-          p.grounded = false; p.rising = false;
-          const bx = p.x, by = p.y + 2;
-          w.explode(bx, by, sp.radius, { melt: this.has(p, 'melt') });
-          this.hitRadius(bx, by, sp.radius + 9, sp.power, sp.knock, p, p, key);
-          this.fx.push({ kind: 'ring', x: bx, y: by, r0: 2, r1: 12, t: 0, T: 0.22, color: [255, 170, 80] });
-          this.fx.push({ kind: 'flash', x: bx, y: by, r: 24, t: 0, T: 0.16, color: [255, 150, 60] });
-          this.burst(bx, by, 14, [[255, 170, 70], [184, 140, 128]], 110);
-          break;
-        }
-        case 'pillar': this.castPillar(p, sp, { x: p.x, y: p.y - 2 }, 0, 1, true); break;
         case 'blink': {
           const c0 = { x: p.x, y: p.y - p.h / 2 };
           let tx = p.x, ty = p.y;
@@ -911,7 +906,15 @@ const KGame = (() => {
           p.dashVX = md.x * sp.speed; p.dashVY = md.y * sp.speed;
           p.dashHit = new Set(); p.dashSp = sp; p.dashKey = key;
           p.rising = false;
-          this.fx.push({ kind: 'trail', pts: [{ x: c.x, y: c.y }], owner: p, t: 0, T: 0.45, color: [255, 246, 170] });
+          if (sp.trail) this.sfx(sp.trail === 'FIRE' ? 'fireball' : sp.trail === 'WATER' ? 'splash' : 'whoosh', p.x, p.y - 8, 0.7);
+          else if (sp.dig) this.sfx('earth', p.x, p.y - 8, 0.8);
+          else this.sfx('bolt', p.x, p.y - 8, 0.7);
+          if (sp.cloud) for (let k = 0; k < sp.cloud * 12; k++) {
+            const an = R() * Math.PI * 2, d = Math.sqrt(R()) * sp.cloud, x = Math.round(c.x + Math.cos(an) * d), y = Math.round(c.y + Math.sin(an) * d);
+            if (w.get(x, y) === M.EMPTY) w.set(x, y, M.STEAM);
+          }
+          const TC = { FIRE: [255, 170, 80], WATER: [120, 170, 255], STEAM: [220, 222, 240] };
+          this.fx.push({ kind: 'trail', pts: [{ x: c.x, y: c.y }], owner: p, t: 0, T: 0.45, color: TC[sp.trail] || (sp.dig ? [196, 152, 136] : [255, 246, 170]) });
           break;
         }
         case 'blastdash': {
@@ -927,7 +930,141 @@ const KGame = (() => {
       }
     }
 
-    // Held spells: water jet and scald (shots); hover, steam flight, wall climb and drill (moves).
+    // Lift: hold Space in the air. Each pair lifts differently (data.js
+    // spells[pair].lift): thrust (Flame jet, Steam flight, Plasma thrust),
+    // a slow cheap rise (Water jet), steps you build and jump off (Stone and
+    // Ember steps), a mud column that carries you (Mud tower), extra hops
+    // (Spark hops), a slow glide (Storm glide) and floating above the ground
+    // (Magnet float). Lifts never hurt you.
+    liftTick(p, a, key) {
+      const sp = key && spells[key].lift;
+      if (p.grounded) p.hops = 0;
+      const ok = sp && a.jump && p.liftArmed && !p.dead && !p.inWater && p.dashT <= 0 && !p.slam && !p.channels.move &&
+        (!p.grounded || sp.kind === 'lcolumn');
+      if (!ok) { p.channels.lift = null; p.liftNoMana = false; return; }
+      const R = this.rand, w = this.world, kind = sp.kind;
+      const noMana = () => { if (!p.liftNoMana) { p.liftNoMana = true; p.manaFlash = 0.35; this.sfx('nomana', p.x, p.y); } };
+      if (sp.drain) {
+        if (!p.channels.lift) {
+          if (p.mana < sp.min) return noMana();
+          p.channels.lift = key;
+          this.alert(p, p.x, p.y, KData.enemies.crawler.hearing);
+        }
+        if (p.mana <= 0) { p.channels.lift = null; p.liftArmed = false; return; }
+      }
+      p.safeT = Math.max(p.safeT || 0, 0.4);
+      p.rising = false; p.coyote = 0;
+      const steer = (speed, acc) => { const tx = (p.moveX || 0) * speed; p.vx += Math.sign(tx - p.vx) * Math.min(Math.abs(tx - p.vx), acc * DT); };
+      const free = this.has(p, 'tidal') && this.nearWater(p) && (kind === 'lthrust' || kind === 'lhover' || kind === 'lglide');
+      if (kind === 'lthrust') {
+        // a jet straight down pushes you up; Plasma thrust trades height for speed when you steer
+        const side = p.moveX || 0, top = sp.emit === 'SPARK' && side ? sp.maxSpeed * 0.45 : sp.maxSpeed;
+        if (p.moveY <= 0) p.vy = Math.max(p.vy - sp.accel * DT, Math.min(p.vy, -top));
+        steer(sp.sideSpeed, sp.sideAccel);
+        if (sp.emit === 'STEAM') for (let i = 0; i < 3; i++) {
+          const x = Math.round(p.x + (R() - 0.5) * 6), y = Math.round(p.y + 2 + R() * 8);
+          if (w.get(x, y) === M.EMPTY) w.set(x, y, M.STEAM);
+        } else if (sp.emit === 'FIRE') {
+          for (let i = 0; i < 2; i++) {
+            const x = Math.round(p.x + (R() - 0.5) * 6), y = Math.round(p.y + 3 + R() * 10);
+            if (w.get(x, y) === M.EMPTY) w.set(x, y, M.FIRE);
+          }
+          for (const o of this.actors) {
+            if (o === p || o.dead || o.kind === 'player') continue;
+            const top = o.y - o.h;
+            if (Math.abs(o.x - p.x) < 5 + o.w / 2 && top > p.y - 4 && top - p.y < sp.reach) this.hurt(o, sp.power * DT, 0, 50, 'burn', p, key);
+          }
+        } else if (R() < 0.6) this.burst(p.x - side * 3, p.y + 2, 1, [[255, 220, 140], [255, 246, 170]], 70);
+      } else if (kind === 'lhover') {
+        const target = p.moveY > 0 ? 60 : -sp.rise;
+        p.vy += Math.sign(target - p.vy) * Math.min(Math.abs(target - p.vy), 1100 * DT);
+        steer(sp.sideSpeed, 500);
+        for (let i = 0; i < sp.perTick; i++) this.parts.push({ x: p.x + (R() - 0.5) * 6, y: p.y, vx: (R() - 0.5) * 30, vy: 120 + R() * 60, g: 200, mat: M.WATER, life: 2, owner: p });
+      } else if (kind === 'lsteps') {
+        // when you start to fall, a step forms under your feet and you jump off it
+        if (p.vy > -10 && this.time - (p.stepT || -9) > sp.gap) {
+          if (p.mana < sp.cost) return noMana();
+          const half = sp.width >> 1, y0 = Math.round(p.y) + 1;
+          let placed = 0;
+          for (let y = 0; y < 2; y++) for (let x = -half; x <= half; x++) {
+            const cx = Math.round(p.x + x), cy = y0 + y, m = w.get(cx, cy);
+            if ((m === M.EMPTY || m === M.STEAM || m === M.FIRE) && !this.actorAt(cx, cy, p)) { w.set(cx, cy, M.DIRT); placed++; }
+            else if (KWorld.SOLID[m]) placed++;
+          }
+          if (placed < sp.width) return;   // no room for a step here
+          this.spend(p, sp.cost);
+          p.stepT = this.time; p.vy = -sp.jump * (this.has(p, 'spring') ? 1.15 : 1); p.grounded = false;
+          this.alert(p, p.x, p.y, KData.enemies.crawler.hearing);
+          this.sfx('earth', p.x, p.y, 0.6);
+          this.burst(p.x, p.y + 2, 6, [[184, 140, 128], [132, 84, 100]], 50);
+          if (sp.hot) {
+            this.hitRadius(p.x, p.y + 10, 16, sp.power, 120, p, p, key);
+            for (let k = 0; k < 10; k++) { const x = Math.round(p.x + (R() - 0.5) * sp.width), y = y0 + 2 + Math.floor(R() * 6); if (w.get(x, y) === M.EMPTY) w.set(x, y, M.FIRE); }
+            this.fx.push({ kind: 'flash', x: p.x, y: p.y + 4, r: 18, t: 0, T: 0.15, color: [255, 150, 60] });
+            this.sfx('fireball', p.x, p.y, 0.6);
+          }
+        }
+      } else if (kind === 'lcolumn') {
+        // a column of packed mud grows under your feet and lifts you
+        p.noGravity = true;
+        p.vy = -sp.rise;
+        const half = sp.width >> 1, y0 = Math.round(p.y) + 1;
+        for (let y = 0; y < 2; y++) for (let x = -half; x <= half; x++) {
+          const cx = Math.round(p.x + x), cy = y0 + y, m = w.get(cx, cy);
+          if ((m === M.EMPTY || m === M.STEAM || m === M.FIRE) && !this.actorAt(cx, cy, p)) w.set(cx, cy, M.DIRT);
+        }
+        if (R() < 0.3) this.burst(p.x + (R() - 0.5) * sp.width, p.y + 2, 1, [[150, 110, 96], [120, 86, 80]], 40);
+      } else if (kind === 'lhops') {
+        // up to three extra jumps before you land, each off a crack of lightning
+        if (p.vy > -20 && (p.hops || 0) < sp.hops && this.time - (p.hopT || -9) > 0.15) {
+          if (p.mana < sp.cost) return noMana();
+          this.spend(p, sp.cost);
+          p.hops = (p.hops || 0) + 1; p.hopT = this.time;
+          p.vy = -sp.jump * (this.has(p, 'spring') ? 1.15 : 1);
+          if (p.moveX) p.vx = p.moveX * sp.side;
+          this.hitRadius(p.x, p.y + 6, sp.radius, sp.power, 90, p, p, key);
+          this.fx.push({ kind: 'bolt', pts: this.jagged(p.x, p.y, p.x + (R() - 0.5) * 10, p.y + 14), t: 0, T: 0.15, color: [255, 246, 170] });
+          this.fx.push({ kind: 'ring', x: p.x, y: p.y + 2, r0: 2, r1: sp.radius, t: 0, T: 0.18, color: [255, 246, 170] });
+          this.sfx('shock', p.x, p.y, 0.7);
+          this.alert(p, p.x, p.y, KData.enemies.crawler.hearing);
+        }
+      } else if (kind === 'lglide') {
+        // a slow fall, fast sideways, striking enemies below
+        if (p.vy > sp.fall) p.vy = Math.max(sp.fall, p.vy - 1400 * DT);
+        if (p.moveX) steer(sp.side, 600);
+        p.glideT = (p.glideT || 0) - DT;
+        if (p.glideT <= 0) {
+          let best = null, bd = sp.range;
+          for (const o of this.actors) {
+            if (o === p || o.dead || o.kind === 'player' || o.y < p.y) continue;
+            const d = Math.hypot(o.x - p.x, o.y - o.h / 2 - p.y);
+            if (d < bd && Math.abs(o.x - p.x) < d * 0.8 + 6 && !w.ray(p.x, p.y, (o.x - p.x) / d, (o.y - o.h / 2 - p.y) / d, d - 3).hit) { best = o; bd = d; }
+          }
+          if (best) {
+            this.hurt(best, sp.power, 0, -30, 'shock', p, key);
+            this.fx.push({ kind: 'bolt', pts: this.jagged(p.x, p.y, best.x, best.y - best.h / 2), t: 0, T: 0.15, color: [190, 230, 255] });
+            this.sfx('bolt', best.x, best.y, 0.5);
+            p.glideT = sp.every;
+          } else p.glideT = 0.1;
+        }
+        if (R() < 0.4) this.burst(p.x + (R() - 0.5) * 10, p.y - 2, 1, [[190, 230, 255], [140, 180, 255]], 30);
+      } else if (kind === 'lmagnet') {
+        // pushed off the surface below: ground, water or magma
+        p.noGravity = true;
+        let ground = -1;
+        for (let d = 1; d <= sp.range && ground < 0; d++) for (const ox of [-4, 0, 4]) {
+          const m = w.get(Math.round(p.x + ox), Math.round(p.y + d));
+          if (KWorld.SOLID[m] || m === M.WATER || m === M.MAGMA) { ground = d; break; }
+        }
+        const want = ground < 0 ? sp.sink : Math.max(-90, Math.min(90, (ground - sp.height) * 6));
+        p.vy += Math.sign(want - p.vy) * Math.min(Math.abs(want - p.vy), 900 * DT);
+        steer(sp.side, 800);
+        if (ground >= 0 && R() < 0.35) this.fx.push({ kind: 'bolt', pts: this.jagged(p.x, p.y, p.x + (R() - 0.5) * 8, p.y + ground), t: 0, T: 0.08, color: [200, 210, 255] });
+      }
+      if (sp.drain && !free) this.spend(p, sp.drain * DT);
+    }
+
+    // Held spells: water jet and scald (shots); wall climb and drill (moves).
     channelTick(p, mode) {
       const key = p.channels[mode], sp = spells[key][mode], R = this.rand, w = this.world;
       const dx = Math.cos(p.aim), dy = Math.sin(p.aim), c = this.chest(p);
@@ -951,21 +1088,6 @@ const KGame = (() => {
           let da = Math.atan2(oy, ox) - p.aim; da = Math.atan2(Math.sin(da), Math.cos(da));
           if (d < sp.range + o.w / 2 && Math.abs(da) < sp.spread + 0.15) this.hurt(o, sp.power * DT, ox / (d || 1) * 4, 0, 'scald', p, key);
         }
-      } else if (sp.kind === 'thrust') {
-        // steam blasts straight down, lifting you; A and D steer
-        if (p.moveY <= 0) { p.vy -= sp.accel * DT; if (p.vy < -sp.maxSpeed) p.vy = -sp.maxSpeed; }
-        const tx = (p.moveX || 0) * sp.sideSpeed;
-        p.vx += Math.sign(tx - p.vx) * Math.min(Math.abs(tx - p.vx), sp.sideAccel * DT);
-        p.grounded = false; p.coyote = 0; p.rising = false;
-        for (let i = 0; i < sp.steamPerTick; i++) {
-          const x = Math.round(p.x + (R() - 0.5) * 6), y = Math.round(p.y + 2 + R() * 8);
-          if (w.get(x, y) === M.EMPTY) w.set(x, y, M.STEAM);
-        }
-      } else if (sp.kind === 'hover') {
-        const target = p.moveY > 0 ? 60 : p.moveY < 0 ? -sp.rise : -sp.rise * 0.5;
-        p.vy += Math.sign(target - p.vy) * Math.min(Math.abs(target - p.vy), 1100 * DT);
-        p.rising = false;
-        for (let i = 0; i < sp.perTick; i++) this.parts.push({ x: p.x + (R() - 0.5) * 6, y: p.y, vx: (R() - 0.5) * 30, vy: 120 + R() * 60, g: 200, mat: M.WATER, life: 2, owner: p });
       } else if (sp.kind === 'climb') {
         const touching = this.collides(p, p.x + 1.5, p.y) || this.collides(p, p.x - 1.5, p.y);
         if (touching) {
@@ -984,7 +1106,6 @@ const KGame = (() => {
           if (!o._drillT || this.time - o._drillT > 0.3) { o._drillT = this.time; this.hurt(o, 12, md.x * 120, md.y * 120 - 40, 'drill', p, key); }
         }
       }
-      if ((sp.kind === 'thrust' || sp.kind === 'hover') && this.has(p, 'tidal') && this.nearWater(p)) drain = 0;
       if (drain) this.spend(p, drain * DT);
       if (p.mana <= 0) this.endChannel(p, mode);
     }
@@ -1000,7 +1121,7 @@ const KGame = (() => {
       if (key) p.cds[key + ':' + mode] = spells[key][mode].cd || 0;
       p.channels[mode] = null;
     }
-    endAllChannels(p) { for (const m of KData.modes) this.endChannel(p, m); }
+    endAllChannels(p) { for (const m of KData.modes) this.endChannel(p, m); p.liftArmed = false; }
 
     // Magma slam lands
     slamImpact(p) {
@@ -1403,7 +1524,7 @@ const KGame = (() => {
       a.dead = true; a.hp = 0;
       // experience to whoever hit it last (hazards a player caused count for 8 s)
       if (a.kind !== 'player' && a.kind !== 'dummy' && a.lastHitBy && this.time - a.lastHitAt < 8 && !a.lastHitBy.dead)
-        this.gainXp(a.lastHitBy, KData.progression.killXp(a.level || 1, a.kind, a.elite), 'kill');
+        this.gainXp(a.lastHitBy, Math.max(1, Math.round(KData.progression.killXp(a.level || 1, a.kind, a.elite) * KData.progression.underLevel(a.lastHitBy.level - (a.level || 1)))), 'kill');
       if (a.kind === 'player') this.events.push({ type: 'died' });
       else if (a.kind !== 'dummy' && a.lastHitBy && (a.elite || a.boss || this.rand() < KData.runes.dropChance)) {
         const n = a.boss ? 2 : 1;
@@ -1852,6 +1973,14 @@ const KGame = (() => {
       if (a.kind === 'player' && a.dashT > 0) {
         a.dashT -= DT;
         a.vx = a.dashVX; a.vy = a.dashVY;
+        const ds = a.dashSp, R = this.rand;
+        if (ds.dig) w.explode(a.x + Math.sign(a.dashVX) * 7, a.y - a.h / 2, ds.dig);
+        if (ds.trail) for (let k = 0; k < 4; k++) {
+          const x = Math.round(a.x - Math.sign(a.dashVX) * (4 + R() * 6)), y = Math.round(a.y - 1 - R() * (a.h - 2));
+          if (w.get(x, y) !== M.EMPTY) continue;
+          if (ds.trail === 'WATER') { if (R() < 0.5) w.set(x, y, M.WATER); }
+          else if (R() < 0.7) w.set(x, y, M[ds.trail]);
+        }
         for (const o of this.actors) {
           if (o === a || o.dead || a.dashHit.has(o)) continue;
           if (Math.abs(o.x - a.x) < (o.w + a.w) / 2 && Math.abs((o.y - o.h / 2) - (a.y - a.h / 2)) < (o.h + a.h) / 2) {

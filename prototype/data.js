@@ -70,6 +70,9 @@ const KData = (() => {
   // "fire+water") gives three spells:
   //   shot  (left click)  aimed at the cursor
   //   burst (right click) an area around you
+  //   lift  (hold Space in the air) carries you up or across; each pair
+  //         lifts differently: thrust (fire), slow and cheap (water),
+  //         steps you build (earth), hops and glides (lightning)
   //   move  (Shift: tap, or hold for held moves) moves you; A/D steer
   // kind: the behaviour in game.js. cd: seconds before that spell again.
   // cost: mana per cast. drain/min: held spells use mana per second and need
@@ -81,30 +84,38 @@ const KData = (() => {
         speed: 230, gravity: 70, radius: 9, power: 40, knock: 210, ignite: 0.55, color: [255, 150, 52] },
       burst: { name: 'Fire nova', kind: 'nova', cd: 0.4, cost: 26, desc: 'A ring of flame bursts out around you.',
         radius: 24, power: 26, knock: 220, color: [255, 150, 60] },
-      move: { name: 'Rocket jump', kind: 'rocket', cd: 0.45, cost: 16, dir: 'up', desc: 'A blast under you throws you upwards (A and D lean sideways). It does not hurt you.',
-        impulse: 250, radius: 5, power: 18, knock: 160 },
+      lift: { name: 'Flame jet', kind: 'lthrust', drain: 22, min: 6, desc: 'Fire roars from your feet and drives you up fast, burning anything below you. Strong, but uses mana quickly.',
+        accel: 850, maxSpeed: 125, sideSpeed: 85, sideAccel: 600, emit: 'FIRE', power: 22, reach: 34 },
+      move: { name: 'Flame dash', kind: 'dash', cd: 0.35, cost: 18, dir: 'facing', desc: 'Dash the way you press (A or D), or the way you face, leaving a trail of fire.',
+        speed: 290, time: 0.13, waterTime: 0.13, power: 18, trail: 'FIRE' },
     },
     'water+water': {
       shot: { name: 'Water jet', kind: 'jet', cd: 0.25, drain: 14, min: 5, desc: 'Hold to spray water. Pushes things and fills hollows.',
         speed: 210, spread: 0.12, perTick: 3, push: 0.008, recoil: 70 },
       burst: { name: 'Tidal wave', kind: 'wave', cd: 0.4, cost: 24, desc: 'Water surges out both sides and shoves enemies away.',
         reach: 42, power: 10, knock: 320, count: 56 },
-      move: { name: 'Hover', kind: 'hover', drain: 10, min: 4, dir: 'up', desc: 'Hold to rise gently on jets of water. Slower than steam, but cheaper.',
-        rise: 45, sink: 14, perTick: 2 },
+      lift: { name: 'Water jet', kind: 'lhover', drain: 8, min: 4, desc: 'Rise slowly on jets of water. The slowest lift, but the cheapest: it lasts a long time. Soaks anything below you.',
+        rise: 48, sideSpeed: 70, perTick: 2 },
+      move: { name: 'Surf', kind: 'dash', cd: 0.4, cost: 16, dir: 'facing', desc: 'Ride a rush of water the way you press (A or D), or the way you face, soaking whatever you hit.',
+        speed: 230, time: 0.24, waterTime: 0.3, power: 8, trail: 'WATER' },
     },
     'earth+earth': {
       shot: { name: 'Boulder', kind: 'boulder', cd: 0.7, cost: 16, desc: 'A heavy lobbed rock. Big knockback, leaves rubble.',
         speed: 200, gravity: 380, power: 32, knock: 300, dig: 3, rubble: 18 },
       burst: { name: 'Stone shell', kind: 'shell', cd: 0.5, cost: 24, desc: 'A ring of dirt rises around you: instant cover.',
         radius: 14, thick: 2, knock: 140 },
-      move: { name: 'Pillar', kind: 'pillar', cd: 0.55, cost: 16, dir: 'up', desc: 'Earth rises under you and lifts you up.',
-        range: 70, length: 26, width: 7, growRate: 80 },
+      lift: { name: 'Stone steps', kind: 'lsteps', cost: 12, desc: 'Each time you start to fall, a step of stone forms under your feet and you jump off it. The steps stay, so you build a way back.',
+        jump: 165, gap: 0.28, width: 11 },
+      move: { name: 'Shoulder charge', kind: 'dash', cd: 0.5, cost: 20, dir: 'facing', desc: 'Charge the way you press (A or D), or the way you face, smashing through dirt and hitting hard.',
+        speed: 220, time: 0.22, waterTime: 0.22, power: 30, dig: 8 },
     },
     'lightning+lightning': {
       shot: { name: 'Bolt', kind: 'bolt', cd: 0.55, cost: 16, desc: 'An instant bolt. Electrifies any water it touches.',
         range: 170, power: 30, knock: 90, chains: 1, chainRange: 16, charge: 70, chargeCells: 2200, color: [255, 246, 170] },
       burst: { name: 'Shock field', kind: 'field', cd: 0.4, cost: 26, desc: 'Shocks everything near you.',
         radius: 34, power: 28, knock: 80, charge: 60, color: [255, 246, 170] },
+      lift: { name: 'Spark hops', kind: 'lhops', cost: 14, desc: 'Leap again off a crack of lightning, up to three times before you land. Each hop is quick and shocks whatever is under you.',
+        jump: 160, side: 125, hops: 3, power: 14, radius: 14 },
       move: { name: 'Blink', kind: 'blink', cd: 0.5, cost: 20, dir: 'facing', desc: 'Jump through space the way you press (A or D), or the way you face.',
         dist: 36 },
     },
@@ -113,14 +124,18 @@ const KData = (() => {
         range: 34, spread: 0.45, power: 32, perTick: 3 },
       burst: { name: 'Steam cloud', kind: 'cloud', cd: 0.4, cost: 20, desc: 'A thick cloud to hide in. Scalds anyone inside.',
         radius: 24, power: 14, fill: 0.6 },
-      move: { name: 'Steam flight', kind: 'thrust', drain: 18, min: 6, dir: 'up', desc: 'Hold to fly: steam blasts straight down. Steer with A and D.',
-        accel: 900, maxSpeed: 150, sideSpeed: 95, sideAccel: 700, steamPerTick: 3 },
+      lift: { name: 'Steam flight', kind: 'lthrust', drain: 16, min: 6, desc: 'Steam blasts straight down: the strongest, fastest lift. Steer with A and D.',
+        accel: 1000, maxSpeed: 155, sideSpeed: 95, sideAccel: 700, emit: 'STEAM' },
+      move: { name: 'Vanish', kind: 'dash', cd: 0.45, cost: 18, dir: 'facing', desc: 'Dash the way you press (A or D), or the way you face, in a burst of steam that leaves a cloud to hide in.',
+        speed: 300, time: 0.12, waterTime: 0.12, power: 10, trail: 'STEAM', cloud: 16 },
     },
     'earth+fire': {
       shot: { name: 'Magma', kind: 'lob', cd: 0.7, cost: 16, desc: 'A lobbed blob of magma. Burns, then cools into dirt.',
         speed: 175, gravity: 380, count: 38, mat: 'MAGMA', power: 15, color: [255, 140, 50] },
       burst: { name: 'Eruption', kind: 'eruption', cd: 0.45, cost: 28, desc: 'Magma bursts out of the ground around you.',
         reach: 28, power: 24, knock: 260, count: 40 },
+      lift: { name: 'Ember steps', kind: 'lsteps', cost: 16, desc: 'Like Stone steps, but each step bursts with heat: you leap higher, and anything under the step burns.',
+        jump: 200, gap: 0.32, width: 11, hot: true, power: 16 },
       move: { name: 'Magma slam', kind: 'slam', cd: 0.6, cost: 22, dir: 'down', desc: 'Dive and smash down, splashing magma.',
         speed: 360, radius: 20, power: 30, knock: 240, count: 26 },
     },
@@ -129,6 +144,8 @@ const KData = (() => {
         speed: 220, spread: 0.28, count: 50, gravity: 220, mat: 'MUD' },
       burst: { name: 'Mire', kind: 'mire', cd: 0.5, cost: 22, desc: 'The ground around you turns to mud.',
         radius: 32, depth: 2 },
+      lift: { name: 'Mud tower', kind: 'lcolumn', drain: 9, min: 4, desc: 'A column of packed mud grows under you and carries you up. Slow, but it stays as a pillar you can stand on.',
+        rise: 50, width: 9 },
       move: { name: 'Wall climb', kind: 'climb', drain: 8, min: 3, dir: 'up', desc: 'Hold next to a wall to climb it.',
         speed: 55 },
     },
@@ -137,6 +154,8 @@ const KData = (() => {
         range: 140, power: 20, knock: 60, chains: 3, chainRange: 45, charge: 50, chargeCells: 1500, color: [190, 230, 255] },
       burst: { name: 'Storm', kind: 'storm', cd: 0.4, cost: 28, desc: 'Lightning arcs to every enemy near you.',
         range: 75, power: 22, knock: 90, color: [190, 230, 255] },
+      lift: { name: 'Storm glide', kind: 'lglide', drain: 6, min: 3, desc: 'Glide down slowly on a charged wind, moving fast with A and D. Lightning strikes enemies below you. It cannot climb.',
+        fall: 32, side: 125, power: 12, range: 60, every: 0.5 },
       move: { name: 'Arc dash', kind: 'dash', cd: 0.35, cost: 22, dir: 'facing', desc: 'Dash the way you press (A or D), or the way you face. Further from water.',
         speed: 310, time: 0.12, waterTime: 0.2, power: 20 },
     },
@@ -145,6 +164,8 @@ const KData = (() => {
         speed: 380, bore: 3, boreLength: 90, power: 45, knock: 160, range: 260, color: [190, 196, 210] },
       burst: { name: 'Spikes', kind: 'spikes', cd: 0.45, cost: 26, desc: 'Stone spikes burst from the ground around you.',
         reach: 30, power: 30, knock: 240, height: 7 },
+      lift: { name: 'Magnet float', kind: 'lmagnet', drain: 9, min: 4, desc: 'Lightning charges you against the ground: you float at head height above whatever is below, and run fast. Over a deep drop you only sink slowly.',
+        height: 26, range: 60, side: 120, sink: 60 },
       move: { name: 'Drill', kind: 'drill', drain: 24, min: 6, dir: 'facing', desc: 'Hold to bore through dirt the way you press (A or D), or the way you face.',
         speed: 110, radius: 10 },
     },
@@ -153,11 +174,13 @@ const KData = (() => {
         range: 150, power: 24, knock: 60, color: [255, 170, 80] },
       burst: { name: 'Flare', kind: 'flare', cd: 0.4, cost: 24, desc: 'A blast all around you that throws things back hard.',
         radius: 24, power: 32, knock: 340, ignite: 0.3, color: [255, 220, 140] },
+      lift: { name: 'Plasma thrust', kind: 'lthrust', drain: 26, min: 6, desc: 'A searing jet that flies you the way you press: up, or hard to the side with A and D. The fastest across, the costliest.',
+        accel: 800, maxSpeed: 115, sideSpeed: 175, sideAccel: 900, emit: 'SPARK' },
       move: { name: 'Blast dash', kind: 'blastdash', cd: 0.45, cost: 18, dir: 'facing', desc: 'An explosion behind you throws you forward.',
         speed: 280, power: 16 },
     },
   };
-  const modes = ['shot', 'burst', 'move'];
+  const modes = ['shot', 'burst', 'lift', 'move'];
   function spellKey(a, b) { return a <= b ? a + '+' + b : b + '+' + a; }
   for (const k in spells) { const [a, b] = k.split('+'); if (spellKey(a, b) !== k) throw new Error('Spell key out of order: ' + k); }
 
@@ -254,7 +277,7 @@ const KData = (() => {
   const treasure = {
     cacheChance: 0.6,          // per chamber
     kinds: { buried: 0.28, high: 0.45, pool: 0.7, rock: 0.4 },
-    xp: L => 30 * L, shards: L => 12 * L,
+    xp: L => 25 * L, shards: L => 12 * L,
     crucibleChance: L => L >= 5 ? 0.1 : 0,   // a deep cache may hold the Crucible
     veinChance: 0.6, extraVeins: 40,
     // the Forge, at a Lodestone
@@ -264,9 +287,11 @@ const KData = (() => {
   };
 
   const progression = {
-    xpFor: L => Math.round(50 + 30 * (L - 1) + 6 * (L - 1) * (L - 1)),
+    xpFor: L => Math.round(120 + 80 * (L - 1) + 30 * (L - 1) * (L - 1)),
     pointsPerLevel: 3,
-    killXp: (level, kind, elite) => Math.round((elite ? 3 : 1) * ((enemies[kind] && enemies[kind].xp) || 1) * (8 + 6 * level)),
+    killXp: (level, kind, elite) => Math.round((elite ? 3 : 1) * ((enemies[kind] && enemies[kind].xp) || 1) * (6 + 4 * level)),
+    // enemies well below your level are worth less (stops farming the start)
+    underLevel: gap => gap <= 1 ? 1 : Math.max(0.1, 1 - 0.3 * (gap - 1)),
     lodestoneXp: 25,
     // per point spent
     stats: [
@@ -302,15 +327,15 @@ const KData = (() => {
       emberVisor:  { slot: 'head', name: 'Ember visor', stats: { fire: 1.5 }, trait: 'burn', desc: 'Your fire spells set enemies burning.' },
       deepCore:    { slot: 'core', name: 'Deep core', stats: { mana: 2 }, desc: 'A dense stone. More mana.' },
       magmaHeart:  { slot: 'core', name: 'Magma heart', stats: { vitality: 1.5 }, trait: 'magmaproof', desc: 'Fire and magma no longer hurt you. You can wade through magma.' },
-      tidalCore:   { slot: 'core', name: 'Tidal core', stats: { water: 1.5 }, trait: 'tidal', desc: 'Steam flight and Hover cost no mana while you are in or just above water.' },
-      crucible:    { slot: 'core', name: 'Crucible', stats: { fire: 2 }, trait: 'melt', desc: 'Your fire melts rock: Fireball, Fire nova, Rocket jump, Flare and Ember lance turn rock into magma.', rare: true },
+      tidalCore:   { slot: 'core', name: 'Tidal core', stats: { water: 1.5 }, trait: 'tidal', desc: 'Steam flight, Flame jet, Plasma thrust, Water jet and Storm glide cost no mana while you are in or just above water.' },
+      crucible:    { slot: 'core', name: 'Crucible', stats: { fire: 2 }, trait: 'melt', desc: 'Your fire melts rock: Fireball, Fire nova, Flare and Ember lance turn rock into magma.', rare: true },
       quarryFists: { slot: 'arms', name: 'Quarry fists', stats: { attack: 1.5 }, trait: 'quarry', desc: 'Spells with earth knock enemies back much harder.' },
       splitArms:   { slot: 'arms', name: 'Splitting arms', stats: { fire: 1 }, trait: 'split', desc: 'Fireballs burst into three smaller fireballs.' },
       thriftArms:  { slot: 'arms', name: 'Thrifty arms', stats: { focus: 1 }, trait: 'thrifty', desc: 'Every fourth Shot costs no mana.' },
       mireArms:    { slot: 'arms', name: 'Mire arms', stats: { earth: 1, water: 0.5 }, trait: 'mudburst', desc: 'Your Bursts leave mud on the ground around you.' },
       springLegs:  { slot: 'legs', name: 'Spring legs', stats: { speed: 1 }, trait: 'spring', desc: 'You jump much higher.' },
       anchorLegs:  { slot: 'legs', name: 'Anchor legs', stats: { defence: 2 }, trait: 'anchor', desc: 'You barely get knocked back.' },
-      swiftLegs:   { slot: 'legs', name: 'Swift legs', stats: { speed: 1.5 }, trait: 'swift', desc: 'Blink, Arc dash and Blast dash cost half.' },
+      swiftLegs:   { slot: 'legs', name: 'Swift legs', stats: { speed: 1.5 }, trait: 'swift', desc: 'Every dash (Blink, Flame dash, Surf, Shoulder charge, Vanish, Arc dash, Blast dash) costs half.' },
       diverLegs:   { slot: 'legs', name: 'Diver legs', stats: { water: 1 }, trait: 'diver', desc: 'You swim fast and mud never slows you.' },
     },
     dropChance: 0.14, eliteDrop: 1, bag: 24,

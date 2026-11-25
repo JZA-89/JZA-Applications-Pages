@@ -178,8 +178,10 @@ Standing stones with a rune: one in the hub beside the start, seven more spread 
 
 ### Experience and levels (`KData.progression`)
 
-- From kills (8 + 6 × the enemy's level, ×3 for elites), finding Lodestones (25), and later treasure and bosses. Kill credit goes to the last player who hit it within 8 s (so a crawler that dies in your fire still counts).
-- Level L to L+1 needs 50 + 30(L−1) + 6(L−1)² (50, 86, 134, 194, 266…).
+- From kills (6 + 4 × the enemy's level, ×3 for elites), finding Lodestones (25), and treasure and bosses. Kill credit goes to the last player who hit it within 8 s (so a crawler that dies in your fire still counts).
+- **Enemies well below you are worth less** (`underLevel`): one level below, full experience; two below 70%, three below 40%, four or more 10%. Enemies come back after 25 s, so without this, staying near the start and killing the same crawlers levelled you quickly.
+- Level L to L+1 needs 120 + 80(L−1) + 30(L−1)² (120, 230, 400, 630, 920, 1270…): about 12 level-1 crawlers for level 2, and about 3,600 experience to reach level 7 (it was 1,080). v0.20, Jaisah: level 7 came before he had found anywhere to spend points.
+- A level-up notice says where the nearest found Lodestone is (distance and direction), since points are spent there.
 - Each level: **3 stat points** and a full repair. Notices show experience gained and level-ups; the HUD shows the level, a thin experience bar and the unspent points.
 
 ### Stats (spent at a Lodestone, `game.spendPoint`, `game.applyStats`)
@@ -204,15 +206,15 @@ The golem has four slots: **head, core, arms, legs**. A runestone adds stats (co
 | Ember visor | head | Fire 1.5 | your fire spells set enemies burning: 6 a second for 3 s |
 | Deep core | core | Mana 2 | — |
 | Magma heart | core | Vitality 1.5 | fire and magma do not hurt you; wade through magma |
-| Tidal core | core | Water 1.5 | Steam flight and Hover are free in water or within 14 cells above it |
-| **Crucible** | core | Fire 2 | **your fire melts rock** into cooling magma: Fireball (inner 77% of its blast), Fire nova and Flare (around you), Rocket jump, Ember lance (radius 5 where it hits). Never the world's frame. Not a normal drop: it comes from treasure and bosses. |
+| Tidal core | core | Water 1.5 | Steam flight, Flame jet, Plasma thrust, Water jet and Storm glide are free in water or within 14 cells above it |
+| **Crucible** | core | Fire 2 | **your fire melts rock** into cooling magma: Fireball (inner 77% of its blast), Fire nova and Flare (around you), Ember lance (radius 5 where it hits). Never the world's frame. Not a normal drop: it comes from treasure and bosses. |
 | Quarry fists | arms | Attack 1.5 | spells with earth knock back 60% harder |
 | Splitting arms | arms | Fire 1 | a Fireball's blast throws three small fireballs (55% blast, 40% damage) |
 | Thrifty arms | arms | Focus 1 | every fourth Shot costs no mana |
 | Mire arms | arms | Earth 1, Water 0.5 | each Burst turns the ground within 20 to mud |
 | Spring legs | legs | Speed 1 | jump 30% faster (higher) |
 | Anchor legs | legs | Defence 2 | a quarter of the knockback |
-| Swift legs | legs | Speed 1.5 | Blink, Arc dash and Blast dash cost half |
+| Swift legs | legs | Speed 1.5 | every dash (Blink, Flame dash, Surf, Shoulder charge, Vanish, Arc dash, Blast dash) costs half |
 | Diver legs | legs | Water 1 | no water drag, swim up fast (160), mud never slows you |
 
 Speed is +5% run speed a point. **Drops:** 14% of kills, every elite, two Epic or better from bosses; grade odds rise with the level (Epic 3% + 2% a level up to 20%, Rare 18% + 4% a level up to 45%). Stones fall, rest on the ground (a small stone in its grade's colour, glowing, gold dot on the map), float up through water and magma (so none is lost at the bottom of a lake), are saved while they lie there, and are picked up by touch into a **bag of 24**. At a Lodestone's **Runestones** tab: equip (the worn one goes back to the bag), take off, or **break** a stone into shards ((3 + 2 × level) × 1, 2.5, 6 or 15 by grade), spent at Lodestones (see Treasure).
@@ -302,23 +304,46 @@ Damage is not a fixed number of hits. Every actor has stats (`KData.baseStats`):
 
 ## Elements and spells
 
-Load two elements (order does not matter). Every pair gives **three spells**, one per way of casting:
+Load two elements (order does not matter). Every pair gives **four spells**, one per way of casting:
 
 | Mode | Input | Job in combat |
 |---|---|---|
 | **Shot** | left click (hold to repeat), RT | aimed at the cursor; ranged pressure; cheapest |
 | **Burst** | right click, LT | an area around you; close-range defence; costs more, longer cooldown |
-| **Move** | Shift (tap; hold for held Moves), RB | moves you; Steam flight, Hover and Wall climb go up while held and A/D steer; Blink, Arc dash, Drill and Blast dash go the way you press (A/D) or the way the golem faces |
+| **Lift** | hold Space in the air, LB | carries you up or across; each pair lifts its own way (below) |
+| **Move** | Shift (tap; hold for held Moves), RB | dashes and other moves: Blink, the dashes, Drill go the way you press (A/D) or the way the golem faces; Magma slam goes down; Wall climb climbs |
 
-**Space only ever jumps; Moves have their own key, Shift** (Jaisah, v0.18: jumping kept setting off the loaded Move, e.g. a Rocket jump blast under you). Moves work from the ground too. **Your own Moves and Bursts never hurt you:** they exclude you from their blasts, and for 0.8 s after casting one (and while holding a held Move) fire and magma do not burn you; Rocket jump leaves no fire, Magma slam splashes its magma to either side, and Eruption throws its magma away from you. Aimed Shots can still hurt you point-blank. A third element pushes out the first; slots stay loaded after a cast. **Every mode repeats while held** until mana runs out (Jaisah: mana is the limit, not cooldowns). Held spells (Water jet, Scald, Hover, Steam flight, Wall climb, Drill) drain mana while held; the rest cost a set amount and recast after a short gap (Bursts 0.4–0.5 s). **Moves never look at the mouse:** Rocket jump, Hover, Steam flight and Wall climb go up while Space is held (S drops or slides down) and A/D steer; Magma slam goes down; Blink, Arc dash, Drill and Blast dash go the way you press, or the way the golem faces when nothing is pressed (Jaisah: leave those as they are). **Mud blocks spells:** shots, bolts, beams and the spear stop at mud like at solid ground (you can still wade through it). Each spell has its own cooldown (`key:mode`). A Shot or Burst is followed by a 0.12 s lock on Shots and Bursts. One spell of each mode can run at once (you can fly and shoot). Every cast alerts enemies within 110. All numbers live in `KData.spells`; power is base damage before stats.
+### Lift: holding Space (v0.20)
 
-| Pair | Shot | Burst | Move |
+Space is jump. **Keep holding it in the air and the loaded pair lifts you.** It starts when a held jump reaches its top (so a full jump is still just a jump, and a tap never costs mana) or when you press Space while already in the air (falling off a ledge). It stops when you let go, land (except Mud tower), enter water (Space swims there), or run out of mana. Lifts never hurt you, and A/D steer all of them. The logic (Jaisah: "why an explosion under our feet? Why not a jet of flames? Steam should give the most thrust, but other elements should lift too, with different characteristics"):
+
+- **Fire thrusts**: fast and strong, but expensive. **Water is slow and cheap**: it lasts longest. **Earth builds**: it leaves terrain behind that you can use again. **Lightning is about speed sideways**: hops, glides and floating rather than climbing.
+- A pair mixes its two elements' characters, and **steam (fire + water) is the strongest lift**.
+
+| Pair | Lift | How it behaves (measured in open air from a full 100 mana) |
+|---|---|---|
+| Fire + Fire | **Flame jet** 22/s | fire roars down from your feet: up to 125/s, burns enemies within 34 below you (22 a second) and leaves fire under you; about 5.8 s, about 690 up |
+| Water + Water | **Water jet** 8/s | slow rise at 48/s on jets of water, soaks what is below; about 12 s, the longest |
+| Earth + Earth | **Stone steps** 12 a step | each time you start to fall, an 11-wide step of dirt forms under your feet and you jump off it (165). The steps stay, so you build a way back. About 8 steps a bar |
+| Lightning + Lightning | **Spark hops** 14 a hop | up to 3 extra jumps before you land, each throwing you 125 sideways if you press A/D and shocking what is under you (power 14) |
+| Fire + Water | **Steam flight** 16/s | steam blasts straight down: the strongest lift, up to 155/s; about 6.2 s, about 920 up |
+| Earth + Fire | **Ember steps** 16 a step | Stone steps that leap higher (200) and burst with heat under the step (power 16 within 16, fire below) |
+| Earth + Water | **Mud tower** 9/s | a 9-wide column of packed mud (dirt) grows under you and carries you up at 50/s; it stays as a pillar. About 11 s |
+| Lightning + Water | **Storm glide** 6/s | you fall at most 32/s and move 125 sideways; lightning strikes the nearest enemy below within 60 every 0.5 s (power 12). It cannot climb: jump off something high |
+| Earth + Lightning | **Magnet float** 9/s | you float about 26 above whatever is below (ground, water or magma) and move 120 sideways; over a deep drop you sink at 60/s. About 11 s. Crosses lakes and magma |
+| Fire + Lightning | **Plasma thrust** 26/s | up to 115/s straight up, or with A/D 175 sideways while rising only 52/s: the fastest across, the costliest (about 3.8 s) |
+
+Shift Moves that only went up (Rocket jump, Hover, Pillar, Steam flight) became dashes in v0.20, so going up belongs to Lift and moving across to Move: **Flame dash** (fire+fire: 290 for 0.13 s, power 18, a trail of fire), **Surf** (water+water: 230 for 0.24 s, power 8 and soaking, a trail of water), **Shoulder charge** (earth+earth: 220 for 0.22 s, power 30, digs radius 8 ahead), **Vanish** (fire+water: 300 for 0.12 s, power 10, leaves a steam cloud of radius 16). All cost 16–20 and recast after 0.35–0.5 s; Swift legs halves every dash. Tidal core makes Steam flight, Flame jet, Plasma thrust, Water jet and Storm glide free near water.
+
+**Moves have their own key, Shift; holding Space lifts** (v0.18 split Moves off Space because jumping set off a Rocket jump blast under you; v0.20 gave Space its own Lift per pair). Moves work from the ground too. **Your own Lifts, Moves and Bursts never hurt you:** they exclude you from their blasts, and for 0.8 s after casting one (and while lifting or holding a held Move) fire and magma do not burn you; Magma slam splashes its magma to either side, and Eruption throws its magma away from you. Aimed Shots can still hurt you point-blank. A third element pushes out the first; slots stay loaded after a cast. **Every mode repeats while held** until mana runs out (Jaisah: mana is the limit, not cooldowns). Held spells (Water jet, Scald, the flying Lifts, Wall climb, Drill) drain mana while held; the rest cost a set amount and recast after a short gap (Bursts 0.4–0.5 s). **Moves and Lifts never look at the mouse:** Lifts go up or glide and A/D steer; Wall climb goes up (S slides down); Magma slam goes down; Blink, the dashes and Drill go the way you press, or the way the golem faces when nothing is pressed (Jaisah: leave those as they are). **Mud blocks spells:** shots, bolts, beams and the spear stop at mud like at solid ground (you can still wade through it). Each spell has its own cooldown (`key:mode`). A Shot or Burst is followed by a 0.12 s lock on Shots and Bursts. One spell of each mode can run at once (you can fly and shoot). Every cast alerts enemies within 110. All numbers live in `KData.spells`; power is base damage before stats.
+
+| Pair | Shot | Burst | Move (Shift) |
 |---|---|---|---|
-| Fire + Fire | **Fireball** 14 mana: 230/s, gravity 70, blast radius 9 (digs, fire on the rim), power 40, knock 210, cd 0.5 | **Fire nova** 26: power 26 within 24, knock 220, ring of fire; cd 0.4 | **Rocket jump** 16: 250 straight up (A/D lean sideways), a small blast under you (power 18 to others, never you); recast every 0.45 s while held |
-| Water + Water | **Water jet** 14/s held: 3 particles a step, pushes | **Tidal wave** 24: 56 water particles both ways; enemies within 42 sideways shoved 320, power 10; cd 0.4 | **Hover** 10/s held: rise 45 (W), slow sink 14, drop faster (S); water drips below |
-| Earth + Earth | **Boulder** 16: lobbed 200/s, gravity 380, power 32, knock 300, digs radius 3, leaves 18 loose earth; cd 0.7 | **Stone shell** 24: a 2-thick ring of dirt at radius 14, pushes enemies out; cd 0.5 | **Pillar** 16: dirt grows up under you (26 rows, 7 wide, 80/s); no ground in range 70: a slab under your feet; cd 0.55 |
+| Fire + Fire | **Fireball** 14 mana: 230/s, gravity 70, blast radius 9 (digs, fire on the rim), power 40, knock 210, cd 0.5 | **Fire nova** 26: power 26 within 24, knock 220, ring of fire; cd 0.4 | **Flame dash** 18 (see Lift above) |
+| Water + Water | **Water jet** 14/s held: 3 particles a step, pushes | **Tidal wave** 24: 56 water particles both ways; enemies within 42 sideways shoved 320, power 10; cd 0.4 | **Surf** 16 (see Lift above) |
+| Earth + Earth | **Boulder** 16: lobbed 200/s, gravity 380, power 32, knock 300, digs radius 3, leaves 18 loose earth; cd 0.7 | **Stone shell** 24: a 2-thick ring of dirt at radius 14, pushes enemies out; cd 0.5 | **Shoulder charge** 20 (see Lift above) |
 | Lightning + Lightning | **Bolt** 16: instant, range 170, power 30, chains once within 16, electrifies water; cd 0.55 | **Shock field** 26: power 28 to all within 34, electrifies nearby water; cd 0.4 | **Blink** 20: teleport up to 36 in the pressed direction (default facing) to the furthest free spot; cd 0.5 |
-| Fire + Water | **Scald** 20/s held: steam cone, range 34, ±0.45 rad, power 32 a second | **Steam cloud** 20: steam fills radius 24 (60%), power 14 inside; cd 0.4 | **Steam flight** 18/s held: steam blasts straight down, lifting you 900/s² up to 150; A/D steer (95 sideways); S stops the lift; a full bar lasts about 5.6 s |
+| Fire + Water | **Scald** 20/s held: steam cone, range 34, ±0.45 rad, power 32 a second | **Steam cloud** 20: steam fills radius 24 (60%), power 14 inside; cd 0.4 | **Vanish** 18 (see Lift above) |
 | Earth + Fire | **Magma** 16: lob, 38 magma cells, power 15 direct; cd 0.7 | **Eruption** 28: 40 magma particles fountain from the ground within 28; power 24, knock 260 up; cd 0.45 | **Magma slam** 22: dive at 360 (default down); on landing 26 magma cells, power 30 within 20, knock 240; cd 0.6 |
 | Earth + Water | **Mud** 12: 50 particles, 220/s, ±0.28 rad, gravity 220. A hit coats and slows (below); cd 0.6 | **Mire** 22: the top 2 cells of ground within 32 (not under you) turn to mud; cd 0.5 | **Wall climb** 8/s, only while touching a wall: cling, climb with W (55/s), down with S |
 | Lightning + Water | **Arc** 18: like Bolt (range 140, power 20) but jumps to 3 more targets within 45 (×0.7); cd 0.55 | **Storm** 28: power 22 to every enemy within 75 in line of sight; cd 0.4 | **Arc dash** 22: 310/s for 0.12 s (0.2 s from water) in the pressed direction, power 20 to each actor passed; cd 0.35 |
@@ -334,7 +359,7 @@ Standing in mud, or being hit by mud spray, slows. A spray hit coats the target 
 | Action | Keyboard and mouse | Controller |
 |---|---|---|
 | Run | A / D (or arrows) | Left stick, d-pad |
-| Jump, swim up | Space (or up arrow) | LB |
+| Jump, swim up; hold in the air to Lift | Space (or up arrow) | LB |
 | Aim | Mouse | Right stick (or the left stick's direction) |
 | Load Fire / Water / Lightning / Earth | **Q / W / E / S** (or 1–4: fire, water, earth, lightning) | B / X / Y / A |
 | Shot | Left click (hold repeats) | RT |
@@ -391,6 +416,11 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 - **v0.17 (2026-11-26):** sound (all synthesized, with warning sounds for every wind-up), damage numbers, hit-stop.
 - **v0.18 (2026-11-26):** Q W E S load Fire, Water, Lightning, Earth; Space only jumps; Shift is the Move key; F rests; your own Moves and Bursts never hurt you (all Jaisah). The generated cave starts at rest instead of simulating every chunk for its first steps (removed a 60 ms stutter at the start).
 - **v0.19 (2026-11-26):** fixes from an independent code review and the final check: the game froze if you died while a Glowmoth glowed; a controller's Menu button paused and resumed at once; the four newer enemies came back after 2 s instead of 25; the wyrm's runestones (and stones left in the cave) were not saved and sank in magma (now straight into the bag, loose stones saved and floating); wet and muddy never wore off on dummies, nor burning or muddy on the boss; the wyrm could sink out of the world in a fully cooled lair (now kept in its lair, and returned to its magma when it calms); unaware delvers floated in the air; shards could be lost when a lot of crystal broke at once, and crawlers chewing crystal gave none; Reset map wiped the explored map.
+- **v0.20 (2026-11-26):** Lift: holding Space in the air lifts you, differently for each pair (fire thrusts, water rises slowly and cheaply, earth builds steps or a tower, lightning hops, glides and floats; steam is the strongest), and never hurts you; the Shift Moves that only went up became dashes (Flame dash, Surf, Shoulder charge, Vanish). Levelling is about three times slower, enemies well below your level give less experience, and a level-up notice points to the nearest Lodestone (all Jaisah: level 7 before finding anywhere to spend points).
+
+## Checks run for v0.20
+
+Every Lift in an open test arena, both still and steering (height, time aloft, mana, and no damage to you); a tap of Space is a plain jump with no mana spent and holding it starts the Lift, with real key presses; three minutes of random play twice, Moves included, with no errors.
 
 ## Checks run for v0.19
 
