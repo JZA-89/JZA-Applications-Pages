@@ -784,7 +784,7 @@ const KGame = (() => {
         p.used = true;
         if ((p.cds[cdKey] || 0) > 0) continue;
         if (sp.drain) {
-          if (p.mana < sp.min) { if (pressed) { p.manaFlash = 0.35; this.sfx('nomana', p.x, p.y); } continue; }
+          if (p.mana < sp.min) { if (pressed) { p.manaFlash = 0.35; this.sfx('nomana', p.x, p.y); this.tooBig(p, sp.min); } continue; }
           p.channels[mode] = key;
           if (mode !== 'shot') p.safeT = 0.8;
           this.alert(p, p.x, p.y, KData.enemies.crawler.hearing);
@@ -796,7 +796,7 @@ const KGame = (() => {
         if (mode !== 'move' && p.lock > 0) continue;
         let cost = sp.cost;
         if (this.has(p, 'swift') && (sp.kind === 'blink' || sp.kind === 'dash' || sp.kind === 'blastdash')) cost *= 0.5;
-        if (p.mana < cost) { if (pressed) { p.manaFlash = 0.35; this.sfx('nomana', p.x, p.y); } continue; }
+        if (p.mana < cost) { if (pressed) { p.manaFlash = 0.35; this.sfx('nomana', p.x, p.y); this.tooBig(p, cost); } continue; }
         if (mode === 'shot' && this.has(p, 'thrifty') && ++p.shotCount % 4 === 0) cost = 0;
         p.cds[cdKey] = sp.cd;
         if (mode !== 'move') p.lock = 0.12;
@@ -807,6 +807,14 @@ const KGame = (() => {
         if (mode === 'burst' && sp.mods) { const r = (sp.radius || sp.reach || 20) * 0.7; this.landing(p.x - r, p.y - 6, sp, p); this.landing(p.x + r, p.y - 6, sp, p); }
         if (mode === 'burst' && this.has(p, 'mudburst')) this.mireAround(p, 20, 1);
       }
+    }
+
+    // Trying a spell that costs more than your whole mana bar clears the
+    // recipe at once: you could never cast it. (Only short of mana for now?
+    // It stays loaded, so you can cast it when the bar refills.)
+    tooBig(p, cost) {
+      if (cost <= p.maxMana) return;
+      p.queue = []; p.used = false; p.slotFlash = 0.35;
     }
 
     // The spell a way of casting gives right now. An exact special sequence
@@ -1112,7 +1120,7 @@ const KGame = (() => {
       if (!ok) { p.channels.lift = null; p.liftNoMana = false; return; }
       p.used = true;
       const R = this.rand, w = this.world, kind = sp.kind;
-      const noMana = () => { if (!p.liftNoMana) { p.liftNoMana = true; p.manaFlash = 0.35; this.sfx('nomana', p.x, p.y); } };
+      const noMana = () => { if (!p.liftNoMana) { p.liftNoMana = true; p.manaFlash = 0.35; this.sfx('nomana', p.x, p.y); this.tooBig(p, sp.drain ? sp.min : sp.cost); } };
       if (sp.drain) {
         if (!p.channels.lift) {
           if (p.mana < sp.min) return noMana();
