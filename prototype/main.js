@@ -44,6 +44,29 @@
     list.appendChild(li);
   }
 
+  // ---------- golem picker (remembered in this browser only) ----------
+  let skin = 0;
+  try { const v = parseInt(localStorage.getItem('kiln.golem'), 10); if (v >= 0 && v < KData.golems.length) skin = v; } catch {}
+  game.players[0].skin = skin;
+  const golemBtns = KData.golems.map((g, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'golem'; b.setAttribute('role', 'radio');
+    const c = document.createElement('canvas');
+    KRender.preview(c, i, ['fire', 'water']);
+    c.style.width = (c.width * 3) + 'px'; c.style.height = (c.height * 3) + 'px';
+    b.append(c, Object.assign(document.createElement('span'), { textContent: g.name }));
+    b.title = g.desc;
+    b.addEventListener('click', () => pickGolem(i));
+    $('golems').appendChild(b);
+    return b;
+  });
+  function pickGolem(i) {
+    skin = i; game.players[0].skin = i;
+    golemBtns.forEach((b, k) => b.setAttribute('aria-checked', k === i ? 'true' : 'false'));
+    try { localStorage.setItem('kiln.golem', String(i)); } catch {}
+  }
+  pickGolem(skin);
+
   // ---------- modes: start, help, pause, play ----------
   let mode = 'start';
   function setMode(m) {
@@ -51,7 +74,7 @@
     document.body.dataset.mode = m;
     KInput.clearHeld();
     if (m === 'play') { view.focus({ preventScroll: true }); return; }
-    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spells and controls' : 'Prototype · one player · v0.2';
+    $('panelEyebrow').textContent = m === 'pause' ? 'Paused' : m === 'help' ? 'Spells and controls' : 'Prototype · one player · v0.3';
     $('btnGo').textContent = m === 'start' ? 'Start' : 'Resume';
     $('btnPanelReset').hidden = m === 'start';
     $('panelLede').hidden = m === 'help';
@@ -59,7 +82,7 @@
   }
   view.tabIndex = -1;
   const resume = () => setMode('play');
-  const reset = () => { game.reset(); acc = 0; };
+  const reset = () => { game.reset(); game.players[0].skin = skin; acc = 0; };
   $('btnGo').addEventListener('click', resume);
   $('btnPanelReset').addEventListener('click', () => { reset(); resume(); });
   $('btnPause').addEventListener('click', () => setMode('pause'));
@@ -87,8 +110,7 @@
   }
 
   // ---------- HUD ----------
-  const hud = { hp: -1, bursts: -1, s0: undefined, s1: undefined, name: '', flash: 0 };
-  const burstEls = [...$('bursts').children];
+  const hud = { hp: -1, mana: -1, s0: undefined, s1: undefined, name: '', flash: 0, mflash: 0 };
   function updateHud() {
     const p = game.players[0];
     const hp = Math.round(p.hp);
@@ -98,7 +120,15 @@
       $('hpMeter').setAttribute('aria-valuenow', Math.max(0, hp));
       $('hpMeter').classList.toggle('low', hp < 35);
     }
-    if (p.bursts !== hud.bursts) { hud.bursts = p.bursts; burstEls.forEach((b, i) => b.classList.toggle('on', i < p.bursts)); }
+    const mana = Math.round(p.mana);
+    if (mana !== hud.mana) {
+      hud.mana = mana;
+      $('manaFill').style.transform = `scaleX(${mana / p.maxMana})`;
+      $('manaMeter').setAttribute('aria-valuenow', mana);
+      $('manaMeter').classList.toggle('empty', p.manaWait > 0.4 && mana < 1);
+    }
+    if (p.manaFlash > 0.3 && hud.mflash <= 0.3) { const mm = $('manaMeter'); mm.classList.remove('flash'); void mm.offsetWidth; mm.classList.add('flash'); }
+    hud.mflash = p.manaFlash;
     for (const i of [0, 1]) {
       const el = p.slots[i];
       if (el !== hud['s' + i]) {

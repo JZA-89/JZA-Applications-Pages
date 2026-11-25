@@ -36,9 +36,10 @@ const KGame = (() => {
       return {
         kind: 'player', id, x: s.x, y: s.y, vx: 0, vy: 0, w: PD.w, h: PD.h,
         hp: PD.hp, maxHp: PD.hp, grounded: false, facing: 1, aim: 0,
-        slots: [null, null], cds: {}, lock: 0, bursts: PD.bursts, groundT: 0,
+        slots: [null, null], cds: {}, lock: 0, mana: PD.mana, maxMana: PD.mana, manaWait: 0, manaFlash: 0,
+        stats: KData.baseStats(), skin: 0,
         coyote: 0, jumpBuf: 0, jumpHeld: false, rising: false, castHeld: false,
-        jetT: 0, jetKey: null, dashT: 0, dashVX: 0, dashVY: 0, dashHit: null,
+        channel: null, dashT: 0, dashVX: 0, dashVY: 0, dashHit: null,
         dead: false, respawnT: 0, lastHurt: -9, flash: 0, slotFlash: 0, lastSpell: null,
         chips, inWater: false, inMud: false, hurtBy: {},
       };
@@ -46,7 +47,8 @@ const KGame = (() => {
 
     makeDummy(s, i) {
       return { kind: 'dummy', id: i, home: { x: s.x, y: s.y }, x: s.x, y: s.y, vx: 0, vy: 0, w: DD.w, h: DD.h,
-        hp: DD.hp, maxHp: DD.hp, grounded: false, dead: false, respawnT: 0, lastHurt: -9, flash: 0, facing: 1 };
+        hp: DD.hp, maxHp: DD.hp, grounded: false, dead: false, respawnT: 0, lastHurt: -9, flash: 0, facing: 1,
+        stats: KData.baseStats() };
     }
 
     // ---------- one fixed step ----------
@@ -68,6 +70,7 @@ const KGame = (() => {
     control(p, a) {
       p.flash = Math.max(0, p.flash - DT);
       p.slotFlash = Math.max(0, p.slotFlash - DT);
+      p.manaFlash = Math.max(0, p.manaFlash - DT);
       if (p.dead) {
         p.respawnT -= DT;
         if (p.respawnT <= 0) this.respawn(p);
@@ -114,23 +117,33 @@ const KGame = (() => {
       if (p.vy >= 0) p.rising = false;
       p.jumpHeld = a.jump;
 
-      // bursts refill on the ground or in water
-      if (p.grounded || p.inWater) { p.groundT += DT; if (p.groundT > 0.05) p.bursts = PD.bursts; } else p.groundT = 0;
+      // mana refills on its own, faster on the ground
+      if (p.manaWait > 0) p.manaWait -= DT;
+      else p.mana = Math.min(p.maxMana, p.mana + (p.grounded ? PD.manaGroundRegen : PD.manaRegen) * DT);
 
       // cast
       const pressed = a.cast && !p.castHeld;
       p.castHeld = a.cast;
-      if (p.jetT > 0) {
-        if (a.cast) this.jetTick(p); else this.endJet(p);
+      const key = p.slots[0] && p.slots[1] ? spellKey(p.slots[0], p.slots[1]) : null;
+      if (p.channel) {
+        // held spells (water jet, steam) run while held and while there is mana
+        if (a.cast && key === p.channel && p.mana > 0) this.channelTick(p);
+        else this.endChannel(p);
         return;
       }
       if (!a.cast) return;
-      if (!p.slots[0] || !p.slots[1]) { if (pressed) p.slotFlash = 0.35; return; }
-      const key = spellKey(p.slots[0], p.slots[1]), sp = spells[key];
-      if (sp.usesBurst && !pressed) return; // movement spells only on a fresh press
+      if (!key) { if (pressed) p.slotFlash = 0.35; return; }
+      const sp = spells[key];
+      if (sp.freshPress && !pressed) return; // dash only on a fresh press
       if (p.lock > 0 || (p.cds[key] || 0) > 0) return;
-      if (sp.usesBurst && p.bursts <= 0) { if (pressed) p.slotFlash = 0.35; return; }
+      if (p.mana < (sp.drain ? sp.min : sp.cost)) { if (pressed) p.manaFlash = 0.35; return; }
       this.cast(p, key, sp);
+    }
+
+    spend(p, amount) {
+      p.mana -= amount;
+      if (p.mana <= 0) { p.mana = 0; p.manaWait = PD.manaEmptyDelay; }
+      else p.manaWait = Math.max(p.manaWait, PD.manaDelay);
     }
 
     chest(p) { return { x: p.x, y: p.y - p.h * 0.55 }; }
@@ -139,7 +152,7 @@ const KGame = (() => {
       const dx = Math.cos(p.aim), dy = Math.sin(p.aim);
       const c = this.chest(p), ox = c.x + dx * 4, oy = c.y + dy * 4;
       p.cds[key] = sp.cd; p.lock = 0.12; p.lastSpell = key;
-      if (sp.usesBurst) p.bursts--;
+      if (sp.cost) this.spend(p, sp.cost);
       const R = this.rand;
       switch (sp.kind) {
         case 'projectile':
@@ -152,8 +165,9 @@ const KGame = (() => {
           this.projectiles.push({ kind: 'spear', sp, owner: p, x: ox, y: oy, vx: dx * sp.speed, vy: dy * sp.speed, g: 0, age: 0, bore: sp.boreLength, travelled: 0 });
           break;
         case 'jet':
-          p.jetT = sp.duration; p.jetKey = key; p.cds[key] = 0;
-          this.jetTick(p);
+        case 'thrust':
+          p.channel = key; p.cds[key] = 0;
+          this.channelTick(p);
           break;
         case 'spray':
           for (let i = 0; i < sp.count; i++) {
@@ -163,20 +177,6 @@ const KGame = (() => {
           break;
         case 'pillar': this.castPillar(p, sp, c, dx, dy); break;
         case 'bolt': this.castBolt(p, sp, c, dx, dy); break;
-        case 'launch': {
-          const keep = 0.2;
-          p.vx = p.vx * keep - dx * sp.impulse;
-          p.vy = Math.min(p.vy, 0) * keep - dy * sp.impulse;
-          p.grounded = false; p.rising = false; p.coyote = 0;
-          const w = this.world;
-          for (let i = 0; i < sp.steamCells; i++) {
-            const d = 2 + R() * 13, side = (R() - 0.5) * 12 * (d / 14);
-            const x = Math.round(c.x + dx * d - dy * side), y = Math.round(c.y + dy * d + dx * side);
-            if (w.get(x, y) === M.EMPTY) w.set(x, y, M.STEAM);
-          }
-          this.fx.push({ kind: 'ring', x: c.x + dx * 6, y: c.y + dy * 6, r0: 2, r1: 11, t: 0, T: 0.25, color: [220, 230, 240] });
-          break;
-        }
         case 'dash': {
           this.world.sample(p.x - p.w / 2, p.y - p.h, p.x + p.w / 2, p.y, counts);
           const wet = counts[M.WATER] > 6 || p.inWater;
@@ -190,7 +190,7 @@ const KGame = (() => {
         case 'blast': {
           const bx = c.x + dx * sp.reach, by = c.y + dy * sp.reach;
           this.world.explode(bx, by, 5, { fire: sp.ignite });
-          this.hitRadius(bx, by, sp.radius + 4, sp.damage, sp.knock, p);
+          this.hitRadius(bx, by, sp.radius + 4, sp.power, sp.knock, p, p, key);
           p.vx -= dx * sp.recoil; p.vy -= dy * sp.recoil * 0.8;
           this.fx.push({ kind: 'ring', x: bx, y: by, r0: 3, r1: sp.radius + 3, t: 0, T: 0.22, color: sp.color });
           this.fx.push({ kind: 'flash', x: bx, y: by, r: 26, t: 0, T: 0.14, color: sp.color });
@@ -201,18 +201,33 @@ const KGame = (() => {
       }
     }
 
-    jetTick(p) {
-      const sp = spells[p.jetKey], R = this.rand;
+    channelTick(p) {
+      const sp = spells[p.channel], R = this.rand;
       const dx = Math.cos(p.aim), dy = Math.sin(p.aim), c = this.chest(p);
-      for (let i = 0; i < sp.perTick; i++) {
-        const an = p.aim + (R() - 0.5) * 2 * sp.spread, s = sp.speed * (0.85 + R() * 0.3);
-        this.parts.push({ x: c.x + dx * 5, y: c.y + dy * 5, vx: Math.cos(an) * s, vy: Math.sin(an) * s, g: 170, mat: M.WATER, life: 3, owner: p, push: sp.push });
+      if (sp.kind === 'jet') {
+        for (let i = 0; i < sp.perTick; i++) {
+          const an = p.aim + (R() - 0.5) * 2 * sp.spread, s = sp.speed * (0.85 + R() * 0.3);
+          this.parts.push({ x: c.x + dx * 6, y: c.y + dy * 6, vx: Math.cos(an) * s, vy: Math.sin(an) * s, g: 170, mat: M.WATER, life: 3, owner: p, push: sp.push });
+        }
+        if (!p.grounded) { p.vx -= dx * sp.recoil * DT; p.vy -= dy * sp.recoil * DT; }
+      } else if (sp.kind === 'thrust') {
+        // steam pushes you away from where you aim, for as long as it is held
+        p.vx -= dx * sp.accel * DT; p.vy -= dy * sp.accel * DT;
+        const s = Math.hypot(p.vx, p.vy);
+        if (s > sp.maxSpeed) { p.vx *= sp.maxSpeed / s; p.vy *= sp.maxSpeed / s; }
+        if (dy > 0.3) { p.grounded = false; p.coyote = 0; }
+        p.rising = false;
+        const w = this.world;
+        for (let i = 0; i < sp.steamPerTick; i++) {
+          const d = 5 + R() * 7, side = (R() - 0.5) * 5;
+          const x = Math.round(c.x + dx * d - dy * side), y = Math.round(c.y + dy * d + dx * side);
+          if (w.get(x, y) === M.EMPTY) w.set(x, y, M.STEAM);
+        }
       }
-      if (!p.grounded) { p.vx -= dx * sp.recoil * DT; p.vy -= dy * sp.recoil * DT; }
-      p.jetT -= DT;
-      if (p.jetT <= 0) this.endJet(p);
+      this.spend(p, sp.drain * DT);
+      if (p.mana <= 0) this.endChannel(p);
     }
-    endJet(p) { if (p.jetKey) p.cds[p.jetKey] = spells[p.jetKey].cd; p.jetT = 0; p.jetKey = null; }
+    endChannel(p) { if (p.channel) p.cds[p.channel] = spells[p.channel].cd; p.channel = null; }
 
     castPillar(p, sp, c, dx, dy) {
       const w = this.world;
@@ -284,7 +299,7 @@ const KGame = (() => {
           break;
         }
       }
-      if (target) this.hurt(target, sp.damage, dx * sp.knock, dy * sp.knock - 30, 'bolt');
+      if (target) this.hurt(target, sp.power, dx * sp.knock, dy * sp.knock - 30, 'bolt', p, 'lightning+lightning');
       if (water) {
         const n = w.electrify(water.x, water.y, sp.charge, sp.chargeCells);
         this.fx.push({ kind: 'flash', x: ex, y: ey, r: 18 + Math.min(40, n / 30), t: 0, T: 0.2, color: [180, 220, 255] });
@@ -294,7 +309,7 @@ const KGame = (() => {
       this.fx.push({ kind: 'bolt', pts, t: 0, T: 0.16, color: sp.color });
       const near = this.actors.find(a => a !== p && a !== target && !a.dead && Math.hypot(a.x - ex, a.y - a.h / 2 - ey) < 16);
       if (near && !water) {
-        this.hurt(near, sp.damage * 0.5, dx * sp.knock * 0.5, -20, 'bolt');
+        this.hurt(near, sp.power * 0.5, dx * sp.knock * 0.5, -20, 'bolt', p, 'lightning+lightning');
         this.fx.push({ kind: 'bolt', pts: this.jagged(ex, ey, near.x, near.y - near.h / 2), t: 0, T: 0.16, color: sp.color });
       }
       this.fx.push({ kind: 'flash', x: ex, y: ey, r: 14, t: 0, T: 0.1, color: sp.color });
@@ -327,7 +342,7 @@ const KGame = (() => {
           const hit = this.actorAt(pr.x, pr.y, pr.age < 0.15 ? pr.owner : null, 1);
           if (pr.kind === 'spear') {
             pr.travelled += sp * DT / n;
-            if (hit) { this.hurt(hit, pr.sp.damage, pr.vx / sp * pr.sp.knock, pr.vy / sp * pr.sp.knock - 30, 'spear'); this.spark(pr.x, pr.y); pr.dead = true; break; }
+            if (hit) { this.hurt(hit, pr.sp.power, pr.vx / sp * pr.sp.knock, pr.vy / sp * pr.sp.knock - 30, 'spear', pr.owner, 'earth+lightning'); this.spark(pr.x, pr.y); pr.dead = true; break; }
             if (m === M.ROCK) { this.spark(pr.x, pr.y); pr.dead = true; break; }
             if (SOLID[m]) {
               w.explode(pr.x, pr.y, pr.sp.bore);
@@ -358,13 +373,13 @@ const KGame = (() => {
       if (pr.kind === 'fireball') {
         const x = pr.x, y = pr.y;
         w.explode(x, y, sp.radius, { fire: sp.ignite, boil: 0.5 });
-        this.hitRadius(x, y, sp.radius + 6, sp.damage, sp.knock, null);
+        this.hitRadius(x, y, sp.radius + 6, sp.power, sp.knock, null, pr.owner, 'fire+fire');
         this.fx.push({ kind: 'ring', x, y, r0: 3, r1: sp.radius + 4, t: 0, T: 0.25, color: [255, 190, 90] });
         this.fx.push({ kind: 'flash', x, y, r: 34, t: 0, T: 0.18, color: [255, 160, 70] });
         this.burst(x, y, 26, [[184, 140, 128], [132, 84, 100], [255, 170, 70]], 150);
         this.shake = Math.max(this.shake, 3);
       } else if (pr.kind === 'blob') {
-        if (hit) this.hurt(hit, sp.damage, pr.vx * 0.3, -40, 'magma');
+        if (hit) this.hurt(hit, sp.power, pr.vx * 0.3, -40, 'magma', pr.owner, 'earth+fire');
         this.fillBlob(Math.floor(px), Math.floor(py), M[sp.mat], sp.count);
         this.burst(px, py, 8, [[255, 168, 64], [255, 120, 40]], 70);
       }
@@ -445,18 +460,33 @@ const KGame = (() => {
       return null;
     }
 
-    hitRadius(x, y, r, dmg, knock, except) {
+    hitRadius(x, y, r, dmg, knock, except, src, spell) {
       for (const a of this.actors) {
         if (a.dead || a === except) continue;
         const cx = a.x, cy = a.y - a.h / 2, d = Math.hypot(cx - x, cy - y);
         if (d > r) continue;
         const f = 1 - (d / r) * 0.6, nx = (cx - x) / (d || 1), ny = (cy - y) / (d || 1);
-        this.hurt(a, dmg * f, nx * knock * f, ny * knock * f - 60 * f, 'blast');
+        this.hurt(a, dmg * f, nx * knock * f, ny * knock * f - 60 * f, 'blast', src, spell);
       }
     }
 
-    hurt(a, amount, kx, ky, kind) {
+    // Damage from stats. base: the spell's power (or a hazard's rate).
+    // src: who cast it (null for hazards). spell: the spell key, whose two
+    // elements set which element powers apply.
+    //   damage = base x element power x 2A/(A+D) x modifiers
+    // With equal attack and defence the middle term is 1, so base is the damage.
+    damage(src, target, base, spell) {
+      const ts = target.stats || KData.baseStats();
+      const atk = src && src.stats ? src.stats.attack : ts.defence;
+      let pow = 1;
+      if (src && src.stats && spell) { const [e1, e2] = spell.split('+'); pow = (src.stats.power[e1] + src.stats.power[e2]) / 2; }
+      const mods = 1; // buffs and debuffs go here
+      return base * pow * (2 * atk / (atk + ts.defence)) * mods;
+    }
+
+    hurt(a, amount, kx, ky, kind, src, spell) {
       if (a.dead || amount <= 0) return;
+      amount = this.damage(src || null, a, amount, spell);
       a.hp -= amount; a.lastHurt = this.time;
       a.vx += kx || 0; a.vy += ky || 0;
       if (amount >= 4) {
@@ -472,12 +502,12 @@ const KGame = (() => {
       a.respawnT = a.kind === 'player' ? PD.respawn : DD.respawn;
       const col = a.kind === 'player' ? [[240, 228, 206], [198, 178, 160], [44, 28, 36]] : [[150, 140, 165], [200, 194, 214], [74, 58, 48]];
       this.burst(a.x, a.y - a.h / 2, 40, col, 140);
-      if (a.kind === 'player') { this.endJet(a); a.dashT = 0; this.shake = Math.max(this.shake, 3); }
+      if (a.kind === 'player') { this.endChannel(a); a.dashT = 0; this.shake = Math.max(this.shake, 3); }
     }
 
     respawn(p) {
       const s = this.world.spawn;
-      Object.assign(p, { x: s.x, y: s.y, vx: 0, vy: 0, hp: p.maxHp, dead: false, bursts: PD.bursts, dashT: 0, jetT: 0, lastHurt: -9 });
+      Object.assign(p, { x: s.x, y: s.y, vx: 0, vy: 0, hp: p.maxHp, dead: false, mana: p.maxMana, manaWait: 0, dashT: 0, channel: null, lastHurt: -9 });
     }
 
     dummyTick(d) {
@@ -534,7 +564,7 @@ const KGame = (() => {
           if (o === a || o.dead || a.dashHit.has(o)) continue;
           if (Math.abs(o.x - a.x) < (o.w + a.w) / 2 && Math.abs((o.y - o.h / 2) - (a.y - a.h / 2)) < (o.h + a.h) / 2) {
             a.dashHit.add(o);
-            this.hurt(o, a.dashSp.damage, a.dashVX * 0.4, a.dashVY * 0.4 - 40, 'dash');
+            this.hurt(o, a.dashSp.power, a.dashVX * 0.4, a.dashVY * 0.4 - 40, 'dash', a, 'lightning+water');
           }
         }
         const tr = this.fx.find(f => f.kind === 'trail' && f.owner === a);

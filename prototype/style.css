@@ -11,6 +11,7 @@
   --panel: #17121f99;
   --panel-solid: #191422f2;
   --ember: #2a1812;
+  --mana: #c9b6ff;     /* lilac: not one of the four element colours */
   --fire: #ff7a2f; --water: #3fa9ff; --earth: #c89a4a; --lightning: #fff27a;
   font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
 }
@@ -37,9 +38,11 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .hp { width: 150px; height: 8px; border-radius: 2px; background: #00000066; border: 1px solid var(--line); overflow: hidden; }
 .hp i { display: block; height: 100%; background: var(--ink); transform-origin: left; transition: transform .12s linear; }
 .hp.low i { background: #f0a08a; }
-.bursts { display: flex; gap: 5px; height: 10px; align-items: center; }
-.bursts b { width: 9px; height: 9px; transform: rotate(45deg); border: 1px solid var(--muted); background: transparent; }
-.bursts b.on { background: var(--ink); border-color: var(--ink); }
+.mana { width: 120px; height: 6px; }
+.mana i { background: var(--mana); transition: transform .08s linear; }
+.mana.empty i { background: #8a7f9e; }
+.mana.flash { animation: manaflash .35s; }
+@keyframes manaflash { 0%, 60% { border-color: #ff7a5a; box-shadow: 0 0 0 2px #ff7a5a66; } }
 
 .hud-tr { position: absolute; right: 12px; top: 10px; display: flex; gap: 6px; }
 .tool { height: 32px; padding: 0 11px; display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); font-size: 12px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
@@ -84,6 +87,13 @@ body[data-mode="play"] .panel-wrap { display: none; }
 .spells .pair i { width: 11px; height: 11px; border-radius: 50%; background: var(--c); }
 .spells b { font-weight: 600; }
 .spells .desc { color: var(--muted); grid-column: 2; line-height: 1.45; }
+.picker { margin-top: 20px; }
+.golems { display: flex; flex-wrap: wrap; gap: 8px; }
+.golem { display: grid; justify-items: center; gap: 6px; width: 104px; padding: 10px 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: #ffffff06; font-size: 12.5px; font-weight: 600; }
+.golem canvas { width: 75px; height: 66px; image-rendering: pixelated; }
+.golem:hover { background: #ffffff10; }
+.golem[aria-checked="true"] { border-color: var(--ink); background: #ffffff14; }
+.golem small { font-size: 11px; font-weight: 500; color: var(--dim); }
 .panel footer { display: flex; gap: 10px; margin-top: 22px; }
 .btn { min-height: 42px; padding: 0 20px; border: 1px solid var(--line); border-radius: 8px; background: #ffffff0a; font-size: 13px; font-weight: 600; }
 .btn:hover { background: #ffffff14; }
@@ -102,4 +112,5 @@ body[data-mode="play"] .panel-wrap { display: none; }
 .compact .el { padding: 0 7px; }
 .compact .spell-name { min-width: 96px; font-size: 12px; }
 .compact .hp { width: 100px; }
+.compact .mana { width: 80px; }
 .compact .tool .full { display: none; }

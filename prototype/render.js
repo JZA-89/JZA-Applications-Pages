@@ -9,27 +9,18 @@
 const KRender = (() => {
   const { M, materials, elements, view: V } = KData;
 
-  // The character: a small bottle kiln, facing right, 11 x 15.
-  // k soot outline, o glazed body, d body shade, a door arch,
-  // L / M / R the furnace door (left slot, mix, right slot). Eyes are drawn on top.
-  const KILN = [
-    '...kkkkk...',
-    '....kod....',
-    '....kod....',
-    '...koodk...',
-    '..koooodk..',
-    '.koooooodk.',
-    'koooooooodk',
-    'koooooooodk',
-    'koooaaaoodk',
-    'kooaLMRaodk',
-    'kooaLMRaodk',
-    'kooaLMRaodk',
-    '.kdddddddk.',
-    '.kok...kok.',
-    '.kkk...kkk.',
-  ];
-  const KW = 11, KH = KILN.length;
+  // The player is a rock golem; its look (one of four) comes from KData.golems.
+  const STONE = { h: [214, 206, 192], m: [150, 143, 138], d: [96, 90, 94], s: [52, 44, 54], k: [20, 16, 24], g: [122, 172, 150], e: [255, 236, 196] };
+  // per golem: width, the pixels that can chip off, and where the slots sit (for the glow)
+  const SKINS = KData.golems.map(g => {
+    const W = g.rows[0].length, body = [], L = [], R = [];
+    g.rows.forEach((row, y) => [...row].forEach((ch, x) => {
+      if (ch === 'h' || ch === 'm' || ch === 'd') body.push(y * W + x);
+      if (ch === 'L') L.push([x, y]); if (ch === 'R') R.push([x, y]);
+    }));
+    const mid = pts => [pts.reduce((a, p) => a + p[0], 0) / pts.length, pts.reduce((a, p) => a + p[1], 0) / pts.length];
+    return { ...g, W, H: g.rows.length, body, L: mid(L), R: mid(R), big: L.length > 4 };
+  });
   const DUMMY = [
     '.kkkkk.',
     'ksssssk',
@@ -45,11 +36,7 @@ const KRender = (() => {
     '..ppp..',
     '.ppppp.',
   ];
-  const CLAY = { o: [240, 228, 206], d: [198, 178, 160], k: [44, 28, 36], a: [86, 44, 40], e: [40, 22, 30], door: [58, 26, 24] };
   const SACK = { k: [44, 36, 56], s: [138, 128, 160], x: [206, 198, 226], p: [96, 70, 74] };
-  // body pixels that can chip off, in a fixed shuffled order
-  const kilnBody = [];
-  KILN.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === 'o' || ch === 'd') kilnBody.push(y * KW + x); }));
   const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + 0.5) / 16);
   function hash(i, j, s) { const v = Math.sin(i * 127.1 + j * 311.7 + s * 74.7) * 43758.5453; return v - Math.floor(v); }
   function noise(x, y, scale, s) {
@@ -195,8 +182,7 @@ const KRender = (() => {
 
       this.drawCells(world, game.time);
       for (const d of game.dummies) this.drawDummy(d);
-      this.drawSmoke(game, opt.dt || 0);
-      for (const pl of game.players) this.drawKiln(pl);
+      for (const pl of game.players) this.drawGolem(pl);
       this.drawProjectiles(game);
       this.drawParticles(game);
       this.drawFx(game);
@@ -261,61 +247,41 @@ const KRender = (() => {
       }
     }
 
-    drawKiln(p) {
-      if (p.dead) return;
-      const ox = Math.round(p.x - this.cam.x) - 5, oy = Math.round(p.y - this.cam.y) - KH;
-      const flip = p.facing < 0;
-      const hurt = 1 - p.hp / p.maxHp;
-      const chipped = new Set();
-      const nChip = Math.floor(hurt * kilnBody.length * 0.45);
-      for (let k = 0, n = 0; k < p.chips.length && n < nChip; k++) if (p.chips[k] < kilnBody.length) { chipped.add(kilnBody[p.chips[k]]); n++; }
-      const e0 = p.slots[0] && elements[p.slots[0]].color, e1 = p.slots[1] && elements[p.slots[1]].color;
-      const mix = e0 && e1 ? e0.map((v, i) => (v + e1[i]) / 2) : (e0 || e1 || CLAY.door);
-      // eyes look towards the aim
-      const ax = Math.cos(p.aim), ay = Math.sin(p.aim);
-      const eyeRow = 6 + (ay > 0.6 ? 1 : 0), eyeShift = Math.abs(ax) > 0.35 ? 1 : 0;
-      for (let y = 0; y < KH; y++) {
-        const row = KILN[y];
-        for (let x = 0; x < KW; x++) {
+    // One golem, top-left at (ox, oy). Also used for the picker previews.
+    plotGolem(skin, ox, oy, flip, slots, opts = {}) {
+      const S = SKINS[skin], e0 = slots[0] && elements[slots[0]].color, e1 = slots[1] && elements[slots[1]].color;
+      const mix = e0 && e1 ? e0.map((v, i) => (v + e1[i]) / 2) : null;
+      for (let y = 0; y < S.H; y++) {
+        const row = S.rows[y];
+        for (let x = 0; x < S.W; x++) {
           const ch = row[x];
           if (ch === '.') continue;
-          if (chipped.has(y * KW + x)) continue;
-          const sx = flip ? KW - 1 - x : x;
-          let col = CLAY[ch];
-          if (ch === 'L' || ch === 'M' || ch === 'R') {
-            // the door: the left half shows the first element, the right half the second
-            const side = sx < 5 ? 0 : sx > 5 ? 1 : 2;
-            col = side === 2 ? mix : (side === 0 ? e0 : e1) || CLAY.door;
-            if (p.slotFlash > 0) col = (e0 && e1) ? [255, 255, 255] : [255, 120, 90];
-            if (y === 9 && side !== 2) col = col.map(v => v * 0.8);
-          } else if (y === eyeRow && (x === 3 + eyeShift || x === 6 + eyeShift)) col = CLAY.e;
-          if (p.flash > 0) col = [255, 246, 236];
-          this.plot(ox + sx, oy + y, col[0], col[1], col[2]);
+          if (opts.chipped && opts.chipped.has(y * S.W + x)) continue;
+          let col;
+          if (ch === 'L') col = e0 || S.empty;
+          else if (ch === 'R') col = e1 || S.empty;
+          else if (ch === 'c') col = mix || STONE.s;
+          else col = STONE[ch];
+          if (opts.flashSlots && (ch === 'L' || ch === 'R')) col = opts.flashSlots;
+          if (opts.flash) col = [255, 246, 236];
+          this.plot(ox + (flip ? S.W - 1 - x : x), oy + y, col[0], col[1], col[2]);
         }
       }
     }
 
-    // Smoke from the chimney, tinted by what is loaded. Drawing only.
-    drawSmoke(game, dt) {
-      if (!this.smoke) this.smoke = [];
-      for (const p of game.players) {
-        if (p.dead || dt <= 0) continue;
-        p._smokeT = (p._smokeT || 0) - dt;
-        if (p._smokeT <= 0) {
-          p._smokeT = 0.12 + Math.random() * 0.1;
-          const e0 = p.slots[0] && elements[p.slots[0]].color, e1 = p.slots[1] && elements[p.slots[1]].color;
-          const base = e0 && e1 ? e0.map((v, i) => (v + e1[i]) / 2) : (e0 || e1);
-          const col = base ? base.map(v => v * 0.75 + 150 * 0.25) : [128, 118, 140];
-          this.smoke.push({ x: p.x + (p.facing < 0 ? -0.5 : 0.5), y: p.y - KH - 0.5, vx: (Math.random() - 0.5) * 4 - p.vx * 0.05, vy: -10 - Math.random() * 6, t: 0, T: 1 + Math.random() * 0.6, col });
-        }
+    drawGolem(p) {
+      if (p.dead) return;
+      const S = SKINS[p.skin] || SKINS[0];
+      const ox = Math.round(p.x - this.cam.x) - (S.W >> 1), oy = Math.round(p.y - this.cam.y) - S.H;
+      const hurt = 1 - p.hp / p.maxHp, chipped = new Set();
+      const n = Math.floor(hurt * S.body.length * 0.3);
+      for (let k = 0, c = 0; k < p.chips.length && c < n; k++) {
+        const idx = Math.floor(p.chips[k] / p.chips.length * S.body.length);
+        if (!chipped.has(S.body[idx])) { chipped.add(S.body[idx]); c++; }
       }
-      for (const s of this.smoke) { s.t += dt; s.x += s.vx * dt; s.y += s.vy * dt; s.vx += (Math.random() - 0.5) * 20 * dt; }
-      this.smoke = this.smoke.filter(s => s.t < s.T);
-      for (const s of this.smoke) {
-        const a = 0.55 * (1 - s.t / s.T), x = s.x - this.cam.x, y = s.y - this.cam.y;
-        this.plot(x, y, s.col[0], s.col[1], s.col[2], a);
-        if (s.t > 0.35) this.plot(x + 1, y, s.col[0], s.col[1], s.col[2], a * 0.6);
-      }
+      let flashSlots = null;
+      if (p.slotFlash > 0) flashSlots = p.slots[0] && p.slots[1] ? [255, 255, 255] : [255, 120, 90];
+      this.plotGolem(p.skin, ox, oy, p.facing < 0, p.slots, { chipped, flash: p.flash > 0, flashSlots });
     }
 
     drawDummy(d) {
@@ -407,12 +373,29 @@ const KRender = (() => {
       }
       for (const p of game.players) {
         if (p.dead) continue;
-        const cy = p.y - 4.5, f = p.facing;
-        p.slots.forEach((el, i) => { if (el) this.light(p.x + (i ? 1 : -1) * f, cy, 8, elements[el].color, 0.55); });
-        this.light(p.x + f, p.y - 8.5, 4, [255, 236, 200], 0.22);
+        const S = SKINS[p.skin] || SKINS[0], flip = p.facing < 0;
+        const at = pt => ({ x: p.x - (S.W >> 1) + (flip ? S.W - 1 - pt[0] : pt[0]) + 0.5, y: p.y - S.H + pt[1] + 0.5 });
+        p.slots.forEach((el, i) => {
+          if (!el) return;
+          const q = at(i ? S.R : S.L);
+          this.light(q.x, q.y, S.big ? 11 : 7, elements[el].color, S.big ? 0.6 : 0.5);
+        });
       }
     }
   }
 
-  return { Renderer };
+  // Draw a golem on its own small canvas (for the picker).
+  function preview(canvas, skin, slots) {
+    const S = SKINS[skin], pad = 2;
+    canvas.width = S.W + pad * 2; canvas.height = 22;
+    const ctx = canvas.getContext('2d'), img = ctx.createImageData(canvas.width, canvas.height);
+    const fake = { buf: new Uint32Array(img.data.buffer), plot(x, y, r, g, b) {
+      if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return;
+      this.buf[y * canvas.width + x] = pack(r, g, b);
+    } };
+    Renderer.prototype.plotGolem.call(fake, skin, pad, canvas.height - S.H, false, slots);
+    ctx.putImageData(img, 0, 0);
+  }
+
+  return { Renderer, preview, SKINS };
 })();

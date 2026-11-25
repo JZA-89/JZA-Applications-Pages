@@ -27,6 +27,7 @@ Plain scripts sharing one global scope, loaded in this order, no build step:
 | `render.js` | Drawing: cells, the clay character, dummies, effects, glow. |
 | `main.js` | Startup, the fixed-step loop, HUD, the panel (start, spells, pause). |
 | `style.css` | Page and HUD styles. |
+| `tools/golems.py` | Not loaded by the game. Generates the golem pixel rows from simple shapes (needs Python with Pillow). |
 
 Each is linked with `?v=<version>`; bump them all together with the version in the `<title>` on every release.
 
@@ -76,7 +77,16 @@ One hand-shaped cave (seed 20261125): rock frame; a long cavern with a wavy floo
 
 ## The character
 
-A small **bottle kiln**, 11 × 15 pixels (hitbox 9 × 14): a glazed cream body with a soot outline, a chimney on top, two dark eyes that look towards the aim, and an arched furnace door as its mouth. The door is the element display: its left half glows with the first loaded element, its right half with the second, and the middle with their mix. The chimney puffs smoke tinted by what is loaded (grey when empty). Damage chips pixels off the body (up to 45% at zero health). The interface uses only clay and violet-ash colours, so the four element colours always mean their element.
+A **rock golem**, chosen by the player from four looks (`KData.golems`). The choice only changes the drawing; all four play the same. It is shown on the start and pause panel and remembered in that browser (`localStorage` key `kiln.golem`). In multiplayer it travels with the player (`p.skin`).
+
+| Golem | Look | Where the two loaded elements show |
+|---|---|---|
+| Brute | Huge shoulders and fists, head sunk between them | Its eyes; a chest crack glows with the mix |
+| Titan | Wide V-shaped chest, small head | Its eyes; a crack down the chest glows with the mix |
+| Crystal | Hunched boulder with two crystals on its back | The crystals (seen from far away) |
+| Sentinel | Stone helm, flat shoulder plates | The visor slit; a chest crack glows with the mix |
+
+Each is about 21 × 17–20 pixels; the hitbox is 11 × 17, so the arms may overlap walls a little. The pixel rows live in `data.js` (k outline, h/m/d stone light/mid/dark, s seam, g lichen, e eye, L/R slots, c glowing crack). They were generated from simple shapes (boulders for shoulders, fists, head, legs) by `tools/golems.py`, which gives every stone its own lighting and dark seams; edit the shapes there and paste the printed rows back, or edit the rows by hand. Light granite grey, so the golem stands out from the dark slate rock and rose dirt. Damage chips stone pixels off (up to 30% at zero health). The interface uses only clay and violet-ash colours (mana is lilac), so the four element colours always mean their element.
 
 ## Look
 
@@ -94,30 +104,48 @@ The world has its own palette, deliberately unlike the random brown speckle of o
 | | |
 |---|---|
 | Health | 100; regenerates 12/s after 3 s without damage; respawn after 1.4 s |
+| Size | hitbox 11 × 17 |
 | Run | 72 cells/s; accel 900 ground, 520 air; ground friction 14 |
 | Jump | 168 cells/s up (about 29 cells high); gravity 480; max fall 330; coyote 0.1 s; jump buffer 0.12 s; releasing early halves the rise |
 | Water | gravity × 0.28, drag; hold jump to swim up (to 95/s) |
-| Bursts | 2; refill after 0.05 s on the ground or in water |
+| Mana | 100; refills 16/s in the air, 30/s on the ground; any spend pauses the refill 0.35 s; running dry pauses it 0.9 s |
 | Hazards | fire 22/s, magma 45/s, electrified water 60/s |
 
 Own spells hurt you (fireball blasts, fire, magma, shock). Flare's blast skips its caster.
 
+## Mana
+
+Every spell costs mana. Held spells (Steam, Water jet) drain it every moment they are held and stop when it runs out. You can fly with Steam, but a full bar lasts about 2.8 s; when it runs dry you fall and cannot attack until it refills. A spell needs its full cost to start (held spells need a small minimum); trying without enough flashes the mana bar.
+
+## Damage and stats
+
+Damage is not a fixed number of hits. Every actor has stats (`KData.baseStats`): **attack**, **defence**, and a **power** for each element. Each spell has a base **power**.
+
+`damage = base power × element power × 2A ÷ (A + D) × modifiers`
+
+- A is the caster's attack, D the target's defence. With equal attack and defence the middle term is 1, so the base power is the damage; doubling attack against the same defence gives ×1.33, and the same defence against half the attack gives ×0.67.
+- Element power is the average of the caster's power in the spell's two elements (Bolt uses lightning twice; Stone spear averages earth and lightning).
+- Hazards (fire, magma, electrified water) have no caster: they use A = D, so only the target's defence relative to the base of 10 would change them later.
+- Modifiers are where buffs and debuffs will go (for example, wet targets taking more lightning damage). None yet.
+- Everyone starts with attack 10, defence 10 and power 1 in every element, so the game plays as before until upgrade cards (PvP) and finds (co-op) change stats. The formula is `game.damage()`.
+
+
 ## Elements and spells
 
-Load two elements (order does not matter), then cast. A third element pushes out the first. The slots stay loaded after a cast, so you can cast the same spell again. Holding cast repeats a spell when its cooldown ends; Steam burst and Arc dash only cast on a fresh press. A global 0.12 s lock follows any cast.
+Load two elements (order does not matter), then cast. A third element pushes out the first. The slots stay loaded after a cast, so you can cast the same spell again. Holding cast repeats a spell when its cooldown ends; Arc dash only casts on a fresh press. A global 0.12 s lock follows any cast. Damage below is base power (see Damage and stats).
 
-| Spell | Elements | Kind | Numbers |
-|---|---|---|---|
-| Fireball | Fire + Fire | projectile | 230/s, gravity 70; blast radius 9 (dirt removed, fire on the rim); 40 damage at the centre; knockback 210; cd 0.5 s. Into water: steam, no blast. |
-| Water jet | Water + Water | held stream | 3 water particles a step for up to 1.4 s, 210/s, spread ±0.12 rad; each particle pushes an actor once (× 0.008 of its speed); recoil 70/s² in the air; cd 0.25 s after it ends. |
-| Earth pillar | Earth + Earth | growth | Finds the surface along the aim (range 70) and grows dirt out of it, opposite the aim, snapped to 8 directions: 24 rows, 5 wide, 70 rows/s. Pushes actors one cell per row. Aim down to rise 23 cells. No surface in range: an 11 × 3 slab. cd 0.55 s. |
-| Bolt | Lightning + Lightning | instant | Range 170; stops at the first actor, water or solid. 30 damage. Into water: electrifies it. Chains to one more target within 16 for half damage. Sets moss alight. cd 0.55 s. |
-| Steam burst | Fire + Water | movement | Uses a burst. Sets speed to 215 away from the aim (keeps 20% of the old speed) and leaves 70 steam cells. cd 0.35 s. |
-| Magma | Earth + Fire | lob | 175/s, gravity 380; lands as 38 magma cells; 15 damage on a direct hit. cd 0.7 s. |
-| Mud | Earth + Water | spray | 50 mud particles, 190/s (× 0.7–1.2), spread ±0.32 rad, gravity 300. cd 0.6 s. |
-| Arc dash | Lightning + Water | movement | Uses a burst. 310/s for 0.12 s (37 cells), 0.2 s (62 cells) when starting in water. 20 damage to each actor passed through. Keeps 40% speed after. cd 0.35 s. |
-| Stone spear | Earth + Lightning | projectile | 380/s, no gravity; bores a tunnel 2 cells in radius for up to 90 cells of dirt; stops at rock; 45 damage, knockback 160; range 260. cd 0.6 s. |
-| Flare | Fire + Lightning | blast | Centre 13 cells along the aim, radius 11 (+4 for actors); removes dirt within 5; 35 damage at the centre; knockback 330; recoil 90 on the caster; some fire. cd 0.75 s. |
+| Spell | Elements | Kind | Mana | Numbers |
+|---|---|---|---|---|
+| Fireball | Fire + Fire | projectile | 14 | 230/s, gravity 70; blast radius 9 (dirt removed, fire on the rim); power 40 at the centre; knockback 210; cd 0.5 s. Into water: steam, no blast. |
+| Water jet | Water + Water | held | 14/s | 3 water particles a step while held, 210/s, spread ±0.12 rad; each particle pushes an actor once (× 0.008 of its speed); recoil 70/s² in the air; cd 0.25 s after it ends. |
+| Earth pillar | Earth + Earth | growth | 16 | Finds the surface along the aim (range 70) and grows dirt out of it, opposite the aim, snapped to 8 directions: 26 rows, 7 wide, 70 rows/s. Pushes actors one cell per row. Aim down to rise. No surface in range: an 11 × 3 slab. cd 0.55 s. |
+| Bolt | Lightning + Lightning | instant | 16 | Range 170; stops at the first actor, water or solid. Power 30. Into water: electrifies it. Chains to one more target within 16 for half. Sets lichen alight. cd 0.55 s. |
+| Steam | Fire + Water | held thrust | 36/s | While held, accelerates you 1,050/s² away from the aim (top speed 190) and leaves steam behind. Aim down to rise, sideways to fly across. A full bar lasts about 2.8 s. |
+| Magma | Earth + Fire | lob | 16 | 175/s, gravity 380; lands as 38 magma cells; power 15 on a direct hit. cd 0.7 s. |
+| Mud | Earth + Water | spray | 12 | 50 mud particles, 190/s (× 0.7–1.2), spread ±0.32 rad, gravity 300. cd 0.6 s. |
+| Arc dash | Lightning + Water | movement | 22 | 310/s for 0.12 s (37 cells), 0.2 s (62 cells) when starting in water. Power 20 to each actor passed through. Keeps 40% speed after. Fresh press only. cd 0.35 s. |
+| Stone spear | Earth + Lightning | projectile | 18 | 380/s, no gravity; bores a tunnel 3 cells in radius for up to 90 cells of dirt; stops at rock; power 45, knockback 160; range 260. cd 0.6 s. |
+| Flare | Fire + Lightning | blast | 18 | Centre 15 cells along the aim, radius 11 (+4 for actors); removes dirt within 5; power 35 at the centre; knockback 330; recoil 90 on the caster; some fire. cd 0.75 s. |
 
 ## Controls
 
@@ -128,7 +156,7 @@ Load two elements (order does not matter), then cast. A third element pushes out
 | Aim | Mouse | Right stick (or the left stick's direction) |
 | Load Fire / Water / Earth / Lightning | Q / E / R / F or 1–4 | B / X / A / Y |
 | Cast | Left click | RB or RT |
-| Empty the kiln | X or right click | D-pad down |
+| Clear the elements | X or right click | D-pad down |
 | Spells, pause | H, Esc or P | View, Menu |
 | Reset the map | Backspace | — |
 
@@ -140,14 +168,13 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 
 ## Decision log
 
-- **v0.1 (2026-11-25):** first build. Four elements, ten spells, one map, training dummies, keyboard/mouse and controller. Spell keys are the two element names in alphabetical order. Slots stay loaded after a cast. Movement spells use bursts (two, refilled on landing) so there is no free flight. Health is 100 with numbers chosen so that most attacks take three hits to finish a player (to be tuned for PvP).
+- **v0.1 (2026-11-25):** first build. Four elements, ten spells, one map, training dummies, keyboard/mouse and controller. Spell keys are the two element names in alphabetical order. Slots stay loaded after a cast. Movement spells use bursts (two, refilled on landing) so there is no free flight. Health is 100.
 
 - **v0.2 (2026-11-25):** own look. The character is a bottle kiln (door shows the elements, chimney smoke in their colours); dirt is layered strata, rock faceted slate, moss is now lichen, the cave is violet. Player hitbox 9 × 14 (was 7 × 12).
 
+- **v0.3 (2026-11-25):** the player is a rock golem, with four looks to choose from (Brute, Titan, Crystal, Sentinel; Jaisah: keep all four, the player picks). A mana bar replaces bursts (Jaisah: bursts did not make sense). Steam is now held, continuous thrust instead of a single burst (Jaisah). Damage now goes through a stat formula (Jaisah: damage should be RPG-like, from attack, defence, the move, buffs and debuffs, not a fixed number of hits); everyone starts equal. Decided by Jaisah: slots stay loaded after a cast; holding cast repeats. Hitbox 11 × 17; earth pillar 7 wide and 26 long, stone spear tunnels radius 3, so the bigger golem fits through.
+
 ## Open questions to test
 
-- Is three-ish hits the right lethality, or should it be lower or higher?
-- Should the slots empty after a cast (more decisions) or stay loaded (faster)?
-- Is holding cast to repeat good, or should every cast be a fresh press?
 - Should earth pillar keep some upward speed when it stops?
-- Are two bursts too many or too few?
+- Is a 2.8 s steam flight on a full bar too long or too short? How fast should mana refill?
