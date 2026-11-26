@@ -2251,27 +2251,29 @@
   })();
 
   /* ------------------------------------------------------------------
-     14. Cast in Stone cave — a short scripted fight in the game's look.
-         A small falling-sand cave (dirt in strata, rock, loose earth,
-         water, steam) drawn at the game's pixel scale, with the game's
-         Brute golem (its sprite rows are copied from castinstone/data.js)
-         and two crawlers. The script follows the game's rules: the golem
-         types Fire, Fire and casts a Fireball that blasts a crater and
-         crumbles the first crawler into loose earth; types Earth,
-         Lightning and a Stone spear bores a tunnel through the wall into
-         the next chamber; then types Water, Fire, Water, an exact
-         sequence, and the special spell Geyser bursts under the second
-         crawler. The sockets under the cave fill as it types (the first,
-         larger one is the form), and the plate names the spell, in gold
-         for a special. If the game's look or these spells change, update
-         this to match. Reduced motion draws one frame just after the
-         first blast; offscreen it pauses.
+     14. Cast in Stone cave — the golem exploring and fighting on its own.
+         A strip of falling-sand cave three screens long, in the game's
+         look (strata, rock, loose earth, water, steam), with the game's
+         Brute golem (sprite rows from castinstone/data.js) and three of
+         its creatures (crawler, glowmoth, shard slinger). Nothing is on
+         a timer: the golem decides what to do from what is in front of
+         it. It walks; jumps a step; bores a thick wall with a Stone spear
+         and digs through the rest by walking, as in the game; flies over
+         water on an Earth spray; and when a creature is near it types
+         the recipe that creature is weak to and fights: Fireball for a
+         crawler, Bolt for a moth, the special spell Geyser for a slinger.
+         The creatures fight back (a lunge after a wind-up, a swoop, a
+         thrown shard) and the golem can be hurt. At the end of the strip
+         it fades and a new cave begins. The sockets and the plate under
+         the cave show what it is typing. If the game's look, these
+         spells or these creatures change, update this. Reduced motion
+         draws one still frame from the first fight; offscreen it pauses.
      ------------------------------------------------------------------ */
   (function () {
   var csCanvas = document.getElementById("cs-cave");
   var csSlab = document.getElementById("cs-slab");
   if (csCanvas && csSlab && csCanvas.getContext) {
-    var W = 192, H = 120, ctx = csCanvas.getContext("2d");
+    var W = 192, H = 120, WW = 576, ctx = csCanvas.getContext("2d");
     var img = ctx.createImageData(W, H), buf = new Uint32Array(img.data.buffer);
     var pk = function (r, g, b) { return (255 << 24) | ((b & 255) << 16) | ((g & 255) << 8) | (r & 255); };
     var hash = function (x, y) { var n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return n - Math.floor(n); };
@@ -2279,207 +2281,278 @@
     var EL = { fire: "#ff7a2f", water: "#3fa9ff", earth: "#c89a4a", lightning: "#fff27a" };
     var ELRGB = { fire: [255, 122, 47], water: [63, 169, 255], earth: [200, 154, 74], lightning: [255, 242, 122] };
     var STONE = { h: [214, 206, 192], m: [150, 143, 138], d: [96, 90, 94], s: [52, 44, 54], k: [20, 16, 24], g: [122, 172, 150], e: [255, 236, 196] };
-    var GOLEM = [
-      "...kkkkk.kkk.kkkkk...",
-      "..khhgghkhhhkhhhghk..",
-      ".khhhmmshhmmshhhmmhk.",
-      ".khmmmmshLmRshmmmmdk.",
-      ".ksmmddssmddsmmmddsk.",
-      "khsssssssssssssssshhk",
-      "khhhhhshhhhhhshhhhmdk",
-      "khmmmmshhhmcmshmmmmdk",
-      "kdmmddshmmcmmssmmdddk",
-      ".ksssshmmmmcmmsssssk.",
-      ".khhhsmmmmcmmdshhhhk.",
-      "khhmmssmmmddddshhmmhk",
-      "khmmmsssssdsssshmmmdk",
-      "kdmddshhhsshhhsmmdddk",
-      ".kdddshmmdkdmmsddddk.",
-      "..kkkkmmdk.kmddkkkk..",
-      ".....kdddk.kdddk....."
-    ];
-    var CRAWLER = [
-      "..kkkkkkk..",
-      ".kmmmmmmmk.",
-      "kmmdmmmdmek",
-      "kmmmmmmmmmk",
-      ".kdkdkdkdk.",
-      ".k.k.k.k.k."
-    ];
-    var cells, life, S;
+    var GOLEM = ["...kkkkk.kkk.kkkkk...", "..khhgghkhhhkhhhghk..", ".khhhmmshhmmshhhmmhk.", ".khmmmmshLmRshmmmmdk.", ".ksmmddssmddsmmmddsk.", "khsssssssssssssssshhk", "khhhhhshhhhhhshhhhmdk", "khmmmmshhhmcmshmmmmdk", "kdmmddshmmcmmssmmdddk",
+      ".ksssshmmmmcmmsssssk.", ".khhhsmmmmcmmdshhhhk.", "khhmmssmmmddddshhmmhk", "khmmmsssssdsssshmmmdk", "kdmddshhhsshhhsmmdddk", ".kdddshmmdkdmmsddddk.", "..kkkkmmdk.kmddkkkk..", ".....kdddk.kdddk....."];
+    var ART = {
+      crawler: ["..kkkkkkk..", ".kmmmmmmmk.", "kmmdmmmdmek", "kmmmmmmmmmk", ".kdkdkdkdk.", ".k.k.k.k.k."],
+      moth: [".www.....www.", "wwwww...wwwww", "wwwwwkbkwwwww", ".wwwkbbbekww.", "..wwkbbbkww..", ".....kbk....."],
+      slinger: ["....kkk....", "...kmhmk.pp", "...kemek.pp", "...kmmmk.k.", "..kkmmmkkk.", ".kmhmmmmk..", ".kmmmmmdk..", ".kmmmmmdk..", "..kmmmdk...", "..kdkkdk...", "..kdk.kdk..", ".kkk..kkk.."]
+    };
+    var COL = {
+      crawler: { k: [30, 26, 40], m: [112, 104, 128], d: [78, 72, 94], e: [255, 70, 160] },
+      moth: { w: [222, 196, 244], k: [40, 30, 50], b: [124, 104, 146], e: [255, 70, 160] },
+      slinger: { k: [26, 20, 18], m: [150, 120, 96], h: [196, 166, 132], d: [100, 78, 66], p: [168, 160, 150], e: [255, 70, 160] }
+    };
+    /* what each creature is weak to: the recipe the golem types for it, the spell's name, and how it is cast */
+    var ANSWER = {
+      crawler: { q: ["fire", "fire"], name: "Fireball", kind: "Shot", cast: "fireball", dmg: 34 },
+      moth: { q: ["lightning", "lightning"], name: "Bolt", kind: "Shot", cast: "bolt", dmg: 27 },
+      slinger: { q: ["water", "fire", "water"], name: "Geyser", kind: "Special spell", cast: "geyser", dmg: 60, gold: true }
+    };
+    var HP = { crawler: 100, moth: 78, slinger: 150 };
+    var DIG = [[7, 5, 5, 5, 7], [2, 6, 2, 2, 7], [7, 1, 7, 4, 7], [7, 1, 7, 1, 7], [5, 5, 7, 1, 1], [7, 4, 7, 1, 7], [7, 4, 7, 5, 7], [7, 1, 1, 1, 1], [7, 5, 7, 5, 7], [7, 5, 7, 1, 7]];
+    var cells, life, S, run = 0;
     var sockets = document.getElementById("cs-sockets").children;
     var elSpell = document.getElementById("cs-spell"), elKind = document.getElementById("cs-kind");
     var shown = "";
+    var at = function (x, y) { x = Math.round(x); y = Math.round(y); return x < 0 || x >= WW || y < 0 || y >= H ? ROCK : cells[y * WW + x]; };
+    var solid = function (x, y) { var c = at(x, y); return c === DIRT || c === ROCK || c === EARTH; };
+    var floorAt = function (x, y) { y = Math.round(y); while (y < H - 2 && !solid(x, y + 1)) y++; return y; };
 
-    var floorAt = function (x, y) { while (y < H - 2 && cells[y * W + x] === EMPTY) y++; return y; };
     var build = function () {
-      cells = new Uint8Array(W * H); life = new Uint8Array(W * H);
-      var x, y, ex, ey;
-      for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
-        var c = DIRT;
-        if (Math.pow(x - 16, 2) + Math.pow(y - 14, 2) < 380 + hash(x, y) * 60) c = ROCK;
-        if (Math.pow(x - 180, 2) + Math.pow(y - 110, 2) < 330 + hash(x, y) * 60) c = ROCK;
-        ex = (x - 62) / 54; ey = (y - 64) / 25;
-        if (ex * ex + ey * ey + (hash(x >> 2, y >> 2) - 0.5) * 0.18 < 1) c = EMPTY;
-        ex = (x - 157) / 23; ey = (y - 60) / 17;
-        if (ex * ex + ey * ey + (hash(x >> 2, y >> 2) - 0.5) * 0.2 < 1) c = EMPTY;
-        cells[y * W + x] = c;
+      cells = new Uint8Array(WW * H); life = new Uint8Array(WW * H);
+      var x, y, k = run * 1.7, fl, ce, c;
+      for (x = 0; x < WW; x++) {
+        fl = 88 + 6 * Math.sin(x / 37 + k) + 4 * Math.sin(x / 13 + 2 * k); ce = 30 + 9 * Math.sin(x / 29 + 1.3 * k) + 5 * Math.sin(x / 11 + k) + (hash(x >> 2, run) < 0.12 ? 7 : 0);   /* a wandering roof with stalactites */
+        if (x > 392) fl -= 6;                                  /* a step up */
+        for (y = 0; y < H; y++) {
+          c = y < ce || y > fl ? DIRT : EMPTY;
+          if (c === DIRT && (y < 8 + hash(x >> 3, 1) * 8 || y > 110 - hash(x >> 3, 2) * 6)) c = ROCK;
+          if (x >= 150 && x < 174 && y >= ce && y <= fl) c = DIRT;        /* a thick wall: bored, then dug */
+          if (x >= 452 && x < 460 && y >= ce && y <= fl) c = DIRT;        /* a thin one: dug */
+          if (x >= 262 && x < 310 && y > fl && y <= fl + 15) c = y > fl + 1 ? WATER : EMPTY;   /* a pool */
+          cells[y * WW + x] = c;
+        }
       }
     };
     var explode = function (cx, cy, r) {
       for (var y = Math.floor(cy - r); y <= cy + r; y++) for (var x = Math.floor(cx - r); x <= cx + r; x++) {
-        if (x < 1 || y < 1 || x >= W - 1 || y >= H - 1) continue;
-        if ((x - cx) * (x - cx) + (y - cy) * (y - cy) > r * r) continue;
-        var m = cells[y * W + x];
-        if (m === DIRT || m === EARTH) cells[y * W + x] = EMPTY;
+        if (x < 1 || y < 1 || x >= WW - 1 || y >= H - 1 || (x - cx) * (x - cx) + (y - cy) * (y - cy) > r * r) continue;
+        var m = cells[y * WW + x];
+        if (m === DIRT || m === EARTH) cells[y * WW + x] = EMPTY;
       }
     };
+    var foe = function (kind, x) { var y = kind === "moth" ? floorAt(x, 50) - 30 : floorAt(x, 50); return { kind: kind, x: x, y: y, hy: y, vx: 0, vy: 0, hp: HP[kind], st: "idle", t: 0, face: -1, hurt: 0, dead: false, cd: 1 }; };
     var reset = function () {
-      build();
-      var gy = floorAt(34, 60), ay = floorAt(98, 60), by = floorAt(158, 56);
-      S = { t: 0, queue: [], spell: "", kind: "", gold: false, parts: [], proj: null, flash: 0, shake: 0, recoil: 0, fade: 0, fadeIn: 1,
-        golem: { x: 34, y: gy },
-        foes: [{ x: 98, y: ay, hp: 1, face: -1, hurt: 0, dead: false }, { x: 158, y: by, hp: 2, face: -1, hurt: 0, dead: false, vy: 0 }],
-        did: {} };
+      run++; build();
+      S = { t: 0, queue: [], want: null, typeT: 0, spell: "", kind: "", gold: false, parts: [], shots: [], nums: [], bolt: null, flash: 0, shake: 0, recoil: 0, fade: 0, fadeIn: 1, cam: 0, stuck: 0, lastX: 0,
+        golem: { x: 20, y: floorAt(20, 50), vx: 0, vy: 0, hp: 100, ground: true, hurt: 0, cd: 0, fly: false, bored: {} },
+        foes: [foe("crawler", 104), foe("moth", 210), foe("crawler", 236), foe("slinger", 352), foe("crawler", 424), foe("moth", 492), foe("slinger", 548)] };
     };
-    var crumble = function (f) {
-      f.dead = true;
-      for (var k = 0; k < 22; k++) S.parts.push({ x: f.x + (hash(k, 3) - 0.5) * 9, y: f.y - 1 - hash(k, 7) * 5, vx: (hash(k, 11) - 0.5) * 60, vy: -20 - hash(k, 5) * 50, kind: EARTH, life: 3 });
+    var puff = function (x, y, n, kind, sp) { for (var k = 0; k < n; k++) S.parts.push({ x: x + (Math.random() - 0.5) * 6, y: y + (Math.random() - 0.5) * 6, vx: (Math.random() - 0.5) * sp, vy: (Math.random() - 0.8) * sp, kind: kind, life: kind === "fire" ? 0.3 + Math.random() * 0.3 : 3 }); };
+    var hitFoe = function (f, dmg) {
+      if (f.dead) return;
+      f.hp -= dmg; f.hurt = 0.2; S.nums.push({ x: f.x, y: f.y - 12, v: dmg, t: 0 });
+      if (f.hp <= 0) { f.dead = true; puff(f.x, f.y - 3, 22, EARTH, 80); }
     };
-    /* the script: [time, what happens] */
-    var once = function (id, at, fn) { if (S.t >= at && !S.did[id]) { S.did[id] = true; fn(); } };
-    var script = function () {
-      var g = S.golem, a = S.foes[0], b = S.foes[1];
-      once("q1", 1.0, function () { S.queue = ["fire"]; S.spell = "Lesser Fireball"; S.kind = "Shot"; });
-      once("q2", 1.4, function () { S.queue = ["fire", "fire"]; S.spell = "Fireball"; });
-      once("c1", 2.2, function () {
-        var sx = g.x + 9, sy = g.y - 10, T = 0.5, grav = 60;
-        S.proj = { kind: "fireball", x: sx, y: sy, vx: (a.x - sx) / T, vy: (a.y - 3 - sy) / T - 0.5 * grav * T, g: grav }; S.recoil = 0.16;
-      });
-      once("q3", 4.3, function () { S.queue = ["earth"]; S.spell = "Lesser Boulder"; S.kind = "Shot"; });
-      once("q4", 4.7, function () { S.queue = ["earth", "lightning"]; S.spell = "Stone spear"; });
-      once("c2", 5.4, function () {
-        var sx = g.x + 9, sy = g.y - 10, d = Math.hypot(b.x - sx, b.y - 4 - sy);
-        S.proj = { kind: "spear", x: sx, y: sy, vx: (b.x - sx) / d * 250, vy: (b.y - 4 - sy) / d * 250, g: 0 }; S.recoil = 0.16;
-      });
-      once("q5", 7.3, function () { S.queue = ["water"]; S.spell = "Lesser Water jet"; S.kind = "Shot"; S.gold = false; });
-      once("q6", 7.65, function () { S.queue = ["water", "fire"]; S.spell = "Scald"; });
-      once("q7", 8.0, function () { S.queue = ["water", "fire", "water"]; S.spell = "Geyser"; S.kind = "Special spell"; S.gold = true; });
-      once("c3", 9.0, function () {
-        S.recoil = 0.16; S.flash = 0.25; S.shake = 0.3; b.hurt = 0.3; b.vy = -150;
-        for (var k = 0; k < 70; k++) S.parts.push({ x: b.x + (hash(k, 1) - 0.5) * 9, y: b.y - 1, vx: (hash(k, 2) - 0.5) * 36, vy: -70 - hash(k, 4) * 120, kind: hash(k, 9) < 0.75 ? WATER : STEAM, life: 4 });
-      });
-      once("k3", 9.7, function () { if (!b.dead) crumble(b); });
-      once("q8", 12.0, function () { S.queue = []; S.spell = ""; S.kind = ""; S.gold = false; });
-      if (S.t > 13.6) S.fade = Math.min(1, (S.t - 13.6) / 0.8);
-      if (S.t > 14.6) reset();
+    var hitGolem = function (dmg, dir) { var g = S.golem; if (g.hurt > 0) return; g.hp -= dmg; g.hurt = 0.5; g.vx = dir * 50; g.vy = -70; g.ground = false; S.shake = 0.2; S.nums.push({ x: g.x, y: g.y - 20, v: dmg, t: 0, red: true }); };
+    /* type a recipe one element at a time; true once it is all there */
+    var type = function (ans, dt) {
+      if (S.want !== ans) { S.want = ans; S.queue = []; S.typeT = 0.12; S.spell = ""; S.gold = false; }
+      if (S.queue.length < ans.q.length) { S.typeT -= dt; if (S.typeT <= 0) { S.queue.push(ans.q[S.queue.length]); S.typeT = 0.24; if (S.queue.length === ans.q.length) { S.spell = ans.name; S.kind = ans.kind; S.gold = !!ans.gold; } else { S.spell = "…"; S.kind = ""; } } return false; }
+      return true;
+    };
+    var cast = function (ans, f) {
+      var g = S.golem, sx = g.x + 8, sy = g.y - 10, T, d;
+      S.recoil = 0.16; g.cd = 0.75;
+      if (ans.cast === "fireball") { T = Math.max(0.3, Math.abs(f.x - sx) / 150); S.shots.push({ kind: "fireball", x: sx, y: sy, vx: (f.x - sx) / T, vy: (f.y - 3 - sy) / T - 30 * T, g: 60, dmg: ans.dmg }); }
+      else if (ans.cast === "bolt") { S.bolt = { x0: sx, y0: sy, x1: f.x, y1: f.y - 3, t: 0.14 }; S.flash = 0.08; hitFoe(f, ans.dmg); }
+      else if (ans.cast === "spear") { S.shots.push({ kind: "spear", x: sx, y: g.y - 8, vx: 250, vy: 0, g: 0, bore: 30, dmg: 34 }); }
+      else if (ans.cast === "geyser") { S.flash = 0.22; S.shake = 0.3; f.vy = -150; hitFoe(f, ans.dmg); for (var k = 0; k < 70; k++) S.parts.push({ x: f.x + (Math.random() - 0.5) * 9, y: f.y - 1, vx: (Math.random() - 0.5) * 36, vy: -70 - Math.random() * 120, kind: Math.random() < 0.75 ? WATER : STEAM, life: 3 }); g.cd = 1.2; }
+    };
+    var SPEAR = { q: ["earth", "lightning"], name: "Stone spear", kind: "Shot", cast: "spear" }, SPRAY = { q: ["earth", "earth"], name: "Earth spray", kind: "Lift" };
+
+    /* the golem: what is in front of it decides what it does */
+    var think = function (dt) {
+      var g = S.golem, i, f, near = null, nd = 1e9;
+      g.cd = Math.max(0, g.cd - dt); g.hurt = Math.max(0, g.hurt - dt);
+      for (i = 0; i < S.foes.length; i++) { f = S.foes[i]; var d = Math.abs(f.x - g.x); if (!f.dead && d < nd && f.x > g.x - 30) { nd = d; near = f; } }
+      var move = 1, jump = false;
+      if (near && nd < 78 && !solid(g.x + 9, g.y - 8)) {
+        /* a creature: stop, type what it is weak to, and cast; jump a crawler's lunge */
+        move = nd < 26 ? -0.6 : 0;
+        if (type(ANSWER[near.kind], dt) && g.cd <= 0) cast(ANSWER[near.kind], near);
+        if (near.kind === "crawler" && near.st === "windup" && near.t > 0.28 && nd < 24 && g.ground) jump = true;
+      } else if (g.fly) {
+        /* over the water on a spray of earth */
+        type(SPRAY, dt);
+        var below = floorAt(g.x + 4, g.y), wet = at(g.x + 6, below) === WATER || at(g.x + 6, g.y + 3) === WATER || at(g.x + 10, floorAt(g.x + 10, g.y)) === WATER;
+        g.vy += ((g.flyY - g.y) * 6 - g.vy) * Math.min(1, 6 * dt);
+        if (Math.random() < 0.8) S.parts.push({ x: g.x + (Math.random() - 0.5) * 5, y: g.y + 1, vx: (Math.random() - 0.5) * 26, vy: 90 + Math.random() * 40, kind: EARTH, life: 3 });
+        if (!wet && below - g.y < 14 && S.t - g.flyAt > 0.6) g.fly = false;
+      } else {
+        var wallX = Math.round(g.x + 7), wall = solid(wallX, g.y - 8) || solid(wallX, g.y - 13), low = solid(wallX, g.y - 2) && !solid(wallX, g.y - 7);
+        var ahead = floorAt(g.x + 12, g.y - 6), water = at(g.x + 12, ahead) === WATER || at(g.x + 12, g.y + 2) === WATER;
+        if (water && g.ground) { g.fly = true; g.flyY = g.y - 12; g.flyAt = S.t; g.ground = false; }
+        else if (low && g.ground) jump = true;
+        else if (wall) {
+          var thick = 0; while (thick < 40 && solid(wallX + thick, g.y - 8)) thick++;
+          var key = Math.round(wallX / 30);
+          if (thick > 12 && !g.bored[key]) { move = 0; if (type(SPEAR, dt) && g.cd <= 0) { cast(SPEAR, null); g.bored[key] = true; } }
+          else if (at(wallX, g.y - 8) !== ROCK) {
+            /* dig by walking into it: a column at a time, with crumbs */
+            g.digT = (g.digT || 0) + dt;
+            if (g.digT > 0.07) { g.digT = 0; for (var yy = Math.round(g.y) - 17; yy <= g.y; yy++) { var ci = yy * WW + wallX; if (cells[ci] === DIRT || cells[ci] === EARTH) { cells[ci] = EMPTY; if (Math.random() < 0.12) S.parts.push({ x: wallX, y: yy, vx: -20 - Math.random() * 40, vy: -20 - Math.random() * 40, kind: EARTH, life: 2 }); } } }
+          } else jump = g.ground;
+        }
+        if (!near || nd > 90) { if (S.want && S.want !== SPEAR && S.want !== SPRAY && S.t - (g.calmAt || 0) > 1.2) { S.want = null; S.queue = []; S.spell = ""; S.kind = ""; S.gold = false; } } else g.calmAt = S.t;
+      }
+      /* movement and the ground */
+      var speed = 30, inW = at(g.x, g.y - 6) === WATER;
+      g.vx += (move * speed - g.vx) * Math.min(1, (g.ground ? 10 : 3) * dt);
+      if (jump && g.ground) { g.vy = -105; g.ground = false; }
+      if (!g.fly) g.vy += (inW ? 90 : 320) * dt;
+      if (inW) { g.vx *= 1 - 2 * dt; g.vy *= 1 - 3 * dt; }
+      var nx = g.x + g.vx * dt, dir = g.vx > 0 ? 1 : -1, blocked = solid(nx + dir * 6, g.y - 8) || solid(nx + dir * 6, g.y - 14) || solid(nx + dir * 6, g.y - 3);
+      if (blocked && g.ground && !solid(nx + dir * 6, g.y - 6) && !solid(nx + dir * 6, g.y - 18)) { g.y -= 2; blocked = false; }   /* up a small step */
+      if (!blocked) g.x = Math.max(8, nx); else g.vx = 0;
+      var ny = g.y + g.vy * dt;
+      if (g.vy > 0 && (solid(g.x, ny + 1) || solid(g.x - 4, ny + 1) || solid(g.x + 4, ny + 1))) { g.y = floorAt(g.x, Math.max(2, g.y - 4)); if (solid(g.x - 4, g.y + 1) === false && solid(g.x + 4, g.y + 1) === false && !solid(g.x, g.y + 1)) g.y = ny; g.vy = 0; g.ground = true; }
+      else { if (g.vy < 0 && solid(g.x, ny - 17)) g.vy = 0; else g.y = ny; g.ground = false; }
+      /* never stuck for long: blast a way on */
+      if (Math.abs(g.x - S.lastX) > 3) { S.lastX = g.x; S.stuck = 0; } else if (!(near && nd < 78)) { S.stuck += dt; if (S.stuck > 4) { S.stuck = 0; explode(g.x + 12, g.y - 9, 11); S.flash = 0.15; puff(g.x + 12, g.y - 9, 18, "fire", 110); } }
+    };
+    /* the creatures: each warns, then attacks */
+    var beasts = function (dt) {
+      var g = S.golem, i, f, dx, d;
+      for (i = 0; i < S.foes.length; i++) {
+        f = S.foes[i]; f.hurt = Math.max(0, f.hurt - dt);
+        if (f.dead) continue;
+        f.t += dt; f.cd -= dt; dx = g.x - f.x; d = Math.abs(dx); f.face = dx < 0 ? -1 : 1;
+        var touch = Math.abs(dx) < 9 && Math.abs((g.y - 8) - (f.y - 3)) < 11;
+        if (f.kind === "crawler") {
+          if (f.st === "idle") { f.vx = 0; if (d < 70) { f.st = "chase"; f.t = 0; } }
+          else if (f.st === "chase") { f.vx = f.face * 20; if (d < 18 && f.cd <= 0) { f.st = "windup"; f.t = 0; f.vx = 0; } }
+          else if (f.st === "windup") { f.vx = 0; if (f.t > 0.5) { f.st = "lunge"; f.t = 0; f.vx = f.face * 115; f.vy = -40; f.struck = false; } }
+          else if (f.st === "lunge") { if (touch && !f.struck) { f.struck = true; hitGolem(14, f.face); } if (f.t > 0.3) { f.st = "chase"; f.t = 0; f.cd = 1.1; } }
+          f.vy += 320 * dt; f.x += f.vx * dt; if (solid(f.x + f.face * 6, f.y - 3)) f.x -= f.vx * dt;
+          var fy = f.y + f.vy * dt; if (f.vy > 0 && solid(f.x, fy + 1)) { f.y = floorAt(f.x, Math.max(2, f.y - 6)); f.vy = 0; } else f.y = fy;
+        } else if (f.kind === "moth") {
+          if (f.st === "idle") { f.y = f.hy + Math.sin(S.t * 2 + i) * 3; if (d < 82) { f.st = "hover"; f.t = 0; } }
+          else if (f.st === "hover") { f.x += ((g.x - f.face * 30) - f.x) * Math.min(1, 1.6 * dt); f.y += ((g.y - 34) - f.y) * Math.min(1, 1.6 * dt); if (f.t > 1.2 && f.cd <= 0) { f.st = "windup"; f.t = 0; } }
+          else if (f.st === "windup") { if (f.t > 0.5) { f.st = "swoop"; f.t = 0; var L = Math.hypot(dx, g.y - 8 - f.y) || 1; f.vx = dx / L * 120; f.vy = (g.y - 8 - f.y) / L * 120; f.struck = false; } }
+          else if (f.st === "swoop") { f.x += f.vx * dt; f.y += f.vy * dt; if (touch && !f.struck) { f.struck = true; hitGolem(10, f.face); } if (f.t > 0.42 || solid(f.x, f.y + 1)) { f.st = "hover"; f.t = 0; f.cd = 1.4; } }
+        } else {
+          f.y = floorAt(f.x, Math.max(2, f.y - 6) ); if (f.vy) { f.vy += 400 * dt; f.hy = (f.hy || 0); }
+          if (f.st === "idle") { if (d < 96) { f.st = "ready"; f.t = 0; } }
+          else if (f.st === "ready") { if (f.cd <= 0 && d < 110) { f.st = "windup"; f.t = 0; } }
+          else if (f.st === "windup") { if (f.t > 0.6) { f.st = "ready"; f.t = 0; f.cd = 2.1; var T = Math.max(0.5, d / 120); S.shots.push({ kind: "shard", x: f.x + f.face * 4, y: f.y - 11, vx: dx / T, vy: (g.y - 8 - (f.y - 11)) / T - 100 * T, g: 200, dmg: 12 }); } }
+        }
+      }
     };
     var step = function (dt) {
       S.t += dt; S.fadeIn = Math.max(0, S.fadeIn - dt * 1.6);
       S.flash = Math.max(0, S.flash - dt); S.shake = Math.max(0, S.shake - dt); S.recoil = Math.max(0, S.recoil - dt);
-      script();
-      var i, x, y, f, p = S.proj;
-      /* the projectile */
-      if (p) {
-        var n = 4;
-        for (i = 0; i < n && p; i++) {
-          p.vy += p.g * dt / n; p.x += p.vx * dt / n; p.y += p.vy * dt / n;
-          var ix = Math.round(p.x), iy = Math.round(p.y), m = cells[iy * W + ix];
-          var hit = null;
-          for (var k = 0; k < S.foes.length; k++) { f = S.foes[k]; if (!f.dead && Math.abs(f.x - p.x) < 6 && p.y > f.y - 7 && p.y < f.y + 1) hit = f; }
-          if (p.kind === "fireball" && (hit || m === DIRT || m === ROCK || m === EARTH || ix < 2 || ix > W - 3)) {
-            explode(p.x, p.y, 9); S.flash = 0.2; S.shake = 0.25;
-            for (k = 0; k < 26; k++) S.parts.push({ x: p.x + (hash(k, 21) - 0.5) * 12, y: p.y + (hash(k, 22) - 0.5) * 12, vx: (hash(k, 23) - 0.5) * 110, vy: (hash(k, 24) - 0.8) * 110, kind: hash(k, 25) < 0.55 ? "fire" : EARTH, life: 0.5 + hash(k, 26) * 0.7 });
-            for (k = 0; k < S.foes.length; k++) { f = S.foes[k]; if (!f.dead && Math.hypot(f.x - p.x, f.y - 3 - p.y) < 15) crumble(f); }
-            S.proj = p = null;
+      if (S.bolt) { S.bolt.t -= dt; if (S.bolt.t <= 0) S.bolt = null; }
+      think(dt); beasts(dt);
+      var i, k, x, y, f, p, g = S.golem;
+      /* shots: the golem's and the slinger's */
+      for (i = S.shots.length - 1; i >= 0; i--) {
+        p = S.shots[i]; var gone = false;
+        for (k = 0; k < 4 && !gone; k++) {
+          p.vy += p.g * dt / 4; p.x += p.vx * dt / 4; p.y += p.vy * dt / 4;
+          var m = at(p.x, p.y), hit = null;
+          if (p.kind !== "shard") for (var j = 0; j < S.foes.length; j++) { f = S.foes[j]; if (!f.dead && Math.abs(f.x - p.x) < 6 && p.y > f.y - 8 && p.y < f.y + 2) hit = f; }
+          if (p.kind === "fireball" && (hit || m === DIRT || m === ROCK || m === EARTH)) {
+            explode(p.x, p.y, 8); S.flash = 0.18; S.shake = 0.22; puff(p.x, p.y, 22, "fire", 110); puff(p.x, p.y, 8, EARTH, 80);
+            for (j = 0; j < S.foes.length; j++) { f = S.foes[j]; if (!f.dead && Math.hypot(f.x - p.x, f.y - 3 - p.y) < 14) hitFoe(f, p.dmg); }
+            gone = true;
           } else if (p.kind === "spear") {
-            if (m === DIRT || m === EARTH) { explode(p.x, p.y, 3.2); if (hash(ix, iy) < 0.3) S.parts.push({ x: p.x, y: p.y, vx: (hash(ix, 1) - 0.5) * 40, vy: -20, kind: EARTH, life: 2 }); }
-            if (hit) { hit.hurt = 0.3; hit.hp--; hit.x += 5; S.flash = 0.12; S.proj = p = null; }
-            else if (m === ROCK || ix > W - 4) S.proj = p = null;
+            if (m === DIRT || m === EARTH) { explode(p.x, p.y, 3.2); p.bore -= 250 * dt / 4; if (Math.random() < 0.2) S.parts.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 40, vy: -20, kind: EARTH, life: 2 }); }
+            if (hit) { hitFoe(hit, p.dmg); gone = true; } else if (m === ROCK || p.bore <= 0 || p.x > g.x + 150) gone = true;
+          } else if (p.kind === "shard") {
+            if (Math.abs(p.x - g.x) < 7 && p.y > g.y - 17 && p.y < g.y) { hitGolem(p.dmg, p.vx > 0 ? 1 : -1); gone = true; }
+            else if (m === DIRT || m === ROCK || m === EARTH) { puff(p.x, p.y, 4, EARTH, 50); gone = true; }
           }
+          if (p.y > H || p.x < 0 || p.x > WW) gone = true;
         }
+        if (gone) S.shots.splice(i, 1);
       }
+      for (i = S.nums.length - 1; i >= 0; i--) { S.nums[i].t += dt; if (S.nums[i].t > 0.8) S.nums.splice(i, 1); }
       /* particles: fire fades; earth, water and steam turn back into cells where they land */
       for (i = S.parts.length - 1; i >= 0; i--) {
         var q = S.parts[i];
         q.life -= dt; q.vy += (q.kind === STEAM ? -30 : 240) * dt; q.x += q.vx * dt; q.y += q.vy * dt;
         x = Math.round(q.x); y = Math.round(q.y);
-        var gone = q.life <= 0 || x < 1 || y < 1 || x >= W - 1 || y >= H - 1;
-        if (!gone && q.kind !== "fire" && cells[y * W + x] !== EMPTY) {
-          var py = y - 1; while (py > 1 && cells[py * W + x] !== EMPTY) py--;
-          if (y - py < 6) { cells[py * W + x] = q.kind; life[py * W + x] = 90; }
-          gone = true;
-        } else if (gone && q.kind !== "fire" && x > 0 && y > 0 && x < W - 1 && y < H - 1 && cells[y * W + x] === EMPTY) { cells[y * W + x] = q.kind; life[y * W + x] = 90; }
-        if (gone) S.parts.splice(i, 1);
+        var out = q.life <= 0 || x < 1 || y < 1 || x >= WW - 1 || y >= H - 1;
+        if (!out && q.kind !== "fire" && cells[y * WW + x] !== EMPTY && !(q.kind === EARTH && cells[y * WW + x] === WATER)) {
+          var py = y - 1; while (py > 1 && cells[py * WW + x] !== EMPTY) py--;
+          if (y - py < 6) { cells[py * WW + x] = q.kind; life[py * WW + x] = 90; }
+          out = true;
+        }
+        if (out) S.parts.splice(i, 1);
       }
-      /* the sand: loose earth falls and piles, water falls and spreads, steam rises and fades */
-      for (y = H - 2; y > 0; y--) for (var xx = 0; xx < W; xx++) {
-        x = (y & 1) ? xx : W - 1 - xx; i = y * W + x;
+      /* the sand, near the screen: loose earth falls and piles (and sinks in water), water falls and spreads, steam rises and fades */
+      S.cam = Math.max(0, Math.min(WW - W, Math.round(g.x - 64)));
+      var x0 = Math.max(1, S.cam - 24), x1 = Math.min(WW - 1, S.cam + W + 24);
+      for (y = H - 2; y > 0; y--) for (var xx = x0; xx < x1; xx++) {
+        x = (y & 1) ? xx : x1 - 1 - (xx - x0); i = y * WW + x;
         var c = cells[i];
         if (c === EARTH || c === WATER) {
-          var dir = hash(x + S.t * 60, y) < 0.5 ? -1 : 1;
-          if (cells[i + W] === EMPTY || (c === EARTH && cells[i + W] === WATER)) { cells[i] = cells[i + W]; cells[i + W] = c; }
-          else if (cells[i + W + dir] === EMPTY && cells[i + dir] === EMPTY) { cells[i] = EMPTY; cells[i + W + dir] = c; }
+          var dir = Math.random() < 0.5 ? -1 : 1;
+          if (cells[i + WW] === EMPTY || (c === EARTH && cells[i + WW] === WATER)) { cells[i] = cells[i + WW]; cells[i + WW] = c; }
+          else if (cells[i + WW + dir] === EMPTY && cells[i + dir] === EMPTY) { cells[i] = EMPTY; cells[i + WW + dir] = c; }
           else if (c === WATER && cells[i + dir] === EMPTY) { cells[i] = EMPTY; cells[i + dir] = c; }
         } else if (c === STEAM) {
           if (life[i] > 0) life[i]--;
           if (life[i] === 0) cells[i] = EMPTY;
-          else if (cells[i - W] === EMPTY && hash(x, y + S.t * 60) < 0.5) { cells[i] = EMPTY; cells[i - W] = STEAM; life[i - W] = life[i]; }
+          else if (cells[i - WW] === EMPTY && Math.random() < 0.5) { cells[i] = EMPTY; cells[i - WW] = STEAM; life[i - WW] = life[i]; }
         }
       }
-      /* the crawlers: the second one is thrown up by the geyser */
-      for (i = 0; i < S.foes.length; i++) {
-        f = S.foes[i]; f.hurt = Math.max(0, f.hurt - dt);
-        if (f.dead) continue;
-        if (f.vy) { f.vy += 400 * dt; f.y += f.vy * dt; var fl = floorAt(Math.round(f.x), 30); if (f.vy > 0 && f.y >= fl) { f.y = fl; f.vy = 0; } }
-        else f.y = floorAt(Math.round(f.x), Math.max(2, Math.round(f.y) - 8));
-      }
-      S.golem.y = floorAt(S.golem.x, Math.max(2, S.golem.y - 8));
+      /* the end of the cave, or the end of the golem: fade, and begin another */
+      if (g.x > WW - 22 || g.hp <= 0) { S.fade = Math.min(1, S.fade + dt * 1.4); if (S.fade >= 1) reset(); }
     };
+    var plot = function (px, py, r, g, b) { px = Math.round(px) - S.cam; py = Math.round(py); if (px >= 0 && py >= 0 && px < W && py < H) buf[py * W + px] = pk(r, g, b); };
     var sprite = function (rows, cx, feet, flip, colour) {
       var w = rows[0].length, h = rows.length, ox = Math.round(cx) - (w >> 1), oy = Math.round(feet) - h;
       for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
         var ch = rows[y][flip ? w - 1 - x : x];
         if (ch === ".") continue;
-        var c = colour(ch, y, h), px = ox + x + (c.dx || 0), py = oy + y + (c.dy || 0);
-        if (px >= 0 && py >= 0 && px < W && py < H) buf[py * W + px] = pk(c[0], c[1], c[2]);
+        var c = colour(ch, y, h);
+        plot(ox + x + (c.dx || 0), oy + y + (c.dy || 0), c[0], c[1], c[2]);
       }
     };
     var draw = function () {
-      var x, y, i, c;
+      var x, y, i, c, wx, cam = S.cam;
       for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
-        i = y * W + x; c = cells[i];
-        if (c === EMPTY) { var v = hash(x >> 1, y >> 1) < 0.04 ? 8 : 0; buf[i] = pk(22 + v, 17 + v, 34 + v * 2); }
+        wx = x + cam; c = cells[y * WW + wx]; i = y * W + x;
+        if (c === EMPTY) { var v = hash(wx >> 1, y >> 1) < 0.04 ? 8 : 0; buf[i] = pk(22 + v, 17 + v, 34 + v * 2); }
         else if (c === DIRT) {
-          /* strata: bands that wander, lit with lichen where they face open air */
-          var band = Math.floor((y + Math.sin(x / 17) * 3 + Math.sin(x / 5.3) * 1.2) / 8) & 1, sp = hash(x, y) < 0.5 ? 0 : 6;
-          if (cells[i - W] === EMPTY && hash(x, 9) < 0.6) buf[i] = pk(122, 172, 150);
+          var band = Math.floor((y + Math.sin(wx / 17) * 3 + Math.sin(wx / 5.3) * 1.2) / 8) & 1, sp = hash(wx, y) < 0.5 ? 0 : 6;
+          if (y > 0 && cells[(y - 1) * WW + wx] === EMPTY && hash(wx, 9) < 0.6) buf[i] = pk(122, 172, 150);
           else buf[i] = band ? pk(132 + sp, 84 + sp, 100 + sp) : pk(150 + sp, 100 + sp, 104 + sp);
         }
-        else if (c === ROCK) { var r = hash(x >> 2, y >> 2) < 0.5 ? 0 : 8; buf[i] = hash(x, y) < 0.08 ? pk(30, 34, 52) : pk(44 + r, 52 + r, 80 + r); }
-        else if (c === EARTH) { var e = hash(x, y) * 18; buf[i] = pk(172 + e, 128 + e, 118 + e); }
-        else if (c === WATER) buf[i] = pk(44 + (hash(x, y + S.t) < 0.1 ? 40 : 0), 90, 198);
+        else if (c === ROCK) { var r = hash(wx >> 2, y >> 2) < 0.5 ? 0 : 8; buf[i] = hash(wx, y) < 0.08 ? pk(30, 34, 52) : pk(44 + r, 52 + r, 80 + r); }
+        else if (c === EARTH) { var e = hash(wx, y) * 18; buf[i] = pk(172 + e, 128 + e, 118 + e); }
+        else if (c === WATER) buf[i] = pk(44 + (hash(wx, y + Math.floor(S.t * 8)) < 0.1 ? 40 : 0), 90, 198);
         else buf[i] = pk(204, 206, 230);
       }
-      /* the crawlers */
+      /* the creatures: white when hit, eyes bright while they warn */
       for (i = 0; i < S.foes.length; i++) {
         var f = S.foes[i];
-        if (f.dead) continue;
-        sprite(CRAWLER, f.x, f.y, f.face > 0, function (ch) { return f.hurt > 0 ? [255, 246, 236] : ch === "k" ? [30, 26, 40] : ch === "m" ? [112, 104, 128] : ch === "d" ? [78, 72, 94] : [255, 70, 160]; });
+        if (f.dead || f.x < cam - 12 || f.x > cam + W + 12) continue;
+        (function (f) { var C = COL[f.kind], warn = f.st === "windup" && Math.sin(f.t * 40) > 0; sprite(ART[f.kind], f.x, f.y + (f.kind === "crawler" && f.st === "windup" ? -1 : 0), f.face > 0 ? f.kind !== "slinger" : f.kind === "slinger", function (ch) { return f.hurt > 0 ? [255, 246, 236] : ch === "e" && warn ? [255, 255, 255] : (ch === "w" || ch === "p") && warn ? [255, 240, 255] : C[ch]; }); })(f);
       }
-      /* the golem: it breathes, and leans back from a cast; its two lights show the recipe */
-      var breathe = !reducedMotion && Math.sin(S.t * 2.4) > 0.5, e0 = ELRGB[S.queue[0]], e1 = ELRGB[S.queue[1] || S.queue[0]];
-      sprite(GOLEM, S.golem.x, S.golem.y, false, function (ch, y, h) {
-        var col = ch === "L" ? (e0 || [58, 30, 34]) : ch === "R" ? (e1 || [58, 30, 34]) : ch === "c" ? (e0 ? [(e0[0] + e1[0]) >> 1, (e0[1] + e1[1]) >> 1, (e0[2] + e1[2]) >> 1] : STONE.s) : STONE[ch];
+      /* the golem: it breathes, leans back from a cast, flashes when hurt; its two lights show the recipe */
+      var g = S.golem, breathe = !reducedMotion && Math.sin(S.t * 2.4) > 0.5, e0 = ELRGB[S.queue[0]], e1 = ELRGB[S.queue[1] || S.queue[0]];
+      sprite(GOLEM, g.x, g.y, false, function (ch, y, h) {
+        var col = g.hurt > 0.35 ? [255, 246, 236] : ch === "L" ? (e0 || [58, 30, 34]) : ch === "R" ? (e1 || [58, 30, 34]) : ch === "c" ? (e0 ? [(e0[0] + e1[0]) >> 1, (e0[1] + e1[1]) >> 1, (e0[2] + e1[2]) >> 1] : STONE.s) : STONE[ch];
         col = col.slice();
         if (y < h - 3) { col.dy = breathe ? -1 : 0; if (S.recoil > 0 && y < h * 0.45) col.dx = -1; }
         return col;
       });
-      /* the projectile and the particles */
-      var p = S.proj, plot = function (px, py, r, g, b) { px = Math.round(px); py = Math.round(py); if (px >= 0 && py >= 0 && px < W && py < H) buf[py * W + px] = pk(r, g, b); };
-      if (p && p.kind === "fireball") { for (i = 1; i <= 5; i++) plot(p.x - p.vx * i * 0.006, p.y - p.vy * i * 0.006, 255, 150 - i * 16, 44); plot(p.x, p.y, 255, 245, 200); plot(p.x + 1, p.y, 255, 170, 70); plot(p.x - 1, p.y, 255, 170, 70); plot(p.x, p.y + 1, 255, 170, 70); plot(p.x, p.y - 1, 255, 170, 70); }
-      if (p && p.kind === "spear") { var sp2 = Math.hypot(p.vx, p.vy); for (i = 0; i < 7; i++) plot(p.x - p.vx / sp2 * i, p.y - p.vy / sp2 * i, i < 2 ? 255 : 150, i < 2 ? 252 : 156, i < 2 ? 230 : 170); }
-      for (i = 0; i < S.parts.length; i++) { var q = S.parts[i]; if (q.kind === "fire") plot(q.x, q.y, 255, 150 + hash(i, 1) * 80, 50); else if (q.kind === EARTH) plot(q.x, q.y, 184, 140, 128); else if (q.kind === WATER) plot(q.x, q.y, 80, 140, 240); else plot(q.x, q.y, 214, 216, 236); }
+      /* shots, the bolt, particles, damage numbers */
+      for (i = 0; i < S.shots.length; i++) {
+        var p = S.shots[i], k;
+        if (p.kind === "fireball") { for (k = 1; k <= 5; k++) plot(p.x - p.vx * k * 0.006, p.y - p.vy * k * 0.006, 255, 150 - k * 16, 44); plot(p.x, p.y, 255, 245, 200); plot(p.x + 1, p.y, 255, 170, 70); plot(p.x, p.y + 1, 255, 170, 70); plot(p.x - 1, p.y, 255, 170, 70); plot(p.x, p.y - 1, 255, 170, 70); }
+        else if (p.kind === "spear") { for (k = 0; k < 7; k++) plot(p.x - k, p.y, k < 2 ? 255 : 150, k < 2 ? 252 : 156, k < 2 ? 230 : 170); }
+        else { plot(p.x, p.y, 200, 190, 180); plot(p.x + 1, p.y, 150, 143, 138); plot(p.x, p.y + 1, 150, 143, 138); }
+      }
+      if (S.bolt) { var B = S.bolt, n = 14, lx = B.x0, ly = B.y0; for (k = 1; k <= n; k++) { var tx = B.x0 + (B.x1 - B.x0) * k / n + (k < n ? (Math.random() - 0.5) * 5 : 0), ty = B.y0 + (B.y1 - B.y0) * k / n + (k < n ? (Math.random() - 0.5) * 5 : 0); for (var s2 = 0; s2 <= 4; s2++) plot(lx + (tx - lx) * s2 / 4, ly + (ty - ly) * s2 / 4, 255, 246, 190); lx = tx; ly = ty; } }
+      for (i = 0; i < S.parts.length; i++) { var q = S.parts[i]; if (q.kind === "fire") plot(q.x, q.y, 255, 150 + hash(i, 1) * 80, 50); else if (q.kind === EARTH) plot(q.x, q.y, 184, 140, 128); else if (q.kind === WATER) plot(q.x, q.y, 90, 150, 240); else plot(q.x, q.y, 214, 216, 236); }
+      for (i = 0; i < S.nums.length; i++) { var nm = S.nums[i], str = String(nm.v), nx0 = nm.x - str.length * 2, ny0 = nm.y - nm.t * 12; for (k = 0; k < str.length; k++) { var gl = DIG[+str[k]]; for (var rr = 0; rr < 5; rr++) for (var cc = 0; cc < 3; cc++) if (gl[rr] >> (2 - cc) & 1) { if (nm.red) plot(nx0 + k * 4 + cc, ny0 + rr, 255, 110, 100); else plot(nx0 + k * 4 + cc, ny0 + rr, 140, 255, 150); } } }
+      /* the golem's health, top left, as in the game's orb colour */
+      for (x = 0; x < 34; x++) for (y = 0; y < 3; y++) buf[(4 + y) * W + 5 + x] = x === 0 || x === 33 ? pk(20, 16, 24) : x < 1 + 32 * Math.max(0, g.hp) / 100 ? pk(232, 90, 78) : pk(52, 46, 58);
       /* a flash and a fade, mixed into the picture */
       var veil = Math.max(S.fade, S.fadeIn), fl = S.flash > 0 ? Math.min(0.35, S.flash * 1.6) : 0;
       if (veil > 0 || fl > 0) for (i = 0; i < buf.length; i++) {
@@ -2488,21 +2561,21 @@
         if (veil > 0) { r2 += (13 - r2) * veil; g2 += (10 - g2) * veil; b2 += (20 - b2) * veil; }
         buf[i] = pk(r2, g2, b2);
       }
-      ctx.putImageData(img, S.shake > 0 && !reducedMotion ? Math.round((hash(S.t, 1) - 0.5) * 3) : 0, S.shake > 0 && !reducedMotion ? Math.round((hash(S.t, 2) - 0.5) * 3) : 0);
+      ctx.putImageData(img, S.shake > 0 && !reducedMotion ? Math.round((Math.random() - 0.5) * 3) : 0, S.shake > 0 && !reducedMotion ? Math.round((Math.random() - 0.5) * 3) : 0);
       /* the sockets and the plate, only when they change */
       var sig = S.queue.join("+") + "|" + S.spell + "|" + S.gold;
       if (sig !== shown) {
         shown = sig;
         for (i = 0; i < sockets.length; i++) { var el = S.queue[i]; sockets[i].className = el ? "on" : ""; sockets[i].style.setProperty("--c", el ? EL[el] : "transparent"); }
-        elSpell.textContent = S.spell || "Type the elements"; elKind.textContent = S.kind || "the first is the form";
+        elSpell.textContent = S.spell || "Exploring"; elKind.textContent = S.kind || "the cave";
         csSlab.classList.toggle("cs-gold", !!S.gold);
       }
     };
 
     reset();
     if (reducedMotion) {
-      /* a still frame: the Fireball has just blasted its crater */
-      for (var guard = 0; guard < 600 && !(S.did.c1 && !S.proj && S.t > 2.9); guard++) step(1 / 60);
+      /* a still frame: the first fight, a Fireball in the air */
+      for (var guard = 0; guard < 1200 && !(S.shots.length && S.shots[0].kind === "fireball" && S.shots[0].x > S.golem.x + 24); guard++) step(1 / 60);
       S.fadeIn = 0; S.flash = 0; S.shake = 0;
       draw();
     } else if ("IntersectionObserver" in window) {
