@@ -183,6 +183,7 @@ const KAudio = (() => {
     explosion: (v, p) => { noise('lowpass', 1600, 120, 0.7, 0.7, v * 0.9, p); tone('sine', 110, 38, 0.5, v * 0.7, p); },
     bigboom: (v, p) => { noise('lowpass', 1200, 60, 0.7, 1.1, v, p); tone('sine', 80, 28, 0.9, v * 0.9, p); },
     water: (v, p) => { noise('lowpass', 900, 500, 1, 0.3, v * 0.4, p); },
+    spot: (v, p) => { tone('triangle', 1500, 950, 0.09, v * 0.4, p); tone('sine', 2200, 1600, 0.06, v * 0.2, p); },   // a shot on a weak spot: a bright crack over the usual hit
     splash: (v, p) => { noise('bandpass', 1200, 300, 1.5, 0.35, v * 0.55, p); },
     earth: (v, p) => { noise('lowpass', 500, 90, 1, 0.35, v * 0.8, p); tone('sine', 90, 45, 0.3, v * 0.5, p); },
     rumble: (v, p) => { noise('lowpass', 300, 80, 1, 0.5, v * 0.6, p); },

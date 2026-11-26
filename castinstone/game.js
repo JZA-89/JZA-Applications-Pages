@@ -1785,7 +1785,7 @@ const KGame = (() => {
         }
       }
       this.fx.push({ kind: 'bolt', pts: this.jagged(c.x + dx * 3, c.y + dy * 3, ex, ey), t: 0, T: 0.16, color: sp.color, wide: sp.vis });
-      if (target) this.hurt(target, sp.power, dx * sp.knock, dy * sp.knock - 30, 'bolt', p, key);
+      if (target) { this._at = { a: target, x: ex, y: ey, dx, dy }; this.hurt(target, sp.power, dx * sp.knock, dy * sp.knock - 30, 'bolt', p, key); }
       this.landing(ex - dx * 2, ey - dy * 2, sp, p);
       if (water) {
         const n = w.electrify(water.x, water.y, sp.charge, sp.chargeCells);
@@ -1820,7 +1820,7 @@ const KGame = (() => {
         const x = c.x + dx * d, y = c.y + dy * d, ix = Math.floor(x), iy = Math.floor(y);
         ex = x; ey = y;
         const a = this.actorAt(x, y, null);
-        if (a && !hit.has(a)) { hit.add(a); this.hurt(a, sp.power, dx * sp.knock, dy * sp.knock - 20, 'lance', p, key); }
+        if (a && !hit.has(a)) { hit.add(a); this._at = { a, x, y, dx, dy }; this.hurt(a, sp.power, dx * sp.knock, dy * sp.knock - 20, 'lance', p, key); }
         const m = w.get(ix, iy);
         if (m === M.WATER) { w.set(ix, iy, M.STEAM); break; }
         if (BLOCKS(m)) {
@@ -1867,7 +1867,7 @@ const KGame = (() => {
           if (hit && pr.owner.kind !== 'player' && hit.kind !== 'player') hit = null;   // creatures never hit each other
           if (pr.kind === 'spear') {
             pr.travelled += sp * DT / n;
-            if (hit) { this.hurt(hit, pr.sp.power, pr.vx / sp * pr.sp.knock, pr.vy / sp * pr.sp.knock - 30, 'spear', pr.owner, pr.key); this.spark(pr.x, pr.y); pr.dead = true; break; }
+            if (hit) { this._at = { a: hit, x: pr.x, y: pr.y, dx: pr.vx, dy: pr.vy }; this.hurt(hit, pr.sp.power, pr.vx / sp * pr.sp.knock, pr.vy / sp * pr.sp.knock - 30, 'spear', pr.owner, pr.key); this.spark(pr.x, pr.y); pr.dead = true; break; }
             if (m === M.ROCK) { this.spark(pr.x, pr.y); pr.dead = true; break; }
             if (BLOCKS(m)) {
               w.explode(pr.x, pr.y, pr.sp.bore);
@@ -1894,6 +1894,7 @@ const KGame = (() => {
     }
 
     impact(pr, px, py, hit) {
+      if (hit) this._at = { a: hit, x: pr.x, y: pr.y, dx: pr.vx, dy: pr.vy };   // where on its body the shot landed (for the weak spot)
       const w = this.world, sp = pr.sp;
       if (!pr.mini) this.landing(px, py, sp, pr.owner);
       if (pr.kind === 'fireball') {
@@ -2074,6 +2075,9 @@ const KGame = (() => {
       }
       this._aff = 1;
       amount = this.damage(src || null, a, amount, spell);
+      // an aimed shot that lands on a creature's weak spot does half as much again
+      const at = this._at; this._at = null; this._spot = false;
+      if (at && at.a === a && src && src.kind === 'player' && a.kind !== 'player' && a.kind !== 'dummy' && amount > 0 && this.onWeakSpot(a, at.x, at.y, at.dx, at.dy)) { amount *= KData.weakSpot.mul; this._spot = true; this.sfx('spot', a.x, a.y, 0.8); }
       // a golem's spell on a creature: was it weak to it, did it resist, or is it immune?
       const aff = spell && src && src.kind === 'player' && a.kind !== 'player' && a.kind !== 'dummy' ? this._aff : 1;
       const mark = aff <= 0.05 ? 'immune' : aff >= 1.2 ? 'weak' : aff <= 0.8 ? 'resist' : null;
@@ -2132,8 +2136,8 @@ const KGame = (() => {
       const dot = kind === 'fire' || kind === 'magma' || kind === 'shock' || kind === 'burn' || kind === 'scald' || kind === 'drill';
       let show = amount;
       if (dot) { a.dotAcc = (a.dotAcc || 0) + amount; if (a.dotAcc < 4) return; show = a.dotAcc; a.dotAcc = 0; }
-      const mark = this._mark;
-      const color = a.kind === 'player' ? [255, 110, 100] : mark === 'weak' ? [140, 255, 150] : mark === 'resist' ? [150, 150, 170] : a.elite || a.kind === 'boss' ? [255, 211, 122] : [240, 236, 228];
+      const mark = this._mark, spot = this._spot;
+      const color = a.kind === 'player' ? [255, 110, 100] : spot ? [255, 236, 150] : mark === 'weak' ? [140, 255, 150] : mark === 'resist' ? [150, 150, 170] : a.elite || a.kind === 'boss' ? [255, 211, 122] : [240, 236, 228];
       const n = this.bossNearest && a.kind === 'boss' ? this.bossNearest(a, a.x, a.y) : { x: a.x, y: a.y - a.h };
       this.fx.push({ kind: 'num', x: n.x + (this.rand() - 0.5) * 6, y: (a.kind === 'boss' ? n.y - 8 : a.y - a.h - 2), val: Math.max(1, Math.round(show)), t: 0, T: 0.8, color });
       if (dot) return;
@@ -3044,6 +3048,25 @@ const KGame = (() => {
       this.burst(x, sy, Math.min(10, 2 + n), [[150, 200, 255], [220, 240, 255]], Math.min(150, 30 + speed * 0.5));
       this.fx.push({ kind: 'ring', x, y: sy, r0: 2, r1: 4 + Math.min(6, speed * 0.02), t: 0, T: 0.3, color: [170, 210, 255] });
       this.sfx('splash', x, sy, Math.max(0.25, Math.min(1, speed / 240)));
+    }
+
+    // Where each creature is soft (KData.weakSpot): the head of anything upright, the front of anything
+    // that goes on all fours or burrows, the middle of anything round. Nothing marks it: you learn it.
+    onWeakSpot(a, x, y, dx, dy) {
+      const W = KData.weakSpot;
+      if (a.kind === 'boss') {
+        if (a.type === 'emberwyrm') return Math.hypot(x - a.x, y - a.y) < a.segR + 2;                  // its head, not its coils
+        if (a.type === 'heartroot') return !a.shut && Math.hypot(x - a.x, y - a.y) < a.h * 0.22;       // the open core
+        return y < a.y - a.h / 6;                                                                       // the King's skull
+      }
+      const fx0 = (x - (a.x - a.w / 2)) / a.w, fy = (y - (a.y - a.h)) / a.h, fx = (a.anchored ? a.face : a.facing) < 0 ? 1 - fx0 : fx0;
+      if (W.top.includes(a.kind)) return fy < W.topPart;
+      if (W.front.includes(a.kind)) return fx > 1 - W.frontPart;
+      // the middle: a shot stops at the edge of a body, so what counts is whether its line passes close to the centre
+      const cx = a.x, cy = a.y - a.h / 2, L = dx * dx + dy * dy;
+      if (!L) return false;
+      const t = ((cx - x) * dx + (cy - y) * dy) / L;
+      return Math.hypot(cx - (x + dx * t), cy - (y + dy * t)) < Math.max(2.5, W.corePart * Math.max(a.w, a.h));
     }
 
     // one touch hit during a swoop or a lunge

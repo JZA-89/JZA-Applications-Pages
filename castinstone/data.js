@@ -430,6 +430,11 @@ const KData = (() => {
     shut: 0.3, openTime: 2.4, seeds: 4, seedPower: 22, lashWarn: 0.85, lashPower: 26, lashHalf: 7, pulseWind: 1.1, pulseRadius: 95, pulsePower: 18, pulseKnock: 330,
     contact: 22, knock: 220, touchCd: 0.9, affinity: { fire: 1.5, water: 0.7 } };
 
+  // Weak spots: an aimed shot (not a blast or a burst) that lands there does `mul` times the damage.
+  // Upright creatures: the top `topPart` of the body. Four-footed and burrowing ones: the front `frontPart`.
+  // Everything else (the round and the winged): within `corePart` of the middle.
+  const weakSpot = { mul: 1.5, topPart: 0.38, frontPart: 0.36, corePart: 0.2, top: ['warden', 'slinger', 'shade', 'lasher', 'imp', 'wraith'], front: ['crawler', 'delver', 'boar', 'frog'] };
+
   // ---------- Regions ----------
   // The cave spreads in every direction from the hub. Each region has its own
   // stone colours (strata), background, lichen, and pools in its chambers.
@@ -673,6 +678,6 @@ const KData = (() => {
       ] },
   ];
 
-  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, statuses, elites, bosses, modes, recipe, specials, champions, remix, acts, biomes, cave, progression, runes, treasure,
+  return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, statuses, elites, bosses, modes, recipe, specials, champions, remix, acts, weakSpot, biomes, cave, progression, runes, treasure,
     world: { w: 3072, h: 1536, chunk: 32 }, view: { w: 320, h: 180 }, step: 1 / 60 };
 })();

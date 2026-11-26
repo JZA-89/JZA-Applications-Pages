@@ -660,6 +660,18 @@ Pointing the mouse at something shows a small note in the bottom-left corner (`#
 
 - **v0.61:** health no longer comes back by itself at all (Jaisah: turn off health regen). A Lodestone mends you while you stand by it and fully when you rest; the Mend special spell and anything else that heals still work.
 
+## Weak spots (v0.62, `game.onWeakSpot`, `KData.weakSpot`)
+
+Jaisah: add a weak spot, with no markings. An aimed shot that lands on a creature's weak spot does **1.5 times** the damage. Nothing on the creature shows where it is; you learn it. The only signs are the damage number in pale gold and a bright crack over the hit sound.
+
+- **Upright creatures** (warden, slinger, shade, lasher, imp, wraith): the top 38% of the body, the head.
+- **Four-footed and burrowing ones** (crawler, delver, rootboar, mirehopper): the front 36%, the way it faces.
+- **Everything else** (glowmoth, stormwisp, bloomwisp, urchin, geode, spitter): the middle.
+- **Bosses:** the Emberwyrm's head (not its coils); the Hollow King's skull; the Heartroot's core, and only while it is open.
+- Champions have the same spot as their kind, twice the size.
+- It counts for shots that strike a body directly: Bolt, lances, spears, boulders, blobs, and a fireball that hits the creature itself. Bursts, blasts that land beside a creature, and area spells do not.
+- It multiplies with a weakness (a Bolt to a glowmoth's body is 1.6 × 1.5).
+
 ## Weak, resist, immune (v0.60)
 
 Nothing on screen said a creature was weak to something unless you hovered it with a mouse. Now the damage number's colour says so, with no words (Jaisah: no words). When a golem's spell hits a creature the number is **green** if the creature takes 1.2 times or more from those elements, **grey** if 0.8 or less, and a **grey 0** when it takes nothing. The measure is the creature's own affinity averaged over the recipe's elements (`game._aff`), before wet, muddy or burning bonuses.
