@@ -287,7 +287,7 @@ const KData = (() => {
     // `every` s that clears `depth` cells ahead, the body's height plus `room` (measured: about 12 cells a second; running is 72)
     dig: { wait: 0.3, every: 0.1, depth: 4, room: 2, lean: 0.5, maxUp: 0.35 }, hp: 100, run: 72, accel: 900, airAccel: 520, friction: 14,
     jump: 168, gravity: 480, maxFall: 330, coyote: 0.1, buffer: 0.12,
-    regenDelay: 6, regen: 3, respawn: 1.4,   // health comes back slowly, and only after 6 s without being hurt: resting at a Lodestone is how you heal
+    respawn: 1.4,   // health does not come back by itself: a Lodestone mends you, and so do the Mend spell and a few runestones
     // mana: refills on its own, faster on the ground. Spending pauses the refill
     // briefly; running dry pauses it longer.
     mana: 60, manaRegen: 16, manaGroundRegen: 30, manaDelay: 0.35, manaEmptyDelay: 0.9,

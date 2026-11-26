@@ -658,6 +658,8 @@ Pointing the mouse at something shows a small note in the bottom-left corner (`#
 
 - **v0.55:** Jaisah: flying with earth should be a spray of dirt aimed down like water, not a platform. Stone steps and Ember steps (a step of stone under your feet each time you fell) are now Earth spray and Cinder spray, held jets like the Water jet. The step code is gone.
 
+- **v0.61:** health no longer comes back by itself at all (Jaisah: turn off health regen). A Lodestone mends you while you stand by it and fully when you rest; the Mend special spell and anything else that heals still work.
+
 ## Weak, resist, immune (v0.60)
 
 Nothing on screen said a creature was weak to something unless you hovered it with a mouse. Now the damage number's colour says so, with no words (Jaisah: no words). When a golem's spell hits a creature the number is **green** if the creature takes 1.2 times or more from those elements, **grey** if 0.8 or less, and a **grey 0** when it takes nothing. The measure is the creature's own affinity averaged over the recipe's elements (`game._aff`), before wet, muddy or burning bonuses.

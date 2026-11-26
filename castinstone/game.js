@@ -3446,7 +3446,6 @@ const KGame = (() => {
       if (a.grounded && a.vy > 0) a.vy = 0;
       a.x = Math.max(4, Math.min(w.w - 4, a.x));
 
-      if (a.kind === 'player' && this.time - a.lastHurt > PD.regenDelay) a.hp = Math.min(a.maxHp, a.hp + PD.regen * DT);
       if (a.y > w.h + 20) this.kill(a);
     }
   }
