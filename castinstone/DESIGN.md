@@ -658,6 +658,10 @@ Pointing the mouse at something shows a small note in the bottom-left corner (`#
 
 - **v0.55:** Jaisah: flying with earth should be a spray of dirt aimed down like water, not a platform. Stone steps and Ember steps (a step of stone under your feet each time you fell) are now Earth spray and Cinder spray, held jets like the Water jet. The step code is gone.
 
+## Weak, resist, immune (v0.59)
+
+Jaisah agreed: nothing on screen said a creature was weak to something unless you hovered it with a mouse. Now the damage number says so. When a golem's spell hits a creature, the number is **green with WEAK** if the creature takes 1.2 times or more from those elements, **grey with RESIST** if 0.8 or less, and **IMMUNE** in grey when it takes nothing (no number). The colour is on every hit; the word appears at most once every 0.8 s for each creature, so a stream of hits does not fill the screen with words. The measure is the creature's own affinity averaged over the recipe's elements (`game._aff`), before wet, muddy or burning bonuses. Letters are 3 × 5 pixels like the digits (`LETTERS` in render.js).
+
 ## Stone spear and health regeneration (v0.58)
 
 Jaisah: the Stone spear is too good at digging; and health comes back too easily.

@@ -177,6 +177,8 @@ const KRender = (() => {
   const SLATE0 = [34, 40, 64], SLATE1 = [66, 76, 110], SLATE_EDGE = [22, 24, 40];
 
   // a 3x5 pixel font for damage numbers (each row is 3 bits)
+  // the letters of WEAK, RESIST and IMMUNE, in the same 3 x 5 pixels as the digits
+  const LETTERS = { W: [5, 5, 5, 7, 5], E: [7, 4, 6, 4, 7], A: [2, 5, 7, 5, 5], K: [5, 5, 6, 5, 5], R: [6, 5, 6, 5, 5], S: [3, 4, 2, 1, 6], I: [7, 2, 2, 2, 7], T: [7, 2, 2, 2, 2], M: [5, 7, 7, 5, 5], U: [5, 5, 5, 5, 7], N: [7, 5, 5, 5, 5] };
   const DIGITS = { 0: [7, 5, 5, 5, 7], 1: [2, 6, 2, 2, 7], 2: [7, 1, 7, 4, 7], 3: [7, 1, 7, 1, 7], 4: [5, 5, 7, 1, 1], 5: [7, 4, 7, 1, 7], 6: [7, 4, 7, 5, 7], 7: [7, 1, 1, 2, 2], 8: [7, 5, 7, 5, 7], 9: [7, 5, 7, 1, 7] };
   const pack = (r, g, b) => (255 << 24) | (b << 16) | (g << 8) | r;
   const clamp = v => v < 0 ? 0 : v > 255 ? 255 : v | 0;
@@ -710,9 +712,11 @@ const KRender = (() => {
           }
         } else if (f.kind === 'num') {
           // rises and fades
-          const s = String(f.val), y = Math.round(f.y - this.cam.y - k * 10), x0 = Math.round(f.x - this.cam.x - s.length * 2);
+          // the number, then (for a weakness or a resistance) the word, in the same colour
+          const s = String(f.val) + (f.tag ? (f.val === '' ? '' : ' ') + f.tag : ''), y = Math.round(f.y - this.cam.y - k * 10), x0 = Math.round(f.x - this.cam.x - s.length * 2);
           for (let i = 0; i < s.length; i++) {
-            const g = DIGITS[s[i]];
+            const g = DIGITS[s[i]] || LETTERS[s[i]];
+            if (!g) continue;
             for (let r2 = 0; r2 < 5; r2++) for (let c = 0; c < 3; c++) if (g[r2] >> (2 - c) & 1) {
               this.plot(x0 + i * 4 + c + 1, y + r2 + 1, 20, 14, 24, Math.min(1, a * 1.6) * 0.8);
               this.plot(x0 + i * 4 + c, y + r2, f.color[0], f.color[1], f.color[2], Math.min(1, a * 1.6));
