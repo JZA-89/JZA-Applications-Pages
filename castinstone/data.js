@@ -161,7 +161,7 @@ const KData = (() => {
     },
     'earth+lightning': {
       shot: { name: 'Stone spear', kind: 'spear', cd: 0.6, cost: 18, desc: 'A fast shard that bores a tunnel through dirt.',
-        speed: 380, bore: 3, boreLength: 90, power: 45, knock: 160, range: 260, color: [190, 196, 210] },
+        speed: 380, bore: 3, boreLength: 28, power: 34, knock: 160, range: 260, color: [190, 196, 210] },
       burst: { name: 'Spikes', kind: 'spikes', cd: 0.45, cost: 20, desc: 'Stone spikes burst from the ground around you.',
         reach: 30, power: 38, knock: 240, height: 7 },
       lift: { name: 'Magnet float', kind: 'lmagnet', drain: 9, min: 4, desc: 'Lightning charges you against the ground: you float at head height above whatever is below, and run fast. Over a deep drop you only sink slowly.',
@@ -287,7 +287,7 @@ const KData = (() => {
     // `every` s that clears `depth` cells ahead, the body's height plus `room` (measured: about 12 cells a second; running is 72)
     dig: { wait: 0.3, every: 0.1, depth: 4, room: 2, lean: 0.5, maxUp: 0.35 }, hp: 100, run: 72, accel: 900, airAccel: 520, friction: 14,
     jump: 168, gravity: 480, maxFall: 330, coyote: 0.1, buffer: 0.12,
-    regenDelay: 3, regen: 12, respawn: 1.4,
+    regenDelay: 6, regen: 3, respawn: 1.4,   // health comes back slowly, and only after 6 s without being hurt: resting at a Lodestone is how you heal
     // mana: refills on its own, faster on the ground. Spending pauses the refill
     // briefly; running dry pauses it longer.
     mana: 60, manaRegen: 16, manaGroundRegen: 30, manaDelay: 0.35, manaEmptyDelay: 0.9,

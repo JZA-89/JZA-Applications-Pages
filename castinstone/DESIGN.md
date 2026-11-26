@@ -658,6 +658,14 @@ Pointing the mouse at something shows a small note in the bottom-left corner (`#
 
 - **v0.55:** Jaisah: flying with earth should be a spray of dirt aimed down like water, not a platform. Stone steps and Ember steps (a step of stone under your feet each time you fell) are now Earth spray and Cinder spray, held jets like the Water jet. The step code is gone.
 
+## Stone spear and health regeneration (v0.58)
+
+Jaisah: the Stone spear is too good at digging; and health comes back too easily.
+
+- **Stone spear** bored 90 cells a cast for 18 mana every 0.6 s, which is the rate mana refills at, so it tunnelled about 150 cells a second for nothing. It now bores **28** cells (about 47 a second). It was also the hardest-hitting basic shot: measured on a training dummy with endless mana it did 77 damage a second, against Bolt 49, Fireball 46, Boulder 66 (close up), Ember lance 73 (short range, dearest). Its hit is now **34** (was 45), about 58 a second: under Boulder and Ember lance, over Bolt and Fireball. Measured with scratchpad `sp2.js` (digging) and `sp3.js` (damage).
+- Digging after the change, cells of dirt a second with endless mana: Stone spear 298, Boulder 180, Fireball 127, Heavy Bolt 28, the rest about none.
+- **Health** came back at 12 a second after 3 s without being hurt, so a new golem was full again in about 11 s. It now comes back at **3 a second after 6 s** (about 40 s for 100). Resting at a Lodestone still heals fully, and standing by one still mends you quickly.
+
 ## Changing the controls (v0.56, `bind` in input.js)
 
 Jaisah: let keyboard and mouse players, and controller players, adjust their controls. In the Controls tab every action is listed with the key or button it is on; click one, then press the new one.
