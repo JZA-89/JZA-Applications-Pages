@@ -502,3 +502,14 @@ body[data-mode="start"] .objective { display: none; }
 .friend { position: absolute; z-index: 2; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 2px; pointer-events: none; }
 .friend i { width: calc(var(--u) * 26px); height: calc(var(--u) * 26px); min-width: 18px; min-height: 18px; background: #78e6ff; clip-path: polygon(100% 50%, 20% 8%, 36% 50%, 20% 92%); filter: drop-shadow(0 0 6px #78e6ff); }
 .friend span { font-size: max(10px, calc(var(--u) * 11px)); font-weight: 700; color: #bff3ff; text-shadow: 0 1px 3px #000; }
+
+/* changing the controls: each action with the key it is on, as a button */
+.keygrid .keyrow { justify-content: space-between; align-items: center; }
+.rebind { flex: none; padding: 3px; border: 0; border-radius: 7px; background: none; box-shadow: inset 0 0 0 1px var(--line-2); }
+.rebind kbd { min-width: 44px; padding: 0 8px; pointer-events: none; } .rebind kbd[style] { color: var(--c); box-shadow: inset 0 1px 0 #ffffff24, 0 2px 0 #0b0810, 0 0 0 1px var(--c); }
+.rebind:hover { box-shadow: inset 0 0 0 1px var(--gold-deep); }
+.rebind.waiting { box-shadow: inset 0 0 0 2px var(--gold), 0 0 14px #ffd37a55; } .rebind.waiting kbd { color: var(--gold); }
+.bind-foot { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; } .bind-foot .note { margin: 0; flex: 1; } .bind-foot .btn { flex: none; }
+#keysPad { grid-template-columns: repeat(3, 1fr); }
+@media (max-height: 520px) { .segview.keygrid, #keysPad { grid-template-columns: repeat(4, 1fr); gap: 6px; } #keysPad { grid-template-columns: repeat(3, 1fr); } .keygrid .keyrow { font-size: 11.5px; gap: 6px; } .rebind kbd { min-width: 34px; padding: 0 5px; } .bind-foot .note { font-size: 11.5px; margin: 0; } }
+@media (max-width: 640px) { .segview.keygrid, #keysPad { grid-template-columns: 1fr; } .bind-foot { flex-direction: column; align-items: flex-start; } }

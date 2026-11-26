@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.55';
+  const VERSION = 'v0.56';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -54,12 +54,8 @@
     if ($('fade').hidden === need) $('fade').hidden = !need;
     if (need && css !== fadeWas) { fadeWas = css; $('fade').style.background = css; }
   }
-  // F: full screen (where the browser allows it; an iPhone does not)
-  addEventListener('keydown', e => {
-    if (e.code !== 'KeyF' || e.repeat || e.metaKey || e.ctrlKey || e.altKey || (e.target && e.target.tagName === 'INPUT')) return;
-    const d = document;
-    try { if (d.fullscreenElement) d.exitFullscreen(); else if (d.documentElement.requestFullscreen) d.documentElement.requestFullscreen().catch(() => {}); } catch (x) {}
-  });
+  // full screen (where the browser allows it; an iPhone does not)
+  const fullScreen = () => { const d = document; try { if (d.fullscreenElement) d.exitFullscreen(); else if (d.documentElement.requestFullscreen) d.documentElement.requestFullscreen().catch(() => {}); } catch (x) {} };
   fit();
 
   // ---------- the four element keys ----------
@@ -67,8 +63,9 @@
   for (const el of elementOrder) {
     const e = elements[el], b = document.createElement('button');
     b.type = 'button'; b.className = 'el'; b.style.setProperty('--c', e.css);
-    b.innerHTML = `${KIcon(el)}<kbd>${e.label}</kbd>`;
-    b.title = `${e.name} (${e.label})`;
+    b.dataset.el = el;
+    b.innerHTML = `${KIcon(el)}<kbd>${KInput.label('kbm', el)}</kbd>`;
+    b.title = `${e.name} (${KInput.label('kbm', el)})`;
     b.setAttribute('aria-label', `Add ${e.name} to the recipe`);
     b.addEventListener('click', () => KInput.queue({ type: 'load', el }));
     els.appendChild(b);
@@ -88,7 +85,7 @@
   // the four forms: what the first element makes
   $('forms').innerHTML = elementOrder.map(el => {
     const R2 = KRecipe.resolve([el, el]);
-    return `<div class="form" style="--c:${elements[el].css}"><h3>${KIcon(el)}${elements[el].name}<kbd>${elements[el].label}</kbd></h3><dl>` +
+    return `<div class="form" style="--c:${elements[el].css}"><h3>${KIcon(el)}${elements[el].name}<kbd data-el="${el}">${KInput.label('kbm', el)}</kbd></h3><dl>` +
       KData.modes.map(md => `<div><dt>${MODE_LABEL[md][0]}</dt><dd>${R2[md].name}</dd></div>`).join('') + '</dl></div>';
   }).join('');
   $('mods').innerHTML = elementOrder.map(el => `<div class="mod" style="--c:${elements[el].css}">${KIcon(el)}<span><b>${elements[el].name} after the first</b> ${MOD_SHORT[el]}.</span></div>`).join('');
@@ -127,21 +124,47 @@
   }
 
   // ---------- controls, as key caps ----------
-  const K = (t, cls = '') => `<kbd class="${cls}">${t}</kbd>`, EK = el => `<kbd style="--c:${elements[el].css}">${elements[el].label}</kbd>`;
-  const KEYCARDS = [
-    ['golem', 'Move', [[K('A') + K('D'), 'Run. Walk into dirt to dig; the tunnel slopes up or down towards the pointer'], [K('Space', 'w'), 'Jump. Keep holding in the air to Lift'], [K('Shift', 'w'), 'Move: a dash, a blink, a climb'], [K('R'), 'Rest at a Lodestone']]],
-    ['shot', 'Cast', [[KIcon('mouse'), 'Aim with the mouse'], [K('Left', 'w'), 'Shot, aimed where you point'], [K('Right', 'w'), 'Burst, around you'], ['', 'Hold any of them to keep casting']]],
-    ['rune', 'Recipe', [[elementOrder.map(EK).join(''), 'Add Fire, Water, Earth or Lightning'], [K('C'), 'Take off the last element'], [K('X'), 'Clear the recipe'], ['', 'After a cast, the next element starts a new recipe']]],
-    ['keys', 'Menus', [[K('Tab', 'w'), 'Map'], [K('H'), 'Spell book'], [K('M') + K('N'), 'All sound · music, on or off'], [K('F'), 'Full screen'], [K('Esc', 'w'), 'Pause']]],
-    ['golem', 'Touch', [['Left thumb', 'A stick appears where you touch: run, and push into dirt to dig. Push it up or down as well to slope the tunnel'], ['Shot', 'Hold to cast. The golem aims at the nearest creature; drag from the button to aim yourself'], ['Jump · Move · Burst', 'The three buttons round Shot. Hold Jump in the air to Lift'],
-      ['Elements', 'The four buttons above; the arrow takes off the last one'], ['', 'Tap the Lodestone notice to rest; the map and the round buttons at the top open the menus']]],
-    ['move', 'Controller: play', [[K('L stick', 'w') + K('R stick', 'w'), 'Run (push into dirt to dig; the tunnel slopes with your aim) · aim'], [K('LT') + K('RT'), 'Jump and Lift · Shot'], [K('LB') + K('RB'), 'Move (dash) · Burst'],
-      [`<kbd style="--c:${elements.fire.css}">B</kbd><kbd style="--c:${elements.water.css}">X</kbd><kbd style="--c:${elements.earth.css}">A</kbd><kbd style="--c:${elements.lightning.css}">Y</kbd>`, 'Fire, Water, Earth, Lightning']]],
-    ['keys', 'Controller: the rest', [[K('D-pad', 'w'), 'Up rest · down take off the last element · left map · right spell book'], [K('View', 'w') + K('Menu', 'w'), 'Clear the recipe · pause'],
-      [K('D-pad', 'w') + K('A') + K('B'), 'In a menu: move, press, go back'], [K('LB') + K('RB'), 'In a menu: change tab']]],
-  ];
-  const keycards = list => list.map(([ic, title, rows]) => `<div class="keycard"><h3>${KIcon(ic)}${title}</h3>` + rows.map(([k, t]) => `<div class="keyrow"><span class="k">${k}</span><span>${t}</span></div>`).join('') + '</div>').join('');
-  $('keysKbm').innerHTML = keycards(KEYCARDS.slice(0, 4)); $('keysTouch').innerHTML = keycards(KEYCARDS.slice(4, 5)); $('keysPad').innerHTML = keycards(KEYCARDS.slice(5));
+  // Keyboard and mouse, and Controller: every action with the key or button it is on. Click one, then
+  // press the new key (or, for the held actions, a mouse button). Touch has nothing to change.
+  const BIND_GROUPS = {
+    kbm: [['golem', 'Move', [['left', 'Run left'], ['right', 'Run right'], ['jump', 'Jump · hold in the air to Lift'], ['move', 'Move: a dash, a blink, a climb'], ['rest', 'Rest at a Lodestone']]],
+      ['shot', 'Cast', [['shot', 'Shot, aimed with the mouse'], ['burst', 'Burst, around you']]],
+      ['rune', 'Recipe', [['fire', 'Add Fire'], ['water', 'Add Water'], ['earth', 'Add Earth'], ['lightning', 'Add Lightning'], ['undo', 'Take off the last element'], ['clear', 'Clear the recipe']]],
+      ['keys', 'Menus', [['map', 'Map'], ['book', 'Spell book'], ['pause', 'Pause'], ['full', 'Full screen'], ['mute', 'All sound on or off'], ['music', 'Music on or off']]]],
+    pad: [['golem', 'Move and cast', [['jump', 'Jump · hold in the air to Lift'], ['shot', 'Shot, aimed with the right stick'], ['burst', 'Burst, around you'], ['move', 'Move: a dash, a blink, a climb'], ['rest', 'Rest at a Lodestone']]],
+      ['rune', 'Recipe', [['fire', 'Add Fire'], ['water', 'Add Water'], ['earth', 'Add Earth'], ['lightning', 'Add Lightning'], ['undo', 'Take off the last element'], ['clear', 'Clear the recipe']]],
+      ['keys', 'Menus', [['map', 'Map'], ['book', 'Spell book'], ['pause', 'Pause']]]],
+  };
+  const BIND_NOTE = { kbm: 'Click a key, then press the one you want instead. Run, jump, Move, Shot and Burst can also go on a mouse button. Esc cancels. The arrow keys always run and jump, 1 to 4 always add the elements, and Esc always pauses.',
+    pad: 'Select a button, then press the one you want instead. The left stick always runs and the right stick aims. In a menu the d-pad moves, A presses, B goes back, and LB and RB change tab.' };
+  const TOUCH_CARD = [['golem', 'Touch', [['Left thumb', 'A stick appears where you touch: run, and push into dirt to dig. Push it up or down as well to slope the tunnel'], ['Shot', 'Hold to cast. The golem aims at the nearest creature; drag from the button to aim yourself'], ['Jump · Move · Burst', 'The three buttons round Shot. Hold Jump in the air to Lift'],
+    ['Elements', 'The buttons that fan round those; the arrow takes off the last one'], ['', 'Tap the Lodestone notice to rest; the map and the round buttons at the top open the menus']]]];
+  function buildControls() {
+    for (const dev of ['kbm', 'pad']) {
+      const cap = KInput.capturing;
+      $(dev === 'kbm' ? 'keysKbm' : 'keysPad').innerHTML = BIND_GROUPS[dev].map(([ic, title, rows]) => `<div class="keycard"><h3>${KIcon(ic)}${title}</h3>` + rows.map(([act, text]) => {
+        const waiting = cap && cap.dev === dev && cap.action === act, col = elements[act] ? ` style="--c:${elements[act].css}"` : '';
+        return `<div class="keyrow"><span>${text}</span><button type="button" class="rebind${waiting ? ' waiting' : ''}" data-dev="${dev}" data-act="${act}" aria-label="${text}: ${KInput.label(dev, act)}. Change"><kbd${col}>${waiting ? 'Press…' : KInput.label(dev, act)}</kbd></button></div>`;
+      }).join('') + '</div>').join('') + `<div class="bind-foot"><p class="note">${BIND_NOTE[dev]}</p><button type="button" class="btn ghost small" data-reset="${dev}">Back to the usual ${dev === 'kbm' ? 'keys' : 'buttons'}</button></div>`;
+    }
+    $('keysTouch').innerHTML = TOUCH_CARD.map(([ic, title, rows]) => `<div class="keycard"><h3>${KIcon(ic)}${title}</h3>` + rows.map(([k, t]) => `<div class="keyrow"><span class="k">${k}</span><span>${t}</span></div>`).join('') + '</div>').join('');
+  }
+  $('viewControls').addEventListener('click', e => {
+    const b = e.target.closest('.rebind'), r = e.target.closest('[data-reset]');
+    if (r) { KInput.resetBindings(r.dataset.reset); return; }
+    if (!b) return;
+    const sel = `.rebind[data-dev="${b.dataset.dev}"][data-act="${b.dataset.act}"]`;
+    KInput.startCapture(b.dataset.dev, b.dataset.act, () => { buildControls(); const again = document.querySelector(sel); if (again) again.focus({ preventScroll: true }); });
+    buildControls();
+  });
+  // everything on screen that names a key: the element buttons, the spell book, the map and rest hints
+  function relabel() {
+    buildControls();
+    for (const b of $('els').children) { const el = b.dataset.el, e = elements[el]; b.querySelector('kbd').textContent = KInput.label('kbm', el); b.title = `${e.name} (${KInput.label('kbm', el)})`; }
+    for (const k of document.querySelectorAll('.form kbd[data-el]')) k.textContent = KInput.label('kbm', k.dataset.el);
+    for (const k of document.querySelectorAll('[data-key]')) k.textContent = KInput.label('kbm', k.dataset.key);
+    hud.near = -1; hud.name = '';
+  }
   // pages inside a tab: a row of buttons (.seg), each showing one .segview
   const showSeg = (view, name) => {
     for (const b of view.querySelectorAll('.seg button')) b.setAttribute('aria-pressed', b.dataset.seg === name ? 'true' : 'false');
@@ -244,13 +267,11 @@
   const muteBtn = $('btnMute');
   const showMute = () => { muteBtn.setAttribute('aria-pressed', KAudio.muted ? 'true' : 'false'); muteBtn.innerHTML = KIcon(KAudio.muted ? 'mute' : 'sound'); muteBtn.title = KAudio.muted ? 'Sound is off (M)' : 'Sound is on (M)'; };
   muteBtn.addEventListener('click', () => { KAudio.start(); KAudio.setMuted(!KAudio.muted); showMute(); view.focus(); });
-  addEventListener('keydown', e => { if (e.target && e.target.tagName === 'INPUT') return; if (e.code === 'KeyM' && !e.repeat && !e.metaKey && !e.ctrlKey) { KAudio.start(); KAudio.setMuted(!KAudio.muted); showMute(); } });
   showMute();
   const musicBtn = $('btnMusic');
   const showMusic = () => { musicBtn.setAttribute('aria-pressed', KAudio.music ? 'false' : 'true'); musicBtn.innerHTML = KIcon(KAudio.music ? 'music' : 'nomusic'); musicBtn.title = KAudio.music ? 'Music is on (N)' : 'Music is off (N)'; };
   const toggleMusic = () => { KAudio.start(); KAudio.setMusic(!KAudio.music); showMusic(); };
   musicBtn.addEventListener('click', () => { toggleMusic(); view.focus(); });
-  addEventListener('keydown', e => { if (e.target && e.target.tagName === 'INPUT') return; if (e.code === 'KeyN' && !e.repeat && !e.metaKey && !e.ctrlKey) toggleMusic(); });
   showMusic();
   $('btnPanelReset').addEventListener('click', () => { resetMap(); resume(); });
   $('btnNewCave').addEventListener('click', () => {
@@ -272,6 +293,10 @@
     onHelp: () => setMode(mode === 'help' ? 'play' : 'help'),
     onMap: () => { if (mode === 'play') setMode('map'); else if (mode === 'map') setMode('play'); },
     onReset: () => {},
+    onFull: fullScreen,
+    onMute: () => { KAudio.start(); KAudio.setMuted(!KAudio.muted); showMute(); },
+    onMusic: () => toggleMusic(),
+    onBindings: () => relabel(),
     // touch: with no finger aiming, aim at the nearest creature in view, if any
     autoAim: () => {
       const p = game.players[ME], c = game.chest(p), w = game.world; let best = null, bd = 185;
@@ -426,7 +451,7 @@
       else if (e.type === 'save') save();
       else if (e.type === 'died') toast('Your golem crumbled. It rises again at the last Lodestone.', 'died');
       else if (e.type === 'toast') toast(e.text, e.kind || '');
-      else if (e.type === 'learn') { const S = KData.specials[e.id]; toast(`${e.how === 'tome' ? 'A tome' : 'Discovered'}: ${S.name} · ${S.seq.map(x => elements[x].label).join(' ')} · ${S.cost} mana`, 'big'); }
+      else if (e.type === 'learn') { const S = KData.specials[e.id]; toast(`${e.how === 'tome' ? 'A tome' : 'Discovered'}: ${S.name} · ${S.seq.map(x => elements[x].name).join(', ')} · ${S.cost} mana`, 'big'); }
     }
     game.events.length = 0;
     if (endAt > 0 && (endAt -= dt) <= 0 && mode === 'play') setMode('end');   // a moment to watch it fall, then the ending
@@ -487,10 +512,10 @@
     const RC = KRecipe.resolve(p.queue);
     p.recipe = RC;
     const specs = KData.modes.map(md => RC ? game.spec(p, md) : null);
-    const name = p.queue.join('+') + specs.map((sp, i) => !sp ? '-' : (sp.special ? 'S' : '') + (p.mana >= (sp.drain ? sp.min : sp.cost) ? 1 : 0) + (p.channels[KData.modes[i]] ? 'L' : '')).join('') + (pad ? '#pad' : '');
+    const name = p.queue.join('+') + specs.map((sp, i) => !sp ? '-' : (sp.special ? 'S' : '') + (p.mana >= (sp.drain ? sp.min : sp.cost) ? 1 : 0) + (p.channels[KData.modes[i]] ? 'L' : '')).join('') + (pad ? '#pad' : '') + KInput.rev;
     if (name !== hud.name) {
       hud.name = name;
-      const keysFor = pad ? { shot: 'RT', burst: 'RB', lift: 'LT', move: 'LB' } : { shot: 'LMB', burst: 'RMB', lift: 'Spc', move: 'Shft' };
+      const dev = pad ? 'pad' : 'kbm', keysFor = { shot: KInput.label(dev, 'shot'), burst: KInput.label(dev, 'burst'), lift: KInput.label(dev, 'jump'), move: KInput.label(dev, 'move') };
       $('plates').innerHTML = KData.modes.map((md, i) => {
         const sp = specs[i];
         if (!sp) return `<div class="plate idle"><span class="pi">${KIcon(md)}</span><span class="pn">${MODE_LABEL[md][0]}</span><span class="pc"><kbd>${keysFor[md]}</kbd></span></div>`;
@@ -510,7 +535,7 @@
     if (b) $('bossFill').style.transform = `scaleX(${Math.max(0, b.hp) / b.maxHp})`;
     // the rest prompt next to a Lodestone
     const near = !!p.nearStone && mode === 'play';
-    if ((near ? (pad ? 2 : tch ? 3 : 1) : 0) !== hud.near) { hud.near = near ? (pad ? 2 : tch ? 3 : 1) : 0; $('restPrompt').hidden = !near; $('restPrompt').innerHTML = tch ? `${KIcon('stone')}Tap to rest at the Lodestone` : pad ? `${KIcon('stone')}D-pad up · Rest at the Lodestone` : '<kbd>R</kbd>Rest at the Lodestone'; }
+    if ((near ? (pad ? 2 : tch ? 3 : 1) : 0) !== hud.near) { hud.near = near ? (pad ? 2 : tch ? 3 : 1) : 0; $('restPrompt').hidden = !near; $('restPrompt').innerHTML = tch ? `${KIcon('stone')}Tap to rest at the Lodestone` : pad ? `<kbd>${KInput.label('pad', 'rest')}</kbd>Rest at the Lodestone` : `<kbd>${KInput.label('kbm', 'rest')}</kbd>Rest at the Lodestone`; }
   }
 
   // ---------- what is under the mouse (a note in the corner) ----------
@@ -779,6 +804,8 @@
   $('btnDescend').addEventListener('click', descend);
   $('btnDeeper').addEventListener('click', descend);
   $('btnStay').addEventListener('click', resume);
+
+  buildControls();
 
   window.cis = { get game() { return game; }, set game(g) { game = g; }, R, save, setMode, toast, rest: buildRest, act, get me() { return ME; } };
 })();

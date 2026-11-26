@@ -658,6 +658,17 @@ Pointing the mouse at something shows a small note in the bottom-left corner (`#
 
 - **v0.55:** Jaisah: flying with earth should be a spray of dirt aimed down like water, not a platform. Stone steps and Ember steps (a step of stone under your feet each time you fell) are now Earth spray and Cinder spray, held jets like the Water jet. The step code is gone.
 
+## Changing the controls (v0.56, `bind` in input.js)
+
+Jaisah: let keyboard and mouse players, and controller players, adjust their controls. In the Controls tab every action is listed with the key or button it is on; click one, then press the new one.
+
+- **Keyboard and mouse:** run left and right, jump, Move, rest, Shot, Burst, the four elements, take off the last, clear, map, spell book, pause, full screen, sound, music. Run, jump, Move, Shot and Burst may also go on the left, middle or right mouse button. Ctrl, Alt and the Windows or Command key cannot be used (the browser keeps them). Esc cancels a change.
+- **Controller:** jump, Shot, Burst, Move, rest, the four elements, take off the last, clear, map, spell book, pause. The sticks, and the buttons that work the menus (d-pad, A, B, LB, RB), are fixed.
+- **No action is ever left without a key:** giving an action a key another action has swaps the two.
+- **Fixed extras:** the arrow keys always run and jump, 1 to 4 always add the elements, Esc always pauses or closes a menu.
+- "Back to the usual keys" resets a device. Choices are kept on the device (`castinstone.controls.v1`), separate from the save.
+- Every key name on screen follows the choice (`KInput.label`, `relabel` in main.js): the element buttons, the cast plates, the rest notice, the map hints, the spell book. Notices that name a special spell's sequence now give element names, not key letters.
+
 ## Performance audit (v0.54)
 
 Measured with scratchpad `pf.js` (times per function per frame in four situations at three screen sizes, one with the CPU slowed four times to stand in for a phone), `pf2.js`/`pf3.js` (what the sand is doing) and `pf4.js` (a CPU profile).
