@@ -2079,7 +2079,7 @@ const KGame = (() => {
       const mark = aff <= 0.05 ? 'immune' : aff >= 1.2 ? 'weak' : aff <= 0.8 ? 'resist' : null;
       this._mark = mark;
       if (mark === 'immune') {
-        if (this.time - (a.markAt ?? -9) > 0.8) { a.markAt = this.time; this.fx.push({ kind: 'num', x: a.x, y: a.y - a.h - 2, val: '', tag: 'IMMUNE', t: 0, T: 0.9, color: [150, 150, 170] }); }
+        if (this.time - (a.markAt ?? -9) > 0.8) { a.markAt = this.time; this.fx.push({ kind: 'num', x: a.x, y: a.y - a.h - 2, val: 0, t: 0, T: 0.8, color: [150, 150, 170] }); }
         return;
       }
       if (a.kind === 'player') { if (a.skinT > 0) amount *= 1 - KData.specials.stoneskin.reduce; if (a.guardT > 0) amount *= 1 - (a.guard || 0); if (a.titanT > 0) { amount *= 1 - KData.specials.titan.reduce; kx = (kx || 0) * 0.2; ky = (ky || 0) * 0.2; } }
@@ -2134,10 +2134,8 @@ const KGame = (() => {
       if (dot) { a.dotAcc = (a.dotAcc || 0) + amount; if (a.dotAcc < 4) return; show = a.dotAcc; a.dotAcc = 0; }
       const mark = this._mark;
       const color = a.kind === 'player' ? [255, 110, 100] : mark === 'weak' ? [140, 255, 150] : mark === 'resist' ? [150, 150, 170] : a.elite || a.kind === 'boss' ? [255, 211, 122] : [240, 236, 228];
-      // the word goes with the number at most once every 0.8 s for each creature; the colour always shows
-      const tag = mark && this.time - (a.markAt ?? -9) > 0.8 ? (a.markAt = this.time, mark === 'weak' ? 'WEAK' : 'RESIST') : undefined;
       const n = this.bossNearest && a.kind === 'boss' ? this.bossNearest(a, a.x, a.y) : { x: a.x, y: a.y - a.h };
-      this.fx.push({ kind: 'num', x: n.x + (this.rand() - 0.5) * 6, y: (a.kind === 'boss' ? n.y - 8 : a.y - a.h - 2), val: Math.max(1, Math.round(show)), tag, t: 0, T: tag ? 1 : 0.8, color });
+      this.fx.push({ kind: 'num', x: n.x + (this.rand() - 0.5) * 6, y: (a.kind === 'boss' ? n.y - 8 : a.y - a.h - 2), val: Math.max(1, Math.round(show)), t: 0, T: 0.8, color });
       if (dot) return;
       const now = this.time;
       if (now - (a.sndAt || -1) > 0.06) { a.sndAt = now; this.sfx(a.kind === 'player' ? 'hurt' : 'hit', a.x, a.y - a.h / 2, Math.min(1, 0.4 + amount / 40)); }
