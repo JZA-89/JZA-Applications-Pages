@@ -513,3 +513,5 @@ body[data-mode="start"] .objective { display: none; }
 #keysPad { grid-template-columns: repeat(3, 1fr); }
 @media (max-height: 520px) { .segview.keygrid, #keysPad { grid-template-columns: repeat(4, 1fr); gap: 6px; } #keysPad { grid-template-columns: repeat(3, 1fr); } .keygrid .keyrow { font-size: 11.5px; gap: 6px; } .rebind kbd { min-width: 34px; padding: 0 5px; } .bind-foot .note { font-size: 11.5px; margin: 0; } }
 @media (max-width: 640px) { .segview.keygrid, #keysPad { grid-template-columns: 1fr; } .bind-foot { flex-direction: column; align-items: flex-start; } }
+/* the level gem's ring and glow reach past its box: the rest bar must not clip them (only the words beside it are cut short) */
+.bar-id.rest-id { overflow: visible; padding: 6px 0 6px 6px; } .rest-id .gem.big { flex: none; } .rest-words { overflow: hidden; }

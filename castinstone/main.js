@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.56';
+  const VERSION = 'v0.57';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
