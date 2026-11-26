@@ -179,6 +179,12 @@ const KInput = (() => {
     addEventListener('pointercancel', () => { mouse.b.fill(false); });
     document.addEventListener('mouseleave', () => { mouse.b.fill(false); });
     target.addEventListener('contextmenu', e => e.preventDefault());
+    // Never let the page zoom. iPhones and iPads ignore the page's request not to, so the pinch itself is refused
+    // (gesturestart is Safari's own event), as is a second finger starting a zoom. (A double tap is already stopped by touch-action in style.css.)
+    for (const type of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(type, e => e.preventDefault(), { passive: false });
+    document.addEventListener('touchmove', e => { if (e.touches.length > 1 || (e.scale && e.scale !== 1)) e.preventDefault(); }, { passive: false });
+    // and if it has zoomed anyway (an older browser, or a zoom left over from another page), put it back
+    if (window.visualViewport) visualViewport.addEventListener('resize', () => { if (visualViewport.scale > 1.01) { const m = document.querySelector('meta[name=viewport]'); if (m) { const c = m.content; m.content = c + ', initial-scale=1'; m.content = c; } } });
   }
 
   function readPad() {

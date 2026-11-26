@@ -660,6 +660,8 @@ Pointing the mouse at something shows a small note in the bottom-left corner (`#
 
 - **v0.61:** health no longer comes back by itself at all (Jaisah: turn off health regen). A Lodestone mends you while you stand by it and fully when you rest; the Mend special spell and anything else that heals still work.
 
+- **v0.63:** on a touch screen the page could zoom in (two thumbs on the controls read as a pinch, or a quick double tap) and could not be zoomed back out. The page now never zooms: the viewport forbids it, `touch-action` is none everywhere except the scrolling parts of menus, and input.js refuses Safari's pinch gesture and two-finger moves, and resets a zoom if one still happens.
+
 ## Weak spots (v0.62, `game.onWeakSpot`, `KData.weakSpot`)
 
 Jaisah: add a weak spot, with no markings. An aimed shot that lands on a creature's weak spot does **1.5 times** the damage. Nothing on the creature shows where it is; you learn it. The only signs are the damage number in pale gold and a bright crack over the hit sound.

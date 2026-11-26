@@ -384,7 +384,11 @@ body[data-device="touch"] .ck-els, body[data-device="touch"] .plates, body[data-
 body[data-device="touch"] .rest-prompt { bottom: calc(var(--u) * 118px); pointer-events: auto; padding: calc(var(--u) * 10px) calc(var(--u) * 16px); }
 body[data-device="touch"] .buffs { bottom: calc(var(--u) * 96px); }
 body[data-device="touch"] #view { cursor: default; }
-html, body { touch-action: manipulation; }   /* no double-tap zoom while tapping buttons */
+/* The page must never zoom: two thumbs on the controls count as a pinch, and a zoomed game cannot be zoomed back out.
+   Nothing pans or zooms by touch except the parts of a menu that scroll (and input.js refuses the pinch gesture itself). */
+html, body { touch-action: none; overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
+.shell-body, .end-body, .seg { touch-action: pan-y; }
+.seg { touch-action: pan-x pan-y; }
 
 /* ---------- co-op ---------- */
 .coop-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 4px 0 14px; }
