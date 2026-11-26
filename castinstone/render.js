@@ -188,6 +188,7 @@ const KRender = (() => {
       this.img = this.ctx.createImageData(V.w, V.h);
       this.buf = new Uint32Array(this.img.data.buffer);
       this.glow = glow; this.gctx = glow.getContext('2d');
+      this.dark = document.getElementById('dark'); this.dctx = this.dark ? this.dark.getContext('2d') : null;
       this.sprites = new Map();
       this.cam = { x: 0, y: 0 };
       this.gw = Math.ceil(V.w / 8); this.gh = Math.ceil(V.h / 8);
@@ -259,6 +260,7 @@ const KRender = (() => {
     resize(cssW, cssH) {
       const k = Math.min(1, 640 / cssW); // glow is soft, half resolution is plenty
       this.glow.width = Math.max(1, Math.round(cssW * k)); this.glow.height = Math.max(1, Math.round(cssH * k));
+      if (this.dark) { this.dark.width = this.glow.width; this.dark.height = this.glow.height; }
       this.gs = this.glow.width / V.w;
     }
 
@@ -295,8 +297,18 @@ const KRender = (() => {
       }
       return s;
     }
+    // Darkness: the cave away from any light is dimmed (by the region's `dark`), and every light, and the
+    // golem's own glow, opens a hole in it. Drawn small and stretched, so its edges are soft.
+    carve(x, y, r, a) {
+      const d = this.dctx; if (!d) return;
+      const s = this.gs, sx = (x - this.cam.x) * s, sy = (y - this.cam.y) * s, sr = r * s;
+      if (sx < -sr || sy < -sr || sx > this.dark.width + sr || sy > this.dark.height + sr) return;
+      d.globalAlpha = Math.min(1, a);
+      d.drawImage(this.sprite([255, 255, 255]), sx - sr, sy - sr, sr * 2, sr * 2);
+    }
     light(x, y, r, col, a) {
       if (a <= 0.01) return;
+      this.carve(x, y, r * 2.6, a * 2.2);
       const g = this.gctx, s = this.gs, sx = (x - this.cam.x) * s, sy = (y - this.cam.y) * s, sr = r * s;
       if (sx < -sr || sy < -sr || sx > this.glow.width + sr || sy > this.glow.height + sr) return;
       g.globalAlpha = Math.min(1, a);
@@ -353,7 +365,7 @@ const KRender = (() => {
       const pulse = time * 3;
       const lit = c => pack(clamp((c & 255) * 1.25 + 14), clamp(((c >> 8) & 255) * 1.2 + 12), clamp(((c >> 16) & 255) * 1.15 + 12));
       const dark = c => pack(clamp((c & 255) * 0.55), clamp(((c >> 8) & 255) * 0.5), clamp(((c >> 16) & 255) * 0.6));
-      const open = q => q === M.EMPTY || q === M.STEAM || q === M.FIRE;
+      const open = q => q === M.EMPTY || q === M.STEAM || q === M.FIRE || q === M.GAS;
       // mark what is on screen as explored (for the map)
       for (let cy = this.cam.y >> 5; cy <= (this.cam.y + V.h - 1) >> 5; cy++) for (let cx = this.cam.x >> 5; cx <= (this.cam.x + V.w - 1) >> 5; cx++) world.explored[cy * world.cw + cx] = 1;
       for (let vy = 0; vy < V.h; vy++) {
@@ -400,6 +412,22 @@ const KRender = (() => {
               heat[grow + (vx >> 3)] += 0.25;
               continue;
             }
+            if (m === M.GAS) {   // a faint green haze
+              const c = materials[M.GAS].colors[shade[i] % 3], a = 0.2 + 0.08 * Math.sin(pulse * 0.6 + shade[i]);
+              buf[o] = pack(clamp(bR + (c[0] - bR) * a), clamp(bG + (c[1] - bG) * a), clamp(bB + (c[2] - bB) * a));
+              continue;
+            }
+            if (m === M.OIL || m === M.ACID) {   // a liquid with a sheen along its top
+              const c = materials[m].colors[shade[i] % 3], top = mat[i - w] === M.EMPTY || mat[i - w] === M.GAS;
+              if (m === M.ACID) { const f = 0.85 + 0.15 * Math.sin(pulse + shade[i] * 0.2); buf[o] = top ? pack(214, 255, 150) : pack(clamp(c[0] * f), clamp(c[1] * f), clamp(c[2] * f)); spark[grow + (vx >> 3)] += 0.04; }
+              else buf[o] = top ? pack(96, 84, 110) : pack(c[0], c[1], c[2]);
+              continue;
+            }
+            if (m === M.EMBER) {
+              const c = materials[M.EMBER].colors[(shade[i] + ((time * 6) | 0)) & 3];
+              buf[o] = pack(c[0], c[1], c[2]); heat[grow + (vx >> 3)] += 0.6;
+              continue;
+            }
             const above = mat[i - w], st = KWorld.STATE[m];
             let e = 0;
             if (st === 1 || st === 2) {
@@ -409,6 +437,12 @@ const KRender = (() => {
             if (m === M.DIRT || m === M.ROCK) {
               const base = m === M.DIRT ? C.dirt[li] : C.rock[li];
               buf[o] = e === 1 ? lit(base) : e === 2 ? dark(base) : base;
+            } else if (m === M.WOOD) {
+              // grain: long streaks down the timber, the same wherever the plank is seen from
+              const v = pal[m], gk = (hash(wx, wy >> 3, 7) * 4) | 0; buf[o] = v[(gk + (hash(wx, wy, 8) < 0.12 ? 2 : 0)) % v.length][e];
+            } else if (m === M.ICE) {
+              // facets: broad pale flats with bright cracks
+              const v = pal[m], f = noise(wx, wy, 6, 12); buf[o] = Math.abs(f * 5 - Math.round(f * 5)) < 0.06 ? pack(236, 248, 255) : v[Math.min(v.length - 1, (f * 4) | 0)][e];
             } else { const v = pal[m]; buf[o] = v[shade[i] % v.length][e]; }
           }
         }
@@ -744,6 +778,13 @@ const KRender = (() => {
       g.globalCompositeOperation = 'source-over';
       g.clearRect(0, 0, this.glow.width, this.glow.height);
       g.globalCompositeOperation = 'lighter';
+      if (this.dctx) {
+        const d = this.dctx, me = game.players[game.me || 0], B = game.world.biomes[game.world.biomeAt(me.x, me.y - 8)];
+        d.globalCompositeOperation = 'source-over'; d.globalAlpha = 1; d.clearRect(0, 0, this.dark.width, this.dark.height);
+        d.fillStyle = `rgba(5, 3, 12, ${B.dark == null ? 0.4 : B.dark})`; d.fillRect(0, 0, this.dark.width, this.dark.height);
+        d.globalCompositeOperation = 'destination-out';
+        for (const p of game.players) if (!p.dead) { this.carve(p.x, p.y - 8, 105, 1); this.carve(p.x + Math.cos(p.aim) * 40, p.y - 8 + Math.sin(p.aim) * 40, 70, 0.6); }   // its own glow, and a little more the way it looks
+      }
       const gw = this.gw;
       for (let gy = 0; gy < this.gh; gy++) for (let gx = 0; gx < gw; gx++) {
         const h = this.heat[gy * gw + gx], s = this.spark[gy * gw + gx];

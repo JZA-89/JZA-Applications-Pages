@@ -39,8 +39,8 @@ const KWorld = (() => {
   // react[a*N+b] -> { chance, ra, rb } (a is the cell being updated)
   const REACT = new Array(N * N).fill(null);
   for (const r of reactions) {
-    REACT[r.a * N + r.b] = { chance: r.chance, ra: r.ra, rb: r.rb };
-    REACT[r.b * N + r.a] = { chance: r.chance, ra: r.rb, rb: r.ra };
+    REACT[r.a * N + r.b] = { chance: r.chance, ra: r.ra, rb: r.rb, blast: r.blast || 0 };
+    REACT[r.b * N + r.a] = { chance: r.chance, ra: r.rb, rb: r.ra, blast: r.blast || 0 };
     REACTIVE[r.a] = 1; REACTIVE[r.b] = 1;
   }
 
@@ -91,6 +91,7 @@ const KWorld = (() => {
       this.seed = seed;
       this.rand = makeRng(seed);
       this.spawn = { x: 40, y: 100 };
+      this.blasts = [];   // where gas has just gone off (x, y pairs), for the game to turn into explosions
       this.broken = []; this.cooled = [];   // crystal cells broken since the game last looked (x, y pairs)
       this.caches = [];
       this.dummySpots = [];
@@ -201,13 +202,18 @@ const KWorld = (() => {
           if (r && R() < r.chance) {
             if (r.ra !== m) this.put(i, r.ra);
             if (r.rb !== mat[j]) this.put(j, r.rb);
+            if (r.blast && this.blasts.length < 24 && R() < r.blast) this.blasts.push(nx, ny);   // gas going off (game.blastsTick)
             return;
           }
         }
       }
 
       const st = STATE[m];
-      if (st === ST.static) return;
+      if (st === ST.static) {
+        // an ember is the one solid that changes by itself: it burns down, then is gone
+        if (m === M.EMBER) { if (this.life[i] > 0 && --this.life[i] === 0) this.put(i, M.EMPTY); else this.wakeAt(x, y); }
+        return;
+      }
 
       // Countdown materials (steam, fire, magma). 255 means permanent (pools the cave starts with).
       if (LIFE1[m] && this.life[i] !== 255) {
@@ -302,6 +308,7 @@ const KWorld = (() => {
             if (m === M.ROCK && opts.melt && d2 <= r2 * 0.6 && x >= 8 && y >= 8 && x < this.w - 8 && y < this.h - 8) { this.put(i, M.MAGMA); removed++; continue; }
             if (m === M.EMPTY || HARD[m] || m === M.MAGMA) continue;   // magma cannot be blasted away, only cooled
             if (m === M.WATER) { if (R() < (opts.boil || 0)) this.put(i, M.STEAM); continue; }
+            if (STATE[m] === ST.liquid || STATE[m] === ST.gas) continue;   // a blast does not remove oil, acid or gas: the fire it leaves deals with them
             const edge = d2 > (r - 2) * (r - 2);
             if (m === M.CRYSTAL) this.broken.push(x, y);
             this.put(i, edge && opts.fire && R() < opts.fire ? M.FIRE : M.EMPTY);
@@ -751,6 +758,38 @@ const KWorld = (() => {
       for (let i = 0; i < mat.length; i++) this.shade[i] = (R() * 255) | 0;
       this.cleanup(0, 0, w, h, M.EMPTY); // no crumbs in the starting cave
 
+      // 10b. what each region's chambers hold (biome.feat: the chance of each for one chamber): wooden props
+      // standing in the chamber, and seams and pockets in the dirt just outside it that are found by digging
+      // or set off by a spell: coal, oil, marsh gas, ice, acid.
+      const seam = (bx, by, r, into) => {
+        for (let yy = Math.floor(by - r); yy <= by + r; yy++) for (let xx = Math.floor(bx - r); xx <= bx + r; xx++) {
+          if (xx < 12 || yy < 12 || xx >= w - 12 || yy >= h - 12) continue;
+          const dd = Math.hypot(xx - bx, yy - by) + (hash(xx, yy, s + 71) - 0.5) * 3;
+          if (dd < r && mat[yy * w + xx] === M.DIRT) mat[yy * w + xx] = into;
+        }
+      };
+      for (const n of nodes) {
+        if (n.hub || n.lair) continue;
+        const F = this.biomes[n.biome].feat || {};
+        const beside = r => { const an = R() * Math.PI * 2; return [n.x + Math.cos(an) * (n.rx + r * 0.7), n.y + Math.sin(an) * (n.ry + r * 0.7)]; };
+        if (R() < (F.wood || 0)) {
+          // a plank on two posts, or a single prop from floor to roof
+          const px = Math.round(n.x + (R() - 0.5) * n.rx), fy = this.floorBelow(px, Math.round(n.y));
+          if (R() < 0.5) { for (let yy = fy; yy > fy - 90 && mat[yy * w + px] === M.EMPTY; yy--) for (const dx of [-1, 0, 1]) if (mat[yy * w + px + dx] === M.EMPTY) mat[yy * w + px + dx] = M.WOOD; }
+          else {
+            const len = 14 + Math.floor(R() * 16), top = fy - 14 - Math.floor(R() * 10);
+            for (let xx = px - len; xx <= px + len; xx++) for (let t = 0; t < 3; t++) if (mat[(top + t) * w + xx] === M.EMPTY) mat[(top + t) * w + xx] = M.WOOD;
+            for (const ex of [px - len + 2, px + len - 2]) for (let yy = top + 3; yy < top + 60 && mat[yy * w + ex] === M.EMPTY; yy++) { mat[yy * w + ex] = M.WOOD; if (mat[yy * w + ex + 1] === M.EMPTY) mat[yy * w + ex + 1] = M.WOOD; }
+          }
+        }
+        if (R() < (F.coal || 0)) { const [bx, by] = beside(6); seam(bx, by, 5 + R() * 4, M.COAL); }
+        if (R() < (F.oil || 0)) { const [bx, by] = beside(7); seam(bx, by, 5 + R() * 3, M.OIL); }
+        if (R() < (F.gas || 0)) { const bx = n.x + (R() - 0.5) * n.rx, by = n.y - n.ry - 8 - R() * 6; seam(bx, by, 5 + R() * 4, M.GAS); }
+        if (R() < (F.ice || 0)) { const [bx, by] = beside(9); seam(bx, by, 8 + R() * 7, M.ICE); }
+        if (R() < (F.acid || 0)) { const [bx, by] = beside(7); seam(bx, by, 5 + R() * 3, M.ACID); }
+      }
+      for (let i = 0; i < mat.length; i++) if (mat[i] === M.GAS) this.life[i] = 255;   // pocket gas does not fade
+
       // 10c. relic caches, sealed in by the cave (after the clean-up, so pockets stay)
       const solidAround = (x, y, r, kinds) => {
         for (let yy = y - r; yy <= y + r; yy++) for (let xx = x - r; xx <= x + r; xx++) if (!kinds.includes(this.get(xx, yy))) return false;
@@ -906,7 +945,7 @@ const KWorld = (() => {
     }
   }
 
-  World.REACH_X = 14; World.REACH_Y = 13;   // chunks either side of a golem that are simulated (448 x 416 cells: past the edge of any screen)
+  World.REACH_X = 14; World.REACH_Y = 15;   // chunks either side of a golem that are simulated (448 x 416 cells: past the edge of any screen)
   World.MIN_PIECE = 48;   // a loose piece of dirt smaller than this (about 8 x 6) crumbles
   return { World, makeRng, ST, STATE, SOLID, CONDUCT };
 })();

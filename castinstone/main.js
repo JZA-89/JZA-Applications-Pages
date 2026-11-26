@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.63';
+  const VERSION = 'v0.64';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -26,12 +26,13 @@
   for (const n of document.querySelectorAll('[data-icon]')) n.insertAdjacentHTML('afterbegin', KIcon(n.dataset.icon));
 
   // ---------- layout: the HUD scales with the stage (--u = stage width / 1280) ----------
+  const VW = 384, VH = 216;   // cells shown on a 16:9 screen
   function fit() {
-    // The view takes the screen's shape. A 16:9 screen shows 320 x 180 cells; a wider one keeps the
+    // The view takes the screen's shape. A 16:9 screen shows VW x VH cells (384 x 216 since v0.64; it was 320 x 180); a wider one keeps the
     // 180 and shows more to the sides, a taller one keeps the 320 and shows more above and below.
     // Nobody sees further for it: past SIGHT cells from the golem the picture fades to black (fade()).
     const W = innerWidth, H = innerHeight, wide = W / H >= 16 / 9;
-    R.setView(wide ? Math.min(640, Math.round(180 * W / H)) : 320, wide ? 180 : Math.min(720, Math.round(320 * H / W)));
+    R.setView(wide ? Math.min(768, Math.round(VH * W / H)) : VW, wide ? VH : Math.min(864, Math.round(VW * H / W)));
     const s = Math.min(W / V.w, H / V.h), w = Math.floor(V.w * s), h = Math.floor(V.h * s);
     stage.style.width = w + 'px'; stage.style.height = h + 'px';
     // The HUD keeps to a 16:9 frame in the middle (--hx is the margin each side), so on a very wide
@@ -44,7 +45,7 @@
   }
   addEventListener('resize', fit);
   // how far the golem sees: clear to SIGHT cells (the corner of a 16:9 screen), black by SIGHT_END
-  const SIGHT = 186, SIGHT_END = 250;
+  const SIGHT = 224, SIGHT_END = 290;
   let fadeWas = '';
   function fade() {
     const p = game.players[ME], s = stage.clientWidth / V.w;

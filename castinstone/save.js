@@ -7,7 +7,7 @@
    broken save never replaces a good one. */
 
 const KSave = (() => {
-  const KEY = 'castinstone.save.v4';   // v4: one champion in each region, and less mana to start with (v0.47); older saves do not fit
+  const KEY = 'castinstone.save.v5';   // v5: new materials in the cave (v0.64); older saves do not fit
   const VERSION = 1;
 
   // a golem's progress (also what a guest brings to a co-op game, and takes home)

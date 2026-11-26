@@ -14,6 +14,7 @@ const KData = (() => {
   // colors: [r,g,b] variants picked per cell for texture.
   const M = {
     EMPTY: 0, ROCK: 1, DIRT: 2, EARTH: 3, WATER: 4, STEAM: 5, FIRE: 6, MUD: 7, MAGMA: 8, MOSS: 9, CRYSTAL: 10,
+    WOOD: 11, OIL: 12, GAS: 13, ICE: 14, COAL: 15, EMBER: 16, ACID: 17,   // v0.64
   };
 
   const materials = [];
@@ -41,6 +42,22 @@ const KData = (() => {
   materials[M.CRYSTAL] = { desc: 'Break it with any digging spell: its shards fly to you. Spend shards at a Lodestone.', name: 'Crystal vein', state: 'static', solid: true, density: 99, glow: true,
     colors: [[96, 224, 214], [130, 240, 228], [80, 200, 196], [170, 250, 240]] };
 
+  // v0.64: things to burn, melt, dissolve and set off.
+  materials[M.WOOD] = { desc: 'Props, posts and planks. Blocks the way, cannot be dug by hand, burns, and blasts break it.', name: 'Wood', state: 'static', solid: true, flammable: true, density: 99,
+    colors: [[122, 84, 52], [136, 96, 60], [108, 74, 46], [146, 104, 66]] };
+  materials[M.OIL] = { desc: 'Floats on water. Catches at once and burns for a long time.', name: 'Oil', state: 'liquid', density: 2, flow: 3, alpha: 0.9,
+    colors: [[58, 40, 50], [74, 52, 56], [48, 34, 46]] };
+  materials[M.GAS] = { desc: 'Collects under roofs and in sealed pockets. A flame sets it off.', name: 'Marsh gas', state: 'gas', density: 0.6, life: [255, 255],
+    colors: [[150, 190, 110], [136, 176, 100], [164, 200, 122]] };
+  materials[M.ICE] = { desc: 'Solid. Fire and magma melt it into water.', name: 'Ice', state: 'static', solid: true, density: 99,
+    colors: [[170, 214, 240], [190, 228, 248], [150, 198, 230], [208, 238, 252]] };
+  materials[M.COAL] = { desc: 'Solid. Fire sets it smouldering, and it burns for a long time.', name: 'Coal', state: 'static', solid: true, density: 99,
+    colors: [[46, 44, 58], [60, 56, 72], [38, 36, 48], [86, 82, 104]] };
+  materials[M.EMBER] = { desc: 'Burning coal or wood. Burns on touch, lights what is beside it, and goes out in water.', name: 'Ember', state: 'static', solid: true, density: 99, glow: true, life: [170, 254],
+    colors: [[255, 150, 60], [236, 96, 36], [255, 190, 90], [200, 70, 30]] };
+  materials[M.ACID] = { desc: 'Eats dirt, earth, wood and lichen, and burns on touch. Water thins it away.', name: 'Acid', state: 'liquid', density: 4, flow: 4, glow: true, alpha: 0.85,
+    colors: [[150, 232, 60], [170, 244, 80], [130, 214, 50]] };
+
   // ---------- Reactions ----------
   // When a cell of material a touches b, with this chance per tick, a becomes ra
   // and b becomes rb. Checked in both orders, so list each pair once.
@@ -52,6 +69,36 @@ const KData = (() => {
     { a: M.FIRE,  b: M.MUD,   chance: 0.04, ra: M.FIRE,  rb: M.DIRT  },  // fire bakes mud
     { a: M.MAGMA, b: M.MUD,   chance: 0.08, ra: M.MAGMA, rb: M.DIRT  },
     { a: M.WATER, b: M.EARTH, chance: 0.01, ra: M.EMPTY, rb: M.MUD   },  // earth soaks
+    // wood catches and burns down as embers; oil and gas burn; `blast` is the chance that a cell catching also goes off with a bang (world.blasts)
+    { a: M.FIRE,  b: M.WOOD,  chance: 0.12, ra: M.FIRE,  rb: M.EMBER },
+    { a: M.MAGMA, b: M.WOOD,  chance: 0.2,  ra: M.MAGMA, rb: M.EMBER },
+    { a: M.EMBER, b: M.WOOD,  chance: 0.05, ra: M.EMBER, rb: M.EMBER },
+    { a: M.FIRE,  b: M.OIL,   chance: 0.45, ra: M.FIRE,  rb: M.FIRE  },
+    { a: M.MAGMA, b: M.OIL,   chance: 0.6,  ra: M.MAGMA, rb: M.FIRE  },
+    { a: M.EMBER, b: M.OIL,   chance: 0.4,  ra: M.EMBER, rb: M.FIRE  },
+    { a: M.FIRE,  b: M.GAS,   chance: 0.9,  ra: M.FIRE,  rb: M.FIRE, blast: 0.05 },
+    { a: M.MAGMA, b: M.GAS,   chance: 0.9,  ra: M.MAGMA, rb: M.FIRE, blast: 0.05 },
+    { a: M.EMBER, b: M.GAS,   chance: 0.9,  ra: M.EMBER, rb: M.FIRE, blast: 0.05 },
+    // coal smoulders: it catches slowly, passes it on, throws up flame, and water puts it out
+    { a: M.FIRE,  b: M.COAL,  chance: 0.08, ra: M.FIRE,  rb: M.EMBER },
+    { a: M.MAGMA, b: M.COAL,  chance: 0.12, ra: M.MAGMA, rb: M.EMBER },
+    { a: M.EMBER, b: M.COAL,  chance: 0.02, ra: M.EMBER, rb: M.EMBER },
+    { a: M.EMBER, b: M.EMPTY, chance: 0.03, ra: M.EMBER, rb: M.FIRE  },
+    { a: M.EMBER, b: M.WATER, chance: 0.5,  ra: M.COAL,  rb: M.STEAM },
+    { a: M.EMBER, b: M.MOSS,  chance: 0.1,  ra: M.EMBER, rb: M.FIRE  },
+    // ice melts
+    { a: M.FIRE,  b: M.ICE,   chance: 0.25, ra: M.EMPTY, rb: M.WATER },
+    { a: M.MAGMA, b: M.ICE,   chance: 0.4,  ra: M.MAGMA, rb: M.WATER },
+    { a: M.EMBER, b: M.ICE,   chance: 0.2,  ra: M.EMBER, rb: M.WATER },
+    { a: M.STEAM, b: M.ICE,   chance: 0.03, ra: M.WATER, rb: M.WATER },
+    // acid eats what it touches, a cell for a cell, and water thins it
+    { a: M.ACID,  b: M.DIRT,  chance: 0.06, ra: M.EMPTY, rb: M.EMPTY },
+    { a: M.ACID,  b: M.EARTH, chance: 0.06, ra: M.EMPTY, rb: M.EMPTY },
+    { a: M.ACID,  b: M.WOOD,  chance: 0.06, ra: M.EMPTY, rb: M.EMPTY },
+    { a: M.ACID,  b: M.MOSS,  chance: 0.12, ra: M.EMPTY, rb: M.EMPTY },
+    { a: M.ACID,  b: M.MUD,   chance: 0.06, ra: M.EMPTY, rb: M.EMPTY },
+    { a: M.ACID,  b: M.WATER, chance: 0.03, ra: M.WATER, rb: M.WATER },
+    { a: M.ACID,  b: M.FIRE,  chance: 0.3,  ra: M.STEAM, rb: M.EMPTY },
   ];
 
   // ---------- Elements ----------
@@ -292,7 +339,7 @@ const KData = (() => {
     // briefly; running dry pauses it longer.
     mana: 60, manaRegen: 16, manaGroundRegen: 30, manaDelay: 0.35, manaEmptyDelay: 0.9,
     // damage per second from touching these (before defence)
-    hurt: { fire: 22, magma: 45, charged: 60 },
+    hurt: { fire: 22, magma: 45, charged: 60, acid: 26, ember: 30 },
   };
   const dummy = { w: 7, h: 13, hp: 100, regenDelay: 2.5, respawn: 2 };
 
@@ -441,29 +488,29 @@ const KData = (() => {
   // Difficulty (level) grows with distance from the hub: 1 + distance / levelEvery.
   // poolFrom: where a chamber's pool surface sits, from its top (0) to its bottom (1).
   const biomes = [
-    { id: 'rose', name: 'Rose Hollows', bg: [30, 22, 46], lichen: 0.55, hang: 0.3, pool: null, mud: 0,
+    { id: 'rose', name: 'Rose Hollows', feat: { wood: 0.55, coal: 0.25 }, dark: 0.57, bg: [30, 22, 46], lichen: 0.55, hang: 0.3, pool: null, mud: 0,
       strata: [[124, 76, 92], [142, 92, 96], [104, 64, 90], [160, 114, 104], [92, 58, 84], [132, 84, 100]] },
-    { id: 'drowned', name: 'Drowned Galleries', bg: [16, 26, 44], lichen: 0.3, hang: 0.4, pool: 'WATER', poolFrom: 0.6, mud: 0.3,
+    { id: 'drowned', name: 'Drowned Galleries', feat: { wood: 0.25, gas: 0.3, oil: 0.15 }, dark: 0.69, bg: [16, 26, 44], lichen: 0.3, hang: 0.4, pool: 'WATER', poolFrom: 0.6, mud: 0.3,
       strata: [[72, 94, 108], [86, 108, 118], [60, 80, 98], [100, 122, 128], [54, 72, 90], [80, 100, 112]] },
-    { id: 'ember', name: 'Ember Veins', bg: [34, 16, 24], lichen: 0.3, hang: 0.12, pool: 'MAGMA', poolFrom: 0.8, mud: 0,
+    { id: 'ember', name: 'Ember Veins', feat: { coal: 0.45, oil: 0.35, gas: 0.3 }, dark: 0.63, bg: [34, 16, 24], lichen: 0.3, hang: 0.12, pool: 'MAGMA', poolFrom: 0.8, mud: 0,
       strata: [[112, 58, 52], [128, 70, 58], [88, 46, 48], [148, 88, 66], [74, 40, 44], [118, 64, 56]] },
   ];
   // the second cave's regions
   const biomesDeep = [
-    { id: 'glass', name: 'Glass Warrens', bg: [22, 26, 40], lichen: 0.15, hang: 0.5, pool: null, mud: 0,
+    { id: 'glass', name: 'Glass Warrens', feat: { ice: 0.65, gas: 0.2 }, dark: 0.66, bg: [22, 26, 40], lichen: 0.15, hang: 0.5, pool: null, mud: 0,
       strata: [[96, 108, 150], [120, 130, 170], [78, 88, 132], [146, 156, 190], [66, 74, 116], [108, 118, 160]] },
-    { id: 'sunless', name: 'Sunless Sea', bg: [8, 14, 26], lichen: 0.1, hang: 0.25, pool: 'WATER', poolFrom: 0.25, mud: 0.5,
+    { id: 'sunless', name: 'Sunless Sea', feat: { ice: 0.35, oil: 0.3, wood: 0.2 }, dark: 0.82, bg: [8, 14, 26], lichen: 0.1, hang: 0.25, pool: 'WATER', poolFrom: 0.25, mud: 0.5,
       strata: [[40, 58, 74], [50, 70, 84], [32, 46, 64], [62, 84, 94], [26, 38, 56], [46, 64, 80]] },
-    { id: 'ashen', name: 'Ashen Maw', bg: [22, 18, 20], lichen: 0.05, hang: 0.1, pool: 'MAGMA', poolFrom: 0.5, mud: 0,
+    { id: 'ashen', name: 'Ashen Maw', feat: { coal: 0.5, gas: 0.4, oil: 0.3 }, dark: 0.75, bg: [22, 18, 20], lichen: 0.05, hang: 0.1, pool: 'MAGMA', poolFrom: 0.5, mud: 0,
       strata: [[92, 86, 84], [110, 102, 98], [72, 66, 68], [128, 118, 110], [58, 54, 58], [100, 92, 90]] },
   ];
   // the third cave's regions
   const biomesRoot = [
-    { id: 'verdant', name: 'Verdant Hollow', bg: [14, 26, 22], lichen: 0.9, hang: 0.6, pool: 'WATER', poolFrom: 0.7, mud: 0.4,
+    { id: 'verdant', name: 'Verdant Hollow', feat: { wood: 0.7, acid: 0.2 }, dark: 0.63, bg: [14, 26, 22], lichen: 0.9, hang: 0.6, pool: 'WATER', poolFrom: 0.7, mud: 0.4,
       strata: [[70, 104, 84], [86, 120, 92], [58, 88, 76], [104, 138, 100], [48, 74, 66], [78, 110, 88]] },
-    { id: 'bone', name: 'Bone Orchard', bg: [26, 24, 26], lichen: 0.2, hang: 0.3, pool: null, mud: 0,
+    { id: 'bone', name: 'Bone Orchard', feat: { acid: 0.35, coal: 0.2, gas: 0.2 }, dark: 0.6, bg: [26, 24, 26], lichen: 0.2, hang: 0.3, pool: null, mud: 0,
       strata: [[150, 142, 128], [170, 160, 142], [128, 120, 112], [188, 178, 156], [108, 102, 98], [158, 150, 134]] },
-    { id: 'heartwood', name: 'Heartwood', bg: [30, 12, 18], lichen: 0.5, hang: 0.4, pool: 'MAGMA', poolFrom: 0.7, mud: 0,
+    { id: 'heartwood', name: 'Heartwood', feat: { wood: 0.4, acid: 0.3, oil: 0.3, coal: 0.2 }, dark: 0.75, bg: [30, 12, 18], lichen: 0.5, hang: 0.4, pool: 'MAGMA', poolFrom: 0.7, mud: 0,
       strata: [[120, 56, 60], [138, 68, 66], [98, 44, 54], [156, 84, 72], [80, 36, 48], [128, 62, 62]] },
   ];
   // The game in acts. Each cave you descend to is the next act: its own regions, creatures (which kinds
@@ -679,5 +726,5 @@ const KData = (() => {
   ];
 
   return { M, materials, reactions, elements, elementOrder, spells, spellKey, player, dummy, golems, baseStats, enemies, statuses, elites, bosses, modes, recipe, specials, champions, remix, acts, weakSpot, biomes, cave, progression, runes, treasure,
-    world: { w: 3072, h: 1536, chunk: 32 }, view: { w: 320, h: 180 }, step: 1 / 60 };
+    world: { w: 3072, h: 1536, chunk: 32 }, view: { w: 384, h: 216 }, step: 1 / 60 };
 })();

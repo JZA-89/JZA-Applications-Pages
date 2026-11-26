@@ -1059,6 +1059,7 @@ const KGame = (() => {
       this.time += DT; this.played += DT;
       for (const p of this.players) this.control(p, actions[p.id] || { move: 0, events: [], aim: p.aim });
       this.world.step(this.players.map(p => [p.x, p.y]));
+      this.blastsTick();
       this.updateGrowths();
       this.updateWaves();
       if ((this._settleT = (this._settleT || 0) - DT) <= 0) { this._settleT = 0.5; this.world.settle(); }
@@ -3069,6 +3070,22 @@ const KGame = (() => {
       return Math.hypot(cx - (x + dx * t), cy - (y + dy * t)) < Math.max(2.5, W.corePart * Math.max(a.w, a.h));
     }
 
+    // Marsh gas going off: each place the cave reports becomes a small explosion that breaks dirt and wood,
+    // hurts whatever is close (golems and creatures alike) and spreads the fire. A few a step at most.
+    blastsTick() {
+      const B = this.world.blasts;
+      if (!B.length) return;
+      for (let k = 0; k < B.length && k < 8; k += 2) {
+        const x = B[k], y = B[k + 1];
+        this.world.explode(x, y, 6, { fire: 0.35 });
+        this.hitRadius(x, y, 15, 16, 150, null, null, null);
+        this.fx.push({ kind: 'flash', x, y, r: 26, t: 0, T: 0.18, color: [255, 190, 110] });
+        this.burst(x, y, 10, [[255, 200, 120], [255, 130, 50]], 130);
+        this.sfx('explosion', x, y, 0.7); this.shake = Math.max(this.shake, 2.5);
+      }
+      B.length = 0;
+    }
+
     // one touch hit during a swoop or a lunge
     contactHit(e, E) {
       if (e.hit) return;
@@ -3360,6 +3377,8 @@ const KGame = (() => {
       const fireMul = proof ? 0 : this.affinity(a, 'fire');
       if (counts[M.FIRE] && fireMul) { this.hurt(a, PD.hurt.fire * fireMul * DT * Math.min(1, counts[M.FIRE] / 4), 0, 0, 'fire'); if (a.kind !== 'player') a.burnT = Math.max(a.burnT || 0, 1.5); }
       if (counts[M.MAGMA] && fireMul) this.hurt(a, PD.hurt.magma * fireMul * DT * Math.min(1, counts[M.MAGMA] / 4), 0, 0, 'magma');
+      if (counts[M.EMBER] && fireMul) this.hurt(a, PD.hurt.ember * fireMul * DT * Math.min(1, counts[M.EMBER] / 3), 0, 0, 'fire');
+      if (counts[M.ACID] && !(a.safeT > 0) && !a.flying) this.hurt(a, PD.hurt.acid * DT * Math.min(1, counts[M.ACID] / 4), 0, 0, 'acid');
       if (a.inWater) { a.wetT = KData.statuses.wet.time; a.burnT = 0; }
       if (a.burnT > 0) {
         // burning (Ember visor): 6 a second for 3 s, from whoever set it

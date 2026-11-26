@@ -45,7 +45,7 @@ Each is linked with `?v=<version>`; bump them all together with the version in t
 
 ## The world
 
-2048 × 1024 cells; the screen shows 320 × 180 cells, one pixel each, scaled up with crisp edges. The camera is centred on the player, clamped at the world's edges.
+2048 × 1024 cells; the screen shows 384 × 216 cells (320 × 180 before v0.64), one pixel each, scaled up with crisp edges. The camera is centred on the player, clamped at the world's edges.
 
 ### Materials (`KData.materials`)
 
@@ -601,7 +601,7 @@ Jaisah: the menus should be as polished as MORPHOS's and fit the screen without 
 
 ## Screen shapes (v0.43, `fit` and `fade` in main.js)
 
-The view takes the screen's shape: 16:9 shows 320 × 180 cells; wider keeps 180 high and shows up to 640 across; taller keeps 320 across and shows up to 720 high. Nobody sees further for it: the picture is clear to 186 cells from the golem (the corner of a 16:9 view) and black by 250 (`#fade`, a radial gradient that follows the golem). The HUD scales with `--u` (the smaller of width / 1280 and height / 720, between 0.55 and 1.5) and keeps to a 16:9 frame in the middle of the screen (`--hx` each side), except on screens 600 px tall or less, which use the full width. A phone held upright puts the gauges under the map.
+The view takes the screen's shape: 16:9 shows 384 × 216 cells (v0.64; 320 × 180 before); wider keeps 216 high and shows up to 768 across; taller keeps 384 across and shows up to 864 high. Nobody sees further for it: the picture is clear to 224 cells from the golem (the corner of a 16:9 view) and black by 290 (`#fade`, a radial gradient that follows the golem). The HUD scales with `--u` (the smaller of width / 1280 and height / 720, between 0.55 and 1.5) and keeps to a 16:9 frame in the middle of the screen (`--hx` each side), except on screens 600 px tall or less, which use the full width. A phone held upright puts the gauges under the map.
 
 ## Touch (v0.41, `touch.js`, `KInput.touch`)
 
@@ -662,6 +662,34 @@ Pointing the mouse at something shows a small note in the bottom-left corner (`#
 
 - **v0.63:** on a touch screen the page could zoom in (two thumbs on the controls read as a pinch, or a quick double tap) and could not be zoomed back out. The page now never zooms: the viewport forbids it, `touch-action` is none everywhere except the scrolling parts of menus, and input.js refuses Safari's pinch gesture and two-finger moves, and resets a zoom if one still happens.
 
+## Materials, lighting and a wider view (v0.64)
+
+Jaisah compared the game with Noita: more kinds of material, more to burn and blow up, more detail on screen.
+
+**Seven new materials** (`KData.M`, ids 11 to 17), all through the reaction table in data.js:
+
+| Material | What it is | What it does |
+|---|---|---|
+| Wood | solid props, posts and planks at chamber mouths and over gaps | cannot be dug by hand; fire, magma or an ember turn it cell by cell into embers, so it burns down over a few seconds; acid eats it; blasts break it |
+| Oil | liquid, lighter than water (density 2), so it floats on it | fire, magma or an ember light it (45% a step per touching pair) |
+| Marsh gas | gas, permanent (life 255), collects in sealed pockets in the dirt | any flame sets it off; each cell that catches has a 5% chance of a blast (`world.blasts` → `game.blastsTick`: at most 4 a step, radius 6, 16 damage to anything within 15, golems included) |
+| Ice | solid | fire, magma and embers melt it into water; steam slowly |
+| Coal | solid seams | fire sets it smouldering (8%), embers pass it on (2%) |
+| Ember | burning coal or wood: solid, glows, 26 fire damage a second on touch | lasts 170 to 254 steps then is gone (the one solid with a countdown, handled in `world.cell`); throws flame into empty cells beside it; water turns it back to coal |
+| Acid | liquid, glows, 26 damage a second on touch | eats dirt, loose earth, mud, wood and lichen, one cell of acid for one cell eaten; water thins it to water |
+
+Where they are: each region has `feat` chances (data.js biomes). Act 1 has wood, coal, oil and gas; act 2 adds ice; act 3 adds acid and more wood. Generation step 10b in world.js places them after the chambers: wood as props, the rest as seams and pockets in the dirt beside chambers (`seam`). `world.explode` leaves liquids and gases alone.
+
+**Lighting.** A new canvas, `#dark`, sits over the cave and under the glow. Each frame it is filled with near-black at the region's `dark` strength (0.57 in the Rose Hollows up to 0.82 in the Sunless Sea), and every light (`render.light`) and the golem's own glow (105 cells, plus 70 towards where it aims) cuts a soft hole in it (`render.carve`). Fire, magma, embers, acid, crystals, caches, Lodestones and spells therefore light the cave around them. Drawing only: it changes no rule.
+
+**Textures.** Wood has grain, ice has facets, oil and acid have a lit top surface, gas is a faint haze, embers flicker.
+
+**View.** A 16:9 screen now shows 384 × 216 cells (was 320 × 180), so everything is 17% smaller and you see 44% more cave. Wider screens show up to 768 across, taller up to 864 high; sight is clear to 224 cells and black by 290. The sand is simulated one chunk further up and down (`World.REACH_Y` 15) to cover it.
+
+Saves moved to `castinstone.save.v5` (the cave is generated differently).
+
+Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
+
 ## Weak spots (v0.62, `game.onWeakSpot`, `KData.weakSpot`)
 
 Jaisah: add a weak spot, with no markings. An aimed shot that lands on a creature's weak spot does **1.5 times** the damage. Nothing on the creature shows where it is; you learn it. The only signs are the damage number in pale gold and a bright crack over the hit sound.
@@ -717,6 +745,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.64 (2026-11-26):** seven new materials (wood, oil, marsh gas, ice, coal, ember, acid) with their reactions, darkness that lights open up, textures, and a view 20% wider (384 × 216). Jaisah: go ahead with materials and lighting, "zoom out a bit and we will test it". Saves start again (`castinstone.save.v5`).
 
 - **v0.1 (2026-11-25):** first build. Four elements, ten spells, one map, training dummies, keyboard/mouse and controller. Spell keys are the two element names in alphabetical order. Slots stay loaded after a cast. Movement spells use bursts (two, refilled on landing) so there is no free flight. Health is 100.
 
