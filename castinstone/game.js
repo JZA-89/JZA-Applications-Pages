@@ -10,7 +10,7 @@ const KGame = (() => {
   const { M, spells, spellKey, player: PD, dummy: DD, step: DT } = KData;
   const { World, makeRng, STATE, SOLID, ST } = KWorld;
   const counts = new Int32Array(KData.materials.length);
-  const UI_CALLS = new Set(['spendPoint', 'equip', 'unequip', 'buyPoint', 'levelUpRune', 'breakRune', 'travel']);
+  const UI_CALLS = new Set(['spendPoint', 'equip', 'unequip', 'buyPoint', 'levelUpRune', 'breakRune', 'travel', 'setRegen']);
   // water: how much of the weight it carries when fully under, the extra for things that float, drag, and splashes
   const WATER = { lift: 0.72, floatLift: 1.1, dragX: 2.5, dragY: 3, shotDrag: 4, entry: 0.45, paddle: 22, splashFrom: 45, splashMax: 14 };
   const MUD_COAT = 2.5;     // seconds a mud hit keeps slowing
@@ -19,7 +19,7 @@ const KGame = (() => {
   const MUD_SLOW = 0.35;    // enemy speed while in mud or coated
 
   class Game {
-    constructor(seed, world, depth) { this.seed = seed; this.found = new Set(); this.opened = new Set(); this.defeated = new Set(); this.cores = new Set(); this.checkpoint = 0; this.events = []; this.depth = Math.max(0, depth | 0); this.act = this.depth % KData.acts.length; this.played = 0; this.deaths = 0; this.kills = 0; this.reset(false, world); }
+    constructor(seed, world, depth) { this.seed = seed; this.found = new Set(); this.opened = new Set(); this.defeated = new Set(); this.cores = new Set(); this.checkpoint = 0; this.events = []; this.depth = Math.max(0, depth | 0); this.act = this.depth % KData.acts.length; this.played = 0; this.deaths = 0; this.kills = 0; this.regen = true; this.reset(false, world); }
 
     // Build (or rebuild) the cave from the seed. keepPlayers keeps the golems'
     // progress (levels, stats, runestones) and puts them at their checkpoint.
@@ -679,7 +679,9 @@ const KGame = (() => {
       this.applyStats(p);
       return true;
     }
-    saveExtra() { return { opened: [...this.opened], defeated: [...this.defeated], cores: [...this.cores], read: [...this.read], played: Math.round(this.played), deaths: this.deaths, kills: this.kills }; }
+    saveExtra() { return { opened: [...this.opened], defeated: [...this.defeated], cores: [...this.cores], read: [...this.read], played: Math.round(this.played), deaths: this.deaths, kills: this.kills, regen: this.regen }; }
+    // Easy or hard: whether health comes back by itself (the pause page's switch). One setting for the cave, shared in co-op.
+    setRegen(p, on) { this.regen = !!on; }
     // ---------- the goal ----------
     // Three champions hold the seals on the Emberwyrm's lair. While any stands, the wyrm sleeps under
     // its magma and nothing wakes or harms it. When it falls the cave is won, and a deeper one opens.
@@ -687,6 +689,7 @@ const KGame = (() => {
     get won() { return !!this.world.lair && this.defeated.has(this.world.lair.boss); }
     loadExtra(x) {
       if (!x) return;
+      if (typeof x.regen === 'boolean') this.regen = x.regen;
       if (Array.isArray(x.opened)) this.opened = new Set(x.opened.filter(Number.isInteger));
       if (Array.isArray(x.read)) this.read = new Set(x.read.filter(Number.isInteger));
       if (Array.isArray(x.defeated)) this.defeated = new Set(x.defeated.filter(id => KData.bosses[id] || (typeof id === 'string' && id.startsWith('champ:'))));
@@ -1163,6 +1166,9 @@ const KGame = (() => {
       // mana refills on its own, faster on the ground
       if (p.manaWait > 0) p.manaWait -= DT;
       else p.mana = Math.min(p.maxMana, p.mana + (p.grounded ? PD.manaGroundRegen : PD.manaRegen) * (p.regenMul || 1) * DT);
+
+      // health comes back slowly once nothing has hurt you for a while, unless the cave is set to hard
+      if (this.regen && p.hp < p.maxHp && this.time - p.lastHurt > PD.regenDelay) p.hp = Math.min(p.maxHp, p.hp + PD.regen * DT);
 
       // the three ways to cast
       const key = RC ? RC.key : null;

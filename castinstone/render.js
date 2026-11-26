@@ -260,7 +260,7 @@ const KRender = (() => {
     resize(cssW, cssH) {
       const k = Math.min(1, 640 / cssW); // glow is soft, half resolution is plenty
       this.glow.width = Math.max(1, Math.round(cssW * k)); this.glow.height = Math.max(1, Math.round(cssH * k));
-      if (this.dark) { this.dark.width = this.glow.width; this.dark.height = this.glow.height; }
+      if (this.dark) { this.dark.width = this.glow.width >> 2; this.dark.height = this.glow.height >> 2; }   // a quarter of the glow's size: it is all soft edges, and a small layer is cheap to lay over the picture
       this.gs = this.glow.width / V.w;
     }
 
@@ -301,14 +301,14 @@ const KRender = (() => {
     // golem's own glow, opens a hole in it. Drawn small and stretched, so its edges are soft.
     carve(x, y, r, a) {
       const d = this.dctx; if (!d) return;
-      const s = this.gs, sx = (x - this.cam.x) * s, sy = (y - this.cam.y) * s, sr = r * s;
+      const s = this.gs / 4, sx = (x - this.cam.x) * s, sy = (y - this.cam.y) * s, sr = r * s;
       if (sx < -sr || sy < -sr || sx > this.dark.width + sr || sy > this.dark.height + sr) return;
       d.globalAlpha = Math.min(1, a);
       d.drawImage(this.sprite([255, 255, 255]), sx - sr, sy - sr, sr * 2, sr * 2);
     }
-    light(x, y, r, col, a) {
+    light(x, y, r, col, a, plain) {
       if (a <= 0.01) return;
-      this.carve(x, y, r * 2.6, a * 2.2);
+      if (!plain) this.carve(x, y, r * 2.6, a * 2.2);
       const g = this.gctx, s = this.gs, sx = (x - this.cam.x) * s, sy = (y - this.cam.y) * s, sr = r * s;
       if (sx < -sr || sy < -sr || sx > this.glow.width + sr || sy > this.glow.height + sr) return;
       g.globalAlpha = Math.min(1, a);
@@ -790,8 +790,10 @@ const KRender = (() => {
         const h = this.heat[gy * gw + gx], s = this.spark[gy * gw + gx];
         const wx = this.cam.x + gx * 8 + 4, wy = this.cam.y + gy * 8 + 4;
         // a few burning cells glow strongly; a whole lake of magma only warmly (it would wash out to white)
-        if (h > 0) this.light(wx, wy, 10 + Math.min(10, h * 0.3), [255, 120, 50], 0.1 + Math.min(0.28, h / 60));
-        if (s > 0) this.light(wx, wy, 9 + Math.min(10, s * 0.3), [140, 190, 255], 0.1 + Math.min(0.4, s / 50));
+        // a lake of magma is hundreds of these: every other one opens the darkness, wider, which looks the same and costs half
+        const odd = (gx + gy) & 1;
+        if (h > 0) { this.light(wx, wy, 10 + Math.min(10, h * 0.3), [255, 120, 50], 0.1 + Math.min(0.28, h / 60), true); if (!odd || h < 6) this.carve(wx, wy, 44, 0.5 + Math.min(0.5, h / 30)); }
+        if (s > 0) { this.light(wx, wy, 9 + Math.min(10, s * 0.3), [140, 190, 255], 0.1 + Math.min(0.4, s / 50), true); if (!odd || s < 6) this.carve(wx, wy, 40, 0.5 + Math.min(0.5, s / 25)); }
       }
       for (const L of game.loot) this.light(L.x, L.y - 2, 9, KData.runes.tiers[L.rune.tier].color, 0.55);
       for (const c of game.world.caches) if (!game.opened.has(c.id)) this.light(c.x, c.y - 4, 16, [255, 200, 110], 0.38 + 0.12 * Math.sin(game.time * 2 + c.id));

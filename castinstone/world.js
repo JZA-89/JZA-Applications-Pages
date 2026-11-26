@@ -38,10 +38,14 @@ const KWorld = (() => {
   });
   // react[a*N+b] -> { chance, ra, rb } (a is the cell being updated)
   const REACT = new Array(N * N).fill(null);
+  // Only the side that does something looks for a reaction: fire, magma, embers, acid, water, steam,
+  // and whatever moves. Solid ground (dirt, wood, coal, ice, lichen) waits to be acted on, or every
+  // cell of dirt in an awake chunk would roll dice each step. The acting side gets both sides' chance.
+  for (const r of reactions) { REACTIVE[r.a] = 1; if (STATE[r.b] !== ST.static) REACTIVE[r.b] = 1; }
   for (const r of reactions) {
-    REACT[r.a * N + r.b] = { chance: r.chance, ra: r.ra, rb: r.rb, blast: r.blast || 0 };
-    REACT[r.b * N + r.a] = { chance: r.chance, ra: r.rb, rb: r.ra, blast: r.blast || 0 };
-    REACTIVE[r.a] = 1; REACTIVE[r.b] = 1;
+    const both = REACTIVE[r.a] && REACTIVE[r.b] && r.b !== M.EMPTY, chance = both ? r.chance : 1 - (1 - r.chance) * (1 - r.chance);
+    REACT[r.a * N + r.b] = { chance, ra: r.ra, rb: r.rb, blast: r.blast || 0 };
+    REACT[r.b * N + r.a] = { chance, ra: r.rb, rb: r.ra, blast: r.blast || 0 };
   }
 
   // Put a short list in a random order, asking the dice in a fixed sequence. (Never shuffle with
@@ -275,6 +279,9 @@ const KWorld = (() => {
       }
 
       if (st === ST.gas) {
+        // Marsh gas keeps for ever only while it is shut in. Once it has room to move it starts to thin
+        // out (a few seconds), so a breached pocket empties and its chunks can go back to sleep.
+        if (this.life[i] === 255 && (mat[i - 1] === M.EMPTY || mat[i + 1] === M.EMPTY || (y > 0 && mat[i - w] === M.EMPTY))) { this.life[i] = 170 + ((R() * 80) | 0); this.wakeAt(x, y); }
         if (R() < 0.75 && y > 0) {
           const dx = R() < 0.5 ? 0 : (R() < 0.5 ? 1 : -1);
           const nx = x + dx;
@@ -788,6 +795,11 @@ const KWorld = (() => {
         if (R() < (F.ice || 0)) { const [bx, by] = beside(9); seam(bx, by, 8 + R() * 7, M.ICE); }
         if (R() < (F.acid || 0)) { const [bx, by] = beside(7); seam(bx, by, 5 + R() * 3, M.ACID); }
       }
+      // Pockets of oil, gas and acid are sealed: where one would open into the cave it keeps a skin of dirt,
+      // so nothing leaks (or keeps the sand awake) until somebody breaks in.
+      const skin = [];
+      for (let i = w; i < mat.length - w; i++) { const m = mat[i]; if ((m === M.GAS || m === M.OIL || m === M.ACID) && (mat[i - 1] === M.EMPTY || mat[i + 1] === M.EMPTY || mat[i - w] === M.EMPTY || mat[i + w] === M.EMPTY)) skin.push(i); }
+      for (const i of skin) mat[i] = M.DIRT;
       for (let i = 0; i < mat.length; i++) if (mat[i] === M.GAS) this.life[i] = 255;   // pocket gas does not fade
 
       // 10c. relic caches, sealed in by the cave (after the clean-up, so pockets stay)

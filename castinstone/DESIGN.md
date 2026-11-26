@@ -674,7 +674,7 @@ Jaisah compared the game with Noita: more kinds of material, more to burn and bl
 | Oil | liquid, lighter than water (density 2), so it floats on it | fire, magma or an ember light it (45% a step per touching pair) |
 | Marsh gas | gas, permanent (life 255), collects in sealed pockets in the dirt | any flame sets it off; each cell that catches has a 5% chance of a blast (`world.blasts` → `game.blastsTick`: at most 4 a step, radius 6, 16 damage to anything within 15, golems included) |
 | Ice | solid | fire, magma and embers melt it into water; steam slowly |
-| Coal | solid seams | fire sets it smouldering (8%), embers pass it on (2%) |
+| Coal | solid seams | fire sets it smouldering, embers pass it along the seam slowly |
 | Ember | burning coal or wood: solid, glows, 26 fire damage a second on touch | lasts 170 to 254 steps then is gone (the one solid with a countdown, handled in `world.cell`); throws flame into empty cells beside it; water turns it back to coal |
 | Acid | liquid, glows, 26 damage a second on touch | eats dirt, loose earth, mud, wood and lichen, one cell of acid for one cell eaten; water thins it to water |
 
@@ -686,9 +686,15 @@ Where they are: each region has `feat` chances (data.js biomes). Act 1 has wood,
 
 **View.** A 16:9 screen now shows 384 × 216 cells (was 320 × 180), so everything is 17% smaller and you see 44% more cave. Wider screens show up to 768 across, taller up to 864 high; sight is clear to 224 cells and black by 290. The sand is simulated one chunk further up and down (`World.REACH_Y` 15) to cover it.
 
+**Cost (v0.65).** Three things made v0.64 slow on a phone and were fixed: only the acting side of a reaction now looks for it (fire, magma, embers, acid, water, steam and anything that moves; solid dirt, wood, coal, ice and lichen wait to be acted on, and the acting side gets both sides' chance), pockets of oil, gas and acid are sealed with a skin of dirt at generation and leaked gas thins out in a few seconds, and the darkness layer is a quarter of the glow's size. Measured on a phone-sized screen with the processor slowed four times (v0.63 → v0.65, with 44% more cave on screen): hub 60 → 57 fps, a fight 54 → 35, a flood 47 → 29, the boss lair 28 → 22.
+
 Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
+
+## Health regeneration switch (v0.65)
+
+Jaisah: turn regeneration back on, but less, with a switch on the pause page so players choose easy or hard. Health now comes back at **1.5 a second once nothing has hurt you for 6 s** (`KData.player.regen`, `regenDelay`; 100 health takes about 67 s; it was 3 a second in v0.58 and off in v0.61 to v0.64). The pause and start page has a **Health regeneration: On / Off** button (`game.regen`, on by default, kept in the save, carried to the next cave). In co-op it is one setting for the cave: either player can change it and it changes for both on the same step (`setRegen` in `UI_CALLS`).
 
 ## Weak spots (v0.62, `game.onWeakSpot`, `KData.weakSpot`)
 

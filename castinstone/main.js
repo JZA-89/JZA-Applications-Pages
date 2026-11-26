@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.64';
+  const VERSION = 'v0.65';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -28,7 +28,7 @@
   // ---------- layout: the HUD scales with the stage (--u = stage width / 1280) ----------
   const VW = 384, VH = 216;   // cells shown on a 16:9 screen
   function fit() {
-    // The view takes the screen's shape. A 16:9 screen shows VW x VH cells (384 x 216 since v0.64; it was 320 x 180); a wider one keeps the
+    // The view takes the screen's shape. A 16:9 screen shows VW x VH cells (384 x 216 since v0.65; it was 320 x 180); a wider one keeps the
     // 180 and shows more to the sides, a taller one keeps the 320 and shows more above and below.
     // Nobody sees further for it: past SIGHT cells from the golem the picture fades to black (fade()).
     const W = innerWidth, H = innerHeight, wide = W / H >= 16 / 9;
@@ -211,6 +211,8 @@
   };
   addEventListener('pagehide', save);
 
+  function regenLabel() { const b = $('btnRegen'); b.textContent = 'Health regeneration: ' + (game.regen ? 'On (easier)' : 'Off (harder)'); b.setAttribute('aria-checked', game.regen ? 'true' : 'false'); }
+
   // ---------- modes: start, help (spell book), pause, map, rest, play ----------
   let mode = 'start', confirmNew = false, panelTab = 'game';
   const chip = (icon, text, cls = '') => `<span class="chip ${cls}">${KIcon(icon)}${text}</span>`;
@@ -238,7 +240,7 @@
     const p = game.players[ME], started = m !== 'start' || hadSave;
     $('panelEyebrow').textContent = KNet.on ? 'Co-op · the game goes on while this is open' : (m === 'start' ? `Beta · ${VERSION}` : 'Paused') + ` · ${KData.acts[game.act].name}`;
     $('btnNewCave').hidden = KNet.busy; if (KNet.busy) $('btnPanelReset').hidden = true;
-    $('btnDeeper').hidden = !game.won || KNet.busy;
+    $('btnDeeper').hidden = !game.won || KNet.busy; regenLabel();
     $('btnGo').textContent = m === 'start' ? (hadSave ? 'Continue' : 'Start') : 'Resume';
     $('btnPanelReset').hidden = m === 'start' || KNet.busy;
     $('saveLine').innerHTML = !started ? '' : chip('star', `Level ${p.level}`) + (p.shards ? chip('shard', `${p.shards} shards`, 'teal') : '');
@@ -435,7 +437,7 @@
   function handleEvents(dt) {
     for (const e of game.events) {
       if (e.p !== undefined && e.p !== ME) continue;   // the other golem's news
-      if (e.type === 'ui') { if (mode === 'rest') buildRest(); continue; }
+      if (e.type === 'ui') { if (mode === 'rest') buildRest(); regenLabel(); continue; }
       if (e.type === 'xp') { xpPending += e.amount; xpTimer = 0.6; }
       else if (e.type === 'shard') { shardPending++; shardTimer = 0.7; }
       else if (e.type === 'level') {
@@ -798,12 +800,13 @@
     const old = game, mine = KSave.packPlayer(old.players[ME]); delete mine.x; delete mine.y;
     game = new KGame.Game(randomSeed(), undefined, old.depth + 1); game.me = 0;
     KSave.applyPlayer(game, game.players[0], mine);
-    game.played = old.played; game.deaths = old.deaths; game.kills = old.kills;
+    game.played = old.played; game.deaths = old.deaths; game.kills = old.kills; game.regen = old.regen;
     acc = 0; mapTick = 0; toasts.length = 0; objTick = 0; save(); resume();
     toast(`${KData.acts[game.act].name} · from level ${1 + game.depth * KData.cave.depthLevels}`, 'big');
   }
   $('btnDescend').addEventListener('click', descend);
   $('btnDeeper').addEventListener('click', descend);
+  $('btnRegen').addEventListener('click', () => { act('setRegen', !game.regen); regenLabel(); save(); });
   $('btnStay').addEventListener('click', resume);
 
   buildControls();

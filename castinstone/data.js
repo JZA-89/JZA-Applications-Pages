@@ -80,9 +80,9 @@ const KData = (() => {
     { a: M.MAGMA, b: M.GAS,   chance: 0.9,  ra: M.MAGMA, rb: M.FIRE, blast: 0.05 },
     { a: M.EMBER, b: M.GAS,   chance: 0.9,  ra: M.EMBER, rb: M.FIRE, blast: 0.05 },
     // coal smoulders: it catches slowly, passes it on, throws up flame, and water puts it out
-    { a: M.FIRE,  b: M.COAL,  chance: 0.08, ra: M.FIRE,  rb: M.EMBER },
+    { a: M.FIRE,  b: M.COAL,  chance: 0.07, ra: M.FIRE,  rb: M.EMBER },
     { a: M.MAGMA, b: M.COAL,  chance: 0.12, ra: M.MAGMA, rb: M.EMBER },
-    { a: M.EMBER, b: M.COAL,  chance: 0.02, ra: M.EMBER, rb: M.EMBER },
+    { a: M.EMBER, b: M.COAL,  chance: 0.012, ra: M.EMBER, rb: M.EMBER },
     { a: M.EMBER, b: M.EMPTY, chance: 0.03, ra: M.EMBER, rb: M.FIRE  },
     { a: M.EMBER, b: M.WATER, chance: 0.5,  ra: M.COAL,  rb: M.STEAM },
     { a: M.EMBER, b: M.MOSS,  chance: 0.1,  ra: M.EMBER, rb: M.FIRE  },
@@ -337,7 +337,7 @@ const KData = (() => {
     respawn: 1.4,   // health does not come back by itself: a Lodestone mends you, and so do the Mend spell and a few runestones
     // mana: refills on its own, faster on the ground. Spending pauses the refill
     // briefly; running dry pauses it longer.
-    mana: 60, manaRegen: 16, manaGroundRegen: 30, manaDelay: 0.35, manaEmptyDelay: 0.9,
+    regen: 1.5, regenDelay: 6, mana: 60, manaRegen: 16, manaGroundRegen: 30, manaDelay: 0.35, manaEmptyDelay: 0.9,
     // damage per second from touching these (before defence)
     hurt: { fire: 22, magma: 45, charged: 60, acid: 26, ember: 30 },
   };
