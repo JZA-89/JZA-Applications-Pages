@@ -211,8 +211,9 @@ const KData = (() => {
         speed: 310, time: 0.12, waterTime: 0.2, power: 20 },
     },
     'earth+lightning': {
-      shot: { name: 'Stone spear', kind: 'spear', cd: 0.6, cost: 18, desc: 'A fast shard that bores a tunnel through dirt.',
-        speed: 380, bore: 3, boreLength: 28, power: 34, knock: 160, range: 260, color: [190, 196, 210] },
+      shot: { name: 'Stone spear', kind: 'spear', cd: 0.7, cost: 18, desc: 'A heavy shard that bores a short tunnel through dirt. It drops as it flies and hits hardest close up.',
+        // v0.75 (Jaisah: too accurate from too far, and too good at digging): slower, falls, spreads, weaker with distance, bores half as far
+        speed: 300, bore: 3, boreLength: 14, power: 34, knock: 160, range: 180, gravity: 150, spread: 0.06, falloff: 0.45, color: [190, 196, 210] },
       burst: { name: 'Spikes', kind: 'spikes', cd: 0.45, cost: 20, desc: 'Stone spikes burst from the ground around you.',
         reach: 30, power: 38, knock: 240, height: 7 },
       lift: { name: 'Magnet float', kind: 'lmagnet', drain: 9, min: 4, desc: 'Lightning charges you against the ground: you float at head height above whatever is below, and run fast. Over a deep drop you only sink slowly.',

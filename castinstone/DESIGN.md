@@ -692,6 +692,12 @@ Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
 
+## Phone screen, floating brick, Stone spear (v0.75)
+
+- **The picture filled only part of an iPhone's screen at times** (a dark band at the bottom): Safari's bars come and go and `innerHeight` lags behind. `fit()` now measures `visualViewport` (the visible area), centres the stage on it, and runs again on its resize and scroll and after an orientation change. Checked with an emulated iPhone in landscape as its visible height changes.
+- **Invisible bits stopped the golem** (Jaisah: "stuck on invisible remnants of brick/stone"): after a blast, `world.cleanup` crumbled only loose dirt and lichen, so single cells of brick, coal or ice could be left hanging in the air, too small and dark to see. It now crumbles those too (not wood: bridge braces are one cell thick). Checked: six blasts in a brick wall leave no loose bricks. This also runs on the generated cave, so saves moved to `castinstone.save.v11`.
+- **Stone spear** (Jaisah: still too good, a laser that digs): speed 380 → 300, it falls (gravity 150), leaves up to ±0.06 rad off the aim, range 260 → 180, damage falls to 55% at full range (`falloff` 0.45), bores 14 cells (was 28), every 0.7 s (was 0.6). Measured aiming straight at a target: 40 of 40 hit at 40 cells (96 each), 29 of 40 at 120 (52), 2 of 40 at 175 (41), none at 230; hitting further means aiming above for the drop.
+
 ## Hidden grottos and flooded mines (v0.74)
 
 - **Hidden grotto** (about one chamber in twenty, any region): a round pocket of radius 14 to 18 dug 20 to 24 cells into a chamber wall, through solid dirt only, lined with crystal clusters (which break into shards like any crystal), with a cache on its floor (kind `grotto`). Nothing leads to it; the only sign is a few crystals set in the chamber's own wall in front of it. About 4 per cave.
@@ -814,6 +820,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.75 (2026-11-27):** the picture fills an iPhone's visible screen; no more invisible floating bits after blasts; Stone spear slower, falling, less exact, weaker far away and half the digging (Jaisah). Saves start again (`castinstone.save.v11`).
 
 - **v0.74 (2026-11-27):** hidden crystal grottos behind chamber walls, and flooded mines in wet regions. Saves start again (`castinstone.save.v10`).
 

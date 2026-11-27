@@ -338,7 +338,7 @@ const KWorld = (() => {
       const { w, h, mat } = this, MIN = World.MIN_PIECE;
       x0 = Math.max(1, Math.floor(x0)); y0 = Math.max(1, Math.floor(y0));
       x1 = Math.min(w - 2, Math.ceil(x1)); y1 = Math.min(h - 2, Math.ceil(y1));
-      const breakable = m => m === M.DIRT || m === M.MOSS;
+      const breakable = m => m === M.DIRT || m === M.MOSS || m === M.BRICK || m === M.COAL || m === M.ICE;   // v0.75: brick, coal and ice too, or blasts left floating bits (not wood: bridge braces are one cell thick)
       if (!this.seenAt) this.seenAt = new Uint16Array(mat.length);
       if (++this.seenStamp >= 65535 || !this.seenStamp) { this.seenAt.fill(0); this.seenStamp = 1; }
       const seenAt = this.seenAt, st = this.seenStamp;

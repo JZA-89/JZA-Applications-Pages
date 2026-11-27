@@ -1315,7 +1315,8 @@ const KGame = (() => {
           this.projectiles.push({ kind: 'blob', sp, key, owner: p, x: ox, y: oy, vx: dx * sp.speed + p.vx * 0.3, vy: dy * sp.speed + p.vy * 0.2, g: sp.gravity, age: 0 });
           break;
         case 'spear':
-          this.projectiles.push({ kind: 'spear', sp, key, owner: p, x: ox, y: oy, vx: dx * sp.speed, vy: dy * sp.speed, g: 0, age: 0, bore: sp.boreLength, travelled: 0 });
+          { const j = (this.rand() - 0.5) * 2 * (sp.spread || 0), c = Math.cos(j), s2 = Math.sin(j), ax = dx * c - dy * s2, ay = dx * s2 + dy * c;   // a little spread
+            this.projectiles.push({ kind: 'spear', sp, key, owner: p, x: ox, y: oy, vx: ax * sp.speed, vy: ay * sp.speed, g: sp.gravity || 0, age: 0, bore: sp.boreLength, travelled: 0 }); }
           break;
         case 'spray':
           for (let i = 0; i < sp.count; i++) {
@@ -1878,7 +1879,7 @@ const KGame = (() => {
           if (hit && pr.owner.kind !== 'player' && hit.kind !== 'player') hit = null;   // creatures never hit each other
           if (pr.kind === 'spear') {
             pr.travelled += sp * DT / n;
-            if (hit) { this._at = { a: hit, x: pr.x, y: pr.y, dx: pr.vx, dy: pr.vy }; this.hurt(hit, pr.sp.power, pr.vx / sp * pr.sp.knock, pr.vy / sp * pr.sp.knock - 30, 'spear', pr.owner, pr.key); this.spark(pr.x, pr.y); pr.dead = true; break; }
+            if (hit) { this._at = { a: hit, x: pr.x, y: pr.y, dx: pr.vx, dy: pr.vy }; this.hurt(hit, pr.sp.power * (1 - (pr.sp.falloff || 0) * Math.min(1, pr.travelled / pr.sp.range)), pr.vx / sp * pr.sp.knock, pr.vy / sp * pr.sp.knock - 30, 'spear', pr.owner, pr.key); this.spark(pr.x, pr.y); pr.dead = true; break; }
             if (m === M.ROCK) { this.spark(pr.x, pr.y); pr.dead = true; break; }
             if (BLOCKS(m)) {
               w.explode(pr.x, pr.y, pr.sp.bore);
