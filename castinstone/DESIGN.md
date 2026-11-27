@@ -396,7 +396,7 @@ Measured with a bot holding each recipe on a target for 10 s (damage a second, m
 Jaisah: this should take hours, not thirty minutes, and levelling must not run ahead of the game.
 
 - **The cave is 3072 × 1536** (was 2048 × 1024), with 104 chambers (was 46), 15 Lodestones (was 8), a level every 200 cells from the hub (was 250). Over five seeds: about 210 to 250 enemies of level 1 to 8, about 40 relic caches, generated in 0.7 to 1.7 s. Saves moved to `castinstone.save.v2`; older saves do not fit the new cave and are not loaded.
-- **Enemies come back when you die** (`game.reviveEnemies`), **and on their own 8 minutes after being killed** (v0.70, `returnTick`, see below). Before v0.70 resting at a Lodestone also brought them back.
+- **Enemies come back only with time:** each killed creature returns 6 to 10 minutes after it died, out of sight (v0.72, `returnTick`, see below). Before v0.70 resting brought them back; before v0.72 dying did too.
 - **Pace:** a full clear gives about 8,500 experience from kills and 5,000 from caches, which is about level 11. The enemies of each ring of the cave are worth about one level, so your level tracks the level of the area you are in.
 - **The Emberwyrm's arena** is 370 wide and about 95 tall above the lake (was 210 × 58, less than one screen), with ten ledges, at least 750 from the hub (level 5 to 7; its health scales with that, about 2,000 to 2,500). A bot standing still with Bolt at level 6 needs 95 to 150 s.
 
@@ -692,6 +692,10 @@ Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
 
+## Only time brings creatures back (v0.72)
+
+Jaisah: in co-op it is hard to justify fighting back through a refilled cave to reach a friend who is still alive, so dying no longer brings creatures back, alone or in co-op; only time does. Each killed creature gets its own countdown when it dies: `returnAfter` (480 s) × (1 ± `returnJitter` 0.25), so 6 to 10 minutes, from the seeded dice, saved with it. When a golem dies, the creatures that were hunting it still go home and forget it (`calmEnemies`; in co-op, not those fighting the other golem). Checked with scratchpad `dr.js`: 30 kills got countdowns of 374 to 597 s, and all 30 were still dead after the golem died and came back.
+
 ## Old mines and cold forges (v0.71)
 
 Generation step 10e, in regions without water pools, chambers 30 cells wide or more:
@@ -797,6 +801,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.72 (2026-11-27):** dying no longer brings creatures back; each returns 6 to 10 minutes after it died (Jaisah).
 
 - **v0.71 (2026-11-27):** generated old mines (timbered, lit by lanterns, a cache at the end) and cold forges (a furnace with a cache behind its coal, a coal bin). Saves start again (`castinstone.save.v8`).
 

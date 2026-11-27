@@ -691,7 +691,7 @@ const KGame = (() => {
     loadExtra(x) {
       if (!x) return;
       if (typeof x.regen === 'boolean') this.regen = x.regen;
-      if (Array.isArray(x.slain)) for (const s of x.slain) { const e = Array.isArray(s) && this.enemies[s[0]]; if (e && e.id === s[0] && !e.champion && Number.isFinite(s[1])) { e.dead = true; e.hp = 0; e.backT = Math.max(0, Math.min(KData.cave.returnAfter, s[1])); } }
+      if (Array.isArray(x.slain)) for (const s of x.slain) { const e = Array.isArray(s) && this.enemies[s[0]]; if (e && e.id === s[0] && !e.champion && Number.isFinite(s[1])) { e.dead = true; e.hp = 0; e.backT = Math.max(0, Math.min(KData.cave.returnAfter * (1 + KData.cave.returnJitter), s[1])); } }
       if (Array.isArray(x.opened)) this.opened = new Set(x.opened.filter(Number.isInteger));
       if (Array.isArray(x.read)) this.read = new Set(x.read.filter(Number.isInteger));
       if (Array.isArray(x.defeated)) this.defeated = new Set(x.defeated.filter(id => KData.bosses[id] || (typeof id === 'string' && id.startsWith('champ:'))));
@@ -2162,7 +2162,7 @@ const KGame = (() => {
       if (a.kind === 'boss') return this.bossDefeated(a);
       this.sfx('crumble', a.x, a.y - a.h / 2, a.kind === 'player' ? 1.2 : 0.8);
       a.dead = true; a.hp = 0;
-      if (a.kind !== 'player' && a.kind !== 'dummy') a.backT = KData.cave.returnAfter;
+      if (a.kind !== 'player' && a.kind !== 'dummy') a.backT = Math.round(KData.cave.returnAfter * (1 + (this.rand() - 0.5) * 2 * KData.cave.returnJitter));   // 6 to 10 minutes
       // experience to whoever hit it last (hazards a player caused count for 8 s)
       if (a.kind !== 'player' && a.kind !== 'dummy' && a.lastHitBy && this.time - a.lastHitAt < 8 && !a.lastHitBy.dead)
         this.shareXp(a, a.lastHitBy, Math.max(1, Math.round(KData.progression.killXp(a.level || 1, a.kind, a.elite) * (a.champion ? KData.champions.xp : 1) * KData.progression.underLevel(a.lastHitBy.level - (a.level || 1)))), 'kill');
@@ -2208,7 +2208,7 @@ const KGame = (() => {
       if (e.wetT > 0) e.wetT -= DT;
       e.asleep = !e.dead && !this.players.some(q => Math.abs(q.x - e.x) < E.awake && Math.abs(q.y - e.y) < E.awake * 0.7);
       if (e.asleep) return;
-      if (e.dead) return;   // the dead stay dead until you die (reviveEnemies) or their time is up (returnTick)
+      if (e.dead) return;   // the dead stay dead until their time is up (returnTick)
       // just risen at a Lodestone, or just left one: nothing hunts you for a few seconds unless you hurt it
       if (this.time - (e.lastHurt ?? -9) > 2 && this.players.every(q => q.dead || q.calmT > 0)) { e.lastSeen = -9; if (!e.flying) e.vx *= 0.9; return; }
       if (e.kind === 'crawler') return this.crawlerTick(e);
@@ -3240,11 +3240,10 @@ const KGame = (() => {
 
     // Resting at a Lodestone (or dying) brings the cave's creatures back,
     // except any close enough to see appear. Nothing comes back on its own.
-    reviveEnemies(by) {
-      // in co-op, whatever is near the other golem is left as it is: its fight goes on
+    // When a golem dies, whatever was hunting it goes home and forgets it (in co-op, not what is fighting the other golem).
+    calmEnemies(by) {
       const busy = (x, y) => this.players.some(q => q !== by && !q.dead && Math.hypot(q.x - x, q.y - y) < 420);
-      for (const e of this.enemies) if (e.dead && !busy(e.home.x, e.home.y) && !(e.champion && this.defeated.has('champ:' + e.kind)) && !this.players.some(p => !p.dead && Math.hypot(p.x - e.home.x, p.y - e.home.y) < 170)) this.respawnCrawler(e);
-      // the living go home too, and forget you: nothing that was chasing you is waiting at the Lodestone
+      // the living go home, and forget you: nothing that was chasing you is waiting at the Lodestone
       for (const e of this.enemies) if (!e.dead && !e.champion && !busy(e.x, e.y) && this.time - (e.lastSeen ?? -9) < 12) { this.respawnCrawler(e); }
     }
     // Once a second: every killed creature counts down (returnAfter, 8 minutes of play) and comes back at its home
@@ -3273,7 +3272,7 @@ const KGame = (() => {
       Object.assign(p, { x: s.x, y: s.y, vx: 0, vy: 0, hp: p.maxHp, dead: false, mana: p.maxMana, manaWait: 0, dashT: 0, slam: null, lastHurt: -9, burnT: 0, slowT: 0 });
       this.endAllChannels(p);
       p.calmT = 5;
-      this.reviveEnemies(p);
+      this.calmEnemies(p);   // v0.72: dying does not bring the dead back, only time does (returnTick)
     }
 
     dummyTick(d) {
