@@ -252,5 +252,29 @@ const KAudio = (() => {
     }
   }
 
-  return { start, play, hold, setMuted, setMood, setMusic, probe, get muted() { return muted; }, get music() { return musicOn; } };
+  // The cave's own sound (v0.67): fire crackles, magma rumbles and blorps, acid hisses, each as loud as how
+  // much of it is on screen (levels 0 to 1 from main.js, counted by the renderer). Loops fade in and out;
+  // the crackles and bubbles are short sounds scattered at random.
+  const AMB = { fire: { type: 'bandpass', f: 1700, q: 0.7, vol: 0.09 }, magma: { type: 'lowpass', f: 130, q: 1.5, vol: 0.32 }, acid: { type: 'highpass', f: 5200, q: 0.4, vol: 0.05 } };
+  const amb = new Map();
+  function ambience(levels) {
+    if (!ctx) return;
+    for (const k in AMB) {
+      const lv = muted ? 0 : Math.max(0, Math.min(1, levels[k] || 0));
+      let L = amb.get(k);
+      if (!L && lv > 0.01) {
+        const D = AMB[k], s = ctx.createBufferSource(), fl = ctx.createBiquadFilter(), g = ctx.createGain();
+        s.buffer = noiseBuf; s.loop = true; fl.type = D.type; fl.frequency.value = D.f; fl.Q.value = D.q; g.gain.value = 0;
+        s.connect(fl); fl.connect(g); g.connect(master); s.start(); L = { s, g }; amb.set(k, L);
+      }
+      if (L) L.g.gain.setTargetAtTime(AMB[k].vol * lv, ctx.currentTime, 0.35);
+    }
+    if (muted) return;
+    const r = Math.random, f = levels.fire || 0, m = levels.magma || 0, a = levels.acid || 0;
+    if (r() < f * 0.3) noise('highpass', 2500 + r() * 3500, 1800, 1, 0.025 + r() * 0.03, 0.08 + 0.12 * f * r(), (r() - 0.5) * 0.8);
+    if (r() < m * 0.035) tone('sine', 80 + r() * 90, 45, 0.16 + r() * 0.1, 0.22 * m, (r() - 0.5) * 0.6);
+    if (r() < a * 0.07) tone('sine', 1100 + r() * 900, 2600, 0.04, 0.04 + 0.04 * a, (r() - 0.5) * 0.6);
+  }
+
+  return { start, play, hold, ambience, setMuted, setMood, setMusic, probe, get muted() { return muted; }, get music() { return musicOn; } };
 })();

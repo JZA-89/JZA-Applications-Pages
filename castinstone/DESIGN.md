@@ -692,6 +692,10 @@ Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
 
+## The cave's own sound (v0.68)
+
+Fire crackles, magma rumbles with a low bubble now and then, and acid hisses, each as loud as how much of it is on screen (the renderer counts burning cells, magma and acid as it draws, `render.amounts`; full at 120, 1,500 and 300 cells). Looping filtered noise fades in and out over about a second (`KAudio.ambience`); crackles, bubbles and fizz are short sounds scattered at random. Silent in menus, when dead, and with sound off.
+
 ## Ruins, bridges, and the dead stay dead (v0.67)
 
 - **Killed creatures stay dead across a reload** (Jaisah: every reload brought them all back). The save lists the ids of dead creatures (`saveExtra().slain`; champions already had `defeated`), `loadExtra` marks them dead, and resting at a Lodestone still brings them back as before. A kill sets a save within 3 s.
@@ -771,6 +775,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.68 (2026-11-27):** fire, magma and acid have their own sound.
 
 - **v0.67 (2026-11-27):** killed creatures stay dead across a reload, until you rest (Jaisah asked; a short list in the save). Brick ruins with arched doorways and broken truss bridges in the bigger chambers. Saves start again (`castinstone.save.v6`).
 

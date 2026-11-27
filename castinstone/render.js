@@ -412,6 +412,7 @@ const KRender = (() => {
       const { w, mat, shade, life, charge } = world, buf = this.buf, pal = this.pal, kind = this.kind, par = this.par, pcx = this.cam.x >> 1, pcy = this.cam.y >> 1;
       const heat = this.heat, spark = this.spark, gw = this.gw;
       heat.fill(0); spark.fill(0);
+      let nFire = 0, nMagma = 0, nAcid = 0;   // how much of each is on screen, for the cave's sound (audio.js ambience)
       const fire = materials[M.FIRE].colors, magma = materials[M.MAGMA].colors;
       const pulse = time * 3;
       const lit = c => pack(clamp((c & 255) * 1.25 + 14), clamp(((c >> 8) & 255) * 1.2 + 12), clamp(((c >> 16) & 255) * 1.15 + 12));
@@ -482,7 +483,7 @@ const KRender = (() => {
               const l = life[i] + ((shade[i] + time * 60) % 7) - 3;
               const c = fire[l > 24 ? 0 : l > 16 ? 1 : l > 8 ? 2 : 3];
               buf[o] = pack(c[0], c[1], c[2]);
-              heat[grow + (vx >> 3)] += 1;
+              heat[grow + (vx >> 3)] += 1; nFire++;
               continue;
             }
             if (m === M.CRYSTAL) {
@@ -498,7 +499,7 @@ const KRender = (() => {
               if (top || crack < 0.045) { const c = magma[3]; buf[o] = pack(c[0], clamp(c[1] + (shade[i] & 15)), c[2]); }
               else if (crack < 0.1) { const c = magma[shade[i] & 1]; buf[o] = pack(c[0], c[1], c[2]); }
               else { const k = 0.32 + (0.5 - crack) * 0.5 + 0.06 * Math.sin(pulse + shade[i] * 0.1); buf[o] = pack(clamp(150 * k + 20), clamp(52 * k + 6), clamp(30 * k + 8)); }
-              heat[grow + (vx >> 3)] += 0.25;
+              heat[grow + (vx >> 3)] += 0.25; nMagma++;
               continue;
             }
             if (m === M.GAS) {   // a faint green haze
@@ -508,13 +509,13 @@ const KRender = (() => {
             }
             if (m === M.OIL || m === M.ACID) {   // a liquid with a sheen along its top
               const c = materials[m].colors[shade[i] % 3], top = mat[i - w] === M.EMPTY || mat[i - w] === M.GAS;
-              if (m === M.ACID) { const f = 0.85 + 0.15 * Math.sin(pulse + shade[i] * 0.2); buf[o] = top ? pack(214, 255, 150) : pack(clamp(c[0] * f), clamp(c[1] * f), clamp(c[2] * f)); spark[grow + (vx >> 3)] += 0.04; }
+              if (m === M.ACID) { nAcid++; const f = 0.85 + 0.15 * Math.sin(pulse + shade[i] * 0.2); buf[o] = top ? pack(214, 255, 150) : pack(clamp(c[0] * f), clamp(c[1] * f), clamp(c[2] * f)); spark[grow + (vx >> 3)] += 0.04; }
               else buf[o] = top ? pack(96, 84, 110) : pack(c[0], c[1], c[2]);
               continue;
             }
             if (m === M.EMBER) {
               const c = materials[M.EMBER].colors[(shade[i] + ((time * 6) | 0)) & 3];
-              buf[o] = pack(c[0], c[1], c[2]); heat[grow + (vx >> 3)] += 0.6;
+              buf[o] = pack(c[0], c[1], c[2]); heat[grow + (vx >> 3)] += 0.6; nFire++;
               continue;
             }
             const above = mat[i - w], st = KWorld.STATE[m];
@@ -551,6 +552,7 @@ const KRender = (() => {
           }
         }
       }
+      this.amounts = { fire: nFire, magma: nMagma, acid: nAcid };
     }
 
     // Lodestones: a standing stone with a rune; the rune glows lilac once found.
