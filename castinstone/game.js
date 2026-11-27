@@ -653,7 +653,7 @@ const KGame = (() => {
       for (const t of this.tablets) if (Math.abs(wx - t.x) < 5 && wy > t.y - 12 && wy < t.y + 1)
         return this.read.has(t.id) ? ['Rune tablet (read)', 'You have learned what it had to teach.'] : [`Rune tablet · Level ${t.level}`, 'Runes cut into a standing slab. Touch it to learn a special spell.'];
       for (const c of this.world.caches) if (Math.abs(wx - c.x) < 6 && wy > c.y - 7 && wy < c.y + 1) {
-        const how = { buried: 'Buried in the dirt. Dig to it.', rock: 'Sealed inside rock. Only fire that melts rock reaches it.', magma: 'At the bottom of a magma pool. Wade, or cool the magma with water and dig.', flooded: 'At the bottom of a flooded basin. Swim down to it.', high: 'High in the ceiling. Fly, climb or build up to it.' }[c.kind];
+        const how = { buried: 'Buried in the dirt. Dig to it.', rock: 'Sealed inside rock. Only fire that melts rock reaches it.', magma: 'At the bottom of a magma pool. Wade, or cool the magma with water and dig.', flooded: 'At the bottom of a flooded basin. Swim down to it.', shrine: 'On an old shrine, in plain sight.', vault: 'At the bottom of a sunken vault. Swim down to it.', high: 'High in the ceiling. Fly, climb or build up to it.' }[c.kind];
         return this.opened.has(c.id) ? ['Relic cache (empty)', 'Already opened.'] : [`Relic cache · Level ${c.level}`, `${how} Touch it to open it.`];
       }
       return null;
@@ -1277,6 +1277,7 @@ const KGame = (() => {
     spend(p, amount) {
       if (p.prismT > 0) amount *= 0.5;   // Prism: every spell costs half
       p.mana -= amount;
+      p.castT = this.time; p.castX = p.x; p.castY = p.y;   // for culprit(): who set off what happens next nearby
       if (p.mana <= 0) { p.mana = 0; p.manaWait = PD.manaEmptyDelay; }
       else p.manaWait = Math.max(p.manaWait, PD.manaDelay);
     }
@@ -3080,13 +3081,20 @@ const KGame = (() => {
 
     // Marsh gas going off: each place the cave reports becomes a small explosion that breaks dirt and wood,
     // hurts whatever is close (golems and creatures alike) and spreads the fire. A few a step at most.
+    // Who caused a fire, an explosion or a spill here: the golem that cast a spell most recently within 320 cells,
+    // in the last 12 s. A creature killed by it gives that golem the experience, as if its spell had done it.
+    culprit(x, y) {
+      let best = null, bt = -1;
+      for (const p of this.players) if (!p.dead && p.castT != null && this.time - p.castT < 12 && p.castT > bt && Math.hypot(p.castX - x, p.castY - y) < 320) { best = p; bt = p.castT; }
+      return best;
+    }
     blastsTick() {
       const B = this.world.blasts;
       if (!B.length) return;
       for (let k = 0; k < B.length && k < 8; k += 2) {
         const x = B[k], y = B[k + 1];
         this.world.explode(x, y, 6, { fire: 0.35 });
-        this.hitRadius(x, y, 15, 16, 150, null, null, null);
+        this.hitRadius(x, y, 15, 16, 150, null, this.culprit(x, y), null);
         this.fx.push({ kind: 'flash', x, y, r: 26, t: 0, T: 0.18, color: [255, 190, 110] });
         this.burst(x, y, 10, [[255, 200, 120], [255, 130, 50]], 130);
         this.sfx('explosion', x, y, 0.7); this.shake = Math.max(this.shake, 2.5);
@@ -3382,11 +3390,12 @@ const KGame = (() => {
       if (sub > 0.3 && was <= 0.3 && a.vy > 0) a.vy *= WATER.entry;   // the surface takes most of a fall
       a.inMud = counts[M.MUD] > 4;
       const proof = this.has(a, 'magmaproof') || a.safeT > 0;
+      const by = a.kind !== 'player' && (counts[M.FIRE] || counts[M.EMBER] || counts[M.ACID]) ? this.culprit(a.x, a.y) : null;   // a creature burnt or dissolved: whose doing
       const fireMul = proof ? 0 : this.affinity(a, 'fire');
-      if (counts[M.FIRE] && fireMul) { this.hurt(a, PD.hurt.fire * fireMul * DT * Math.min(1, counts[M.FIRE] / 4), 0, 0, 'fire'); if (a.kind !== 'player') a.burnT = Math.max(a.burnT || 0, 1.5); }
+      if (counts[M.FIRE] && fireMul) { this.hurt(a, PD.hurt.fire * fireMul * DT * Math.min(1, counts[M.FIRE] / 4), 0, 0, 'fire', by); if (a.kind !== 'player') a.burnT = Math.max(a.burnT || 0, 1.5); }
       if (counts[M.MAGMA] && fireMul) this.hurt(a, PD.hurt.magma * fireMul * DT * Math.min(1, counts[M.MAGMA] / 4), 0, 0, 'magma');
-      if (counts[M.EMBER] && fireMul) this.hurt(a, PD.hurt.ember * fireMul * DT * Math.min(1, counts[M.EMBER] / 3), 0, 0, 'fire');
-      if (counts[M.ACID] && !(a.safeT > 0) && !a.flying) this.hurt(a, PD.hurt.acid * DT * Math.min(1, counts[M.ACID] / 4), 0, 0, 'acid');
+      if (counts[M.EMBER] && fireMul) this.hurt(a, PD.hurt.ember * fireMul * DT * Math.min(1, counts[M.EMBER] / 3), 0, 0, 'fire', by);
+      if (counts[M.ACID] && !(a.safeT > 0) && !a.flying) this.hurt(a, PD.hurt.acid * DT * Math.min(1, counts[M.ACID] / 4), 0, 0, 'acid', by);
       if (a.inWater) { a.wetT = KData.statuses.wet.time; a.burnT = 0; }
       if (a.burnT > 0) {
         // burning (Ember visor): 6 a second for 3 s, from whoever set it

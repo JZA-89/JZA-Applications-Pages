@@ -692,6 +692,16 @@ Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
 
+## Set pieces, credit for traps (v0.69)
+
+- **Set pieces** (generation step 10d), built from rules with random sizes and damage, so no two are alike. About three chambers in ten (34 cells wide or more) get one:
+  - **Sunken vault** (any region without magma; tried first): a brick-lined pit 17 to 29 cells wide and 12 to 21 deep, flooded to just below the floor, with a broken parapet round its mouth and a relic cache at the bottom (cache kind `vault`). It tries up to six spots on the chamber floor and is built only where the ground below its mouth is solid (never on a ledge or into a pool or rock). About 13 in 18 caves have one.
+  - **Shrine** (where the chamber is at least 46 cells high): a stepped brick plinth of two or three steps between two pillars under a lintel; often one pillar is broken short or the lintel has fallen in, and a relic cache sits on top in plain sight (cache kind `shrine`). Five or so per cave.
+  - **Fallen hall** (otherwise): a pillar lying along the floor, two to four broken stubs of wall no more than 7 cells high (the golem jumps about 29) and loose brick scattered about. Nothing to find; it is there to look lived in.
+- Nothing is placed to set up a trap (Jaisah: creatures are not put next to explosives on purpose). Ice is never placed within about 100 cells of magma (Jaisah: they should not share a cave).
+- **Credit for what you set off** (`game.culprit`): an explosion, fire, embers or acid that hurts a creature counts as hurt by the golem that cast a spell most recently within 320 cells in the last 12 s, so a creature killed by gas you lit gives you its experience. Checked with scratchpad `cr2.js`: the same blast gives 18 to 26 experience after a nearby cast, and nothing when nobody cast.
+- Saves moved to `castinstone.save.v7`.
+
 ## The cave's own sound (v0.68)
 
 Fire crackles, magma rumbles with a low bubble now and then, and acid hisses, each as loud as how much of it is on screen (the renderer counts burning cells, magma and acid as it draws, `render.amounts`; full at 120, 1,500 and 300 cells). Looping filtered noise fades in and out over about a second (`KAudio.ambience`); crackles, bubbles and fizz are short sounds scattered at random. Silent in menus, when dead, and with sound off.
@@ -775,6 +785,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.69 (2026-11-27):** procedurally built shrines, sunken vaults and fallen halls; kills by explosions, fire and acid you set off are yours; no ice near magma. Jaisah: set pieces should be generated, never the same twice; nothing forced (no creatures placed beside explosives). Saves start again (`castinstone.save.v7`).
 
 - **v0.68 (2026-11-27):** fire, magma and acid have their own sound.
 

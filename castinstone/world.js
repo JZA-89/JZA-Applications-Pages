@@ -792,7 +792,11 @@ const KWorld = (() => {
         if (R() < (F.coal || 0)) { const [bx, by] = beside(6); seam(bx, by, 5 + R() * 4, M.COAL); }
         if (R() < (F.oil || 0)) { const [bx, by] = beside(7); seam(bx, by, 5 + R() * 3, M.OIL); }
         if (R() < (F.gas || 0)) { const bx = n.x + (R() - 0.5) * n.rx, by = n.y - n.ry - 8 - R() * 6; seam(bx, by, 5 + R() * 4, M.GAS); }
-        if (R() < (F.ice || 0)) { const [bx, by] = beside(9); seam(bx, by, 8 + R() * 7, M.ICE); }
+        if (R() < (F.ice || 0)) {   // never near magma: ice and magma do not share a cave
+          const [bx, by] = beside(9); let hot = false;
+          for (let k = 0; k < 160 && !hot; k++) { const an = k * 2.4, rr = 8 + (k % 16) * 6; if (mat[Math.round(by + Math.sin(an) * rr) * w + Math.round(bx + Math.cos(an) * rr)] === M.MAGMA) hot = true; }
+          if (!hot) seam(bx, by, 8 + R() * 7, M.ICE);
+        }
         if (R() < (F.acid || 0)) { const [bx, by] = beside(7); seam(bx, by, 5 + R() * 3, M.ACID); }
       }
       // Pockets of oil, gas and acid are sealed: where one would open into the cave it keeps a skin of dirt,
@@ -888,6 +892,71 @@ const KWorld = (() => {
           }
         }
       }
+      // 10d. set pieces (v0.69): built from rules with random sizes and damage, so no two are alike. One chamber in
+      // a few gets one, chosen by what suits its region. A shrine (a stepped brick plinth between pillars under a
+      // lintel, often broken, with a relic cache on top), a sunken vault (a brick-lined pit in the floor, flooded,
+      // with a cache at the bottom; never where there is magma), or a fallen hall (a toppled pillar, broken stubs of wall and
+      // scattered brick across the floor). Nothing here is ever taller than the golem can jump or wider than a
+      // spell can break, and no set piece closes a way through.
+      const free = (xx, yy) => xx > 12 && yy > 12 && xx < w - 12 && yy < h - 12 && mat[yy * w + xx] === M.EMPTY;
+      const brick = (xx, yy) => { if (free(xx, yy)) mat[yy * w + xx] = M.BRICK; };
+      const ceilAbove = (xx, yy) => { let y2 = yy; while (y2 > 12 && !SOLID[mat[y2 * w + xx]]) y2--; return y2; };
+      for (const n of nodes) {
+        if (n.hub || n.lair || n.rx < 34) continue;
+        const B = this.biomes[n.biome];
+        if (R() > 0.3) continue;
+        const pick = R(), px = Math.round(n.x + (R() - 0.5) * n.rx * 0.6), fy = this.floorBelow(px, Math.round(n.y));
+        if (fy - n.y > n.ry + 6) continue;
+        const room = fy - ceilAbove(px, fy - 1);
+        let built = false;
+        if (B.pool !== 'MAGMA' && pick < 0.3) {
+          // the sunken vault
+          const hw = 8 + Math.floor(R() * 6), depth = 12 + Math.floor(R() * 10);
+          let px2 = px, fy2 = fy, ok = false;
+          for (let t = 0; t < 6 && !ok; t++) {   // a few spots on the floor, until one has solid ground under it
+            if (t) { px2 = Math.round(n.x + (R() - 0.5) * n.rx * 1.2); fy2 = this.floorBelow(px2, Math.round(n.y)); if (fy2 - n.y > n.ry + 6) continue; }
+            ok = true;
+            for (let yy = fy2; yy <= fy2 + depth + 6 && ok; yy += 2) for (let xx = px2 - hw - 3; xx <= px2 + hw + 3 && ok; xx += 2) { const q = mat[yy * w + xx]; if (q === M.ROCK || (yy > fy2 + 4 && (q === M.EMPTY || q === M.WATER)) || yy > h - 20) ok = false; }   // only into solid ground below its mouth, never a ledge
+          }
+          if (ok) {
+            for (let yy = fy2; yy <= fy2 + depth + 2; yy++) for (let xx = px2 - hw - 2; xx <= px2 + hw + 2; xx++) {
+              const inside = Math.abs(xx - px2) <= hw && yy <= fy2 + depth;
+              mat[yy * w + xx] = inside ? (yy >= fy2 + 2 ? M.WATER : M.EMPTY) : (hash(xx >> 1, yy >> 1, s + 95) < 0.06 ? M.DIRT : M.BRICK);
+            }
+            // a low parapet round its mouth, broken in places
+            for (const side of [-1, 1]) for (let k = 0; k < 3; k++) { const xx = px2 + side * (hw + k), up = 2 + Math.floor(hash(xx, 1, s + 97) * 4); for (let yy = fy2 - 1; yy >= fy2 - up; yy--) { const q = mat[yy * w + xx]; if (q === M.EMPTY || q === M.WATER) mat[yy * w + xx] = M.BRICK; } }
+            addCache(px2, fy2 + depth + 1, 'vault', n); built = true;
+          }
+        }
+        if (!built && pick < 0.65 && room > 46) {
+          // the shrine
+          const half = 11 + Math.floor(R() * 7), steps = 2 + Math.floor(R() * 2), stepH = 2 + Math.floor(R() * 2), top = fy - steps * stepH;
+          for (let s2 = 0; s2 < steps; s2++) {
+            const hw = half - s2 * 3, y0 = fy - (s2 + 1) * stepH;
+            for (let xx = px - hw; xx <= px + hw; xx++) { const base = s2 === 0 ? this.floorBelow(xx, y0) : y0 + stepH; for (let yy = y0; yy < base; yy++) brick(xx, yy); }
+          }
+          const ph = 22 + Math.floor(R() * 8), broken = R();
+          for (const side of [-1, 1]) {
+            const qx = px + side * (half - 4), short = broken < 0.4 && side > 0 ? Math.floor(ph * (0.3 + R() * 0.4)) : ph;
+            const qb = this.floorBelow(qx, top - 1);
+            for (let yy = qb - 1; yy >= qb - short; yy--) for (let dx = -2; dx <= 2; dx++) if (Math.abs(dx) < 2 || yy > qb - 3 || yy < qb - ph + 2) brick(qx + dx, yy);
+          }
+          if (broken >= 0.4) { const ly = top - ph - 1, gap = broken < 0.7 ? px + Math.floor((R() - 0.5) * half) : 1e9; for (let xx = px - half + 1; xx <= px + half - 1; xx++) if (Math.abs(xx - gap) > 3) for (let t = 0; t < 3; t++) brick(xx, ly - t); }
+          addCache(px, top, 'shrine', n); built = true;
+        }
+        if (!built && room > 30) {
+          // the fallen hall
+          const len = 16 + Math.floor(R() * 14), lx = px - (len >> 1), ly = this.floorBelow(lx + (len >> 1), fy - 4);
+          for (let xx = lx; xx <= lx + len; xx++) { const b2 = this.floorBelow(xx, ly - 6), tall = xx - lx < 3 ? 6 : 4; for (let yy = b2 - 1; yy >= b2 - tall; yy--) brick(xx, yy); }   // a pillar lying along the ground, its head a little higher
+          for (let k = 0; k < 2 + Math.floor(R() * 3); k++) {
+            const sx = px + Math.round((R() - 0.5) * n.rx * 1.2), sb = this.floorBelow(sx, Math.round(n.y)), sw = 3 + Math.floor(R() * 4), sh = 3 + Math.floor(R() * 5);
+            if (sb - n.y > n.ry + 6) continue;
+            for (let xx = sx; xx < sx + sw; xx++) { const b2 = this.floorBelow(xx, sb - sh); for (let yy = b2 - 1; yy >= sb - sh + Math.floor(hash(xx, 0, s + 96) * 3); yy--) brick(xx, yy); }
+          }
+          for (let k = 0; k < 20; k++) { const rx2 = px + Math.round((R() - 0.5) * n.rx * 1.4), rb = this.floorBelow(rx2, Math.round(n.y)); if (rb - n.y < n.ry + 6) { brick(rx2, rb - 1); if (R() < 0.4) brick(rx2 + 1, rb - 1); } }
+        }
+      }
+
       // the generated cave starts at rest (pools drained, crumbs removed): nothing needs
       // simulating until something touches it, which wakes its chunk
       this.awake.fill(0);
