@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.77';
+  const VERSION = 'v0.78';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -45,7 +45,7 @@
     fitKey = key;
     if (VV) { stage.style.top = top + 'px'; stage.style.left = left + 'px'; }
     if (Math.min(W, H) >= 600) { VW = 432; VH = 243; } else { VW = 384; VH = 216; }
-    SIGHT = Math.round(224 * VW / 384); SIGHT_END = Math.round(290 * VW / 384);
+    SIGHT = Math.round(224 * VW / 384); SIGHT_END = Math.round(290 * VW / 384); R.sightR = SIGHT_END + 2;
     R.setView(wide ? Math.min(VW * 2, Math.round(VH * W / H)) : VW, wide ? VH : Math.min(Math.round(VW * 2.25), Math.round(VW * H / W)));
     const s = Math.min(W / V.w, H / V.h), w = Math.floor(V.w * s), h = Math.floor(V.h * s);
     stage.style.width = w + 'px'; stage.style.height = h + 'px';
@@ -676,8 +676,10 @@
       if (game.hitStop > 0) { game.hitStop -= dt; acc = 0; }   // a brief freeze on heavy blows
       else acc += dt;
       let n = 0;
-      while (acc >= STEP && n < 4) { game.step([KInput.sample(origin)]); acc -= STEP; n++; }
-      if (n === 4) acc = 0;
+      // at most two steps a frame (v0.77): full speed at 30 frames a second (an iPhone in Low Power Mode); a device slower
+      // than that runs the game a little slower instead of piling up steps and stuttering
+      while (acc >= STEP && n < 2) { game.step([KInput.sample(origin)]); acc -= STEP; n++; }
+      if (n === 2) acc = 0;
       saveTimer += dt;
       if (saveTimer > 20) save();
     }

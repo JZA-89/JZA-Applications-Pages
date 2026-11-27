@@ -91,6 +91,7 @@ const KWorld = (() => {
       this.stamp = new Uint8Array(w * h);   // last tick this cell moved
       this.awake = new Uint8Array(this.cw * this.ch);
       this.dirty = new Uint8Array(this.cw * this.ch);
+      this.rev = new Uint32Array(this.cw * this.ch);   // counts every change to a chunk's cells (the renderer keeps each chunk's ground colours until it moves)
       this.tick = 0;
       this.seed = seed;
       this.rand = makeRng(seed);
@@ -113,7 +114,7 @@ const KWorld = (() => {
     wakeAt(x, y) {
       const s = this.shift, cx = x >> s, cy = y >> s, cw = this.cw;
       const k = cy * cw + cx;
-      this.awake[k] = 3; this.dirty[k] = 1;
+      this.awake[k] = 3; this.dirty[k] = 1; this.rev[k]++;
       if (this.changed) this.changed[k] = 1;
       const lx = x & (this.cs - 1), ly = y & (this.cs - 1), e = this.cs - 1;
       if (lx === 0 && cx > 0) { this.awake[k - 1] = 3; }
@@ -475,7 +476,7 @@ const KWorld = (() => {
       if (s.length !== cs * cs * 4) return false;
       let n = 0;
       for (const a of [this.mat, this.shade, this.life, this.charge]) for (let y = 0; y < cs; y++) { let i = (y0 + y) * w + x0; for (let x = 0; x < cs; x++) a[i++] = s.charCodeAt(n++); }
-      this.dirty[k] = 1;
+      this.dirty[k] = 1; this.rev[k]++;
       return true;
     }
     // everything about the cave that is not a cell: where things are, and which chunks are awake or changed
@@ -520,7 +521,7 @@ const KWorld = (() => {
           if (v >= N) continue;
           this.mat[i] = v; this.life[i] = l[y * cs + x] || 0; this.charge[i] = 0;
         }
-        this.changed[k] = 1; this.awake[k] = 3; this.dirty[k] = 1;
+        this.changed[k] = 1; this.awake[k] = 3; this.dirty[k] = 1; this.rev[k]++;
       }
     }
 
@@ -986,6 +987,10 @@ const KWorld = (() => {
         const B = this.biomes[n.biome], wet = B.pool === 'WATER';
         const roll = R();
         if (wet && roll >= 0.13) continue;   // wet regions: flooded mines only, never a forge
+        // never beside magma: it would pour into a gallery or a furnace once the cave moves
+        let hot = false;
+        for (let yy = Math.round(n.y - n.ry - 10); yy <= n.y + n.ry + 30 && !hot; yy += 3) for (let xx = Math.round(n.x - n.rx - 30); xx <= n.x + n.rx + 30; xx += 3) if (xx > 0 && yy > 0 && xx < w && yy < h && mat[yy * w + xx] === M.MAGMA) { hot = true; break; }
+        if (hot) continue;
         if (roll < 0.13) {
           // the mine
           const dir = R() < 0.5 ? -1 : 1, H = 18, fy0 = this.floorBelow(Math.round(n.x), Math.round(n.y));
@@ -999,8 +1004,12 @@ const KWorld = (() => {
           while (len < want) {
             const xx = x + dir * len; let okc = xx > 24 && xx < w - 24 && fy - H > 24 && fy < h - 24;
             for (let yy = fy - H; yy <= fy && okc; yy++) { const q = mat[yy * w + xx]; if (!(diggable(q) || q === M.EMPTY)) okc = false; }
+            for (let k = 1; k <= 6 && okc; k++) for (let yy = fy - H - 2; yy <= fy + 2; yy += 2) { const q = mat[yy * w + xx + dir * k]; if (q === M.MAGMA || q === M.WATER || q === M.ACID || q === M.OIL) { okc = false; break; } }   // stop well short of any liquid
             if (!okc) break; len++;
           }
+          // no liquid within 10 cells above, below or beyond the gallery: shorten it until there is none
+          const wetNear = L => { for (let t = -3; t < L + 8; t++) { const xx = x + dir * t; for (let yy = fy - H - 10; yy <= fy + 10; yy += 2) { const q = mat[yy * w + xx]; if (q === M.MAGMA || q === M.WATER || q === M.ACID || q === M.OIL) return true; } } return false; };
+          while (len >= 36 && wetNear(len)) len -= 6;
           if (len < 36) continue;
           for (let t = -3; t < len; t++) {
             const xx = x + dir * t;
@@ -1033,6 +1042,7 @@ const KWorld = (() => {
           const half = 22 + Math.floor(R() * 6), side = R() < 0.5 ? -1 : 1;
           let deep = true;   // on the chamber's own floor, not a floating ledge: solid ground under its whole width
           for (let xx = px - half; xx <= px + half && deep; xx += 4) { const b = this.floorBelow(xx, fy - 8); if (Math.abs(b - fy) > 10) deep = false; for (let k = 1; k <= 10 && deep; k += 3) if (!SOLID[mat[(b + k) * w + xx]]) deep = false; }
+          for (let yy = fy - 40; yy <= fy + 12 && deep; yy += 3) for (let xx = px - half - 20; xx <= px + half + 20; xx += 3) if (mat[yy * w + xx] === M.MAGMA) { deep = false; break; }   // no magma near the forge
           if (!deep) continue;
           for (let xx = px - half; xx <= px + half; xx++) { const b = this.floorBelow(xx, fy - 12); if (Math.abs(b - fy) < 11) { brick(xx, b - 1); brick(xx, b - 2); } }
           // the furnace: 21 wide, 18 tall, two-brick walls, open on the side facing the middle

@@ -692,6 +692,21 @@ Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
 
+## Performance and picture audit (v0.78)
+
+Measured on a phone-sized screen with the processor slowed four times (frames a second, before → after): hub 26 → 37, a fight 19 → 22, a flood 20 → 19, the boss lair 10 → 18. A computer (no graphics chip) holds about 50 everywhere.
+- **The ground is worked out once per chunk** (`render.groundChunk`): dirt with its crust, rock, brick, wood, ice, coal, lichen, earth, mud, and the tufts and roots beside them, kept until anything in that chunk or its eight neighbours changes (`world.rev`, counted in `wakeAt`, chunk loads and unpacking). Only liquids, gas, fire, magma, embers, crystal and the back wall are drawn each frame. The crust's depth field is now per chunk with a 5-cell margin, not over the whole screen each frame.
+- **Light is worked out for every second cell** and used for both (it changes over 4-cell squares).
+- **Only cells within the golem's sight are drawn and lit** (`render.span`, from `sightR` = `SIGHT_END` + 2); past it the picture is black anyway.
+- **Magma's crust reads a pre-made repeating noise texture** (`noiseTile`) instead of computing noise for every magma cell every frame; **the boss's segments make their shades once**, not a new colour list per pixel.
+- **Solo play runs at most two game steps a frame** (was four): full speed at 30 frames a second (an iPhone in Low Power Mode); slower devices run the game a little slower instead of piling up steps. Co-op keeps its own rules.
+- Tried and left alone: the sight fade and the glow layer's blending cost about nothing measurable.
+
+Picture fixes:
+- **Magma lakes were washed out to flat orange** by hundreds of overlapping glows: magma now adds 0.1 to the heat count per cell (was 0.25), so a lake still lights the cave but its dark crust and cracks show.
+- **Mines and forges could fill with magma** once the cave moved: they now skip any chamber with magma in it, galleries stop well short of any liquid (6 cells ahead) and are shortened until no liquid lies within 10 cells above, below or beyond them, and forges check their own surroundings. Checked with scratchpad `mm2.js`: none of the mines or forges within 60 cells of magma in 18 caves gets any in after 10 s. Saves moved to `castinstone.save.v13`.
+- **On a phone held upright** the controls row (moved to the top in portrait) covered the objective card and the notices covered the map: the objective now sits below the row and notices below that.
+
 ## No flicker on iPad (v0.77)
 
 Jaisah, on iPad: the screen started to flicker wildly. v0.75 re-fitted the stage on every `visualViewport` resize and scroll, and Safari on iPad reports those many times a second while a finger is on the screen; each re-fit re-centred the stage and set the glow canvas's size, which clears it. Now `fit()` runs at most once a frame (`askFit`) and returns at once unless the visible size or position really changed (`fitKey`), and `render.resize` sets the glow canvas's size only when it differs. Checked with an emulated iPad and iPhone: 240 viewport events in a row clear the glow 0 times, and the stage still fills the visible area.
@@ -828,6 +843,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.78 (2026-11-28):** performance and picture audit (Jaisah): ground drawn from a per-chunk cache, light every second cell, nothing drawn past sight, cheaper magma, two game steps a frame at most; magma lakes no longer washed out; mines and forges never flood with magma; upright-phone layout no longer overlaps. Saves start again (`castinstone.save.v13`).
 
 - **v0.77 (2026-11-28):** fixed the flicker on iPad caused by v0.75's re-fitting.
 

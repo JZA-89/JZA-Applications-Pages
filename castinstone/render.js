@@ -216,6 +216,18 @@ const KRender = (() => {
     }
     return out;
   }
+  // Smooth noise that repeats every 256 cells, worked out once (v0.77): magma's drifting crust reads it instead of
+  // computing noise for every magma cell every frame.
+  function noiseTile(cells, seed) {
+    const N = 256, out = new Uint8Array(N * N), sc = N / cells;
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const u = x / sc, v = y / sc, i = Math.floor(u), j = Math.floor(v), fx = u - i, fy = v - j;
+      const H = (a, b) => hash(((a % cells) + cells) % cells, ((b % cells) + cells) % cells, seed);
+      const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy), a = H(i, j), b = H(i + 1, j), c = H(i, j + 1), d = H(i + 1, j + 1);
+      out[y * N + x] = Math.round((a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy) * 255);
+    }
+    return out;
+  }
   const pack = (r, g, b) => (255 << 24) | (b << 16) | (g << 8) | r;
   const clamp = v => v < 0 ? 0 : v > 255 ? 255 : v | 0;
 
@@ -229,6 +241,7 @@ const KRender = (() => {
       this.lightsNow = []; this.lightsPrev = []; this.amb = 0.3; this.motes = []; this.seenFx = new WeakSet();
       this.kind = new Uint8Array(V.w * V.h);
       this.par = backWall();
+      this.magA = noiseTile(28, 81); this.magB = noiseTile(64, 82);
       this.sprites = new Map();
       this.cam = { x: 0, y: 0 };
       this.gw = Math.ceil(V.w / 8); this.gh = Math.ceil(V.h / 8);
@@ -248,6 +261,7 @@ const KRender = (() => {
     setWorld(world) {
       this.world = world;
       this.cc = new Map();
+      this.gc = new Map(); this.frameNo = 0;
     }
 
     chunkColours(ckx, cky) {
@@ -382,6 +396,10 @@ const KRender = (() => {
       this.cam.x = cx; this.cam.y = cy;
       const lt = this.lightsPrev; this.lightsPrev = this.lightsNow; this.lightsNow = lt; lt.length = 0;
 
+      this.frameNo++;
+      // v0.77: only cells within the golem's sight are drawn and lit; past it the picture is black anyway (main.js fade)
+      { const R = this.sightR || 1e5, sx = p.x - cx, sy = p.y - 8 - cy, sp = this.span || (this.span = new Int16Array(4096));
+        for (let vy = 0; vy < V.h; vy++) { const dy = vy - sy, q = R * R - dy * dy; if (q <= 0) { sp[vy * 2] = 0; sp[vy * 2 + 1] = 0; continue; } const r = Math.sqrt(q); sp[vy * 2] = Math.max(0, Math.floor(sx - r)); sp[vy * 2 + 1] = Math.min(V.w, Math.ceil(sx + r)); } }
       this.drawCells(world, game.time);
       this.drawDecor(game);
       this.ambient(game);
@@ -416,53 +434,36 @@ const KRender = (() => {
       heat.fill(0); spark.fill(0);
       let nFire = 0, nMagma = 0, nAcid = 0;   // how much of each is on screen, for the cave's sound (audio.js ambience)
       const fire = materials[M.FIRE].colors, magma = materials[M.MAGMA].colors;
-      const pulse = time * 3;
+      const pulse = time * 3, magA = this.magA, magB = this.magB, mt1 = (time * 2.2) | 0, mt2 = (time * 1.4) | 0;
       const lit = c => pack(clamp((c & 255) * 1.25 + 14), clamp(((c >> 8) & 255) * 1.2 + 12), clamp(((c >> 16) & 255) * 1.15 + 12));
       const dark = c => pack(clamp((c & 255) * 0.55), clamp(((c >> 8) & 255) * 0.5), clamp(((c >> 16) & 255) * 0.6));
       const open = q => q === M.EMPTY || q === M.STEAM || q === M.FIRE || q === M.GAS;
-      // How deep each solid cell on screen sits from an open one (1 at the face, up to 5), for the crust.
-      // Two sweeps over the screen; off the screen counts as solid.
-      const VWc = V.w, VHc = V.h, dist = this.dist && this.dist.length === VWc * VHc ? this.dist : (this.dist = new Uint8Array(VWc * VHc)), STT = KWorld.STATE;
-      for (let vy = 0; vy < VHc; vy++) {
-        const row = (vy + this.cam.y) * w + this.cam.x;
-        for (let vx = 0, o = vy * VWc; vx < VWc; vx++, o++) {
-          const s = STT[mat[row + vx]];
-          let d = s === 1 || s === 2 ? 5 : 0;
-          if (d) {
-            if (vx > 0 && dist[o - 1] + 1 < d) d = dist[o - 1] + 1;
-            if (vy > 0) { const u = o - VWc; if (dist[u] + 1 < d) d = dist[u] + 1; if (vx > 0 && dist[u - 1] + 1 < d) d = dist[u - 1] + 1; if (vx < VWc - 1 && dist[u + 1] + 1 < d) d = dist[u + 1] + 1; }
-          }
-          dist[o] = d;
-        }
-      }
-      for (let vy = VHc - 1; vy >= 0; vy--) for (let vx = VWc - 1, o = vy * VWc + vx; vx >= 0; vx--, o--) {
-        let d = dist[o]; if (d <= 1) continue;
-        if (vx < VWc - 1 && dist[o + 1] + 1 < d) d = dist[o + 1] + 1;
-        if (vy < VHc - 1) { const u = o + VWc; if (dist[u] + 1 < d) d = dist[u] + 1; if (vx > 0 && dist[u - 1] + 1 < d) d = dist[u - 1] + 1; if (vx < VWc - 1 && dist[u + 1] + 1 < d) d = dist[u + 1] + 1; }
-        dist[o] = d;
-      }
       const moss = materials[M.MOSS].colors;
       // mark what is on screen as explored (for the map)
       for (let cy = this.cam.y >> 5; cy <= (this.cam.y + V.h - 1) >> 5; cy++) for (let cx = this.cam.x >> 5; cx <= (this.cam.x + V.w - 1) >> 5; cx++) world.explored[cy * world.cw + cx] = 1;
+      const bandC = this._bandC || (this._bandC = []), bandG = this._bandG || (this._bandG = []), ck0 = this.cam.x >> 5;
+      let band = -1;
       for (let vy = 0; vy < V.h; vy++) {
         const wy = vy + this.cam.y, row = wy * w, grow = (vy >> 3) * gw, cky = wy >> 5, ly = (wy & 31) * 32;
-        for (let vx = 0; vx < V.w;) {
-          const ckx = (vx + this.cam.x) >> 5, C = this.chunkColours(ckx, cky);
-          const end = Math.min(V.w, (ckx + 1) * 32 - this.cam.x);
+        if (cky !== band) {   // the chunks along this band of 32 rows, looked up once
+          band = cky; bandC.length = 0; bandG.length = 0;
+          for (let ckx = ck0; ckx <= (this.cam.x + V.w - 1) >> 5; ckx++) { const C = this.chunkColours(ckx, cky); bandC.push(C); bandG.push(this.groundChunk(world, ckx, cky, C)); }
+        }
+        const sa = this.span[vy * 2], sb = this.span[vy * 2 + 1], BLACK = 0xff000000;
+        for (let o = vy * V.w, e = o + sa; o < e; o++) { buf[o] = BLACK; kind[o] = 1; }
+        for (let o = vy * V.w + sb, e = (vy + 1) * V.w; o < e; o++) { buf[o] = BLACK; kind[o] = 1; }
+        for (let vx = sa; vx < sb;) {
+          const ckx = (vx + this.cam.x) >> 5, C = bandC[ckx - ck0], G = bandG[ckx - ck0], gf = G.flag, gc = G.col;
+          const end = Math.min(sb, (ckx + 1) * 32 - this.cam.x);
           for (; vx < end; vx++) {
-            const wx = vx + this.cam.x, i = row + wx, m = mat[i], o = vy * V.w + vx, li = ly + (wx & 31);
-            if (m === M.EMPTY) {
+            const wx = vx + this.cam.x, i = row + wx, m = mat[i], o = vy * V.w + vx, li = ly + (wx & 31), f = gf[li];
+            if (f === 3) {
               // the back wall, with a far layer of pillars that moves at half speed (backWall)
               const bc = C.bg[li], d = par[((wy - pcy) & 255) * 256 + ((wx - pcx) & 255)];
               buf[o] = d ? pack(clamp((bc & 255) + d), clamp(((bc >> 8) & 255) + d * 0.9), clamp(((bc >> 16) & 255) + d * 1.25)) : bc; kind[o] = 2;
-              // tufts of lichen on the tops of dirt, and roots hanging from its roofs
-              const below = mat[i + w], above = mat[i - w];
-              if (below === M.DIRT && hash(wx, wy, 68) < 0.42) { const g = moss[(hash(wx, 0, 69) * 4) | 0]; buf[o] = pack(g[0], g[1], g[2]); kind[o] = 0; }
-              else if (below === M.EMPTY && mat[i + 2 * w] === M.DIRT && hash(wx, wy + 1, 68) < 0.42 && hash(wx, wy, 70) < 0.3) { const g = moss[(hash(wx, 0, 69) * 4) | 0]; buf[o] = pack(g[0] * 0.8, g[1] * 0.8, g[2] * 0.8); kind[o] = 0; }
-              else if (above === M.DIRT && hash(wx, 0, 71) < 0.22) { buf[o] = pack(70, 56, 52); kind[o] = 0; }
-              else if (above === M.EMPTY && mat[i - 2 * w] === M.DIRT && hash(wx, 0, 71) < 0.22 && hash(wx, 1, 72) < 0.6) { buf[o] = pack(58, 46, 46); kind[o] = 0; }
               continue;
             }
+            if (f) { buf[o] = gc[li]; kind[o] = 0; continue; }   // ground, and lichen and roots, worked out once (groundChunk)
             kind[o] = m === M.FIRE || m === M.MAGMA || m === M.EMBER || m === M.CRYSTAL || m === M.ACID ? 1 : 0;
             const bgc = C.bg[li], bR = bgc & 255, bG = (bgc >> 8) & 255, bB = (bgc >> 16) & 255;
             if (m === M.WATER) {
@@ -496,12 +497,12 @@ const KRender = (() => {
             }
             if (m === M.MAGMA) {
               // a dark crust that drifts slowly, split by bright cracks; the open surface glows hottest
-              const n1 = noise(wx + time * 2.2, wy, 9, 81) * 0.7 + noise(wx, wy - time * 1.4, 4, 82) * 0.3, crack = Math.abs(n1 - 0.5);
+              const n1 = (magA[(wy & 255) * 256 + ((wx + mt1) & 255)] * 0.7 + magB[((wy - mt2) & 255) * 256 + (wx & 255)] * 0.3) / 255, crack = Math.abs(n1 - 0.5);
               const top = mat[i - w] !== M.MAGMA;
               if (top || crack < 0.045) { const c = magma[3]; buf[o] = pack(c[0], clamp(c[1] + (shade[i] & 15)), c[2]); }
               else if (crack < 0.1) { const c = magma[shade[i] & 1]; buf[o] = pack(c[0], c[1], c[2]); }
               else { const k = 0.32 + (0.5 - crack) * 0.5 + 0.06 * Math.sin(pulse + shade[i] * 0.1); buf[o] = pack(clamp(150 * k + 20), clamp(52 * k + 6), clamp(30 * k + 8)); }
-              heat[grow + (vx >> 3)] += 0.25; nMagma++;
+              heat[grow + (vx >> 3)] += 0.1; nMagma++;   // a lake is hundreds of cells: each adds little, or the glow washes its crust out
               continue;
             }
             if (m === M.GAS) {   // a faint green haze
@@ -520,41 +521,98 @@ const KRender = (() => {
               buf[o] = pack(c[0], c[1], c[2]); heat[grow + (vx >> 3)] += 0.6; nFire++;
               continue;
             }
-            const above = mat[i - w], st = KWorld.STATE[m];
-            let e = 0;
-            if (st === 1 || st === 2) {
-              if (open(above) || above === M.WATER) e = 1;
-              else if (st === 1 && (open(mat[i + w]) || open(mat[i - 1]) || open(mat[i + 1]))) e = 2;
-            }
-            if (m === M.DIRT) {
-              // a crust two or three cells thick on every open face, brightest at the edge and on top
-              const dd = dist[o];
-              if (dd === 1) buf[o] = e === 1 ? lit(C.rim[li]) : C.rim[li];
-              else if (dd === 2 || (dd === 3 && hash(wx, wy, 67) < 0.55)) buf[o] = C.crust[li];
-              else if (dd === 3) { const p1 = C.crust[li], p2 = C.dirt[li]; buf[o] = 0xff000000 | ((((p1 >> 16) & 255) + ((p2 >> 16) & 255)) >> 1) << 16 | ((((p1 >> 8) & 255) + ((p2 >> 8) & 255)) >> 1) << 8 | (((p1 & 255) + (p2 & 255)) >> 1); }
-              else buf[o] = C.dirt[li];
-            } else if (m === M.BRICK) {
-              // courses three cells high, bricks eight long, every other course set over by half; darker mortar
-              const row = (wy / 3) | 0, off = (row & 1) * 4, col = ((wx + off) >> 3), v = pal[m];
-              const mortar = wy % 3 === 0 || ((wx + off) & 7) === 0;
-              let c = v[(hash(col, row, 93) * v.length) | 0][dist[o] === 1 && e === 1 ? 1 : 0];
-              if (mortar) c = dark(c);
-              else if (hash(wx, wy, 94) < 0.07) c = dark(c);
-              buf[o] = c;
-            } else if (m === M.ROCK) {
-              const base = C.rock[li];
-              buf[o] = e === 1 ? lit(base) : e === 2 ? dark(base) : base;
-            } else if (m === M.WOOD) {
-              // grain: long streaks down the timber, the same wherever the plank is seen from
-              const v = pal[m], gk = (hash(wx, wy >> 3, 7) * 4) | 0; buf[o] = v[(gk + (hash(wx, wy, 8) < 0.12 ? 2 : 0)) % v.length][e];
-            } else if (m === M.ICE) {
-              // facets: broad pale flats with bright cracks
-              const v = pal[m], f = noise(wx, wy, 6, 12); buf[o] = Math.abs(f * 5 - Math.round(f * 5)) < 0.06 ? pack(236, 248, 255) : v[Math.min(v.length - 1, (f * 4) | 0)][e];
-            } else { const v = pal[m]; buf[o] = v[shade[i] % v.length][e]; }
+            { const v = pal[m]; buf[o] = v[shade[i] % v.length][0]; }   // anything else (groundChunk covers the ground)
           }
         }
       }
       this.amounts = { fire: nFire, magma: nMagma, acid: nAcid };
+    }
+
+    // The ground, worked out once per chunk (v0.77): dirt with its crust, rock, brick, wood, ice, coal, lichen,
+    // earth and mud, and the lichen tufts and roots in the open cells beside them. Kept until anything in the chunk
+    // or its eight neighbours changes (world.rev counts every change). flag: 0 drawn each frame (liquids, gas,
+    // fire, magma, embers, crystal), 1 ground (col), 2 a tuft or root (col), 3 open back wall (drawn each frame).
+    groundChunk(world, ckx, cky, C) {
+      const key = cky * 4096 + ckx, rev = world.rev, cw = world.cw, chh = world.ch;
+      let G = this.gc.get(key);
+      if (G && G.seen === this.frameNo) return G;
+      const sig = G ? G.sig : new Uint32Array(9);
+      let same = !!G, n = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++, n++) {
+        const x = ckx + dx, y = cky + dy, r = x >= 0 && y >= 0 && x < cw && y < chh ? rev[y * cw + x] : 0;
+        if (sig[n] !== r) { sig[n] = r; same = false; }
+      }
+      if (!G) { G = { sig, flag: new Uint8Array(1024), col: new Uint32Array(1024), seen: 0 }; this.gc.set(key, G); if (this.gc.size > 420) this.gc.delete(this.gc.keys().next().value); }
+      G.seen = this.frameNo;
+      if (same) return G;
+      const { w, h, mat, shade } = world, ST = KWorld.STATE, pal = this.pal, flag = G.flag, col = G.col, moss = materials[M.MOSS].colors;
+      const lit = c => pack(clamp((c & 255) * 1.25 + 14), clamp(((c >> 8) & 255) * 1.2 + 12), clamp(((c >> 16) & 255) * 1.15 + 12));
+      const dark = c => pack(clamp((c & 255) * 0.55), clamp(((c >> 8) & 255) * 0.5), clamp(((c >> 16) & 255) * 0.6));
+      const open = q => q === M.EMPTY || q === M.STEAM || q === M.FIRE || q === M.GAS;
+      const at = (x, y) => x < 0 || y < 0 || x >= w || y >= h ? M.ROCK : mat[y * w + x];
+      // how deep each cell sits from an open one (1 at the face, up to 5), over the chunk and 5 cells round it
+      const x0 = ckx * 32 - 5, y0 = cky * 32 - 5, N = 42, D = this._gd || (this._gd = new Uint8Array(N * N));
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+        const s = ST[at(x0 + x, y0 + y)], o = y * N + x;
+        let d = s === 1 || s === 2 ? 5 : 0;
+        if (d) {
+          if (x > 0 && D[o - 1] + 1 < d) d = D[o - 1] + 1;
+          if (y > 0) { const u = o - N; if (D[u] + 1 < d) d = D[u] + 1; if (x > 0 && D[u - 1] + 1 < d) d = D[u - 1] + 1; if (x < N - 1 && D[u + 1] + 1 < d) d = D[u + 1] + 1; }
+        }
+        D[o] = d;
+      }
+      for (let y = N - 1; y >= 0; y--) for (let x = N - 1; x >= 0; x--) {
+        const o = y * N + x; let d = D[o]; if (d <= 1) continue;
+        if (x < N - 1 && D[o + 1] + 1 < d) d = D[o + 1] + 1;
+        if (y < N - 1) { const u = o + N; if (D[u] + 1 < d) d = D[u] + 1; if (x > 0 && D[u - 1] + 1 < d) d = D[u - 1] + 1; if (x < N - 1 && D[u + 1] + 1 < d) d = D[u + 1] + 1; }
+        D[o] = d;
+      }
+      for (let ly = 0; ly < 32; ly++) for (let lx = 0; lx < 32; lx++) {
+        const wx = ckx * 32 + lx, wy = cky * 32 + ly, li = ly * 32 + lx;
+        if (wx >= w || wy >= h) { flag[li] = 3; continue; }
+        const i = wy * w + wx, m = mat[i];
+        if (m === M.EMPTY) {
+          // tufts of lichen on the tops of dirt, and roots hanging from its roofs
+          const below = at(wx, wy + 1), above = at(wx, wy - 1);
+          let c = 0;
+          if (below === M.DIRT && hash(wx, wy, 68) < 0.42) { const g = moss[(hash(wx, 0, 69) * 4) | 0]; c = pack(g[0], g[1], g[2]); }
+          else if (below === M.EMPTY && at(wx, wy + 2) === M.DIRT && hash(wx, wy + 1, 68) < 0.42 && hash(wx, wy, 70) < 0.3) { const g = moss[(hash(wx, 0, 69) * 4) | 0]; c = pack(g[0] * 0.8, g[1] * 0.8, g[2] * 0.8); }
+          else if (above === M.DIRT && hash(wx, 0, 71) < 0.22) c = pack(70, 56, 52);
+          else if (above === M.EMPTY && at(wx, wy - 2) === M.DIRT && hash(wx, 0, 71) < 0.22 && hash(wx, 1, 72) < 0.6) c = pack(58, 46, 46);
+          if (c) { flag[li] = 2; col[li] = c; } else flag[li] = 3;
+          continue;
+        }
+        const st = ST[m];
+        if (!(st === 1 || st === 2) || m === M.CRYSTAL || m === M.EMBER) { flag[li] = 0; continue; }
+        const above = at(wx, wy - 1);
+        let e = 0;
+        if (open(above) || above === M.WATER) e = 1;
+        else if (st === 1 && (open(at(wx, wy + 1)) || open(at(wx - 1, wy)) || open(at(wx + 1, wy)))) e = 2;
+        const dd = D[(ly + 5) * N + lx + 5];
+        let c;
+        if (m === M.DIRT) {
+          // a crust two or three cells thick on every open face, brightest at the edge and on top
+          if (dd === 1) c = e === 1 ? lit(C.rim[li]) : C.rim[li];
+          else if (dd === 2 || (dd === 3 && hash(wx, wy, 67) < 0.55)) c = C.crust[li];
+          else if (dd === 3) { const p1 = C.crust[li], p2 = C.dirt[li]; c = 0xff000000 | ((((p1 >> 16) & 255) + ((p2 >> 16) & 255)) >> 1) << 16 | ((((p1 >> 8) & 255) + ((p2 >> 8) & 255)) >> 1) << 8 | (((p1 & 255) + (p2 & 255)) >> 1); }
+          else c = C.dirt[li];
+        } else if (m === M.BRICK) {
+          // courses three cells high, bricks eight long, every other course set over by half; darker mortar
+          const row = (wy / 3) | 0, off = (row & 1) * 4, bcol = ((wx + off) >> 3), v = pal[m];
+          c = v[(hash(bcol, row, 93) * v.length) | 0][dd === 1 && e === 1 ? 1 : 0];
+          if (wy % 3 === 0 || ((wx + off) & 7) === 0 || hash(wx, wy, 94) < 0.07) c = dark(c);
+        } else if (m === M.ROCK) {
+          const base = C.rock[li]; c = e === 1 ? lit(base) : e === 2 ? dark(base) : base;
+        } else if (m === M.WOOD) {
+          // grain: long streaks down the timber
+          const v = pal[m], gk = (hash(wx, wy >> 3, 7) * 4) | 0; c = v[(gk + (hash(wx, wy, 8) < 0.12 ? 2 : 0)) % v.length][e];
+        } else if (m === M.ICE) {
+          // facets: broad pale flats with bright cracks
+          const v = pal[m], f = noise(wx, wy, 6, 12); c = Math.abs(f * 5 - Math.round(f * 5)) < 0.06 ? pack(236, 248, 255) : v[Math.min(v.length - 1, (f * 4) | 0)][e];
+        } else { const v = pal[m]; c = v[shade[i] % v.length][e]; }
+        flag[li] = 1; col[li] = c;
+      }
+      return G;
     }
 
     // Lodestones: a standing stone with a rune; the rune glows lilac once found.
@@ -658,13 +716,16 @@ const KRender = (() => {
     drawBoss(b, game) {
       if (b.type !== 'emberwyrm') { const y = b.y; b.y = y + b.h / 2; this.drawEnemy(b, game.time); b.y = y; this.light(b.x, y, b.state === 'hover' ? 26 : 40, b.type === 'heartroot' ? [255, 120, 110] : [170, 130, 255], 0.6); return; }
       const w = game.world, cx = this.cam.x, cy = this.cam.y;
+      const EDGE = [40, 14, 12], CRACK = [255, 170, 80], FLASH = [255, 246, 236];
       const disc = (x, y, r, col, a, crack) => {
+        const hi = [col[0] * 1.25, col[1] * 1.25, col[2] * 1.25], lo = [col[0] * 0.75, col[1] * 0.75, col[2] * 0.75], r2 = r * r, e2 = (r - 1.2) ** 2;   // shades made once, not for every cell
         for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
-          if (dx * dx + dy * dy > r * r) continue;
-          const edge = dx * dx + dy * dy > (r - 1.2) ** 2;
-          let c = edge ? [40, 14, 12] : dy < -r * 0.35 ? col.map(v => v * 1.25) : dy > r * 0.4 ? col.map(v => v * 0.75) : col;
-          if (crack && !edge && (dx + dy * 2 + 40) % 5 === 0) c = [255, 170, 80];
-          if (b.flash > 0) c = [255, 246, 236];
+          const d2 = dx * dx + dy * dy;
+          if (d2 > r2) continue;
+          const edge = d2 > e2;
+          let c = edge ? EDGE : dy < -r * 0.35 ? hi : dy > r * 0.4 ? lo : col;
+          if (crack && !edge && (dx + dy * 2 + 40) % 5 === 0) c = CRACK;
+          if (b.flash > 0) c = FLASH;
           this.plot(x + dx - cx, y + dy - cy, clamp(c[0]), clamp(c[1]), clamp(c[2]), a);
         }
       };
@@ -1033,17 +1094,23 @@ const KRender = (() => {
             }
           }
         }
-        for (let vx = 0, o = vy * VW; vx < VW; vx++, o++) {
-          const kd = kind[o], r0 = hr[vx], g0 = hr[2048 + vx], b0 = hr[4096 + vx];
-          let lr = A + r0 + (((hr[6144 + vx] - r0) * f) >> 8), lg = A + g0 + (((hr[8192 + vx] - g0) * f) >> 8), lb = Ab + b0 + (((hr[10240 + vx] - b0) * f) >> 8);
-          if (kd === 1) { lr = 256; lg = 256; lb = 256; }   // burning and glowing cells show their own colour
-          else if (kd === 2) { lr = (lr * 205) >> 8; lg = (lg * 205) >> 8; lb = (lb * 205) >> 8; }
-          else if (kd === 3) { if (lr > 256) lr = 256; if (lg > 256) lg = 256; if (lb > 256) lb = 256; }   // steam takes the light but never shines white
-          if (lr > CAP) lr = CAP; if (lg > CAP) lg = CAP; if (lb > CAP) lb = CAP;
-          const c = buf[o];
-          let r = ((c & 255) * lr) >> 8, g = (((c >> 8) & 255) * lg) >> 8, b = (((c >> 16) & 255) * lb) >> 8;
-          if (r > 255) r = 255; if (g > 255) g = 255; if (b > 255) b = 255;
-          buf[o] = 0xff000000 | (b << 16) | (g << 8) | r;
+        // the light is worked out for every second cell and used for both (it changes over 4-cell squares, so this does not show)
+        const sa = this.span[vy * 2] & ~1, sb = this.span[vy * 2 + 1];
+        for (let vx = sa, o = vy * VW + sa; vx < sb; vx += 2, o += 2) {
+          const r0 = hr[vx], g0 = hr[2048 + vx], b0 = hr[4096 + vx];
+          const LR0 = A + r0 + (((hr[6144 + vx] - r0) * f) >> 8), LG0 = A + g0 + (((hr[8192 + vx] - g0) * f) >> 8), LB0 = Ab + b0 + (((hr[10240 + vx] - b0) * f) >> 8);
+          for (let q = 0; q < 2 && vx + q < VW; q++) {
+            const oo = o + q, kd = kind[oo];
+            let lr = LR0, lg = LG0, lb = LB0;
+            if (kd === 1) { lr = 256; lg = 256; lb = 256; }   // burning and glowing cells show their own colour
+            else if (kd === 2) { lr = (lr * 205) >> 8; lg = (lg * 205) >> 8; lb = (lb * 205) >> 8; }
+            else if (kd === 3) { if (lr > 256) lr = 256; if (lg > 256) lg = 256; if (lb > 256) lb = 256; }   // steam takes the light but never shines white
+            if (lr > CAP) lr = CAP; if (lg > CAP) lg = CAP; if (lb > CAP) lb = CAP;
+            const c = buf[oo];
+            let r = ((c & 255) * lr) >> 8, g = (((c >> 8) & 255) * lg) >> 8, b = (((c >> 16) & 255) * lb) >> 8;
+            if (r > 255) r = 255; if (g > 255) g = 255; if (b > 255) b = 255;
+            buf[oo] = 0xff000000 | (b << 16) | (g << 8) | r;
+          }
         }
       }
     }

@@ -412,6 +412,9 @@ html, body { touch-action: none; overscroll-behavior: none; -webkit-text-size-ad
 /* a phone held upright: the thumbs have the bottom of the screen, so the gauges go under the map and the notices sit above the buttons */
 @media (orientation: portrait) {
   body[data-device="touch"] .cockpit { bottom: auto; top: calc(var(--u) * 150px); }
+  /* the objective and the notices go under that row, not behind it or over the map (v0.77) */
+  body[data-device="touch"] .objective { top: calc(var(--u) * 300px); }
+  body[data-device="touch"] .toasts, body[data-device="touch"].has-boss .toasts, body[data-device="touch"] .has-boss .toasts { top: calc(var(--u) * 450px); width: 92%; }
   body[data-device="touch"] .rest-prompt { bottom: 31%; }
   body[data-device="touch"] .buffs { bottom: 36%; }
 }
