@@ -692,6 +692,10 @@ Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
 
+## No flicker on iPad (v0.77)
+
+Jaisah, on iPad: the screen started to flicker wildly. v0.75 re-fitted the stage on every `visualViewport` resize and scroll, and Safari on iPad reports those many times a second while a finger is on the screen; each re-fit re-centred the stage and set the glow canvas's size, which clears it. Now `fit()` runs at most once a frame (`askFit`) and returns at once unless the visible size or position really changed (`fitKey`), and `render.resize` sets the glow canvas's size only when it differs. Checked with an emulated iPad and iPhone: 240 viewport events in a row clear the glow 0 times, and the stage still fills the visible area.
+
 ## Nothing loose is ever left hanging (v0.76)
 
 A rule for every material (Jaisah: it exists so nothing small and hard to see stops the golem; it should be global): `world.cleanup` now crumbles any solid, static material that can be broken (everything but rock) when it is left as a single cell with at most one solid neighbour or as a piece smaller than `MIN_PIECE`, after every blast and dig as before. Crumbled crystal gives its shards, as digging it does. Bridge braces are now steps three cells wide that touch side to side (a one-cell diagonal would count as loose). While the cave is made the same clean-up also takes rock (`cleanup(..., rock = true)`), since nothing in play can break it: generated caves had 2 to 4 single cells of rock hanging in the air. Checked with scratchpad `lo.js` and `lo3.js`: six blasts in walls of brick, wood, coal, ice, crystal and dirt leave no loose cells, and generated caves of all three acts hold no solid piece under 10 cells touching nothing else. Saves moved to `castinstone.save.v12`.
@@ -824,6 +828,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.77 (2026-11-28):** fixed the flicker on iPad caused by v0.75's re-fitting.
 
 - **v0.76 (2026-11-27):** loose bits crumble for every breakable material, and generated caves hold no floating rock (Jaisah: a global material rule). Saves start again (`castinstone.save.v12`).
 

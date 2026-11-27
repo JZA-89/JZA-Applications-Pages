@@ -314,7 +314,8 @@ const KRender = (() => {
     }
     resize(cssW, cssH) {
       const k = Math.min(1, 640 / cssW); // glow is soft, half resolution is plenty
-      this.glow.width = Math.max(1, Math.round(cssW * k)); this.glow.height = Math.max(1, Math.round(cssH * k));
+      const gw = Math.max(1, Math.round(cssW * k)), gh = Math.max(1, Math.round(cssH * k));
+      if (this.glow.width !== gw || this.glow.height !== gh) { this.glow.width = gw; this.glow.height = gh; }   // setting a canvas's size clears it, even to the same size
       this.gs = this.glow.width / V.w;
     }
 

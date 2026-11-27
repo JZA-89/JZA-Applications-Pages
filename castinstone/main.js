@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.76';
+  const VERSION = 'v0.77';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -27,6 +27,9 @@
 
   // ---------- layout: the HUD scales with the stage (--u = stage width / 1280) ----------
   let VW = 432, VH = 243;   // cells shown on a 16:9 screen (fit() picks them)
+  let fitKey = '', fitAsked = false;
+  // at most once a frame, however many times the browser reports a change
+  const askFit = () => { if (fitAsked) return; fitAsked = true; requestAnimationFrame(() => { fitAsked = false; fit(); }); };
   function fit() {
     // The view takes the screen's shape. A 16:9 screen shows VW x VH cells (384 x 216 from v0.64, 432 x 243 from v0.66; it was 320 x 180); a wider one keeps the
     // height and shows more to the sides, a taller one keeps the width and shows more above and below.
@@ -34,8 +37,13 @@
     // v0.66: a computer or tablet shows 432 x 243 (about what Noita shows); a phone, whose screen is small anyway, 384 x 216.
     // the visible area (on iPhone Safari's bars come and go, and innerHeight can lag behind them)
     const VV = window.visualViewport, W = Math.round(VV ? VV.width : innerWidth), H = Math.round(VV ? VV.height : innerHeight), wide = W / H >= 16 / 9;
-    if (VV) { stage.style.top = Math.round(VV.offsetTop + H / 2) + 'px'; stage.style.left = Math.round(VV.offsetLeft + W / 2) + 'px'; }
-    if (scrollX || scrollY) scrollTo(0, 0);
+    const top = VV ? Math.round(VV.offsetTop + H / 2) : null, left = VV ? Math.round(VV.offsetLeft + W / 2) : null;
+    // v0.77: nothing to do unless the size or place really changed (Safari reports the visible area moving many times
+    // a second while a finger is on an iPad; re-fitting every time cleared the picture and made it flicker)
+    const key = W + ',' + H + ',' + top + ',' + left;
+    if (key === fitKey) return;
+    fitKey = key;
+    if (VV) { stage.style.top = top + 'px'; stage.style.left = left + 'px'; }
     if (Math.min(W, H) >= 600) { VW = 432; VH = 243; } else { VW = 384; VH = 216; }
     SIGHT = Math.round(224 * VW / 384); SIGHT_END = Math.round(290 * VW / 384);
     R.setView(wide ? Math.min(VW * 2, Math.round(VH * W / H)) : VW, wide ? VH : Math.min(Math.round(VW * 2.25), Math.round(VW * H / W)));
@@ -49,9 +57,9 @@
     stage.style.setProperty('--hx', (h <= 600 ? 0 : Math.max(0, Math.round((w - h * 16 / 9) / 2))) + 'px');
     R.resize(w, h);
   }
-  addEventListener('resize', fit);
-  if (window.visualViewport) { visualViewport.addEventListener('resize', fit); visualViewport.addEventListener('scroll', fit); }
-  addEventListener('orientationchange', () => { fit(); setTimeout(fit, 350); });   // iOS reports the new size a moment late
+  addEventListener('resize', askFit);
+  if (window.visualViewport) { visualViewport.addEventListener('resize', askFit); visualViewport.addEventListener('scroll', askFit); }
+  addEventListener('orientationchange', () => { askFit(); setTimeout(askFit, 350); });   // iOS reports the new size a moment late
   // how far the golem sees: clear to SIGHT cells (the corner of a 16:9 screen), black by SIGHT_END
   let SIGHT = 224, SIGHT_END = 290;   // set by fit() with the view's size
   let fadeWas = '';
