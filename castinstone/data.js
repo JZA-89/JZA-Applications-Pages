@@ -528,7 +528,8 @@ const KData = (() => {
     { name: 'The Root of the World', biomes: biomesRoot, boss: 'heartroot', order: ['boar', 'mender', 'lasher'], champions: { boar: 'The Tusk', mender: 'The Gardener', lasher: 'The Strangler' },
       remix: { crawler: [[['boar', 0, 45], ['lasher', 0, 55]], [['boar', 0, 60], ['lasher', 0, 40]], [['lasher', 0, 50], ['boar', 0, 50]]], moth: [[['mender', 0, 45], ['lasher', 0, 30], ['boar', 0, 25]], [['mender', 0, 40], ['boar', 0, 35], ['lasher', 0, 25]], [['mender', 0, 45], ['boar', 0, 30], ['lasher', 0, 25]]], spitter: [[['geode', 0, 100]], [['geode', 0, 100]], [['geode', 0, 100]]] } },
   ];
-  const cave = { chambers: 104, spacing: 150, hubRadius: 320, regionDistance: 800, levelEvery: 200, depthLevels: 8,
+  const cave = { returnAfter: 480, returnClear: 480,   // v0.70: a killed creature comes back 8 minutes later, out of every golem's sight
+    chambers: 104, spacing: 150, hubRadius: 320, regionDistance: 800, levelEvery: 200, depthLevels: 8,
     tunnel: [12, 17], plugChance: 0.16, loopChance: 0.55, lodestones: 15, stoneReach: 46, stoneUp: 30, stoneDown: 50,   // how near counts as at a Lodestone: sideways, above it, below it
     stoneRepair: 90 };
 

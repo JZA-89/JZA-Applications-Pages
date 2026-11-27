@@ -680,7 +680,7 @@ const KGame = (() => {
       return true;
     }
     saveExtra() { return { opened: [...this.opened], defeated: [...this.defeated], cores: [...this.cores], read: [...this.read], played: Math.round(this.played), deaths: this.deaths, kills: this.kills, regen: this.regen,
-      slain: this.enemies.filter(e => e.dead && !e.champion).map(e => e.id) }; }   // creatures stay dead across a reload, until you rest
+      slain: this.enemies.filter(e => e.dead && !e.champion).map(e => [e.id, Math.round(e.backT ?? KData.cave.returnAfter)]) }; }   // the dead and how long until each comes back
     // Easy or hard: whether health comes back by itself (the pause page's switch). One setting for the cave, shared in co-op.
     setRegen(p, on) { this.regen = !!on; }
     // ---------- the goal ----------
@@ -691,7 +691,7 @@ const KGame = (() => {
     loadExtra(x) {
       if (!x) return;
       if (typeof x.regen === 'boolean') this.regen = x.regen;
-      if (Array.isArray(x.slain)) { const S = new Set(x.slain.filter(Number.isInteger)); for (const e of this.enemies) if (S.has(e.id) && !e.champion) { e.dead = true; e.hp = 0; } }
+      if (Array.isArray(x.slain)) for (const s of x.slain) { const e = Array.isArray(s) && this.enemies[s[0]]; if (e && e.id === s[0] && !e.champion && Number.isFinite(s[1])) { e.dead = true; e.hp = 0; e.backT = Math.max(0, Math.min(KData.cave.returnAfter, s[1])); } }
       if (Array.isArray(x.opened)) this.opened = new Set(x.opened.filter(Number.isInteger));
       if (Array.isArray(x.read)) this.read = new Set(x.read.filter(Number.isInteger));
       if (Array.isArray(x.defeated)) this.defeated = new Set(x.defeated.filter(id => KData.bosses[id] || (typeof id === 'string' && id.startsWith('champ:'))));
@@ -1065,6 +1065,7 @@ const KGame = (() => {
       for (const p of this.players) this.control(p, actions[p.id] || { move: 0, events: [], aim: p.aim });
       this.world.step(this.players.map(p => [p.x, p.y]));
       this.blastsTick();
+      this.returnTick();
       this.updateGrowths();
       this.updateWaves();
       if ((this._settleT = (this._settleT || 0) - DT) <= 0) { this._settleT = 0.5; this.world.settle(); }
@@ -1163,7 +1164,7 @@ const KGame = (() => {
       const moveActive = !!a.moveSpell, movePressed = moveActive && !p.moveWas;
       p.moveWas = moveActive;
       if (p.safeT > 0) p.safeT -= DT;
-      for (const e of a.events) if (e.type === 'interact' && p.nearStone) { this.events.push({ p: p.id, type: 'rest', stone: p.nearStone }); p.calmT = 5; this.reviveEnemies(p); }
+      for (const e of a.events) if (e.type === 'interact' && p.nearStone) { this.events.push({ p: p.id, type: 'rest', stone: p.nearStone }); p.calmT = 5; }   // resting heals; it does not bring creatures back (v0.70)
 
       // mana refills on its own, faster on the ground
       if (p.manaWait > 0) p.manaWait -= DT;
@@ -2161,6 +2162,7 @@ const KGame = (() => {
       if (a.kind === 'boss') return this.bossDefeated(a);
       this.sfx('crumble', a.x, a.y - a.h / 2, a.kind === 'player' ? 1.2 : 0.8);
       a.dead = true; a.hp = 0;
+      if (a.kind !== 'player' && a.kind !== 'dummy') a.backT = KData.cave.returnAfter;
       // experience to whoever hit it last (hazards a player caused count for 8 s)
       if (a.kind !== 'player' && a.kind !== 'dummy' && a.lastHitBy && this.time - a.lastHitAt < 8 && !a.lastHitBy.dead)
         this.shareXp(a, a.lastHitBy, Math.max(1, Math.round(KData.progression.killXp(a.level || 1, a.kind, a.elite) * (a.champion ? KData.champions.xp : 1) * KData.progression.underLevel(a.lastHitBy.level - (a.level || 1)))), 'kill');
@@ -2206,7 +2208,7 @@ const KGame = (() => {
       if (e.wetT > 0) e.wetT -= DT;
       e.asleep = !e.dead && !this.players.some(q => Math.abs(q.x - e.x) < E.awake && Math.abs(q.y - e.y) < E.awake * 0.7);
       if (e.asleep) return;
-      if (e.dead) return;   // the dead stay dead until you rest (reviveEnemies)
+      if (e.dead) return;   // the dead stay dead until you die (reviveEnemies) or their time is up (returnTick)
       // just risen at a Lodestone, or just left one: nothing hunts you for a few seconds unless you hurt it
       if (this.time - (e.lastHurt ?? -9) > 2 && this.players.every(q => q.dead || q.calmT > 0)) { e.lastSeen = -9; if (!e.flying) e.vx *= 0.9; return; }
       if (e.kind === 'crawler') return this.crawlerTick(e);
@@ -3245,9 +3247,22 @@ const KGame = (() => {
       // the living go home too, and forget you: nothing that was chasing you is waiting at the Lodestone
       for (const e of this.enemies) if (!e.dead && !e.champion && !busy(e.x, e.y) && this.time - (e.lastSeen ?? -9) < 12) { this.respawnCrawler(e); }
     }
+    // Once a second: every killed creature counts down (returnAfter, 8 minutes of play) and comes back at its home
+    // when the time is up, but only while no golem is within returnClear of it, so nothing appears in sight.
+    returnTick() {
+      if ((this._backT = (this._backT || 0) - DT) > 0) return;
+      this._backT = 1;
+      const far = (x, y) => this.players.every(p => p.dead || Math.abs(p.x - x) > KData.cave.returnClear || Math.abs(p.y - y) > KData.cave.returnClear);
+      for (const e of this.enemies) {
+        if (!e.dead || e.champion) continue;
+        if (e.backT == null) e.backT = KData.cave.returnAfter;
+        if (e.backT > 0) e.backT -= 1;
+        if (e.backT <= 0 && far(e.home.x, e.home.y)) { this.respawnCrawler(e); e.backT = null; }
+      }
+    }
     respawnCrawler(e) {
       const y = e.flying || e.anchored || e.kind === 'delver' ? e.home.y : this.world.floorBelow(e.home.x, e.home.y - 6);
-      Object.assign(e, { x: e.home.x, y, vx: 0, vy: 0, hp: e.maxHp, dead: false, state: e.kind === 'crawler' ? 'patrol' : 'idle', t: 0, lastHurt: -9, lastSeen: -9, slowT: 0, burnT: 0, wetT: 0, lastHitBy: null,
+      Object.assign(e, { x: e.home.x, y, vx: 0, vy: 0, hp: e.maxHp, dead: false, backT: null, state: e.kind === 'crawler' ? 'patrol' : 'idle', t: 0, lastHurt: -9, lastSeen: -9, slowT: 0, burnT: 0, wetT: 0, lastHitBy: null,
         anchored: e.kind === 'spitter' || e.kind === 'geode', ghost: e.kind === 'delver' });
     }
 

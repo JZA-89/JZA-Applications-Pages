@@ -396,7 +396,7 @@ Measured with a bot holding each recipe on a target for 10 s (damage a second, m
 Jaisah: this should take hours, not thirty minutes, and levelling must not run ahead of the game.
 
 - **The cave is 3072 × 1536** (was 2048 × 1024), with 104 chambers (was 46), 15 Lodestones (was 8), a level every 200 cells from the hub (was 250). Over five seeds: about 210 to 250 enemies of level 1 to 8, about 40 relic caches, generated in 0.7 to 1.7 s. Saves moved to `castinstone.save.v2`; older saves do not fit the new cave and are not loaded.
-- **Enemies come back only when you rest at a Lodestone or die** (`game.reviveEnemies`; they used to return after 25 s). A cleared tunnel stays cleared until you choose to rest, and experience cannot be farmed by standing still.
+- **Enemies come back when you die** (`game.reviveEnemies`), **and on their own 8 minutes after being killed** (v0.70, `returnTick`, see below). Before v0.70 resting at a Lodestone also brought them back.
 - **Pace:** a full clear gives about 8,500 experience from kills and 5,000 from caches, which is about level 11. The enemies of each ring of the cave are worth about one level, so your level tracks the level of the area you are in.
 - **The Emberwyrm's arena** is 370 wide and about 95 tall above the lake (was 210 × 58, less than one screen), with ten ledges, at least 750 from the hub (level 5 to 7; its health scales with that, about 2,000 to 2,500). A bot standing still with Bolt at level 6 needs 95 to 150 s.
 
@@ -692,6 +692,10 @@ Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
 
+## When creatures come back (v0.70)
+
+Jaisah: dying brings creatures back, and they come back after a while; reloading or loading never does, and resting no longer does. A killed creature (not a champion) counts down `KData.cave.returnAfter` (480 s of play), saved with it in `slain` as `[id, seconds left]`, then returns at its home once no golem is within `returnClear` (480 cells either way), so nothing appears in sight. Dying still brings back everything except fallen champions (`reviveEnemies`). Resting heals, and lets you spend points and travel. Checked with scratchpad `rt.js`.
+
 ## Set pieces, credit for traps (v0.69)
 
 - **Set pieces** (generation step 10d), built from rules with random sizes and damage, so no two are alike. About three chambers in ten (34 cells wide or more) get one:
@@ -785,6 +789,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.70 (2026-11-27):** creatures come back when you die, or 8 minutes after being killed out of sight; resting and reloading no longer bring them back (Jaisah).
 
 - **v0.69 (2026-11-27):** procedurally built shrines, sunken vaults and fallen halls; kills by explosions, fire and acid you set off are yours; no ice near magma. Jaisah: set pieces should be generated, never the same twice; nothing forced (no creatures placed beside explosives). Saves start again (`castinstone.save.v7`).
 
