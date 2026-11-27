@@ -390,7 +390,7 @@ const KRender = (() => {
       const world = game.world;
       if (world !== this.world) this.setWorld(world);
       const p = game.players[game.me || 0];   // this device's golem (the second one for a co-op guest)
-      let cx = Math.round(p.x - V.w / 2), cy = Math.round(p.y - 8 - V.h / 2);
+      let cx = Math.round(p.x - V.w * (opt.lookX || 0.5)), cy = Math.round(p.y - 8 - V.h * (opt.lookY || 0.5));   // lookX, lookY: where across the screen the golem stands (the title screen puts it right of centre)
       if (game.shake > 0 && !opt.reduced) { cx += Math.round((Math.random() - 0.5) * game.shake); cy += Math.round((Math.random() - 0.5) * game.shake); }
       cx = Math.max(0, Math.min(world.w - V.w, cx)); cy = Math.max(0, Math.min(world.h - V.h, cy));
       this.cam.x = cx; this.cam.y = cy;
@@ -402,7 +402,7 @@ const KRender = (() => {
         for (let vy = 0; vy < V.h; vy++) { const dy = vy - sy, q = R * R - dy * dy; if (q <= 0) { sp[vy * 2] = 0; sp[vy * 2 + 1] = 0; continue; } const r = Math.sqrt(q); sp[vy * 2] = Math.max(0, Math.floor(sx - r)); sp[vy * 2 + 1] = Math.min(V.w, Math.ceil(sx + r)); } }
       this.drawCells(world, game.time);
       this.drawDecor(game);
-      this.ambient(game);
+      this.ambient(game, opt.dt);
       this.drawMotes(false);
       this.drawLodestones(game, game.time);
       for (const d of game.dummies) this.drawDummy(d);
@@ -1119,8 +1119,8 @@ const KRender = (() => {
     // Dust drifting in the light, embers and smoke rising off fire, drips from the roof under water, glints on
     // crystal, bubbles on acid, and sparks from every blast. Drawing only, with the browser's own dice: two
     // players in co-op see different dust, and that is fine.
-    ambient(game) {
-      const dt = Math.max(0, Math.min(0.05, game.time - (this._lt ?? game.time))); this._lt = game.time;
+    ambient(game, realDt) {
+      const dt = Math.max(0, Math.min(0.05, realDt != null ? realDt : game.time - (this._lt ?? game.time))); this._lt = game.time;
       const P = this.motes, world = game.world, mat = world.mat, W = world.w, cam = this.cam, rnd = Math.random;
       const add = (x, y, vx, vy, T, kind, c) => { if (P.length < 900) P.push({ x, y, vx, vy, t: 0, T, kind, c }); };
       if (dt > 0) {

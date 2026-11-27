@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0d0a14">
 <meta name="description" content="Cast in Stone: a golem of living rock in a cave of falling sand. Type the elements to shape a spell. A browser game in beta, by JZA Applications.">
 <link rel="canonical" href="https://jza.app/castinstone/">
-<title>Cast in Stone | Beta · v0.78</title>
+<title>Cast in Stone | Beta · v0.79</title>
 <!-- added to a phone's home screen: the icon, a short name, and no browser bars -->
 <link rel="icon" type="image/png" href="icon-180.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="stylesheet" href="style.css?v=0.78">
+<link rel="stylesheet" href="style.css?v=0.79">
 </head>
 <body data-mode="start">
 
@@ -79,12 +79,31 @@
 <!-- on-screen controls for touch (touch.js) -->
 <div id="touch" aria-label="Touch controls"></div>
 
+<!-- The title screen (v0.79): the live cave behind, the name, and a short menu. Shown only when the game opens;
+     each menu line opens a tab of the pages below, which have a way back to here. -->
+<div class="ts-wrap" id="titleWrap" hidden>
+  <div class="ts">
+    <h1 class="ts-logo" id="tsLogo">CAST <span>in</span> STONE</h1>
+    <p class="ts-tag">Type the elements. <em>Shape the spell.</em></p>
+    <nav class="ts-menu" aria-label="Title menu">
+      <button type="button" class="ts-item ts-go" id="tsGo">Begin</button>
+      <button type="button" class="ts-item" data-open="game">Your golem</button>
+      <button type="button" class="ts-item" data-open="book">Spell book</button>
+      <button type="button" class="ts-item" data-open="controls">Controls</button>
+      <button type="button" class="ts-item" data-open="coop">Co-op</button>
+    </nav>
+    <p class="ts-save" id="tsSave"></p>
+  </div>
+  <p class="ts-ver" id="tsVer"></p>
+</div>
+
 <!-- The menus. Each is a full-screen page with one bar across the top (what it is, its tabs, a few
      facts, and the button that returns to the game) and the open tab below, sized to fit without scrolling. -->
 <!-- start, pause, spell book, controls, co-op -->
 <div class="panel-wrap" id="panelWrap">
   <section class="shell" id="panel" role="dialog" aria-modal="true" aria-labelledby="panelTitle">
     <header class="bar">
+      <button type="button" class="btn ghost small back" id="btnBack" hidden aria-label="Back to the title">‹ Back</button>
       <div class="bar-id">
         <p class="eyebrow" id="panelEyebrow">Beta</p>
         <h1 id="panelTitle" class="logo">CAST <span>IN</span> STONE</h1>
@@ -236,18 +255,18 @@
 
 <noscript><p class="noscript">Cast in Stone needs JavaScript.</p></noscript>
 
-<script src="dmath.js?v=0.78"></script>
-<script src="data.js?v=0.78"></script>
-<script src="recipe.js?v=0.78"></script>
-<script src="world.js?v=0.78"></script>
-<script src="audio.js?v=0.78"></script>
-<script src="input.js?v=0.78"></script>
-<script src="game.js?v=0.78"></script>
-<script src="save.js?v=0.78"></script>
-<script src="render.js?v=0.78"></script>
-<script src="loot.js?v=0.78"></script>
-<script src="net.js?v=0.78"></script>
-<script src="touch.js?v=0.78"></script>
-<script src="main.js?v=0.78"></script>
+<script src="dmath.js?v=0.79"></script>
+<script src="data.js?v=0.79"></script>
+<script src="recipe.js?v=0.79"></script>
+<script src="world.js?v=0.79"></script>
+<script src="audio.js?v=0.79"></script>
+<script src="input.js?v=0.79"></script>
+<script src="game.js?v=0.79"></script>
+<script src="save.js?v=0.79"></script>
+<script src="render.js?v=0.79"></script>
+<script src="loot.js?v=0.79"></script>
+<script src="net.js?v=0.79"></script>
+<script src="touch.js?v=0.79"></script>
+<script src="main.js?v=0.79"></script>
 </body>
 </html>

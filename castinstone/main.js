@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.78';
+  const VERSION = 'v0.79';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -230,7 +230,7 @@
   function regenLabel() { const b = $('btnRegen'); b.textContent = 'Health regeneration: ' + (game.regen ? 'On (easier)' : 'Off (harder)'); b.setAttribute('aria-checked', game.regen ? 'true' : 'false'); }
 
   // ---------- modes: start, help (spell book), pause, map, rest, play ----------
-  let mode = 'start', confirmNew = false, panelTab = 'game';
+  let mode = 'start', confirmNew = false, panelTab = 'game', titleSub = false;   // titleSub: which page the title screen opened, if any
   const chip = (icon, text, cls = '') => `<span class="chip ${cls}">${KIcon(icon)}${text}</span>`;
   function showPanelTab(t) {
     panelTab = t;
@@ -247,14 +247,18 @@
     $('restWrap').hidden = m !== 'rest';
     $('mapWrap').hidden = m !== 'map';
     $('endWrap').hidden = m !== 'end';
-    $('panelWrap').hidden = m === 'play' || m === 'rest' || m === 'map' || m === 'end';
+    // the title screen covers the start; the pages open from it (titleSub) and have a way back
+    $('titleWrap').hidden = m !== 'start' || titleSub;
+    $('btnBack').hidden = m !== 'start';
+    $('panelWrap').hidden = m === 'play' || m === 'rest' || m === 'map' || m === 'end' || (m === 'start' && !titleSub);
+    if (m !== 'start') titleSub = false;
     confirmNew = false; $('btnNewCave').textContent = 'New game';
     if (m === 'play') { view.focus({ preventScroll: true }); return; }
     if (m === 'rest') { buildRest(); $('btnLeave').focus({ preventScroll: true }); return; }
     if (m === 'end') { buildEnd(); $('btnDescend').focus({ preventScroll: true }); return; }
     if (m === 'map') { drawBigMap(); $('btnMapClose').focus({ preventScroll: true }); return; }
     const p = game.players[ME], started = m !== 'start' || hadSave;
-    $('panelEyebrow').textContent = KNet.on ? 'Co-op · the game goes on while this is open' : (m === 'start' ? `Beta · ${VERSION}` : 'Paused') + ` · ${KData.acts[game.act].name}`;
+    $('panelEyebrow').textContent = KNet.on ? 'Co-op · the game goes on while this is open' : (m === 'start' ? KData.acts[game.act].name : `Paused · ${KData.acts[game.act].name}`);   // the version shows only in the title screen's corner
     $('btnNewCave').hidden = KNet.busy; if (KNet.busy) $('btnPanelReset').hidden = true;
     $('btnDeeper').hidden = !game.won || KNet.busy; regenLabel();
     $('btnGo').textContent = m === 'start' ? (hadSave ? 'Continue' : 'Start') : 'Resume';
@@ -272,9 +276,20 @@
       tile('crown', B.champs, champs.length, 'Champions', B.champs ? `+${KData.treasure.boons.champion.hp * B.champs} health and mana so far` : '+20 health and mana each') +
       tile('fire', B.cores, w.lair ? 1 : 0, w.lair ? KData.bosses[w.lair.boss].name : 'The last fight', w.lair ? (B.cores ? `${KData.bosses[w.lair.boss].core}: +40 mana` : `Guards the ${KData.bosses[w.lair.boss].core}`) : '') +
       tile('star', p.known.length, Object.keys(KData.specials).length, 'Special spells', 'Five circles');
-    showPanelTab(m === 'help' ? 'book' : 'game');
+    showPanelTab(m === 'help' ? 'book' : m === 'start' && titleSub ? titleSub : 'game');
+    if (m === 'start' && !titleSub) { buildTitle(); return; }
     $('btnGo').focus({ preventScroll: true });
   }
+  function buildTitle() {
+    const p = game.players[ME];
+    $('tsGo').textContent = hadSave ? 'Continue' : 'Begin';
+    $('tsSave').innerHTML = hadSave ? `<b>Level ${p.level}</b> · ${game.world.biomes[game.world.biomeAt(p.x, p.y - 8)].name} · ${KData.acts[game.act].name}` : '';
+    $('tsVer').textContent = `Beta · ${VERSION}`;
+    $('tsGo').focus({ preventScroll: true });
+  }
+  $('tsGo').addEventListener('click', () => $('btnGo').click());
+  for (const b of document.querySelectorAll('.ts-item[data-open]')) b.addEventListener('click', () => { titleSub = b.dataset.open; setMode('start'); });
+  $('btnBack').addEventListener('click', () => { titleSub = false; setMode('start'); });
   view.tabIndex = -1;
   const resume = () => setMode('play');
   // Reset the cave: rebuild it from its seed, keeping the golem's progress.
@@ -307,8 +322,8 @@
 
   KInput.attach(view, {
     blocked: () => mode !== 'play',
-    onClose: () => { if (mode !== 'start') resume(); },
-    onPause: () => setMode(mode === 'play' ? 'pause' : 'play'),
+    onClose: () => { if (mode !== 'start') resume(); else if (titleSub) { titleSub = false; setMode('start'); } },
+    onPause: () => { if (mode === 'start') { if (titleSub) { titleSub = false; setMode('start'); } return; } setMode(mode === 'play' ? 'pause' : 'play'); },
     onHelp: () => setMode(mode === 'help' ? 'play' : 'help'),
     onMap: () => { if (mode === 'play') setMode('map'); else if (mode === 'map') setMode('play'); },
     onReset: () => {},
@@ -332,12 +347,12 @@
   // ---------- a controller in the menus ----------
   // The d-pad or left stick moves to the nearest button in that direction, A
   // presses it, B or Menu goes back to the game, LB and RB change tab.
-  const openWrap = () => mode === 'end' ? $('endWrap') : mode === 'rest' ? $('restWrap') : mode === 'map' ? $('mapWrap') : $('panelWrap');
+  const openWrap = () => mode === 'end' ? $('endWrap') : mode === 'rest' ? $('restWrap') : mode === 'map' ? $('mapWrap') : mode === 'start' && !titleSub ? $('titleWrap') : $('panelWrap');
   const shown = e => !e.disabled && e.offsetParent !== null;
   function padMenu(a) {
     if (mode === 'play') return;
     const wrap = openWrap();
-    if (a.pause || a.back) { if (mode !== 'start') resume(); return; }
+    if (a.pause || a.back) { if (mode !== 'start') resume(); else if (titleSub) { titleSub = false; setMode('start'); } return; }   // on a page opened from the title, back returns to it
     if (a.tab) {
       const tabs = [...wrap.querySelectorAll('.tab')].filter(shown);
       if (!tabs.length) return;
@@ -705,7 +720,8 @@
     // an aimed special spell shows where it will land
     let mark = null;
     if (mode === 'play' && !p.dead && p.recipe) { const sp = game.spec(p, 'shot'); if (sp && sp.special && p.mana >= sp.cost) mark = game.specialTarget(p, sp.id); }
-    R.draw(game, { reticle, mark, reduced: reduced.matches, dt: mode === 'play' ? dt : 0 });
+    const onTitle = mode === 'start' && !titleSub, wideTitle = onTitle && innerWidth > innerHeight && innerWidth > 640;
+    R.draw(game, { reticle, mark, reduced: reduced.matches, dt: mode === 'play' || onTitle ? dt : 0, lookX: wideTitle ? 0.68 : 0.5, lookY: onTitle && !wideTitle ? 0.82 : 0.5 });   // the title screen's cave keeps its dust and embers moving
     fade();
     objective(dt);
     friendMark();

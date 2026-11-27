@@ -419,6 +419,40 @@ html, body { touch-action: none; overscroll-behavior: none; -webkit-text-size-ad
   body[data-device="touch"] .buffs { bottom: 36%; }
 }
 
+/* ---------- the title screen (v0.79) ---------- */
+body[data-mode="start"] .hud { display: none; }
+.ts-wrap { position: fixed; inset: 0; z-index: 11; overflow: hidden;
+  background: radial-gradient(ellipse 70% 80% at 62% 55%, #0000 0%, #07050b55 55%, #07050be0 100%), linear-gradient(90deg, #07050bd0 0%, #07050b88 34%, #07050b00 62%); }
+.ts { position: absolute; left: max(6vw, 32px); top: 50%; transform: translateY(-50%); display: grid; justify-items: start; gap: 0; animation: tsIn .9s cubic-bezier(.2, .7, .2, 1) both; }
+@keyframes tsIn { from { opacity: 0; transform: translateY(calc(-50% + 14px)); } }
+.ts-logo { margin: 0; font: 600 clamp(46px, 7.4vw, 112px)/.95 var(--serif); letter-spacing: .12em; white-space: nowrap;
+  background: linear-gradient(180deg, #fbf4e8 0%, #d9cdbb 38%, #9d9081 62%, #6f655b 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 0 #0a0710) drop-shadow(0 14px 30px #000c); }
+.ts-logo span { font-size: .36em; font-style: italic; letter-spacing: .3em; vertical-align: .62em; margin: 0 .08em 0 .02em;
+  background: linear-gradient(180deg, #ffe9b0, #ffd37a 50%, #c99442); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ts-tag { margin: clamp(10px, 1.4vw, 18px) 0 clamp(26px, 4vh, 44px) .2em; font: italic 400 clamp(15px, 1.5vw, 20px)/1.3 var(--serif); letter-spacing: .04em; color: var(--muted); }
+.ts-tag em { color: var(--gold); }
+.ts-menu { display: grid; justify-items: start; gap: clamp(2px, .6vh, 6px); }
+.ts-item { position: relative; appearance: none; border: 0; background: none; cursor: pointer; padding: 6px 4px 6px 26px; margin-left: -26px;
+  font: 500 clamp(17px, 1.5vw, 21px)/1.2 var(--serif); letter-spacing: .14em; text-transform: uppercase; color: #cfc3b1; transition: color .15s, transform .15s, letter-spacing .2s; }
+.ts-item::before { content: ""; position: absolute; left: 6px; top: 50%; width: 8px; height: 8px; transform: translateY(-50%) rotate(45deg) scale(0); background: var(--gold); box-shadow: 0 0 10px #ffd37acc; transition: transform .18s; }
+.ts-item:hover, .ts-item:focus-visible { color: #fff4dc; outline: none; letter-spacing: .17em; }
+.ts-item:hover::before, .ts-item:focus-visible::before { transform: translateY(-50%) rotate(45deg) scale(1); }
+.ts-go { font-size: clamp(22px, 2.1vw, 28px); color: var(--gold); text-shadow: 0 0 22px #ffd37a55; margin-bottom: 6px; }
+.ts-go:hover, .ts-go:focus-visible { color: #ffe6ac; }
+.ts-save { margin: clamp(18px, 3vh, 30px) 0 0; font-size: 13px; letter-spacing: .06em; color: var(--dim); } .ts-save:empty { display: none; }
+.ts-save b { color: var(--muted); font-weight: 600; }
+.ts-ver { position: absolute; right: 18px; bottom: 14px; margin: 0; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #8a7f7199; }
+.bar .back { margin-right: 4px; }
+@media (orientation: portrait), (max-width: 640px) {
+  .ts-wrap { background: radial-gradient(ellipse 90% 70% at 50% 50%, #07050b66 0%, #07050bd8 100%); }
+  .ts { left: 50%; transform: translate(-50%, -50%); justify-items: center; text-align: center; animation: none; }
+  .ts-logo { font-size: min(10vw, 72px); letter-spacing: .06em; } .ts-tag { margin-left: 0; }
+  .ts-menu { justify-items: center; } .ts-item { margin-left: 0; padding-left: 4px; } .ts-item::before { display: none; }
+}
+@media (max-height: 520px) and (orientation: landscape) { .ts-tag { margin-bottom: 16px; } .ts-menu { gap: 0; } .ts-item { padding-top: 3px; padding-bottom: 3px; } .ts-save { margin-top: 10px; } }
+@media (prefers-reduced-motion: reduce) { .ts { animation: none; } .ts-item { transition: none; } }
+
 /* ---------- menus: what is on each tab, sized to fit ---------- */
 .rest-id { gap: 12px; } .rest-id .gem.big { width: 48px; height: 48px; min-width: 48px; }
 .rest-id .gem.big small { font-size: 7px; } .rest-id .gem.big strong { font-size: 19px; }

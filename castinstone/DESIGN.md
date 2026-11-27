@@ -692,6 +692,10 @@ Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
 
+## The title screen (v0.79)
+
+Jaisah: the start screen looked "in development". The game now opens on a title screen (`#titleWrap`, `.ts-*` in style.css): the live cave behind it (the waking hall, its dust and embers moving: `R.draw` gets the real frame time on the title, and `render.ambient` uses it), the HUD hidden, a dark wash on the left for the text, the name large in carved stone with a gold *in*, the line "Type the elements. Shape the spell.", and a short menu: Begin (Continue with a save), Your golem, Spell book, Controls, Co-op. Under the menu, with a save, one quiet line: level, region and cave. The version is only in the bottom-right corner, small. On a wide screen the camera stands the golem right of centre (`lookX` 0.68) so the hall sits beside the menu; upright or narrow, the title is centred and the golem stands low (`lookY` 0.82). Each menu line opens that tab of the existing pages (`titleSub`), which then have a Back button; Back, Esc and B return to the title. The controller moves through the title menu like any page (`openWrap`). The pages' heading no longer shows "Beta · version", only the cave's name.
+
 ## Performance and picture audit (v0.78)
 
 Measured on a phone-sized screen with the processor slowed four times (frames a second, before → after): hub 26 → 37, a fight 19 → 22, a flood 20 → 19, the boss lair 10 → 18. A computer (no graphics chip) holds about 50 everywhere.
@@ -843,6 +847,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.79 (2026-11-28):** a title screen over the live cave (Jaisah: the start looked "in development").
 
 - **v0.78 (2026-11-28):** performance and picture audit (Jaisah): ground drawn from a per-chunk cache, light every second cell, nothing drawn past sight, cheaper magma, two game steps a frame at most; magma lakes no longer washed out; mines and forges never flood with magma; upright-phone layout no longer overlaps. Saves start again (`castinstone.save.v13`).
 
