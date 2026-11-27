@@ -679,7 +679,8 @@ const KGame = (() => {
       this.applyStats(p);
       return true;
     }
-    saveExtra() { return { opened: [...this.opened], defeated: [...this.defeated], cores: [...this.cores], read: [...this.read], played: Math.round(this.played), deaths: this.deaths, kills: this.kills, regen: this.regen }; }
+    saveExtra() { return { opened: [...this.opened], defeated: [...this.defeated], cores: [...this.cores], read: [...this.read], played: Math.round(this.played), deaths: this.deaths, kills: this.kills, regen: this.regen,
+      slain: this.enemies.filter(e => e.dead && !e.champion).map(e => e.id) }; }   // creatures stay dead across a reload, until you rest
     // Easy or hard: whether health comes back by itself (the pause page's switch). One setting for the cave, shared in co-op.
     setRegen(p, on) { this.regen = !!on; }
     // ---------- the goal ----------
@@ -690,6 +691,7 @@ const KGame = (() => {
     loadExtra(x) {
       if (!x) return;
       if (typeof x.regen === 'boolean') this.regen = x.regen;
+      if (Array.isArray(x.slain)) { const S = new Set(x.slain.filter(Number.isInteger)); for (const e of this.enemies) if (S.has(e.id) && !e.champion) { e.dead = true; e.hp = 0; } }
       if (Array.isArray(x.opened)) this.opened = new Set(x.opened.filter(Number.isInteger));
       if (Array.isArray(x.read)) this.read = new Set(x.read.filter(Number.isInteger));
       if (Array.isArray(x.defeated)) this.defeated = new Set(x.defeated.filter(id => KData.bosses[id] || (typeof id === 'string' && id.startsWith('champ:'))));

@@ -15,6 +15,7 @@ const KData = (() => {
   const M = {
     EMPTY: 0, ROCK: 1, DIRT: 2, EARTH: 3, WATER: 4, STEAM: 5, FIRE: 6, MUD: 7, MAGMA: 8, MOSS: 9, CRYSTAL: 10,
     WOOD: 11, OIL: 12, GAS: 13, ICE: 14, COAL: 15, EMBER: 16, ACID: 17,   // v0.64
+    BRICK: 18,   // v0.67
   };
 
   const materials = [];
@@ -57,6 +58,9 @@ const KData = (() => {
     colors: [[255, 150, 60], [236, 96, 36], [255, 190, 90], [200, 70, 30]] };
   materials[M.ACID] = { desc: 'Eats dirt, earth, wood and lichen, and burns on touch. Water thins it away.', name: 'Acid', state: 'liquid', density: 4, flow: 4, glow: true, alpha: 0.85,
     colors: [[150, 232, 60], [170, 244, 80], [130, 214, 50]] };
+
+  materials[M.BRICK] = { desc: 'Old masonry. Hands cannot dig it; blasts and digging spells break it.', name: 'Brick', state: 'static', solid: true, density: 99,
+    colors: [[150, 136, 114], [138, 124, 104], [162, 148, 122], [126, 114, 98]] };
 
   // ---------- Reactions ----------
   // When a cell of material a touches b, with this chance per tick, a becomes ra

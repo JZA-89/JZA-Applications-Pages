@@ -530,6 +530,14 @@ const KRender = (() => {
               else if (dd === 2 || (dd === 3 && hash(wx, wy, 67) < 0.55)) buf[o] = C.crust[li];
               else if (dd === 3) { const p1 = C.crust[li], p2 = C.dirt[li]; buf[o] = 0xff000000 | ((((p1 >> 16) & 255) + ((p2 >> 16) & 255)) >> 1) << 16 | ((((p1 >> 8) & 255) + ((p2 >> 8) & 255)) >> 1) << 8 | (((p1 & 255) + (p2 & 255)) >> 1); }
               else buf[o] = C.dirt[li];
+            } else if (m === M.BRICK) {
+              // courses three cells high, bricks eight long, every other course set over by half; darker mortar
+              const row = (wy / 3) | 0, off = (row & 1) * 4, col = ((wx + off) >> 3), v = pal[m];
+              const mortar = wy % 3 === 0 || ((wx + off) & 7) === 0;
+              let c = v[(hash(col, row, 93) * v.length) | 0][dist[o] === 1 && e === 1 ? 1 : 0];
+              if (mortar) c = dark(c);
+              else if (hash(wx, wy, 94) < 0.07) c = dark(c);
+              buf[o] = c;
             } else if (m === M.ROCK) {
               const base = C.rock[li];
               buf[o] = e === 1 ? lit(base) : e === 2 ? dark(base) : base;

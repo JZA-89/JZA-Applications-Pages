@@ -800,6 +800,53 @@ const KWorld = (() => {
       const skin = [];
       for (let i = w; i < mat.length - w; i++) { const m = mat[i]; if ((m === M.GAS || m === M.OIL || m === M.ACID) && (mat[i - 1] === M.EMPTY || mat[i + 1] === M.EMPTY || mat[i - w] === M.EMPTY || mat[i + w] === M.EMPTY)) skin.push(i); }
       for (const i of skin) mat[i] = M.DIRT;
+      // v0.67: old works in the bigger chambers. A ruined brick wall standing on the floor, with an arched doorway
+      // a golem fits through and a broken top, sometimes with a pillar beside it; and wooden truss bridges across
+      // wide chambers, always with a gap broken out of them so they never close a way up or down.
+      const put = (xx, yy, m) => { if (xx > 12 && yy > 12 && xx < w - 12 && yy < h - 12 && mat[yy * w + xx] === M.EMPTY) mat[yy * w + xx] = m; };
+      for (const n of nodes) {
+        if (n.hub || n.lair) continue;
+        const F = this.biomes[n.biome].feat || {};
+        if (n.rx >= 30 && R() < (F.ruin ?? 0.16)) {
+          const px = Math.round(n.x + (R() - 0.5) * n.rx * 0.7), fy = this.floorBelow(px, Math.round(n.y));
+          if (fy - n.y < n.ry + 6) {
+            const half = 10 + Math.floor(R() * 9), H = 28 + Math.floor(R() * 12), dw = 6, dh = 20;
+            for (let xx = px - half; xx <= px + half; xx++) {
+              const cut = H - Math.floor(hash(xx >> 2, 0, s + 91) * 6) - (Math.abs(xx - px) > half - 3 ? Math.floor(R() * 8) : 0);   // a ragged, broken top
+              const base = this.floorBelow(xx, fy - H);
+              for (let yy = base - 1; yy >= fy - cut; yy--) {
+                const dx = xx - px, up = fy - yy;
+                const inDoor = Math.abs(dx) <= dw && (up <= dh - dw || dx * dx + (up - (dh - dw)) * (up - (dh - dw)) <= dw * dw);
+                if (inDoor || hash(xx >> 1, yy >> 1, s + 92) < 0.04) continue;
+                put(xx, yy, M.BRICK);
+              }
+            }
+            if (R() < 0.6) {   // a pillar, with a wider foot and head
+              const qx = px + (R() < 0.5 ? -1 : 1) * (half + 10 + Math.floor(R() * 16)), qf = this.floorBelow(qx, Math.round(n.y)), ph = 18 + Math.floor(R() * 22);
+              if (qf - n.y < n.ry + 6) for (let yy = qf - 1; yy >= qf - ph; yy--) {
+                const wide = yy >= qf - 3 || yy <= qf - ph + 2 ? 4 : 2;
+                for (let xx = qx - wide; xx <= qx + wide; xx++) put(xx, yy, M.BRICK);
+              }
+            }
+          }
+        }
+        if (n.rx >= 40 && R() < (F.bridge ?? 0.22)) {
+          const yb = Math.round(n.y + n.ry * 0.1);
+          let xl = Math.round(n.x), xr = xl;
+          while (xl > n.x - 240 && mat[yb * w + xl] === M.EMPTY) xl--;
+          while (xr < n.x + 240 && mat[yb * w + xr] === M.EMPTY) xr++;
+          const span = xr - xl, mid = (xl + xr) >> 1;
+          if (span >= 50 && span <= 230 && this.floorBelow(mid, yb + 2) - yb > 26) {
+            const g0 = xl + Math.round(span * (0.3 + R() * 0.4)), g1 = g0 + 14 + Math.floor(R() * 6);   // the broken gap
+            const ok = xx => xx < g0 || xx > g1;
+            for (let xx = xl - 1; xx <= xr + 1; xx++) if (ok(xx)) { put(xx, yb, M.WOOD); put(xx, yb + 1, M.WOOD); }
+            for (let xx = xl + 2; xx <= xr - 2; xx++) if (ok(xx)) put(xx, yb + 8, M.WOOD);     // the lower chord
+            for (let k = xl + 2; k < xr - 2; k += 12) {                                        // a post, and a brace rising to the next post
+              for (let t = 2; t <= 8; t++) { if (ok(k)) put(k, yb + t, M.WOOD); const bx = k + 2 * (t - 2); if (ok(bx) && bx < xr - 2) put(bx, yb + 10 - t, M.WOOD); }
+            }
+          }
+        }
+      }
       for (let i = 0; i < mat.length; i++) if (mat[i] === M.GAS) this.life[i] = 255;   // pocket gas does not fade
 
       // 10c. relic caches, sealed in by the cave (after the clean-up, so pockets stay)

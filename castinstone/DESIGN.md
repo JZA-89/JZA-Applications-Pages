@@ -692,6 +692,14 @@ Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
 
+## Ruins, bridges, and the dead stay dead (v0.67)
+
+- **Killed creatures stay dead across a reload** (Jaisah: every reload brought them all back). The save lists the ids of dead creatures (`saveExtra().slain`; champions already had `defeated`), `loadExtra` marks them dead, and resting at a Lodestone still brings them back as before. A kill sets a save within 3 s.
+- **Brick** (`M.BRICK`, 18): old masonry. Hands cannot dig it; blasts and digging spells break it; it does not burn. Drawn in courses three cells high with bricks eight long, every other course offset, with darker mortar.
+- **Ruins:** in about one chamber in six (30 cells wide or more; `feat.ruin`, default 0.16) a broken brick wall stands on the floor with an arched doorway 13 cells wide and 20 high (the golem is 9 × 15) and a ragged top, and often a pillar beside it.
+- **Truss bridges:** in about one wide chamber in five (`feat.bridge`, default 0.22; span 50 to 230 cells, with at least 26 cells of drop below) a wooden bridge crosses at just below the chamber's middle: a deck two cells thick, a lower chord, posts every 12 cells and braces between. Every bridge has a gap of 14 to 19 cells broken out of it, so it never closes a way up or down. Wood burns, so a bridge can be burnt away.
+- Saves moved to `castinstone.save.v6` (the cave is generated differently).
+
 ## A Noita-style picture (v0.66)
 
 Jaisah, comparing with Noita: far more detail, particles and lighting. Noita's own screen is about 427 × 242 pixels, so most of the gap was not resolution but how each pixel is drawn. Drawing only: no rule changed, so co-op and saves are unaffected.
@@ -763,6 +771,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.67 (2026-11-27):** killed creatures stay dead across a reload, until you rest (Jaisah asked; a short list in the save). Brick ruins with arched doorways and broken truss bridges in the bigger chambers. Saves start again (`castinstone.save.v6`).
 
 - **v0.66 (2026-11-27):** light cell by cell that stops at rock, crusted and stony dirt with grass and roots, a parallax boulder wall, cracked magma, cave particles and spell trails, and 432 × 243 on computers. Jaisah: Noita is far more detailed, with more particles and lighting.
 

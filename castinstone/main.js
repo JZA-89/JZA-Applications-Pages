@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.66';
+  const VERSION = 'v0.67';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -28,10 +28,10 @@
   // ---------- layout: the HUD scales with the stage (--u = stage width / 1280) ----------
   let VW = 432, VH = 243;   // cells shown on a 16:9 screen (fit() picks them)
   function fit() {
-    // The view takes the screen's shape. A 16:9 screen shows VW x VH cells (384 x 216 since v0.66; it was 320 x 180); a wider one keeps the
+    // The view takes the screen's shape. A 16:9 screen shows VW x VH cells (384 x 216 since v0.67; it was 320 x 180); a wider one keeps the
     // 180 and shows more to the sides, a taller one keeps the 320 and shows more above and below.
     // Nobody sees further for it: past SIGHT cells from the golem the picture fades to black (fade()).
-    // v0.66: a computer or tablet shows 432 x 243 (about what Noita shows); a phone, whose screen is small anyway, 384 x 216.
+    // v0.67: a computer or tablet shows 432 x 243 (about what Noita shows); a phone, whose screen is small anyway, 384 x 216.
     const W = innerWidth, H = innerHeight, wide = W / H >= 16 / 9;
     if (Math.min(W, H) >= 600) { VW = 432; VH = 243; } else { VW = 384; VH = 216; }
     SIGHT = Math.round(224 * VW / 384); SIGHT_END = Math.round(290 * VW / 384);
@@ -441,7 +441,7 @@
     for (const e of game.events) {
       if (e.p !== undefined && e.p !== ME) continue;   // the other golem's news
       if (e.type === 'ui') { if (mode === 'rest') buildRest(); regenLabel(); continue; }
-      if (e.type === 'xp') { xpPending += e.amount; xpTimer = 0.6; }
+      if (e.type === 'xp') { xpPending += e.amount; xpTimer = 0.6; saveTimer = Math.max(saveTimer, 17); }   // a kill is saved within 3 s
       else if (e.type === 'shard') { shardPending++; shardTimer = 0.7; }
       else if (e.type === 'level') {
         // point the way to the nearest Lodestone you have found, where points are spent
