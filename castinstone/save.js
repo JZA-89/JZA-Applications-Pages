@@ -7,7 +7,7 @@
    broken save never replaces a good one. */
 
 const KSave = (() => {
-  const KEY = 'castinstone.save.v11';   // a new key whenever cave generation changes (v11: v0.75); older saves do not fit
+  const KEY = 'castinstone.save.v12';   // a new key whenever cave generation changes (v12: v0.76); older saves do not fit
   const VERSION = 1;
 
   // a golem's progress (also what a guest brings to a co-op game, and takes home)

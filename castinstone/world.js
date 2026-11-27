@@ -334,15 +334,17 @@ const KWorld = (() => {
     // No crumbs: after terrain breaks, any loose piece of dirt or lichen smaller
     // than MIN_PIECE cells, and any single cell sticking out with at most one
     // neighbour, crumbles into loose earth and falls. Rock is never changed.
-    cleanup(x0, y0, x1, y1, into = M.EARTH) {
+    cleanup(x0, y0, x1, y1, into = M.EARTH, rock = false) {
       const { w, h, mat } = this, MIN = World.MIN_PIECE;
       x0 = Math.max(1, Math.floor(x0)); y0 = Math.max(1, Math.floor(y0));
       x1 = Math.min(w - 2, Math.ceil(x1)); y1 = Math.min(h - 2, Math.ceil(y1));
-      const breakable = m => m === M.DIRT || m === M.MOSS || m === M.BRICK || m === M.COAL || m === M.ICE;   // v0.75: brick, coal and ice too, or blasts left floating bits (not wood: bridge braces are one cell thick)
+      // v0.76, a rule for every material: anything solid that can be broken (all but rock) crumbles when it is left
+      // as a loose bit, so nothing small and hard to see is ever left hanging in the way
+      const breakable = m => SOLID[m] === 1 && STATE[m] === ST.static && (rock || !HARD[m]);   // rock only while the cave is made: nothing in play can break it
       if (!this.seenAt) this.seenAt = new Uint16Array(mat.length);
       if (++this.seenStamp >= 65535 || !this.seenStamp) { this.seenAt.fill(0); this.seenStamp = 1; }
       const seenAt = this.seenAt, st = this.seenStamp;
-      const crumb = k => this.put(k, into === M.EARTH && this.rand() > 0.35 ? M.EMPTY : into);   // mostly dust; a third falls as loose earth
+      const crumb = k => { if (this.mat[k] === M.CRYSTAL && this.broken.length < 400) this.broken.push(k % w, (k / w) | 0); this.put(k, into === M.EARTH && this.rand() > 0.35 ? M.EMPTY : into); };   // mostly dust; a third falls as loose earth; crystal gives its shards
       // first, single cells sticking out with at most one solid neighbour
       for (let pass = 0; pass < 2; pass++) {
         for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
@@ -859,7 +861,7 @@ const KWorld = (() => {
             for (let xx = xl - 1; xx <= xr + 1; xx++) if (ok(xx)) { put(xx, yb, M.WOOD); put(xx, yb + 1, M.WOOD); }
             for (let xx = xl + 2; xx <= xr - 2; xx++) if (ok(xx)) put(xx, yb + 8, M.WOOD);     // the lower chord
             for (let k = xl + 2; k < xr - 2; k += 12) {                                        // a post, and a brace rising to the next post
-              for (let t = 2; t <= 8; t++) { if (ok(k)) put(k, yb + t, M.WOOD); const bx = k + 2 * (t - 2); if (ok(bx) && bx < xr - 2) put(bx, yb + 10 - t, M.WOOD); }
+              for (let t = 2; t <= 8; t++) { if (ok(k)) put(k, yb + t, M.WOOD); const bx = k + 2 * (t - 2); for (const dx of [0, 1, 2]) if (ok(bx + dx) && bx + dx < xr - 2) put(bx + dx, yb + 10 - t, M.WOOD); }   // braces in steps that touch side to side
             }
           }
         }
@@ -1192,8 +1194,9 @@ const KWorld = (() => {
       }
 
       // specks left by the last steps (shelves under high caches are 13 cells and stay)
-      { const keep = World.MIN_PIECE; World.MIN_PIECE = 10; this.cleanup(0, 0, w, h, M.EMPTY); World.MIN_PIECE = keep; }
+      { const keep = World.MIN_PIECE; World.MIN_PIECE = 10; this.cleanup(0, 0, w, h, M.EMPTY, true); World.MIN_PIECE = keep; }
       this.changed = new Uint8Array(this.cw * this.ch); // chunks changed since generation (for saving)
+      this.broken.length = 0;   // crystal crumbled while the cave was made gives no shards
     }
 
     // A place to stand near (x, y): climb out of anything solid, drop to the

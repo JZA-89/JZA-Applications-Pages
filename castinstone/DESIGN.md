@@ -692,6 +692,10 @@ Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
 
+## Nothing loose is ever left hanging (v0.76)
+
+A rule for every material (Jaisah: it exists so nothing small and hard to see stops the golem; it should be global): `world.cleanup` now crumbles any solid, static material that can be broken (everything but rock) when it is left as a single cell with at most one solid neighbour or as a piece smaller than `MIN_PIECE`, after every blast and dig as before. Crumbled crystal gives its shards, as digging it does. Bridge braces are now steps three cells wide that touch side to side (a one-cell diagonal would count as loose). While the cave is made the same clean-up also takes rock (`cleanup(..., rock = true)`), since nothing in play can break it: generated caves had 2 to 4 single cells of rock hanging in the air. Checked with scratchpad `lo.js` and `lo3.js`: six blasts in walls of brick, wood, coal, ice, crystal and dirt leave no loose cells, and generated caves of all three acts hold no solid piece under 10 cells touching nothing else. Saves moved to `castinstone.save.v12`.
+
 ## Phone screen, floating brick, Stone spear (v0.75)
 
 - **The picture filled only part of an iPhone's screen at times** (a dark band at the bottom): Safari's bars come and go and `innerHeight` lags behind. `fit()` now measures `visualViewport` (the visible area), centres the stage on it, and runs again on its resize and scroll and after an orientation change. Checked with an emulated iPhone in landscape as its visible height changes.
@@ -820,6 +824,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.76 (2026-11-27):** loose bits crumble for every breakable material, and generated caves hold no floating rock (Jaisah: a global material rule). Saves start again (`castinstone.save.v12`).
 
 - **v0.75 (2026-11-27):** the picture fills an iPhone's visible screen; no more invisible floating bits after blasts; Stone spear slower, falling, less exact, weaker far away and half the digging (Jaisah). Saves start again (`castinstone.save.v11`).
 
