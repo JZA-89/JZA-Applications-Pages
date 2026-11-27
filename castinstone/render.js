@@ -382,6 +382,7 @@ const KRender = (() => {
       const lt = this.lightsPrev; this.lightsPrev = this.lightsNow; this.lightsNow = lt; lt.length = 0;
 
       this.drawCells(world, game.time);
+      this.drawDecor(game);
       this.ambient(game);
       this.drawMotes(false);
       this.drawLodestones(game, game.time);
@@ -772,6 +773,28 @@ const KRender = (() => {
       }
     }
 
+    // Things drawn behind (world.decor, v0.71): mine posts and lanterns. Each hangs from (or stands on) a cell;
+    // when that cell is gone (burnt, blasted) it is not drawn. Posts only cover the back wall, never sand.
+    drawDecor(game) {
+      const W = game.world, D = W.decor; if (!D || !D.length) return;
+      const buf = this.buf, kind = this.kind, VW = V.w, VH = V.h, cx = this.cam.x, cy = this.cam.y;
+      for (const d of D) {
+        if (d.hold && W.get(d.hold[0], d.hold[1]) !== M.WOOD) continue;
+        if (d.kind === 'post') {
+          const sx = d.x - cx; if (sx < -2 || sx > VW) continue;
+          for (let y = Math.max(d.y0, cy); y <= Math.min(d.y1, cy + VH - 1); y++) for (let k = 0; k < 2; k++) {
+            const vx = sx + k, o = (y - cy) * VW + vx; if (vx < 0 || vx >= VW || kind[o] !== 2) continue;
+            const g = hash(d.x + k, y >> 2, 99) < 0.2 ? 0.8 : 1, r = k ? 74 : 96;
+            buf[o] = pack(r * g | 0, (r * 0.68) * g | 0, (r * 0.44) * g | 0);
+          }
+        } else if (d.kind === 'lamp') {
+          const sx = d.x - cx, sy = d.y - cy; if (sx < -3 || sy < -8 || sx > VW + 3 || sy > VH + 3) continue;
+          if (d.hold) for (let y = d.hold[1] + 1 - cy; y < sy - 2; y++) if (y >= 0 && y < VH && sx >= 0 && sx < VW) { const o = y * VW + sx; buf[o] = pack(60, 54, 58); kind[o] = 0; }
+          const T = ['.kkk.', 'kyoyk', 'koyok', 'kyoyk', '.kkk.'], C = { k: [44, 36, 34], y: [255, 214, 130], o: [255, 170, 80] };
+          for (let j = 0; j < 5; j++) for (let i = 0; i < 5; i++) { const ch = T[j][i]; if (ch === '.') continue; const vx = sx - 2 + i, vy = sy - 2 + j; if (vx < 0 || vy < 0 || vx >= VW || vy >= VH) continue; const o = vy * VW + vx, c = C[ch]; buf[o] = pack(c[0], c[1], c[2]); kind[o] = ch === 'k' ? 0 : 1; }
+        }
+      }
+    }
     drawCaches(game) {
       const S = ['.kkkkkkk.', 'kgggggggk', 'kmmmymmmk', 'kssssssks', 'kmmmmmmmk', 'kdddddddk'];
       const O = ['.........', '.........', 'kk.....kk', 'kssssssks', 'kmmmmmmmk', 'kdddddddk'];
@@ -1106,6 +1129,7 @@ const KRender = (() => {
         if (s > 0) this.light(wx, wy, 9 + Math.min(10, s * 0.3), [140, 190, 255], 0.1 + Math.min(0.4, s / 50), true);
       }
       for (const L of game.loot) this.light(L.x, L.y - 2, 9, KData.runes.tiers[L.rune.tier].color, 0.55);
+      for (const d of game.world.decor || []) if (d.kind === 'lamp' && (!d.hold || game.world.get(d.hold[0], d.hold[1]) === M.WOOD)) this.light(d.x, d.y, 22, [255, 186, 110], 0.55 + 0.05 * Math.sin(game.time * 7 + d.x));
       for (const c of game.world.caches) if (!game.opened.has(c.id)) this.light(c.x, c.y - 4, 16, [255, 200, 110], 0.38 + 0.12 * Math.sin(game.time * 2 + c.id));
       for (let k = 0; k < game.bits.length; k += 3) this.light(game.bits[k].x, game.bits[k].y, 5, [140, 240, 230], 0.5);
       for (const pr of game.projectiles) {

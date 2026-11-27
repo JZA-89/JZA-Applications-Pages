@@ -98,6 +98,7 @@ const KWorld = (() => {
       this.blasts = [];   // where gas has just gone off (x, y pairs), for the game to turn into explosions
       this.broken = []; this.cooled = [];   // crystal cells broken since the game last looked (x, y pairs)
       this.caches = [];
+      this.decor = [];   // things drawn behind, not part of the sand: mine posts, lanterns (render.drawDecor)
       this.dummySpots = [];
       this.generate();
     }
@@ -954,6 +955,84 @@ const KWorld = (() => {
             for (let xx = sx; xx < sx + sw; xx++) { const b2 = this.floorBelow(xx, sb - sh); for (let yy = b2 - 1; yy >= sb - sh + Math.floor(hash(xx, 0, s + 96) * 3); yy--) brick(xx, yy); }
           }
           for (let k = 0; k < 20; k++) { const rx2 = px + Math.round((R() - 0.5) * n.rx * 1.4), rb = this.floorBelow(rx2, Math.round(n.y)); if (rb - n.y < n.ry + 6) { brick(rx2, rb - 1); if (R() < 0.4) brick(rx2 + 1, rb - 1); } }
+        }
+      }
+
+      // 10e. old works (v0.71), also built from rules with random sizes. Never in flooded regions.
+      // An old mine: a straight gallery dug from a chamber wall into the dirt, timbered (a real wooden beam in
+      // the roof every 16 cells; the posts under it are drawn behind, in `decor`, so they never block the way),
+      // sleepers in the floor, lanterns hanging from the beams, a coal seam where the digging stopped, and a
+      // cache at the end. A cold forge: a brick floor, a furnace with an open side and a broken chimney, a
+      // cache inside behind its coal (burn or blast the coal to reach it), and a brick bin heaped with coal.
+      this.decor = [];
+      const diggable = q => q === M.DIRT || q === M.MOSS || q === M.EARTH || q === M.COAL || q === M.CRYSTAL || q === M.MUD;
+      for (const n of nodes) {
+        if (n.hub || n.lair || n.rx < 30) continue;
+        const B = this.biomes[n.biome];
+        if (B.pool === 'WATER') continue;
+        const roll = R();
+        if (roll < 0.13) {
+          // the mine
+          const dir = R() < 0.5 ? -1 : 1, H = 18, fy0 = this.floorBelow(Math.round(n.x), Math.round(n.y));
+          if (fy0 - n.y > n.ry + 6) continue;
+          let x = Math.round(n.x), k = 0;
+          while (k++ < 260 && !SOLID[mat[(fy0 - 9) * w + x]]) x += dir;
+          if (k >= 260) continue;
+          const fy = this.floorBelow(x - dir * 3, fy0 - 12), want = 50 + Math.floor(R() * 70);
+          if (Math.abs(fy - fy0) > 30) continue;
+          let len = 0;
+          while (len < want) {
+            const xx = x + dir * len; let okc = xx > 24 && xx < w - 24 && fy - H > 24 && fy < h - 24;
+            for (let yy = fy - H; yy <= fy && okc; yy++) { const q = mat[yy * w + xx]; if (!(diggable(q) || q === M.EMPTY)) okc = false; }
+            if (!okc) break; len++;
+          }
+          if (len < 36) continue;
+          for (let t = -3; t < len; t++) {
+            const xx = x + dir * t;
+            for (let yy = fy - H; yy < fy; yy++) if (t >= 0 || mat[yy * w + xx] !== M.ROCK) mat[yy * w + xx] = M.EMPTY;
+            if (t >= 0) mat[fy * w + xx] = t % 5 === 2 ? M.WOOD : M.DIRT;   // sleepers in the floor
+          }
+          for (let t = 8; t < len - 6; t += 16) {
+            const bx = x + dir * t;
+            for (let xx = bx - 4; xx <= bx + 4; xx++) { mat[(fy - H) * w + xx] = M.WOOD; mat[(fy - H + 1) * w + xx] = M.WOOD; }
+            this.decor.push({ kind: 'post', x: bx - 4, y0: fy - H + 2, y1: fy - 1, hold: [bx - 4, fy - H + 1] }, { kind: 'post', x: bx + 3, y0: fy - H + 2, y1: fy - 1, hold: [bx + 3, fy - H + 1] });
+            if ((t / 16 | 0) % 2 === 0) this.decor.push({ kind: 'lamp', x: bx, y: fy - H + 6, hold: [bx, fy - H + 1] });
+          }
+          const ex = x + dir * (len - 1);
+          for (let yy = fy - H - 4; yy <= fy + 3; yy++) for (let xx = ex - 6; xx <= ex + 6; xx++) { const dd = Math.hypot(xx - ex - dir * 4, (yy - (fy - H / 2)) * 0.7); if (dd < 9 && (mat[yy * w + xx] === M.DIRT || mat[yy * w + xx] === M.MOSS)) mat[yy * w + xx] = M.COAL; }
+          addCache(x + dir * (len - 8), fy, 'mine', n);
+        } else if (roll < 0.3) {
+          // the forge (a few spots on the floor, until one is flat, solid and high enough)
+          let px = 0, fy = 0, found = false;
+          for (let t = 0; t < 4 && !found; t++) {
+            px = Math.round(n.x + (R() - 0.5) * n.rx * (t ? 1 : 0.5)); fy = this.floorBelow(px, Math.round(n.y));
+            if (fy - n.y > n.ry + 6 || fy - ceilAbove(px, fy - 1) < 36) continue;
+            found = true;
+          }
+          if (!found) continue;
+          const half = 22 + Math.floor(R() * 6), side = R() < 0.5 ? -1 : 1;
+          let deep = true;   // on the chamber's own floor, not a floating ledge: solid ground under its whole width
+          for (let xx = px - half; xx <= px + half && deep; xx += 4) { const b = this.floorBelow(xx, fy - 8); if (Math.abs(b - fy) > 10) deep = false; for (let k = 1; k <= 10 && deep; k += 3) if (!SOLID[mat[(b + k) * w + xx]]) deep = false; }
+          if (!deep) continue;
+          for (let xx = px - half; xx <= px + half; xx++) { const b = this.floorBelow(xx, fy - 12); if (Math.abs(b - fy) < 11) { brick(xx, b - 1); brick(xx, b - 2); } }
+          // the furnace: 21 wide, 18 tall, two-brick walls, open on the side facing the middle
+          const fx = px + side * (half - 11), fb = this.floorBelow(fx, fy - 14);
+          for (let yy = fb - 18; yy < fb; yy++) for (let xx = fx - 10; xx <= fx + 10; xx++) {
+            const wall = Math.abs(xx - fx) >= 9 || yy < fb - 16 || (yy < fb - 13 && Math.abs(xx - fx) >= 9 - (fb - 13 - yy));
+            const mouth = (xx - fx) * side >= 9 && yy >= fb - 11;
+            if (wall && !mouth) brick(xx, yy);
+            else if (!wall && yy >= fb - 6) { if (free(xx, yy)) mat[yy * w + xx] = M.COAL; }
+          }
+          const ch = 8 + Math.floor(R() * 14);
+          for (let yy = fb - 19; yy >= fb - 18 - ch; yy--) for (let xx = fx - 2; xx <= fx + 2; xx++) if (hash(xx, yy, s + 98) > 0.05) brick(xx, yy);
+          addCache(fx, fb - 1, 'forge', n);
+          // the coal bin at the other end
+          const cx = px - side * (half - 8), cb = this.floorBelow(cx, fy - 14);
+          for (let yy = cb - 9; yy < cb; yy++) for (let xx = cx - 8; xx <= cx + 8; xx++) {
+            if (Math.abs(xx - cx) >= 7 || yy >= cb - 1) brick(xx, yy);
+            else if (yy >= cb - 7 - Math.round(3 * (1 - Math.abs(xx - cx) / 7))) { if (free(xx, yy)) mat[yy * w + xx] = M.COAL; }
+          }
+          this.decor.push({ kind: 'lamp', x: cx + side * 11, y: cb - 5, hold: null });
         }
       }
 

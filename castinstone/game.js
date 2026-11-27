@@ -653,7 +653,7 @@ const KGame = (() => {
       for (const t of this.tablets) if (Math.abs(wx - t.x) < 5 && wy > t.y - 12 && wy < t.y + 1)
         return this.read.has(t.id) ? ['Rune tablet (read)', 'You have learned what it had to teach.'] : [`Rune tablet · Level ${t.level}`, 'Runes cut into a standing slab. Touch it to learn a special spell.'];
       for (const c of this.world.caches) if (Math.abs(wx - c.x) < 6 && wy > c.y - 7 && wy < c.y + 1) {
-        const how = { buried: 'Buried in the dirt. Dig to it.', rock: 'Sealed inside rock. Only fire that melts rock reaches it.', magma: 'At the bottom of a magma pool. Wade, or cool the magma with water and dig.', flooded: 'At the bottom of a flooded basin. Swim down to it.', shrine: 'On an old shrine, in plain sight.', vault: 'At the bottom of a sunken vault. Swim down to it.', high: 'High in the ceiling. Fly, climb or build up to it.' }[c.kind];
+        const how = { buried: 'Buried in the dirt. Dig to it.', rock: 'Sealed inside rock. Only fire that melts rock reaches it.', magma: 'At the bottom of a magma pool. Wade, or cool the magma with water and dig.', flooded: 'At the bottom of a flooded basin. Swim down to it.', shrine: 'On an old shrine, in plain sight.', vault: 'At the bottom of a sunken vault. Swim down to it.', mine: 'At the end of an old mine.', forge: 'Inside a cold forge, behind its coal.', high: 'High in the ceiling. Fly, climb or build up to it.' }[c.kind];
         return this.opened.has(c.id) ? ['Relic cache (empty)', 'Already opened.'] : [`Relic cache · Level ${c.level}`, `${how} Touch it to open it.`];
       }
       return null;

@@ -692,6 +692,14 @@ Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
 
+## Old mines and cold forges (v0.71)
+
+Generation step 10e, in regions without water pools, chambers 30 cells wide or more:
+- **Old mine** (about one chamber in eight): a straight gallery 36 to 120 cells long and 18 high, dug from the chamber wall into the dirt along the floor (it stops at rock or anything not diggable). A real two-cell wooden beam in the roof every 16 cells, with posts under it drawn behind (`world.decor`, kind `post`: they never block, and vanish if the beam is burnt or blasted), sleepers in the floor every 5 cells, a lantern under every other beam (`decor` kind `lamp`, which lights the cave like any light), a coal seam where the digging stopped, and a cache near the end (kind `mine`). About 2 to 3 per cave.
+- **Cold forge** (about one chamber in twelve, tried at up to four spots; only on a chamber's own floor, never a floating ledge, with solid ground under its whole width and 36 cells of headroom): two courses of brick floor 45 to 55 wide; a furnace 21 wide and 18 high with two-brick walls, a sloped top and its side open towards the middle, a broken chimney, and coal inside with a cache behind it (kind `forge`; burn or blast the coal to reach it); a brick bin heaped with coal at the other end and a standing lantern. About 2 per cave.
+- `world.decor` is made by the generator from the seed, so it is never saved and is the same on both co-op devices. Drawing only: posts cover only the back wall, lanterns are drawn glowing and add a light.
+- Saves moved to `castinstone.save.v8`.
+
 ## When creatures come back (v0.70)
 
 Jaisah: dying brings creatures back, and they come back after a while; reloading or loading never does, and resting no longer does. A killed creature (not a champion) counts down `KData.cave.returnAfter` (480 s of play), saved with it in `slain` as `[id, seconds left]`, then returns at its home once no golem is within `returnClear` (480 cells either way), so nothing appears in sight. Dying still brings back everything except fallen champions (`reviveEnemies`). Resting heals, and lets you spend points and travel. Checked with scratchpad `rt.js`.
@@ -789,6 +797,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.71 (2026-11-27):** generated old mines (timbered, lit by lanterns, a cache at the end) and cold forges (a furnace with a cache behind its coal, a coal bin). Saves start again (`castinstone.save.v8`).
 
 - **v0.70 (2026-11-27):** creatures come back when you die, or 8 minutes after being killed out of sight; resting and reloading no longer bring them back (Jaisah).
 
