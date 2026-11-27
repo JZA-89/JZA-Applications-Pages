@@ -692,6 +692,13 @@ Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
 
+## Hidden grottos and flooded mines (v0.74)
+
+- **Hidden grotto** (about one chamber in twenty, any region): a round pocket of radius 14 to 18 dug 20 to 24 cells into a chamber wall, through solid dirt only, lined with crystal clusters (which break into shards like any crystal), with a cache on its floor (kind `grotto`). Nothing leads to it; the only sign is a few crystals set in the chamber's own wall in front of it. About 4 per cave.
+- **Flooded mine** (wet regions, where mines did not appear before): the old mine as in v0.71, with a dirt sill 8 high across its mouth and water standing 7 deep along the gallery over the cache (kind `flooded mine`). About 1 per cave. Forges still never appear in wet regions.
+- Cache count per cave is now about 65 (caches of every kind over 18 test caves: buried 17, high 12, shrine 7, rock 6, magma 5, flooded 4, grotto 4, mine 3, forge 2, vault and flooded mine about 1 each). Watch whether runestones come too fast.
+- Saves moved to `castinstone.save.v10`.
+
 ## Creatures keep out of hazards; the waking hall (v0.73)
 
 - **Creatures on foot keep out of what hurts them** (`game.hazardGuard`, after every creature's own move): with fire, embers, magma or acid within 6 cells ahead of their feet they neither step nor jump that way (embers are solid, so they read as a step to climb), and one on patrol turns round; standing in it, they step out towards the cleaner side. Fire-proof creatures (imps) ignore fire. It does nothing in the air (a leap over a hazard is the creature's own choice) and for 0.4 s after a hit, so knockback can still put a creature into a hazard. Checked with scratchpad `hz.js`: crawlers, delvers and boars chasing the golem across lit embers stop about 19 cells from the middle of a 13-wide strip and take no damage.
@@ -807,6 +814,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.74 (2026-11-27):** hidden crystal grottos behind chamber walls, and flooded mines in wet regions. Saves start again (`castinstone.save.v10`).
 
 - **v0.73 (2026-11-27):** creatures on foot keep out of fire, embers, magma and acid; the hub is a waking hall; set pieces always in the three nearest chambers. Jaisah: no tutorial ("let the player work it out naturally. If they die they die"), but more of a start. Homepage description made a broad overview and the demo caption removed (Jaisah). Saves start again (`castinstone.save.v9`).
 

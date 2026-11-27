@@ -981,9 +981,9 @@ const KWorld = (() => {
       const diggable = q => q === M.DIRT || q === M.MOSS || q === M.EARTH || q === M.COAL || q === M.CRYSTAL || q === M.MUD;
       for (const n of nodes) {
         if (n.hub || n.lair || n.rx < 30) continue;
-        const B = this.biomes[n.biome];
-        if (B.pool === 'WATER') continue;
+        const B = this.biomes[n.biome], wet = B.pool === 'WATER';
         const roll = R();
+        if (wet && roll >= 0.13) continue;   // wet regions: flooded mines only, never a forge
         if (roll < 0.13) {
           // the mine
           const dir = R() < 0.5 ? -1 : 1, H = 18, fy0 = this.floorBelow(Math.round(n.x), Math.round(n.y));
@@ -1013,7 +1013,12 @@ const KWorld = (() => {
           }
           const ex = x + dir * (len - 1);
           for (let yy = fy - H - 4; yy <= fy + 3; yy++) for (let xx = ex - 6; xx <= ex + 6; xx++) { const dd = Math.hypot(xx - ex - dir * 4, (yy - (fy - H / 2)) * 0.7); if (dd < 9 && (mat[yy * w + xx] === M.DIRT || mat[yy * w + xx] === M.MOSS)) mat[yy * w + xx] = M.COAL; }
-          addCache(x + dir * (len - 8), fy, 'mine', n);
+          if (wet) {
+            // flooded: a sill across the mouth keeps the water in; it stands 7 deep, over the cache
+            for (let t = 0; t < 3; t++) for (let yy = fy - 8; yy < fy; yy++) mat[yy * w + x + dir * t] = M.DIRT;
+            for (let t = 3; t < len; t++) for (let yy = fy - 7; yy < fy; yy++) if (mat[yy * w + x + dir * t] === M.EMPTY) mat[yy * w + x + dir * t] = M.WATER;
+          }
+          addCache(x + dir * (len - 8), fy, wet ? 'flooded mine' : 'mine', n);
         } else if (roll < 0.3) {
           // the forge (a few spots on the floor, until one is flat, solid and high enough)
           let px = 0, fy = 0, found = false;
@@ -1046,6 +1051,31 @@ const KWorld = (() => {
             else if (yy >= cb - 7 - Math.round(3 * (1 - Math.abs(xx - cx) / 7))) { if (free(xx, yy)) mat[yy * w + xx] = M.COAL; }
           }
           this.decor.push({ kind: 'lamp', x: cx + side * 11, y: cb - 5, hold: null });
+        }
+      }
+
+      // Hidden grottos (v0.74): a round pocket behind a chamber wall, lined with crystal, with a cache on its floor.
+      // The only sign is a little crystal in the chamber's own wall in front of it; you dig through to find it.
+      const solidDirt = q => q === M.DIRT || q === M.MOSS || q === M.EARTH || q === M.COAL || q === M.CRYSTAL;
+      for (const n of nodes) {
+        if (n.hub || n.lair || R() > 0.05) continue;
+        for (let t = 0; t < 6; t++) {
+          const an = R() * Math.PI * 2, r = 14 + Math.floor(R() * 5), pt = wallPoint(n, an, r + 6), gx = Math.round(pt.x), gy = Math.round(pt.y);
+          if (gx < r + 20 || gy < r + 20 || gx > w - r - 20 || gy > h - r - 20) continue;
+          let ok = true;
+          for (let yy = gy - r - 4; yy <= gy + r + 4 && ok; yy += 2) for (let xx = gx - r - 4; xx <= gx + r + 4 && ok; xx += 2) if (Math.hypot(xx - gx, yy - gy) <= r + 4 && !solidDirt(mat[yy * w + xx])) ok = false;
+          if (!ok) continue;
+          for (let yy = gy - r - 3; yy <= gy + r + 3; yy++) for (let xx = gx - r - 3; xx <= gx + r + 3; xx++) {
+            const d = Math.hypot(xx - gx, (yy - gy) * 1.15) + (noise(xx, yy, 4, s + 105) - 0.5) * 3;
+            const i = yy * w + xx;
+            if (d < r && yy < gy + r * 0.55) mat[i] = M.EMPTY;                                         // the pocket, with a flat-ish floor
+            else if (d < r + 2.5 && hash(xx >> 1, yy >> 1, s + 106) < 0.4) mat[i] = M.CRYSTAL;         // crystal clusters round its walls
+          }
+          const fy = this.floorBelow(gx, gy);
+          addCache(gx, fy, 'grotto', n);
+          const cl = wallPoint(n, an, 1);   // the sign: a few crystals in the chamber's wall, facing in
+          for (let yy = Math.round(cl.y) - 2; yy <= Math.round(cl.y) + 2; yy++) for (let xx = Math.round(cl.x) - 2; xx <= Math.round(cl.x) + 2; xx++) if (solidDirt(mat[yy * w + xx]) && hash(xx, yy, s + 107) < 0.5) mat[yy * w + xx] = M.CRYSTAL;
+          break;
         }
       }
 
