@@ -692,6 +692,18 @@ Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
 
+## A Noita-style picture (v0.66)
+
+Jaisah, comparing with Noita: far more detail, particles and lighting. Noita's own screen is about 427 × 242 pixels, so most of the gap was not resolution but how each pixel is drawn. Drawing only: no rule changed, so co-op and saves are unaffected.
+
+- **Light, cell by cell** (`render.lightFrame`, replacing v0.64's `#dark` canvas). Lights go on a grid of 4 × 4-cell squares with a margin round the screen: the golem (radius 30), burning and glowing cells (from drawCells' counts), and every `light()` call of the previous frame (spells, loot, Lodestones, caches, creatures' eyes). Light spreads one sweep each way, losing 11.5% a square in the open and much more in rock (a square's transmission is 0.55 + 0.45 × how open it is), so it runs along tunnels and catches the faces of walls but not their insides. Each cell's colour is multiplied by the light there plus the region's base light (0.2 to 0.46, from its `dark`). Burning and glowing cells keep their own colour; the back wall gets 80%; steam never shines brighter than its colour. The grid is worked out every other frame; the shading runs every frame, in whole-number arithmetic.
+- **Dirt** has soft blobs of the region's colours over faint strata, stones set in it (darker, speckled, outlined), and a crust on every open face: two or three cells of the region's `crust` colour (new in each biome), brightest at the edge. Lichen tufts grow on its tops and roots hang from its roofs (drawn into the open cells, not part of the world). Rock and dirt have fine grit.
+- **Back wall:** a repeating tile of rounded boulders and hanging rock, drawn at half the camera's speed behind the cave (`backWall`).
+- **Magma** has a dark crust drifting slowly, split by bright cracks, hottest at its surface.
+- **Particles of the cave** (`render.ambient`, `drawMotes`, with the browser's own dice; never in the rules): dust drifting in the light, embers and smoke over fire, drips from wet roofs and water, glints on crystal, bubbles on acid and magma, embers behind fireballs, grit behind stone, sparks where lightning lands, and sparks and smoke from every blast. At most 900.
+- **View:** 432 × 243 cells on a 16:9 screen whose shorter side is 600 px or more (computers, tablets); 384 × 216 on phones. Sight scales with it.
+- **Cost:** desktop Chromium without a graphics chip, 50 to 56 fps in every test scene at 432 × 243. On a phone-sized screen with the processor slowed four times it fell from 57/35/29/22 fps (hub, fight, flood, boss lair, v0.65) to 30/23/16/15. Not yet checked on a real iPhone.
+
 ## Health regeneration switch (v0.65)
 
 Jaisah: turn regeneration back on, but less, with a switch on the pause page so players choose easy or hard. Health now comes back at **1.5 a second once nothing has hurt you for 6 s** (`KData.player.regen`, `regenDelay`; 100 health takes about 67 s; it was 3 a second in v0.58 and off in v0.61 to v0.64). The pause and start page has a **Health regeneration: On / Off** button (`game.regen`, on by default, kept in the save, carried to the next cave). In co-op it is one setting for the cave: either player can change it and it changes for both on the same step (`setRegen` in `UI_CALLS`).
@@ -751,6 +763,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.66 (2026-11-27):** light cell by cell that stops at rock, crusted and stony dirt with grass and roots, a parallax boulder wall, cracked magma, cave particles and spell trails, and 432 × 243 on computers. Jaisah: Noita is far more detailed, with more particles and lighting.
 
 - **v0.64 (2026-11-26):** seven new materials (wood, oil, marsh gas, ice, coal, ember, acid) with their reactions, darkness that lights open up, textures, and a view 20% wider (384 × 216). Jaisah: go ahead with materials and lighting, "zoom out a bit and we will test it". Saves start again (`castinstone.save.v5`).
 

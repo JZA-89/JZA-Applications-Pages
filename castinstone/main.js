@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.65';
+  const VERSION = 'v0.66';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -26,13 +26,16 @@
   for (const n of document.querySelectorAll('[data-icon]')) n.insertAdjacentHTML('afterbegin', KIcon(n.dataset.icon));
 
   // ---------- layout: the HUD scales with the stage (--u = stage width / 1280) ----------
-  const VW = 384, VH = 216;   // cells shown on a 16:9 screen
+  let VW = 432, VH = 243;   // cells shown on a 16:9 screen (fit() picks them)
   function fit() {
-    // The view takes the screen's shape. A 16:9 screen shows VW x VH cells (384 x 216 since v0.65; it was 320 x 180); a wider one keeps the
+    // The view takes the screen's shape. A 16:9 screen shows VW x VH cells (384 x 216 since v0.66; it was 320 x 180); a wider one keeps the
     // 180 and shows more to the sides, a taller one keeps the 320 and shows more above and below.
     // Nobody sees further for it: past SIGHT cells from the golem the picture fades to black (fade()).
+    // v0.66: a computer or tablet shows 432 x 243 (about what Noita shows); a phone, whose screen is small anyway, 384 x 216.
     const W = innerWidth, H = innerHeight, wide = W / H >= 16 / 9;
-    R.setView(wide ? Math.min(768, Math.round(VH * W / H)) : VW, wide ? VH : Math.min(864, Math.round(VW * H / W)));
+    if (Math.min(W, H) >= 600) { VW = 432; VH = 243; } else { VW = 384; VH = 216; }
+    SIGHT = Math.round(224 * VW / 384); SIGHT_END = Math.round(290 * VW / 384);
+    R.setView(wide ? Math.min(VW * 2, Math.round(VH * W / H)) : VW, wide ? VH : Math.min(Math.round(VW * 2.25), Math.round(VW * H / W)));
     const s = Math.min(W / V.w, H / V.h), w = Math.floor(V.w * s), h = Math.floor(V.h * s);
     stage.style.width = w + 'px'; stage.style.height = h + 'px';
     // The HUD keeps to a 16:9 frame in the middle (--hx is the margin each side), so on a very wide
@@ -45,7 +48,7 @@
   }
   addEventListener('resize', fit);
   // how far the golem sees: clear to SIGHT cells (the corner of a 16:9 screen), black by SIGHT_END
-  const SIGHT = 224, SIGHT_END = 290;
+  let SIGHT = 224, SIGHT_END = 290;   // set by fit() with the view's size
   let fadeWas = '';
   function fade() {
     const p = game.players[ME], s = stage.clientWidth / V.w;

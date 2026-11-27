@@ -36,7 +36,6 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 #stage { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 960px; height: 540px; overflow: hidden; background: #14101f; }
 #stage > canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #view { image-rendering: pixelated; image-rendering: crisp-edges; cursor: none; touch-action: none; }
-#dark { pointer-events: none; }   /* the dimness away from any light (render.js carve) */
 #glow { pointer-events: none; mix-blend-mode: screen; }
 #fade { position: absolute; inset: 0; pointer-events: none; }   /* black beyond the golem's sight (main.js fade) */
 .hud { position: absolute; top: 0; bottom: 0; left: max(var(--hx, 0px), env(safe-area-inset-left, 0px)); right: max(var(--hx, 0px), env(safe-area-inset-right, 0px)); pointer-events: none; font-size: max(10px, calc(var(--u) * 12px)); }

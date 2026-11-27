@@ -489,29 +489,29 @@ const KData = (() => {
   // poolFrom: where a chamber's pool surface sits, from its top (0) to its bottom (1).
   const biomes = [
     { id: 'rose', name: 'Rose Hollows', feat: { wood: 0.55, coal: 0.25 }, dark: 0.57, bg: [30, 22, 46], lichen: 0.55, hang: 0.3, pool: null, mud: 0,
-      strata: [[124, 76, 92], [142, 92, 96], [104, 64, 90], [160, 114, 104], [92, 58, 84], [132, 84, 100]] },
+      crust: [200, 150, 118], strata: [[124, 76, 92], [142, 92, 96], [104, 64, 90], [160, 114, 104], [92, 58, 84], [132, 84, 100]] },
     { id: 'drowned', name: 'Drowned Galleries', feat: { wood: 0.25, gas: 0.3, oil: 0.15 }, dark: 0.69, bg: [16, 26, 44], lichen: 0.3, hang: 0.4, pool: 'WATER', poolFrom: 0.6, mud: 0.3,
-      strata: [[72, 94, 108], [86, 108, 118], [60, 80, 98], [100, 122, 128], [54, 72, 90], [80, 100, 112]] },
+      crust: [138, 172, 162], strata: [[72, 94, 108], [86, 108, 118], [60, 80, 98], [100, 122, 128], [54, 72, 90], [80, 100, 112]] },
     { id: 'ember', name: 'Ember Veins', feat: { coal: 0.45, oil: 0.35, gas: 0.3 }, dark: 0.63, bg: [34, 16, 24], lichen: 0.3, hang: 0.12, pool: 'MAGMA', poolFrom: 0.8, mud: 0,
-      strata: [[112, 58, 52], [128, 70, 58], [88, 46, 48], [148, 88, 66], [74, 40, 44], [118, 64, 56]] },
+      crust: [200, 124, 72], strata: [[112, 58, 52], [128, 70, 58], [88, 46, 48], [148, 88, 66], [74, 40, 44], [118, 64, 56]] },
   ];
   // the second cave's regions
   const biomesDeep = [
     { id: 'glass', name: 'Glass Warrens', feat: { ice: 0.65, gas: 0.2 }, dark: 0.66, bg: [22, 26, 40], lichen: 0.15, hang: 0.5, pool: null, mud: 0,
-      strata: [[96, 108, 150], [120, 130, 170], [78, 88, 132], [146, 156, 190], [66, 74, 116], [108, 118, 160]] },
+      crust: [184, 194, 236], strata: [[96, 108, 150], [120, 130, 170], [78, 88, 132], [146, 156, 190], [66, 74, 116], [108, 118, 160]] },
     { id: 'sunless', name: 'Sunless Sea', feat: { ice: 0.35, oil: 0.3, wood: 0.2 }, dark: 0.82, bg: [8, 14, 26], lichen: 0.1, hang: 0.25, pool: 'WATER', poolFrom: 0.25, mud: 0.5,
-      strata: [[40, 58, 74], [50, 70, 84], [32, 46, 64], [62, 84, 94], [26, 38, 56], [46, 64, 80]] },
+      crust: [92, 126, 146], strata: [[40, 58, 74], [50, 70, 84], [32, 46, 64], [62, 84, 94], [26, 38, 56], [46, 64, 80]] },
     { id: 'ashen', name: 'Ashen Maw', feat: { coal: 0.5, gas: 0.4, oil: 0.3 }, dark: 0.75, bg: [22, 18, 20], lichen: 0.05, hang: 0.1, pool: 'MAGMA', poolFrom: 0.5, mud: 0,
-      strata: [[92, 86, 84], [110, 102, 98], [72, 66, 68], [128, 118, 110], [58, 54, 58], [100, 92, 90]] },
+      crust: [176, 166, 154], strata: [[92, 86, 84], [110, 102, 98], [72, 66, 68], [128, 118, 110], [58, 54, 58], [100, 92, 90]] },
   ];
   // the third cave's regions
   const biomesRoot = [
     { id: 'verdant', name: 'Verdant Hollow', feat: { wood: 0.7, acid: 0.2 }, dark: 0.63, bg: [14, 26, 22], lichen: 0.9, hang: 0.6, pool: 'WATER', poolFrom: 0.7, mud: 0.4,
-      strata: [[70, 104, 84], [86, 120, 92], [58, 88, 76], [104, 138, 100], [48, 74, 66], [78, 110, 88]] },
+      crust: [156, 196, 104], strata: [[70, 104, 84], [86, 120, 92], [58, 88, 76], [104, 138, 100], [48, 74, 66], [78, 110, 88]] },
     { id: 'bone', name: 'Bone Orchard', feat: { acid: 0.35, coal: 0.2, gas: 0.2 }, dark: 0.6, bg: [26, 24, 26], lichen: 0.2, hang: 0.3, pool: null, mud: 0,
-      strata: [[150, 142, 128], [170, 160, 142], [128, 120, 112], [188, 178, 156], [108, 102, 98], [158, 150, 134]] },
+      crust: [226, 214, 180], strata: [[150, 142, 128], [170, 160, 142], [128, 120, 112], [188, 178, 156], [108, 102, 98], [158, 150, 134]] },
     { id: 'heartwood', name: 'Heartwood', feat: { wood: 0.4, acid: 0.3, oil: 0.3, coal: 0.2 }, dark: 0.75, bg: [30, 12, 18], lichen: 0.5, hang: 0.4, pool: 'MAGMA', poolFrom: 0.7, mud: 0,
-      strata: [[120, 56, 60], [138, 68, 66], [98, 44, 54], [156, 84, 72], [80, 36, 48], [128, 62, 62]] },
+      crust: [198, 112, 90], strata: [[120, 56, 60], [138, 68, 66], [98, 44, 54], [156, 84, 72], [80, 36, 48], [128, 62, 62]] },
   ];
   // The game in acts. Each cave you descend to is the next act: its own regions, creatures (which kinds
   // the generator's five become, by region: [kind, from level, share of 100]), champions and last boss.

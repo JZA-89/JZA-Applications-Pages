@@ -1,8 +1,8 @@
 'use strict';
 /* Cast in Stone — render.js
    Draws the game. The world, actors and effects are plotted pixel by pixel
-   into a 320x180 image (one pixel per world cell), which the page scales up
-   with crisp edges. A second, smooth canvas on top carries the glow from
+   into an image one pixel per world cell (432 x 243 on a 16:9 computer screen),
+   lit cell by cell (lightFrame), which the page scales up with crisp edges. A second, smooth canvas on top carries the glow from
    fire, magma, lightning and the golem's element slots. Drawing never changes
    the game. */
 
@@ -178,6 +178,44 @@ const KRender = (() => {
 
   // a 3x5 pixel font for damage numbers (each row is 3 bits)
   const DIGITS = { 0: [7, 5, 5, 5, 7], 1: [2, 6, 2, 2, 7], 2: [7, 1, 7, 4, 7], 3: [7, 1, 7, 1, 7], 4: [5, 5, 7, 1, 1], 5: [7, 4, 7, 1, 7], 6: [7, 4, 7, 5, 7], 7: [7, 1, 1, 2, 2], 8: [7, 5, 7, 5, 7], 9: [7, 5, 7, 1, 7] };
+  // The far back wall: a tile 256 cells square that repeats, of tall pillars and hanging rock, lit along their tops,
+  // drawn behind the cave at half the camera's speed so the cave has depth. Values are brightness changes.
+  function backWall() {
+    const N = 256, out = new Int8Array(N * N);
+    const tn = (x, y, cx, cy, s) => {   // smooth noise that repeats every 256 cells: cx by cy squares
+      const u = x * cx / N, v = y * cy / N, i = Math.floor(u), j = Math.floor(v), fx = u - i, fy = v - j;
+      const H = (a, b) => hash(((a % cx) + cx) % cx, ((b % cy) + cy) % cy, s);
+      const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy), a = H(i, j), b = H(i + 1, j), c = H(i, j + 1), d = H(i + 1, j + 1);
+      return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
+    };
+    const pillar = (x, y) => tn(x, y, 14, 3, 51) * 0.7 + tn(x, y, 32, 8, 52) * 0.3;
+    // boulders: a jittered grid of rounded stones, 16 across the tile, each slightly lighter than the wall,
+    // with a dark seam round it and a lit top
+    const G = 16, CS = N / G, cen = [];
+    for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) cen.push([(i + 0.2 + hash(i, j, 56) * 0.6) * CS, (j + 0.2 + hash(i, j, 57) * 0.6) * CS, CS * (0.42 + hash(i, j, 58) * 0.3), hash(i, j, 59)]);
+    const stone = (x, y) => {   // which boulder covers (x, y), and how far inside it (0 at the rim, 1 at the middle)
+      const ci = Math.floor(x / CS), cj = Math.floor(y / CS); let best = -1, bk = 0;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        const ii = (ci + di + G) % G, jj = (cj + dj + G) % G, C = cen[jj * G + ii];
+        let dx = x - C[0] - (ci + di - ii) * CS * 0, dy = y - C[1];
+        dx = ((dx + N * 1.5) % N) - N / 2; dy = ((dy + N * 1.5) % N) - N / 2;
+        const f = 1 - Math.sqrt(dx * dx + dy * dy * 1.3) / C[2];
+        if (f > best) { best = f; bk = C[3]; }
+      }
+      return [best, bk];
+    };
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      let d = 0;
+      const [f, k] = stone(x, y);
+      if (f > 0) { d += 3 + Math.round(k * 4); if (f < 0.12) d -= 7; else if (stone(x, (y + N - 2) % N)[0] <= 0.12) d += 6; }
+      else d -= 3;
+      const p = pillar(x, y);
+      if (p > 0.62) { d = -10; if (pillar(x, (y + N - 2) % N) <= 0.62) d += 12; }
+      if (hash(x, y, 55) < 0.0012) d += 26;
+      out[y * N + x] = Math.max(-127, Math.min(127, d));
+    }
+    return out;
+  }
   const pack = (r, g, b) => (255 << 24) | (b << 16) | (g << 8) | r;
   const clamp = v => v < 0 ? 0 : v > 255 ? 255 : v | 0;
 
@@ -188,7 +226,9 @@ const KRender = (() => {
       this.img = this.ctx.createImageData(V.w, V.h);
       this.buf = new Uint32Array(this.img.data.buffer);
       this.glow = glow; this.gctx = glow.getContext('2d');
-      this.dark = document.getElementById('dark'); this.dctx = this.dark ? this.dark.getContext('2d') : null;
+      this.lightsNow = []; this.lightsPrev = []; this.amb = 0.3; this.motes = []; this.seenFx = new WeakSet();
+      this.kind = new Uint8Array(V.w * V.h);
+      this.par = backWall();
       this.sprites = new Map();
       this.cam = { x: 0, y: 0 };
       this.gw = Math.ceil(V.w / 8); this.gh = Math.ceil(V.h / 8);
@@ -215,7 +255,7 @@ const KRender = (() => {
       let c = this.cc.get(k);
       if (c) return c;
       const world = this.world, BI = world.biomes, h = world.h;
-      c = { bg: new Uint32Array(1024), dirt: new Uint32Array(1024), rock: new Uint32Array(1024) };
+      c = { bg: new Uint32Array(1024), dirt: new Uint32Array(1024), rock: new Uint32Array(1024), crust: new Uint32Array(1024), rim: new Uint32Array(1024) };
       for (let ly = 0; ly < 32; ly++) for (let lx = 0; lx < 32; lx++) {
         const x = ckx * 32 + lx, y = cky * 32 + ly, i = ly * 32 + lx, b4 = BAYER[(y & 3) * 4 + (x & 3)];
         // region, with a dithered border so regions blend instead of meeting in squares
@@ -227,19 +267,33 @@ const KRender = (() => {
         if (far > 0.6 || (far > 0.52 && b4 < (far - 0.52) / 0.08)) { r -= 9; g -= 7; bl -= 11; }
         if (hash(x, y, 31) < 0.0018) { r += 40; g += 34; bl += 60; }
         c.bg[i] = pack(clamp(r), clamp(g), clamp(bl));
-        // dirt: layered bands of the region's colours
-        const v = (y + 11 * noise(x, 0, 46, 3) + 4 * noise(x, y, 13, 4)) / 6.5;
-        let band = Math.floor(v);
-        if (v - band > 0.68 && (v - band - 0.68) / 0.32 > b4) band++;
+        // dirt (v0.66): the region's colours in soft blobs, with stones set in it (darker, speckled, outlined),
+        // and a gently waving band of strata kept faintly underneath
         const S = B.strata;
-        let dc = S[((band % S.length) + S.length) % S.length];
-        if (noise(x, y, 5, 6) > 0.62 && b4 < 0.5) dc = dc.map(q => q * 0.88);
-        c.dirt[i] = pack(dc[0] | 0, dc[1] | 0, dc[2] | 0);
+        const v = (y + 11 * noise(x, 0, 46, 3) + 4 * noise(x, y, 13, 4)) / 9;
+        let band = Math.floor(v);
+        if (v - band > 0.7 && (v - band - 0.7) / 0.3 > b4) band++;
+        const mot = noise(x, y, 17, 6) * 0.65 + noise(x, y, 6, 7) * 0.35;
+        let dc = S[(((band + (mot > 0.55 ? 2 : mot < 0.38 ? 4 : 0)) % S.length) + S.length) % S.length];
+        const st = noise(x + 300, y, 11, 61) * 0.7 + noise(x, y + 300, 4, 62) * 0.3;
+        if (st > 0.66) {
+          const dk = S[4] || S[0], sv = 0.62 + 0.25 * noise(x, y, 3, 63);
+          dc = [dk[0] * sv * 0.8 + 22, dk[1] * sv * 0.85 + 24, dk[2] * sv + 34];
+          if (hash(x, y, 64) < 0.1) dc = dc.map(q => q * 1.35 + 10);         // grains in the stone
+          if (st < 0.69) dc = dc.map(q => q * 0.55);                          // its dark edge
+        } else if (noise(x, y, 5, 6) > 0.64 && b4 < 0.5) dc = dc.map(q => q * 0.88);
+        const gr = 0.9 + 0.2 * hash(x, y, 77) - (hash(x >> 1, y >> 1, 78) < 0.08 ? 0.12 : 0);   // grit: single grains and small dark pits
+        c.dirt[i] = pack(clamp(dc[0] * gr), clamp(dc[1] * gr), clamp(dc[2] * gr));
+        // the crust every open face of dirt has: lighter, sandy, speckled; the rim is its very edge
+        const K = B.crust || S[3], ck = 0.86 + 0.24 * hash(x, y, 65) + (noise(x, y, 4, 66) - 0.5) * 0.25;
+        c.crust[i] = pack(clamp(K[0] * ck), clamp(K[1] * ck), clamp(K[2] * ck));
+        c.rim[i] = pack(clamp(K[0] * ck * 1.2 + 16), clamp(K[1] * ck * 1.2 + 16), clamp(K[2] * ck * 1.15 + 14));
         // rock: faceted slate
         const f = noise(x, y, 7, 9) * 0.7 + noise(x, y, 3, 10) * 0.3, q = f * 4, lv = Math.floor(q) / 3;
         let rc = SLATE0.map((s0, kk) => s0 + (SLATE1[kk] - s0) * Math.min(1, lv));
         if (Math.abs(q - Math.round(q)) < 0.045) rc = SLATE_EDGE;
-        c.rock[i] = pack(rc[0] | 0, rc[1] | 0, rc[2] | 0);
+        const gk = 0.93 + 0.14 * hash(x, y, 79);
+        c.rock[i] = pack(clamp(rc[0] * gk), clamp(rc[1] * gk), clamp(rc[2] * gk));
       }
       this.cc.set(k, c);
       if (this.cc.size > 320) this.cc.delete(this.cc.keys().next().value);
@@ -256,11 +310,11 @@ const KRender = (() => {
       this.gw = Math.ceil(w / 8); this.gh = Math.ceil(h / 8);
       this.heat = new Float32Array(this.gw * this.gh);
       this.spark = new Float32Array(this.gw * this.gh);
+      this.kind = new Uint8Array(w * h);
     }
     resize(cssW, cssH) {
       const k = Math.min(1, 640 / cssW); // glow is soft, half resolution is plenty
       this.glow.width = Math.max(1, Math.round(cssW * k)); this.glow.height = Math.max(1, Math.round(cssH * k));
-      if (this.dark) { this.dark.width = this.glow.width >> 2; this.dark.height = this.glow.height >> 2; }   // a quarter of the glow's size: it is all soft edges, and a small layer is cheap to lay over the picture
       this.gs = this.glow.width / V.w;
     }
 
@@ -297,18 +351,10 @@ const KRender = (() => {
       }
       return s;
     }
-    // Darkness: the cave away from any light is dimmed (by the region's `dark`), and every light, and the
-    // golem's own glow, opens a hole in it. Drawn small and stretched, so its edges are soft.
-    carve(x, y, r, a) {
-      const d = this.dctx; if (!d) return;
-      const s = this.gs / 4, sx = (x - this.cam.x) * s, sy = (y - this.cam.y) * s, sr = r * s;
-      if (sx < -sr || sy < -sr || sx > this.dark.width + sr || sy > this.dark.height + sr) return;
-      d.globalAlpha = Math.min(1, a);
-      d.drawImage(this.sprite([255, 255, 255]), sx - sr, sy - sr, sr * 2, sr * 2);
-    }
+    // A soft glow on the smooth canvas; it also lights the cave next frame (lightFrame), unless `plain`.
     light(x, y, r, col, a, plain) {
       if (a <= 0.01) return;
-      if (!plain) this.carve(x, y, r * 2.6, a * 2.2);
+      if (!plain && this.lightsNow.length < 7 * 400) this.lightsNow.push(x, y, r, col[0], col[1], col[2], Math.min(1, a));
       const g = this.gctx, s = this.gs, sx = (x - this.cam.x) * s, sy = (y - this.cam.y) * s, sr = r * s;
       if (sx < -sr || sy < -sr || sx > this.glow.width + sr || sy > this.glow.height + sr) return;
       g.globalAlpha = Math.min(1, a);
@@ -333,8 +379,11 @@ const KRender = (() => {
       if (game.shake > 0 && !opt.reduced) { cx += Math.round((Math.random() - 0.5) * game.shake); cy += Math.round((Math.random() - 0.5) * game.shake); }
       cx = Math.max(0, Math.min(world.w - V.w, cx)); cy = Math.max(0, Math.min(world.h - V.h, cy));
       this.cam.x = cx; this.cam.y = cy;
+      const lt = this.lightsPrev; this.lightsPrev = this.lightsNow; this.lightsNow = lt; lt.length = 0;
 
       this.drawCells(world, game.time);
+      this.ambient(game);
+      this.drawMotes(false);
       this.drawLodestones(game, game.time);
       for (const d of game.dummies) this.drawDummy(d);
       for (const e of game.enemies) if (!e.asleep && !e.dead) { if (e.kind === 'crawler') this.drawCrawler(e, game.time); else this.drawEnemy(e, game.time); }
@@ -343,6 +392,8 @@ const KRender = (() => {
       this.drawCaches(game);
       this.drawTablets(game);
       this.drawLoot(game);
+      if (!opt.flat) this.lightFrame(game);
+      this.drawMotes(true);
       this.drawProjectiles(game);
       this.drawParticles(game);
       this.drawFx(game);
@@ -358,7 +409,7 @@ const KRender = (() => {
     }
 
     drawCells(world, time) {
-      const { w, mat, shade, life, charge } = world, buf = this.buf, pal = this.pal;
+      const { w, mat, shade, life, charge } = world, buf = this.buf, pal = this.pal, kind = this.kind, par = this.par, pcx = this.cam.x >> 1, pcy = this.cam.y >> 1;
       const heat = this.heat, spark = this.spark, gw = this.gw;
       heat.fill(0); spark.fill(0);
       const fire = materials[M.FIRE].colors, magma = materials[M.MAGMA].colors;
@@ -366,6 +417,28 @@ const KRender = (() => {
       const lit = c => pack(clamp((c & 255) * 1.25 + 14), clamp(((c >> 8) & 255) * 1.2 + 12), clamp(((c >> 16) & 255) * 1.15 + 12));
       const dark = c => pack(clamp((c & 255) * 0.55), clamp(((c >> 8) & 255) * 0.5), clamp(((c >> 16) & 255) * 0.6));
       const open = q => q === M.EMPTY || q === M.STEAM || q === M.FIRE || q === M.GAS;
+      // How deep each solid cell on screen sits from an open one (1 at the face, up to 5), for the crust.
+      // Two sweeps over the screen; off the screen counts as solid.
+      const VWc = V.w, VHc = V.h, dist = this.dist && this.dist.length === VWc * VHc ? this.dist : (this.dist = new Uint8Array(VWc * VHc)), STT = KWorld.STATE;
+      for (let vy = 0; vy < VHc; vy++) {
+        const row = (vy + this.cam.y) * w + this.cam.x;
+        for (let vx = 0, o = vy * VWc; vx < VWc; vx++, o++) {
+          const s = STT[mat[row + vx]];
+          let d = s === 1 || s === 2 ? 5 : 0;
+          if (d) {
+            if (vx > 0 && dist[o - 1] + 1 < d) d = dist[o - 1] + 1;
+            if (vy > 0) { const u = o - VWc; if (dist[u] + 1 < d) d = dist[u] + 1; if (vx > 0 && dist[u - 1] + 1 < d) d = dist[u - 1] + 1; if (vx < VWc - 1 && dist[u + 1] + 1 < d) d = dist[u + 1] + 1; }
+          }
+          dist[o] = d;
+        }
+      }
+      for (let vy = VHc - 1; vy >= 0; vy--) for (let vx = VWc - 1, o = vy * VWc + vx; vx >= 0; vx--, o--) {
+        let d = dist[o]; if (d <= 1) continue;
+        if (vx < VWc - 1 && dist[o + 1] + 1 < d) d = dist[o + 1] + 1;
+        if (vy < VHc - 1) { const u = o + VWc; if (dist[u] + 1 < d) d = dist[u] + 1; if (vx > 0 && dist[u - 1] + 1 < d) d = dist[u - 1] + 1; if (vx < VWc - 1 && dist[u + 1] + 1 < d) d = dist[u + 1] + 1; }
+        dist[o] = d;
+      }
+      const moss = materials[M.MOSS].colors;
       // mark what is on screen as explored (for the map)
       for (let cy = this.cam.y >> 5; cy <= (this.cam.y + V.h - 1) >> 5; cy++) for (let cx = this.cam.x >> 5; cx <= (this.cam.x + V.w - 1) >> 5; cx++) world.explored[cy * world.cw + cx] = 1;
       for (let vy = 0; vy < V.h; vy++) {
@@ -375,7 +448,19 @@ const KRender = (() => {
           const end = Math.min(V.w, (ckx + 1) * 32 - this.cam.x);
           for (; vx < end; vx++) {
             const wx = vx + this.cam.x, i = row + wx, m = mat[i], o = vy * V.w + vx, li = ly + (wx & 31);
-            if (m === M.EMPTY) { buf[o] = C.bg[li]; continue; }
+            if (m === M.EMPTY) {
+              // the back wall, with a far layer of pillars that moves at half speed (backWall)
+              const bc = C.bg[li], d = par[((wy - pcy) & 255) * 256 + ((wx - pcx) & 255)];
+              buf[o] = d ? pack(clamp((bc & 255) + d), clamp(((bc >> 8) & 255) + d * 0.9), clamp(((bc >> 16) & 255) + d * 1.25)) : bc; kind[o] = 2;
+              // tufts of lichen on the tops of dirt, and roots hanging from its roofs
+              const below = mat[i + w], above = mat[i - w];
+              if (below === M.DIRT && hash(wx, wy, 68) < 0.42) { const g = moss[(hash(wx, 0, 69) * 4) | 0]; buf[o] = pack(g[0], g[1], g[2]); kind[o] = 0; }
+              else if (below === M.EMPTY && mat[i + 2 * w] === M.DIRT && hash(wx, wy + 1, 68) < 0.42 && hash(wx, wy, 70) < 0.3) { const g = moss[(hash(wx, 0, 69) * 4) | 0]; buf[o] = pack(g[0] * 0.8, g[1] * 0.8, g[2] * 0.8); kind[o] = 0; }
+              else if (above === M.DIRT && hash(wx, 0, 71) < 0.22) { buf[o] = pack(70, 56, 52); kind[o] = 0; }
+              else if (above === M.EMPTY && mat[i - 2 * w] === M.DIRT && hash(wx, 0, 71) < 0.22 && hash(wx, 1, 72) < 0.6) { buf[o] = pack(58, 46, 46); kind[o] = 0; }
+              continue;
+            }
+            kind[o] = m === M.FIRE || m === M.MAGMA || m === M.EMBER || m === M.CRYSTAL || m === M.ACID ? 1 : 0;
             const bgc = C.bg[li], bR = bgc & 255, bG = (bgc >> 8) & 255, bB = (bgc >> 16) & 255;
             if (m === M.WATER) {
               const top = mat[i - w] === M.EMPTY || mat[i - w] === M.STEAM;
@@ -390,7 +475,7 @@ const KRender = (() => {
             }
             if (m === M.STEAM) {
               const a = 0.16 + 0.42 * Math.min(1, life[i] / 120), c = materials[M.STEAM].colors[shade[i] % 3];
-              buf[o] = pack(clamp(bR + (c[0] - bR) * a), clamp(bG + (c[1] - bG) * a), clamp(bB + (c[2] - bB) * a));
+              buf[o] = pack(clamp(bR + (c[0] - bR) * a), clamp(bG + (c[1] - bG) * a), clamp(bB + (c[2] - bB) * a)); kind[o] = 3;
               continue;
             }
             if (m === M.FIRE) {
@@ -407,8 +492,12 @@ const KRender = (() => {
               continue;
             }
             if (m === M.MAGMA) {
-              const c = magma[shade[i] & 3], f = 0.82 + 0.18 * Math.sin(pulse + shade[i] * 0.1);
-              buf[o] = pack(clamp(c[0] * f), clamp(c[1] * f), clamp(c[2] * f));
+              // a dark crust that drifts slowly, split by bright cracks; the open surface glows hottest
+              const n1 = noise(wx + time * 2.2, wy, 9, 81) * 0.7 + noise(wx, wy - time * 1.4, 4, 82) * 0.3, crack = Math.abs(n1 - 0.5);
+              const top = mat[i - w] !== M.MAGMA;
+              if (top || crack < 0.045) { const c = magma[3]; buf[o] = pack(c[0], clamp(c[1] + (shade[i] & 15)), c[2]); }
+              else if (crack < 0.1) { const c = magma[shade[i] & 1]; buf[o] = pack(c[0], c[1], c[2]); }
+              else { const k = 0.32 + (0.5 - crack) * 0.5 + 0.06 * Math.sin(pulse + shade[i] * 0.1); buf[o] = pack(clamp(150 * k + 20), clamp(52 * k + 6), clamp(30 * k + 8)); }
               heat[grow + (vx >> 3)] += 0.25;
               continue;
             }
@@ -434,8 +523,15 @@ const KRender = (() => {
               if (open(above) || above === M.WATER) e = 1;
               else if (st === 1 && (open(mat[i + w]) || open(mat[i - 1]) || open(mat[i + 1]))) e = 2;
             }
-            if (m === M.DIRT || m === M.ROCK) {
-              const base = m === M.DIRT ? C.dirt[li] : C.rock[li];
+            if (m === M.DIRT) {
+              // a crust two or three cells thick on every open face, brightest at the edge and on top
+              const dd = dist[o];
+              if (dd === 1) buf[o] = e === 1 ? lit(C.rim[li]) : C.rim[li];
+              else if (dd === 2 || (dd === 3 && hash(wx, wy, 67) < 0.55)) buf[o] = C.crust[li];
+              else if (dd === 3) { const p1 = C.crust[li], p2 = C.dirt[li]; buf[o] = 0xff000000 | ((((p1 >> 16) & 255) + ((p2 >> 16) & 255)) >> 1) << 16 | ((((p1 >> 8) & 255) + ((p2 >> 8) & 255)) >> 1) << 8 | (((p1 & 255) + (p2 & 255)) >> 1); }
+              else buf[o] = C.dirt[li];
+            } else if (m === M.ROCK) {
+              const base = C.rock[li];
               buf[o] = e === 1 ? lit(base) : e === 2 ? dark(base) : base;
             } else if (m === M.WOOD) {
               // grain: long streaks down the timber, the same wherever the plank is seen from
@@ -773,27 +869,231 @@ const KRender = (() => {
       for (const [dx, dy] of [[2, 0], [3, 0], [-2, 0], [-3, 0], [0, 2], [0, 3], [0, -2], [0, -3]]) this.plot(x + dx, y + dy, 240, 232, 220, 0.85);
     }
 
+    // ---------- light (v0.66) ----------
+    // The cave is lit cell by cell. Every light (the golem, fire, magma, embers, crystals, spells, loot, Lodestones)
+    // is put on a coarse grid, one square for each 4 x 4 cells, with a margin round the screen so lights just off it
+    // still reach in. The light then spreads out square by square, dimming at each step, and almost stops at rock:
+    // it runs along tunnels and round corners but not through walls, and only the face of a wall catches it.
+    // Each cell's colour is multiplied by the light where it is; burning and glowing cells keep their own colour,
+    // and the back wall gets a little less. Drawing only: no rule depends on it.
+    lightFrame(game) {
+      const LS = 4, MG = 10, lw = Math.ceil(V.w / LS) + MG * 2 + 1, lh = Math.ceil(V.h / LS) + MG * 2 + 1, n = lw * lh;
+      let L = this.L;
+      let fresh = false;
+      if (!L || L.lw !== lw || L.lh !== lh) { L = this.L = { lw, lh, r: new Float32Array(n), g: new Float32Array(n), b: new Float32Array(n), t: new Float32Array(n) }; fresh = true; }
+      // The grid is worked out every other frame (light changes slowly; the grid is fixed to the cave, not the
+      // screen, so it still fits after the camera moves a little). The shading below runs every frame.
+      this._lf = (this._lf + 1) & 1;
+      if (fresh || this._lf || Math.abs(Math.floor(this.cam.x / LS) - MG - L.gx0) > 4 || Math.abs(Math.floor(this.cam.y / LS) - MG - L.gy0) > 4) this.lightGrid(game, L, LS, MG);
+      this.shadeCells(game, L, LS);
+    }
+    lightGrid(game, L, LS, MG) {
+      const lw = L.lw, lh = L.lh;
+      const gx0 = Math.floor(this.cam.x / LS) - MG, gy0 = Math.floor(this.cam.y / LS) - MG;
+      L.gx0 = gx0; L.gy0 = gy0;
+      const { r: LR, g: LG, b: LB, t: T } = L, world = game.world, mat = world.mat, W = world.w, H = world.h, ST = KWorld.STATE;
+      LR.fill(0); LG.fill(0); LB.fill(0);
+      // how much light gets into each square: open cave 1, water 0.7, solid 0.4
+      for (let gy = 0; gy < lh; gy++) for (let gx = 0; gx < lw; gx++) {
+        const x0 = (gx0 + gx) * LS, y0 = (gy0 + gy) * LS;
+        let open = 0;
+        if (x0 >= 0 && y0 >= 0 && x0 + LS <= W && y0 + LS <= H) {
+          for (let yy = 0; yy < LS; yy += 1) { const xx = (yy * 3 + 1) & 3;   // one cell in each row, staggered
+            const m = mat[(y0 + yy) * W + x0 + xx], s = ST[m];
+            open += s === 1 || s === 2 ? 0 : s === 3 ? 0.55 : 1;
+          }
+          open /= LS;
+        }
+        T[gy * lw + gx] = 0.55 + 0.45 * open;
+      }
+      const seed = (x, y, rad, cr, cg, cb, v) => {
+        const fx = x / LS - gx0 - 0.5, fy = y / LS - gy0 - 0.5, rr = Math.max(0.6, rad / LS);
+        const ax = Math.max(0, Math.floor(fx - rr)), bx = Math.min(lw - 1, Math.ceil(fx + rr)), ay = Math.max(0, Math.floor(fy - rr)), by = Math.min(lh - 1, Math.ceil(fy + rr));
+        for (let gy = ay; gy <= by; gy++) for (let gx = ax; gx <= bx; gx++) {
+          const dx = gx - fx, dy = gy - fy, d2 = dx * dx + dy * dy; if (d2 > (rr + 0.5) * (rr + 0.5)) continue;
+          const d = Math.sqrt(d2);
+          const k = v * Math.min(1, 1.25 - d / (rr + 0.5)), i = gy * lw + gx;
+          LR[i] += cr * k; LG[i] += cg * k; LB[i] += cb * k;
+        }
+      };
+      // the golems carry their own light, a little more the way they look
+      for (const p of game.players) if (!p.dead) {
+        seed(p.x, p.y - 8, 30, 1, 0.94, 0.86, 1.05);
+        seed(p.x + Math.cos(p.aim) * 30, p.y - 8 + Math.sin(p.aim) * 30, 14, 1, 0.94, 0.86, 0.45);
+      }
+      // burning and glowing cells, from the counts drawCells made (one square of 8 x 8 cells each)
+      const gw = this.gw;
+      for (let gy = 0; gy < this.gh; gy++) for (let gx = 0; gx < gw; gx++) {
+        const h = this.heat[gy * gw + gx], s = this.spark[gy * gw + gx], wx = this.cam.x + gx * 8 + 4, wy = this.cam.y + gy * 8 + 4;
+        if (h > 0) seed(wx, wy, 6, 1, 0.52, 0.2, Math.min(2.2, 0.25 + h * 0.06));
+        if (s > 0) seed(wx, wy, 6, 0.55, 0.78, 1, Math.min(1.4, 0.15 + s * 0.05));
+      }
+      // everything else that glows: the lights drawGlow asked for last frame
+      const Q = this.lightsPrev;
+      for (let k = 0; k < Q.length; k += 7) seed(Q[k], Q[k + 1], Q[k + 2] * 0.8, Q[k + 3] / 255, Q[k + 4] / 255, Q[k + 5] / 255, Q[k + 6] * 1.5);
+      // spread: one sweep each way (down-right, then up-left), which reaches round one corner; a step of 4 cells costs 11.5% in the open
+      const k1 = 0.885, k2 = 0.841;
+      for (let pass = 0; pass < 1; pass++) {
+        for (let gy = 1; gy < lh; gy++) for (let gx = 1, i = gy * lw + 1; gx < lw - 1; gx++, i++) {
+          const t = T[i], a = t * k1, d = t * k2, u = i - lw;
+          let v = LR[i], c;
+          if ((c = LR[i - 1] * a) > v) v = c; if ((c = LR[u] * a) > v) v = c; if ((c = LR[u - 1] * d) > v) v = c; if ((c = LR[u + 1] * d) > v) v = c; LR[i] = v;
+          v = LG[i]; if ((c = LG[i - 1] * a) > v) v = c; if ((c = LG[u] * a) > v) v = c; if ((c = LG[u - 1] * d) > v) v = c; if ((c = LG[u + 1] * d) > v) v = c; LG[i] = v;
+          v = LB[i]; if ((c = LB[i - 1] * a) > v) v = c; if ((c = LB[u] * a) > v) v = c; if ((c = LB[u - 1] * d) > v) v = c; if ((c = LB[u + 1] * d) > v) v = c; LB[i] = v;
+        }
+        for (let gy = lh - 2; gy >= 0; gy--) for (let gx = lw - 2, i = gy * lw + gx; gx >= 1; gx--, i--) {
+          const t = T[i], a = t * k1, d = t * k2, u = i + lw;
+          let v = LR[i], c;
+          if ((c = LR[i + 1] * a) > v) v = c; if ((c = LR[u] * a) > v) v = c; if ((c = LR[u - 1] * d) > v) v = c; if ((c = LR[u + 1] * d) > v) v = c; LR[i] = v;
+          v = LG[i]; if ((c = LG[i + 1] * a) > v) v = c; if ((c = LG[u] * a) > v) v = c; if ((c = LG[u - 1] * d) > v) v = c; if ((c = LG[u + 1] * d) > v) v = c; LG[i] = v;
+          v = LB[i]; if ((c = LB[i + 1] * a) > v) v = c; if ((c = LB[u] * a) > v) v = c; if ((c = LB[u - 1] * d) > v) v = c; if ((c = LB[u + 1] * d) > v) v = c; LB[i] = v;
+        }
+      }
+      // the region's own dim light, everywhere
+      const me = game.players[game.me || 0], B = world.biomes[world.biomeAt(me.x, me.y - 8)];
+      const amb = Math.max(0.2, Math.min(0.46, 0.08 + (1 - (B.dark == null ? 0.6 : B.dark)) * 0.75));
+      this.amb += (amb - this.amb) * 0.1;
+    }
+    shadeCells(game, L, LS) {
+      const lw = L.lw, gx0 = L.gx0, gy0 = L.gy0, LR = L.r, LG = L.g, LB = L.b;
+      // shade: the grid's light is spread smoothly between square centres, a row at a time, in whole numbers (256 = 1)
+      const buf = this.buf, kind = this.kind, VW = V.w, hr = this.hrow || (this.hrow = new Int32Array(6 * 2048));
+      const A = (this.amb * 256) | 0, Ab = (this.amb * 287) | 0, CAP = 400;
+      const gxs = this.gxs || (this.gxs = new Int32Array(2048)), gxf = this.gxf || (this.gxf = new Int32Array(2048));
+      for (let vx = 0; vx < VW; vx++) { const q = (vx + this.cam.x) / LS - gx0 - 0.5, gi = Math.floor(q); gxs[vx] = gi; gxf[vx] = ((q - gi) * 256) | 0; }
+      let rowA = -1;
+      for (let vy = 0; vy < V.h; vy++) {
+        const u = (vy + this.cam.y) / LS - gy0 - 0.5, j = Math.floor(u), f = ((u - j) * 256) | 0;
+        if (j !== rowA) {
+          rowA = j;
+          for (let h2 = 0; h2 < 2; h2++) {
+            const base = (j + h2) * lw, off = h2 * 6144;
+            for (let vx = 0; vx < VW; vx++) {
+              const i0 = base + gxs[vx], e = gxf[vx] / 256;
+              hr[off + vx] = ((LR[i0] + (LR[i0 + 1] - LR[i0]) * e) * 256) | 0;
+              hr[off + 2048 + vx] = ((LG[i0] + (LG[i0 + 1] - LG[i0]) * e) * 256) | 0;
+              hr[off + 4096 + vx] = ((LB[i0] + (LB[i0 + 1] - LB[i0]) * e) * 256) | 0;
+            }
+          }
+        }
+        for (let vx = 0, o = vy * VW; vx < VW; vx++, o++) {
+          const kd = kind[o], r0 = hr[vx], g0 = hr[2048 + vx], b0 = hr[4096 + vx];
+          let lr = A + r0 + (((hr[6144 + vx] - r0) * f) >> 8), lg = A + g0 + (((hr[8192 + vx] - g0) * f) >> 8), lb = Ab + b0 + (((hr[10240 + vx] - b0) * f) >> 8);
+          if (kd === 1) { lr = 256; lg = 256; lb = 256; }   // burning and glowing cells show their own colour
+          else if (kd === 2) { lr = (lr * 205) >> 8; lg = (lg * 205) >> 8; lb = (lb * 205) >> 8; }
+          else if (kd === 3) { if (lr > 256) lr = 256; if (lg > 256) lg = 256; if (lb > 256) lb = 256; }   // steam takes the light but never shines white
+          if (lr > CAP) lr = CAP; if (lg > CAP) lg = CAP; if (lb > CAP) lb = CAP;
+          const c = buf[o];
+          let r = ((c & 255) * lr) >> 8, g = (((c >> 8) & 255) * lg) >> 8, b = (((c >> 16) & 255) * lb) >> 8;
+          if (r > 255) r = 255; if (g > 255) g = 255; if (b > 255) b = 255;
+          buf[o] = 0xff000000 | (b << 16) | (g << 8) | r;
+        }
+      }
+    }
+
+    // ---------- the cave's own small movements (v0.66) ----------
+    // Dust drifting in the light, embers and smoke rising off fire, drips from the roof under water, glints on
+    // crystal, bubbles on acid, and sparks from every blast. Drawing only, with the browser's own dice: two
+    // players in co-op see different dust, and that is fine.
+    ambient(game) {
+      const dt = Math.max(0, Math.min(0.05, game.time - (this._lt ?? game.time))); this._lt = game.time;
+      const P = this.motes, world = game.world, mat = world.mat, W = world.w, cam = this.cam, rnd = Math.random;
+      const add = (x, y, vx, vy, T, kind, c) => { if (P.length < 900) P.push({ x, y, vx, vy, t: 0, T, kind, c }); };
+      if (dt > 0) {
+        // dust in the open, never many
+        let dust = 0; for (const q of P) if (q.kind === 0) dust++;
+        for (let k = 0; k < 3 && dust < 90; k++) {
+          const x = cam.x + rnd() * V.w, y = cam.y + rnd() * V.h;
+          if (mat[(y | 0) * W + (x | 0)] === M.EMPTY) { add(x, y, (rnd() - 0.5) * 4, (rnd() - 0.5) * 3, 5 + rnd() * 6, 0, null); dust++; }
+        }
+        // embers and smoke over fire
+        const gw = this.gw;
+        for (let gy = 0; gy < this.gh; gy++) for (let gx = 0; gx < gw; gx++) {
+          const h = this.heat[gy * gw + gx]; if (h <= 0) continue;
+          const x = cam.x + gx * 8 + rnd() * 8, y = cam.y + gy * 8 + rnd() * 8;
+          if (rnd() < Math.min(0.6, h * 0.03)) add(x, y, (rnd() - 0.5) * 14, -18 - rnd() * 36, 0.5 + rnd() * 1.1, 1, null);
+          if (rnd() < Math.min(0.25, h * 0.008)) add(x, y - 2, (rnd() - 0.5) * 6, -8 - rnd() * 8, 2 + rnd() * 2, 2, null);
+          const s = this.spark[gy * gw + gx];
+          if (s > 0 && rnd() < Math.min(0.3, s * 0.02)) add(x, y, 0, 0, 0.35, 3, null);
+        }
+        // look at a few cells: drips under water and wet roofs, bubbles on acid
+        for (let k = 0; k < 90; k++) {
+          const x = (cam.x + rnd() * V.w) | 0, y = (cam.y + rnd() * V.h) | 0, i = y * W + x, m = mat[i];
+          if (mat[i + W] !== M.EMPTY) continue;
+          if ((m === M.WATER && rnd() < 0.05) || ((m === M.MOSS || m === M.MUD) && rnd() < 0.004)) add(x + 0.5, y + 1, 0, 0, 3, 4, m === M.WATER ? [110, 160, 255] : [90, 120, 150]);
+        }
+        for (let k = 0; k < 40; k++) {
+          const x = (cam.x + rnd() * V.w) | 0, y = (cam.y + rnd() * V.h) | 0, i = y * W + x;
+          if (mat[i] === M.ACID && mat[i - W] === M.EMPTY && rnd() < 0.3) add(x + 0.5, y - 1, (rnd() - 0.5) * 4, -6 - rnd() * 8, 0.6 + rnd() * 0.6, 5, null);
+          else if (mat[i] === M.MAGMA && mat[i - W] === M.EMPTY && rnd() < 0.15) add(x + 0.5, y - 1, (rnd() - 0.5) * 20, -25 - rnd() * 40, 0.6 + rnd() * 0.8, 1, null);
+        }
+        // spells in flight leave a trail: embers behind fire, grit behind stone
+        for (const pr of game.projectiles) {
+          if (pr.kind === 'fireball') for (let s = 0; s < 2; s++) add(pr.x + (rnd() - 0.5) * 3, pr.y + (rnd() - 0.5) * 3, -pr.vx * 0.08 + (rnd() - 0.5) * 16, -pr.vy * 0.08 + (rnd() - 0.5) * 16 - 8, 0.25 + rnd() * 0.4, 1, null);
+          else if ((pr.kind === 'spear' || pr.kind === 'boulder' || pr.kind === 'stone') && rnd() < 0.7) add(pr.x, pr.y, (rnd() - 0.5) * 10, (rnd() - 0.5) * 6, 0.5 + rnd() * 0.5, 7, null);
+          else if (pr.kind === 'blob' && rnd() < 0.6) add(pr.x, pr.y, (rnd() - 0.5) * 12, (rnd() - 0.5) * 12, 0.3 + rnd() * 0.3, 1, null);
+        }
+        // lightning crackles where it strikes
+        for (const f of game.fx) if (f.kind === 'bolt' && !this.seenFx.has(f) && f.pts && f.pts.length) {
+          this.seenFx.add(f);
+          const e = f.pts[f.pts.length - 1];
+          for (let k = 0; k < 14; k++) { const an = rnd() * Math.PI * 2, sp = 40 + rnd() * 120; add(e.x, e.y, Math.cos(an) * sp, Math.sin(an) * sp, 0.15 + rnd() * 0.35, 8, null); }
+        }
+        // every blast throws sparks and a puff of smoke, once
+        for (const f of game.fx) if (f.kind === 'flash' && !this.seenFx.has(f)) {
+          this.seenFx.add(f);
+          const nn = Math.min(40, 8 + f.r * 1.2);
+          for (let k = 0; k < nn; k++) { const an = rnd() * Math.PI * 2, sp = 30 + rnd() * 110; add(f.x, f.y, Math.cos(an) * sp, Math.sin(an) * sp - 20, 0.3 + rnd() * 0.7, 1, null); }
+          for (let k = 0; k < nn / 3; k++) add(f.x + (rnd() - 0.5) * f.r, f.y + (rnd() - 0.5) * f.r, (rnd() - 0.5) * 10, -6 - rnd() * 10, 1.5 + rnd() * 2, 2, null);
+        }
+      }
+      // move
+      for (let k = P.length - 1; k >= 0; k--) {
+        const q = P[k]; q.t += dt;
+        if (q.t >= q.T) { P[k] = P[P.length - 1]; P.pop(); continue; }
+        if (q.kind === 0) { q.vx += (rnd() - 0.5) * 6 * dt; q.vy += (rnd() - 0.5) * 6 * dt; }
+        else if (q.kind === 1) { q.vy += 30 * dt; q.vx += Math.sin(q.t * 9 + q.x) * 30 * dt; }
+        else if (q.kind === 7) q.vy += 60 * dt;
+        else if (q.kind === 8) { q.vx *= 0.9; q.vy *= 0.9; }
+        else if (q.kind === 4) q.vy += 260 * dt;
+        q.x += q.vx * dt; q.y += q.vy * dt;
+        const c = mat[(q.y | 0) * W + (q.x | 0)];
+        if ((q.kind === 1 || q.kind === 4) && c !== M.EMPTY && c !== M.GAS && c !== M.STEAM && c !== M.FIRE) {
+          if (q.kind === 4) for (let s = 0; s < 2; s++) add(q.x, q.y - 1, (rnd() - 0.5) * 30, -20 - rnd() * 20, 0.25, 6, q.c);
+          P[k] = P[P.length - 1]; P.pop();
+        }
+      }
+    }
+    // lit is false for what the light should fall on (dust, drips), true for what glows by itself (embers, glints)
+    drawMotes(lit) {
+      const P = this.motes;
+      for (const q of P) {
+        const glow = q.kind === 1 || q.kind === 3 || q.kind === 5 || q.kind === 8;
+        if (glow !== lit && !(lit && q.kind === 2)) continue;
+        const x = q.x - this.cam.x, y = q.y - this.cam.y, a = q.t / q.T;
+        if (q.kind === 0) { const f = Math.min(1, Math.min(q.t, q.T - q.t) / 1.5); this.plot(x, y, 220, 214, 236, 0.55 * f); }
+        else if (q.kind === 1) { const r = 255, g = 230 - a * 170, b = 140 - a * 120; this.plot(x, y, r, clamp(g), clamp(b), 1 - a * 0.5); }
+        else if (q.kind === 2) { const s = a < 0.5 ? 1 : 2; for (let yy = 0; yy < s; yy++) for (let xx = 0; xx < s; xx++) this.plot(x + xx, y + yy, 46, 42, 52, 0.28 * (1 - a)); }
+        else if (q.kind === 3) { const f = 1 - Math.abs(a * 2 - 1); this.plot(x, y, 235, 255, 252, f); this.plot(x + 1, y, 160, 240, 235, f * 0.5); this.plot(x - 1, y, 160, 240, 235, f * 0.5); this.plot(x, y - 1, 160, 240, 235, f * 0.5); this.plot(x, y + 1, 160, 240, 235, f * 0.5); }
+        else if (q.kind === 4 || q.kind === 6) this.plot(x, y, q.c[0], q.c[1], q.c[2], 0.9);
+        else if (q.kind === 5) this.plot(x, y, 200, 255, 140, 1 - a);
+        else if (q.kind === 7) this.plot(x, y, 170, 160, 150, 0.8 * (1 - a));
+        else if (q.kind === 8) this.plot(x, y, 220 + 35 * (1 - a), 235, 255, 1 - a * 0.6);
+      }
+    }
+
     drawGlow(game) {
       const g = this.gctx;
       g.globalCompositeOperation = 'source-over';
       g.clearRect(0, 0, this.glow.width, this.glow.height);
       g.globalCompositeOperation = 'lighter';
-      if (this.dctx) {
-        const d = this.dctx, me = game.players[game.me || 0], B = game.world.biomes[game.world.biomeAt(me.x, me.y - 8)];
-        d.globalCompositeOperation = 'source-over'; d.globalAlpha = 1; d.clearRect(0, 0, this.dark.width, this.dark.height);
-        d.fillStyle = `rgba(5, 3, 12, ${B.dark == null ? 0.4 : B.dark})`; d.fillRect(0, 0, this.dark.width, this.dark.height);
-        d.globalCompositeOperation = 'destination-out';
-        for (const p of game.players) if (!p.dead) { this.carve(p.x, p.y - 8, 105, 1); this.carve(p.x + Math.cos(p.aim) * 40, p.y - 8 + Math.sin(p.aim) * 40, 70, 0.6); }   // its own glow, and a little more the way it looks
-      }
       const gw = this.gw;
       for (let gy = 0; gy < this.gh; gy++) for (let gx = 0; gx < gw; gx++) {
         const h = this.heat[gy * gw + gx], s = this.spark[gy * gw + gx];
         const wx = this.cam.x + gx * 8 + 4, wy = this.cam.y + gy * 8 + 4;
         // a few burning cells glow strongly; a whole lake of magma only warmly (it would wash out to white)
-        // a lake of magma is hundreds of these: every other one opens the darkness, wider, which looks the same and costs half
-        const odd = (gx + gy) & 1;
-        if (h > 0) { this.light(wx, wy, 10 + Math.min(10, h * 0.3), [255, 120, 50], 0.1 + Math.min(0.28, h / 60), true); if (!odd || h < 6) this.carve(wx, wy, 44, 0.5 + Math.min(0.5, h / 30)); }
-        if (s > 0) { this.light(wx, wy, 9 + Math.min(10, s * 0.3), [140, 190, 255], 0.1 + Math.min(0.4, s / 50), true); if (!odd || s < 6) this.carve(wx, wy, 40, 0.5 + Math.min(0.5, s / 25)); }
+        if (h > 0) this.light(wx, wy, 10 + Math.min(10, h * 0.3), [255, 120, 50], 0.1 + Math.min(0.28, h / 60), true);   // these light the cave through lightFrame's own counts
+        if (s > 0) this.light(wx, wy, 9 + Math.min(10, s * 0.3), [140, 190, 255], 0.1 + Math.min(0.4, s / 50), true);
       }
       for (const L of game.loot) this.light(L.x, L.y - 2, 9, KData.runes.tiers[L.rune.tier].color, 0.55);
       for (const c of game.world.caches) if (!game.opened.has(c.id)) this.light(c.x, c.y - 4, 16, [255, 200, 110], 0.38 + 0.12 * Math.sin(game.time * 2 + c.id));
