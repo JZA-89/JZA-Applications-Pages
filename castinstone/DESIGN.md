@@ -692,6 +692,12 @@ Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
 
+## Creatures keep out of hazards; the waking hall (v0.73)
+
+- **Creatures on foot keep out of what hurts them** (`game.hazardGuard`, after every creature's own move): with fire, embers, magma or acid within 6 cells ahead of their feet they neither step nor jump that way (embers are solid, so they read as a step to climb), and one on patrol turns round; standing in it, they step out towards the cleaner side. Fire-proof creatures (imps) ignore fire. It does nothing in the air (a leap over a hazard is the creature's own choice) and for 0.4 s after a hit, so knockback can still put a creature into a hazard. Checked with scratchpad `hz.js`: crawlers, delvers and boars chasing the golem across lit embers stop about 19 cells from the middle of a 13-wide strip and take no damage.
+- **The waking hall** (generation step 7b, Jaisah: no tutorial, but more of a start): the hub is shaped into a hall before anything is placed in it, a level floor 140 to 240 cells long with a vaulted roof (rock that reaches in stays), and after the Lodestones are placed its floor is paved with two courses of brick, with columns every 30 to 37 cells (some broken short), lanterns on most of them and torn banners from the roof, all in `world.decor` (drawn on the back wall only, never solid). The three chambers nearest the hub always get a set piece (step 10d), so there is something to find in the first minutes.
+- Saves moved to `castinstone.save.v9`.
+
 ## Only time brings creatures back (v0.72)
 
 Jaisah: in co-op it is hard to justify fighting back through a refilled cave to reach a friend who is still alive, so dying no longer brings creatures back, alone or in co-op; only time does. Each killed creature gets its own countdown when it dies: `returnAfter` (480 s) × (1 ± `returnJitter` 0.25), so 6 to 10 minutes, from the seeded dice, saved with it. When a golem dies, the creatures that were hunting it still go home and forget it (`calmEnemies`; in co-op, not those fighting the other golem). Checked with scratchpad `dr.js`: 30 kills got countdowns of 374 to 597 s, and all 30 were still dead after the golem died and came back.
@@ -801,6 +807,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.73 (2026-11-27):** creatures on foot keep out of fire, embers, magma and acid; the hub is a waking hall; set pieces always in the three nearest chambers. Jaisah: no tutorial ("let the player work it out naturally. If they die they die"), but more of a start. Homepage description made a broad overview and the demo caption removed (Jaisah). Saves start again (`castinstone.save.v9`).
 
 - **v0.72 (2026-11-27):** dying no longer brings creatures back; each returns 6 to 10 minutes after it died (Jaisah).
 

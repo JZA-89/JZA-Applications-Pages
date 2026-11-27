@@ -628,6 +628,18 @@ const KWorld = (() => {
         if (x < 6 + n || x > w - 7 - n || y < 6 + n || y > h - 7 - n) mat[y * w + x] = M.ROCK;
       }
 
+      // 7b. the waking hall (v0.73): the hub is shaped into a hall, a level floor and a vaulted roof, before anything
+      // is placed in it. Rock that reaches into it stays; everything else inside is cleared, and the floor is filled.
+      {
+        const half = Math.round(Math.min(120, Math.max(70, hub.rx * 0.85))), hf = Math.round(hub.y + hub.ry * 0.35), hx = Math.round(hub.x);
+        for (let xx = hx - half; xx <= hx + half; xx++) {
+          const f = (xx - hx) / half, roof = Math.round(38 + 24 * Math.sqrt(Math.max(0, 1 - f * f)) + (noise(xx, 0, 9, s + 104) - 0.5) * 6);
+          for (let yy = hf - roof; yy < hf; yy++) if (mat[yy * w + xx] !== M.ROCK) mat[yy * w + xx] = M.EMPTY;
+          for (let yy = hf; yy < hf + 24; yy++) if (mat[yy * w + xx] === M.EMPTY) mat[yy * w + xx] = M.DIRT;
+        }
+        this.hall = { x0: hx - half, x1: hx + half, floor: hf };
+      }
+
       // 8. regions: rose around the hub; further out, the nearest region seed
       const seeds = [], turn = R() * Math.PI * 2;
       for (let k = 0; k < 6; k++) {
@@ -893,6 +905,7 @@ const KWorld = (() => {
           }
         }
       }
+      const nearHub = new Set(nodes.filter(n => !n.hub && !n.lair && n.rx >= 34).sort((a, b) => a.dist - b.dist).slice(0, 3));
       // 10d. set pieces (v0.69): built from rules with random sizes and damage, so no two are alike. One chamber in
       // a few gets one, chosen by what suits its region. A shrine (a stepped brick plinth between pillars under a
       // lintel, often broken, with a relic cache on top), a sunken vault (a brick-lined pit in the floor, flooded,
@@ -905,7 +918,7 @@ const KWorld = (() => {
       for (const n of nodes) {
         if (n.hub || n.lair || n.rx < 34) continue;
         const B = this.biomes[n.biome];
-        if (R() > 0.3) continue;
+        if (R() > (nearHub.has(n) ? 1 : 0.3)) continue;   // the three chambers nearest the hub always get one: something to find early
         const pick = R(), px = Math.round(n.x + (R() - 0.5) * n.rx * 0.6), fy = this.floorBelow(px, Math.round(n.y));
         if (fy - n.y > n.ry + 6) continue;
         const room = fy - ceilAbove(px, fy - 1);
@@ -1121,6 +1134,33 @@ const KWorld = (() => {
         if (sp) this.lodestones.push({ id: this.lodestones.length, x: sp.x, y: sp.y });
       }
       for (const l of this.lodestones) { l.region = this.biomes[this.biomeAt(l.x, l.y - 8)].name; l.level = this.levelAt(l.x, l.y); }
+      // The waking hall (v0.73): the hub is what is left of an old hall. Brick paving round where the golem wakes,
+      // and behind it (world.decor, drawn only on the back wall, never solid) columns with lanterns and torn
+      // banners hanging from the roof. Every hall is laid out from the seed, so no two are the same.
+      {
+        const Hh = this.hall, sx = (Hh.x0 + Hh.x1) >> 1, sy = Hh.floor, half = (Hh.x1 - Hh.x0) >> 1;
+        for (let xx = Hh.x0 + 4; xx <= Hh.x1 - 4; xx++) {
+          const b = this.floorBelow(xx, sy - 20);
+          if (Math.abs(b - sy) > 3) continue;
+          for (let k = 0; k < 2; k++) { const q = mat[(b + k) * w + xx]; if (q === M.DIRT || q === M.MOSS || q === M.EARTH) mat[(b + k) * w + xx] = M.BRICK; }
+        }
+        const gap = 30 + Math.floor(R() * 8);
+        for (let k = -3; k <= 3; k++) {
+          if (!k) continue;
+          const cx = sx + k * gap, fb = this.floorBelow(cx, sy - 20);
+          if (Math.abs(cx - sx) > half - 6 || Math.abs(fb - sy) > 3) continue;
+          const top = Math.max(ceilAbove(cx, sy - 20) + 1, fb - 64);
+          if (fb - top < 24) continue;
+          const broken = R() < 0.35 ? Math.floor((fb - top) * (0.35 + R() * 0.3)) : 0;
+          this.decor.push({ kind: 'column', x: cx - 4, w: 9, y0: top + broken, y1: fb - 1, cap: !broken });
+          if (!broken && R() < 0.7) this.decor.push({ kind: 'lamp', x: cx, y: fb - 24, hold: null });
+          if (Math.abs(k) < 3 && R() < 0.6) {
+            const bx = cx + Math.round(gap / 2), roof = ceilAbove(bx, fb - 1);
+            if (fb - roof > 40) this.decor.push({ kind: 'banner', x: bx - 3, y0: roof + 1, len: 16 + Math.floor(R() * 12), col: R() < 0.5 ? [120, 46, 52] : [52, 60, 110], seed: Math.floor(R() * 1000) });
+          }
+        }
+      }
+
       // specks left by the last steps (shelves under high caches are 13 cells and stay)
       { const keep = World.MIN_PIECE; World.MIN_PIECE = 10; this.cleanup(0, 0, w, h, M.EMPTY); World.MIN_PIECE = keep; }
       this.changed = new Uint8Array(this.cw * this.ch); // chunks changed since generation (for saving)

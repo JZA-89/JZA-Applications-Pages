@@ -787,6 +787,29 @@ const KRender = (() => {
             const g = hash(d.x + k, y >> 2, 99) < 0.2 ? 0.8 : 1, r = k ? 74 : 96;
             buf[o] = pack(r * g | 0, (r * 0.68) * g | 0, (r * 0.44) * g | 0);
           }
+        } else if (d.kind === 'column' || d.kind === 'banner') {
+          const x0 = d.x - cx, top = d.kind === 'column' ? d.y0 : d.y0, bottom = d.kind === 'column' ? d.y1 : d.y0 + d.len;
+          if (x0 > VW || x0 + (d.w || 7) < 0 || bottom < cy || top > cy + VH) continue;
+          for (let y = Math.max(top, cy); y <= Math.min(bottom, cy + VH - 1); y++) {
+            const vy = y - cy;
+            if (d.kind === 'column') {
+              const end = y - d.y0 < 3 && d.cap || d.y1 - y < 3, ww = end ? d.w + 2 : d.w, xs = end ? -1 : 0;
+              for (let i = 0; i < ww; i++) {
+                const vx = x0 + xs + i, o = vy * VW + vx; if (vx < 0 || vx >= VW || kind[o] !== 2) continue;
+                const row = (y / 3) | 0, mortar = y % 3 === 0 || ((d.x + xs + i + (row & 1) * 3) % 6) === 0, edge = i === 0 || i === ww - 1;
+                const v = mortar ? 0.62 : 0.86 + 0.14 * hash(d.x + i >> 1, row, 101), lit = edge ? 0.8 : 1;
+                buf[o] = pack(108 * v * lit | 0, 100 * v * lit | 0, 112 * v * lit | 0);
+              }
+            } else {
+              const fray = d.y0 + d.len - Math.floor(hash(d.seed, y, 102) * 0);
+              for (let i = 0; i < 7; i++) {
+                const vx = x0 + i, o = vy * VW + vx; if (vx < 0 || vx >= VW || kind[o] !== 2) continue;
+                if (y > d.y0 + d.len - 1 - Math.floor(hash(d.seed + i, 0, 103) * 6)) continue;   // a torn bottom
+                const c = d.col, sh = i === 0 || i === 6 ? 0.7 : 1, emb = (y - d.y0 === 6 || y - d.y0 === 7) && (i === 3) ? 1 : 0;
+                buf[o] = emb ? pack(200, 166, 90) : pack(c[0] * sh | 0, c[1] * sh | 0, c[2] * sh | 0);
+              }
+            }
+          }
         } else if (d.kind === 'lamp') {
           const sx = d.x - cx, sy = d.y - cy; if (sx < -3 || sy < -8 || sx > VW + 3 || sy > VH + 3) continue;
           if (d.hold) for (let y = d.hold[1] + 1 - cy; y < sy - 2; y++) if (y >= 0 && y < VH && sx >= 0 && sx < VW) { const o = y * VW + sx; buf[o] = pack(60, 54, 58); kind[o] = 0; }

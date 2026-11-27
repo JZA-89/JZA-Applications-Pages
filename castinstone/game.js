@@ -2211,7 +2211,8 @@ const KGame = (() => {
       if (e.dead) return;   // the dead stay dead until their time is up (returnTick)
       // just risen at a Lodestone, or just left one: nothing hunts you for a few seconds unless you hurt it
       if (this.time - (e.lastHurt ?? -9) > 2 && this.players.every(q => q.dead || q.calmT > 0)) { e.lastSeen = -9; if (!e.flying) e.vx *= 0.9; return; }
-      if (e.kind === 'crawler') return this.crawlerTick(e);
+      const g0 = e.grounded;   // on the ground before it chose this step's move (hazardGuard)
+      if (e.kind === 'crawler') { this.crawlerTick(e); return this.hazardGuard(e, g0); }
       e.t = (e.t || 0) + DT;
       const w = this.world;
       let p = null, best = 1e9;
@@ -2230,8 +2231,32 @@ const KGame = (() => {
       if (!e.state || e.state === 'patrol') e.state = aware ? 'chase' : 'idle';
       if (e.slowT > 0) e.slowT -= DT;
       const slow = (e.inMud || e.slowT > 0) ? 0.35 : 1;
-      if (e.champion && this.championTick(e, p, aware, set, w)) return;
+      if (e.champion && this.championTick(e, p, aware, set, w)) return this.hazardGuard(e, g0);
       this['tick_' + e.kind](e, E, p, aware, see, set, slow, w);
+      this.hazardGuard(e, g0);
+    }
+    // v0.73: creatures on foot keep out of what hurts them. With fire, embers, magma or acid just ahead of
+    // their feet they stop at the edge (one on patrol turns round); standing in it, they step out towards
+    // the cleaner side. Fire-proof creatures ignore fire. For 0.4 s after a hit it is off, so a creature can
+    // still be knocked into a hazard on purpose.
+    hazardGuard(e, g0) {
+      if (e.dead || e.flying || e.noclip || e.anchored || !g0 || this.time - (e.lastHurt ?? -9) < 0.4) return;   // already in the air: a leap over it is its own choice
+      const w = this.world, hot = this.affinity(e, 'fire') > 0;
+      const bad = m => m === M.ACID || (hot && (m === M.FIRE || m === M.EMBER || m === M.MAGMA));
+      const y0 = Math.round(e.y) - 3, y1 = Math.round(e.y) + 2;
+      const look = (x0, x1) => { let n = 0; for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) if (bad(w.get(x, y))) n++; return n; };
+      const xl = Math.floor(e.x - e.w / 2), xr = Math.ceil(e.x + e.w / 2);
+      const under = look(xl, xr);
+      if (under) {
+        const left = look(xl - 8, xl - 1), right = look(xr + 1, xr + 8);
+        const dir = left < right ? -1 : left > right ? 1 : (e.facing || 1);
+        e.vx = dir * Math.max(Math.abs(e.vx), 45);
+        return;
+      }
+      // hazard ahead: no step and no jump that way (embers are solid, so they read as a step to climb)
+      const stop = () => { e.vx = 0; if (e.vy < 0) { e.vy = 0; e.grounded = true; } };
+      if (e.vx > 0 && look(xr + 1, xr + 6)) { stop(); if (e.dir > 0) e.dir = -1; }
+      else if (e.vx < 0 && look(xl - 6, xl - 1)) { stop(); if (e.dir < 0) e.dir = 1; }
     }
 
     // ---------- the second cave's creatures ----------
