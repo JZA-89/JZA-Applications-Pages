@@ -29,6 +29,38 @@
     });
   }
 
+  /* Snapping only while every chapter fits on the screen. A chapter taller
+     than the screen can't be read with mandatory snapping: the next scroll
+     jumps to the next chapter. Measured against the smallest viewport
+     (100svh) so Safari's toolbar showing and hiding doesn't flip it, and
+     re-measured whenever a chapter or the window changes size. */
+  var snapProbe = document.createElement("div");
+  snapProbe.setAttribute("aria-hidden", "true");
+  snapProbe.style.cssText =
+    "position:fixed;top:0;left:0;width:0;height:100vh;height:100svh;visibility:hidden;pointer-events:none";
+  document.body.appendChild(snapProbe);
+  var snapQueued = false;
+  function checkSnap() {
+    snapQueued = false;
+    var screenH = snapProbe.offsetHeight || window.innerHeight;
+    var tooTall = false;
+    for (var i = 0; i < chapters.length; i++) {
+      if (chapters[i].offsetHeight > screenH + 1) { tooTall = true; break; }
+    }
+    html.classList.toggle("no-snap", tooTall);
+  }
+  function queueSnap() {
+    if (!snapQueued) { snapQueued = true; requestAnimationFrame(checkSnap); }
+  }
+  checkSnap();
+  window.addEventListener("resize", queueSnap);
+  window.addEventListener("load", queueSnap);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(queueSnap);
+  if ("ResizeObserver" in window) {
+    var snapSizes = new ResizeObserver(queueSnap);
+    chapters.forEach(function (el) { snapSizes.observe(el); });
+  }
+
   /* ------------------------------------------------------------------
      2. Scroll reveals
      ------------------------------------------------------------------ */
