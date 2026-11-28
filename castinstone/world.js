@@ -37,6 +37,8 @@ const KWorld = (() => {
     COOL[i] = m.coolsTo || 0;
   });
   // react[a*N+b] -> { chance, ra, rb } (a is the cell being updated)
+  const GROUND = new Uint8Array(N);   // solids and powders: what the renderer keeps colours for
+  for (let i = 0; i < N; i++) GROUND[i] = STATE[i] === ST.static || STATE[i] === ST.powder ? 1 : 0;
   const REACT = new Array(N * N).fill(null);
   // Only the side that does something looks for a reaction: fire, magma, embers, acid, water, steam,
   // and whatever moves. Solid ground (dirt, wood, coal, ice, lichen) waits to be acted on, or every
@@ -114,7 +116,7 @@ const KWorld = (() => {
     wakeAt(x, y) {
       const s = this.shift, cx = x >> s, cy = y >> s, cw = this.cw;
       const k = cy * cw + cx;
-      this.awake[k] = 3; this.dirty[k] = 1; this.rev[k]++;
+      this.awake[k] = 3; this.dirty[k] = 1;
       if (this.changed) this.changed[k] = 1;
       const lx = x & (this.cs - 1), ly = y & (this.cs - 1), e = this.cs - 1;
       if (lx === 0 && cx > 0) { this.awake[k - 1] = 3; }
@@ -125,6 +127,10 @@ const KWorld = (() => {
 
     // Put material m into the cell at index i (no bounds check).
     put(i, m) {
+      // v1.04: the renderer's kept ground colours (rev) are thrown away only when ground itself changes: a solid or a powder
+      // appearing or going. Liquids, gas and fire moving through open cells are drawn from the live cell each frame, so they
+      // no longer make every chunk they touch (and its eight neighbours) be worked out again.
+      if (GROUND[this.mat[i]] || GROUND[m]) this.rev[(((i / this.w) | 0) >> this.shift) * this.cw + ((i % this.w) >> this.shift)]++;
       this.mat[i] = m;
       this.shade[i] = (this.rand() * 255) | 0;
       this.life[i] = LIFE1[m] ? LIFE0[m] + ((this.rand() * (LIFE1[m] - LIFE0[m])) | 0) : 0;
@@ -148,6 +154,7 @@ const KWorld = (() => {
 
     swap(i, j) {
       const { mat, shade, life, charge, stamp } = this;
+      if (GROUND[mat[i]] || GROUND[mat[j]]) { const w = this.w, s = this.shift, cw = this.cw; this.rev[(((i / w) | 0) >> s) * cw + ((i % w) >> s)]++; this.rev[(((j / w) | 0) >> s) * cw + ((j % w) >> s)]++; }
       let t = mat[i]; mat[i] = mat[j]; mat[j] = t;
       t = shade[i]; shade[i] = shade[j]; shade[j] = t;
       t = life[i]; life[i] = life[j]; life[j] = t;
@@ -259,7 +266,7 @@ const KWorld = (() => {
         if (y + 1 < this.h && this.canEnter(m, mat[i + w], 1)) { this.swap(i, i + w); return; }
         if (R() < SLIDE[m] && y + 1 < this.h) {
           const d = R() < 0.5 ? 1 : -1;
-          for (const dx of [d, -d]) {
+          for (let dx = d, q = 0; q < 2; q++, dx = -dx) {   // v1.04: no array made per cell
             const nx = x + dx;
             if (nx < 0 || nx >= w) continue;
             if (this.canEnter(m, mat[i + w + dx], 1) && mat[i + dx] === M.EMPTY) { this.swap(i, i + w + dx); return; }
@@ -272,14 +279,14 @@ const KWorld = (() => {
         if (y + 1 < this.h && this.canEnter(m, mat[i + w], 1)) { this.swap(i, i + w); return; }
         const d = R() < 0.5 ? 1 : -1;
         if (y + 1 < this.h) {
-          for (const dx of [d, -d]) {
+          for (let dx = d, q = 0; q < 2; q++, dx = -dx) {   // v1.04: no array made per cell
             const nx = x + dx;
             if (nx >= 0 && nx < w && this.canEnter(m, mat[i + w + dx], 1)) { this.swap(i, i + w + dx); return; }
           }
         }
         // Spread sideways only towards somewhere lower (a drop within reach), so
         // pools level out and then rest instead of jittering for ever.
-        for (const dx of [d, -d]) {
+        for (let dx = d, q = 0; q < 2; q++, dx = -dx) {   // v1.04: no array made per cell
           let target = 0;
           for (let k = 1; k <= FLOW[m] * 3; k++) {
             const nx = x + dx * k;

@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v1.03';
+  const VERSION = 'v1.04';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -949,9 +949,9 @@
   // co-op: an arrow at the edge of the screen towards a friend who is out of sight, with how far
   function friendMark() {
     const el = $('friend'), q = game.players.length > 1 ? game.players[1 - ME] : null;
-    if (!q || mode !== 'play') { el.hidden = true; return; }
+    if (!q || mode !== 'play') { if (!el.hidden) el.hidden = true; return; }
     const sx = q.x - R.cam.x, sy = q.y - 8 - R.cam.y;
-    if (sx > 4 && sy > 4 && sx < V.w - 4 && sy < V.h - 4) { el.hidden = true; return; }
+    if (sx > 4 && sy > 4 && sx < V.w - 4 && sy < V.h - 4) { if (!el.hidden) el.hidden = true; return; }
     const p = game.players[ME], s = stage.clientWidth / V.w, hud = el.parentElement, W = hud.clientWidth, H = hud.clientHeight;
     const cx = (p.x - R.cam.x) * s - hud.offsetLeft, cy = (p.y - 8 - R.cam.y) * s, an = Math.atan2(q.y - p.y, q.x - p.x), m = 46, c = Math.cos(an), v = Math.sin(an);
     // out from the golem along that direction until the edge of the HUD's frame

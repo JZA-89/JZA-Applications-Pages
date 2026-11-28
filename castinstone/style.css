@@ -113,7 +113,9 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .orb-hp.low::after { animation: low .8s ease-in-out infinite alternate; }
 .orb-mana.short::after { animation: low .35s ease-in-out 2 alternate; }
 .orb-mana.empty { --c: #6f6590; }
-@keyframes wave { to { background-position: 16% 100%; transform: translateX(-10%); } }
+/* v1.04: the wave moves by transform only (one tile of its pattern), which costs no style or paint work, and rests outside play */
+@keyframes wave { to { transform: translateX(-16%); } }
+body:not([data-mode="play"]) .orb .orb-fill::before { animation-play-state: paused; }
 @keyframes low { to { box-shadow: inset 0 0 0 calc(var(--u) * 2.5px) #ffd0c4, inset 0 0 calc(var(--u) * 18px) #ff6a4a; } }
 
 /* the four elements: round rune keys */

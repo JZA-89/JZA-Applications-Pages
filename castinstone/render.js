@@ -686,7 +686,10 @@ const KRender = (() => {
           const ckx = (vx + this.cam.x) >> 5, C = bandC[ckx - ck0], G = bandG[ckx - ck0], gf = G.flag, gc = G.col;
           const end = Math.min(sb, (ckx + 1) * 32 - this.cam.x);
           for (; vx < end; vx++) {
-            const wx = vx + this.cam.x, i = row + wx, m = mat[i], o = vy * V.w + vx, li = ly + (wx & 31), f = gf[li];
+            const wx = vx + this.cam.x, i = row + wx, m = mat[i], o = vy * V.w + vx, li = ly + (wx & 31);
+            let f = gf[li];
+            // v1.04: only ground is kept for sure; an open cell may since have filled with a liquid, or a liquid's cell emptied
+            if (f !== 1) { if (m === M.EMPTY) { if (f === 0) f = 3; } else f = 0; }
             if (f === 3) {
               // the back wall, with a far layer of pillars that moves at half speed (backWall)
               const bc = C.bg[li], d = par[((wy - pcy) & 255) * 256 + ((wx - pcx) & 255)];

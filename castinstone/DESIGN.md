@@ -879,6 +879,13 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 
 ## Decision log
 
+- **v1.04 (2026-11-28): full audit, batch 4: performance.** Measured by the audit (JavaScript per frame, phone-sized view, processor slowed 4x to stand in for a phone): hub 18 ms, fight 35, flood 62, boss 57, menus under 2.
+  - The renderer's kept ground colours are thrown away only when ground itself changes (`world.rev` is bumped in `put`/`swap` when a solid or powder is involved, no longer on every waking). Liquids, gas and fire moving through open cells are drawn from the live cell (`drawCells` checks any kept flag other than ground against the cell). The audit measured chunk rebuilds a frame falling from 62 to 24 in a flood and 60 to 8 in a boss fight (7 to 16% of the frame). Checked against a full rebuild with water, oil, magma, fire and digging on screen.
+  - The orbs' wave moves by `transform` only and rests outside play (it animated `background-position`, which cost style work every frame and kept repainting under the paused menu's blur).
+  - The sand step makes no array per liquid or powder cell (about 8% of the step; same results, so co-op is unaffected). The friend marker is hidden once, not every frame.
+  - **Waiting on Jaisah (cave generation, so a new save key and a fresh start):** in some caves the lair's magma lake has gaps beneath it and drains and never rests (the largest cost near a boss: 3 to 5 ms a step); some Lodestones are generated under magma or in mid-air (respawning there is now safe, v1.01); about one in six "high" relic caches is sealed in solid rock.
+  - Not done: saving re-encodes every changed chunk (8 to 50 ms late in a cave, every 20 s); one glow sprite per 8 x 8 square of magma; capping a wide phone's view.
+
 - **v1.03 (2026-11-28): full audit, batch 3: screens and controls.**
   - Forge with a controller: the cursor stays on the button pressed (it jumped to Buy, so a second press bought a stat point). Forge tiles keep their grade's colour with a level badge, and the cost reads on the gold button (`.frow span` had greyed all three).
   - The level-up notice and the Lodestone note name the Rest key as bound, per device (they said F; Rest is R).
