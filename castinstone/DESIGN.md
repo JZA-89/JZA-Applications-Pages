@@ -879,6 +879,8 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 
 ## Decision log
 
+- **v0.98 (2026-11-28):** the Runestones tab redone after MORPHOS's Mutations tab (Jaisah: every stone looked the same but for its colour, so each had to be tapped to see what it was). Each of the 15 kinds of stone has its own mark (`RUNE_ICONS` in loot.js: an eye, a crown with a bolt, a visor with a flame, and so on), used everywhere a stone is drawn (also the Forge). The left panel shows the golem with its four places round it (Head, Arms, Core, Legs), each with the worn stone's mark in its grade's colour, its level, how many spares there are, and its name, joined to the golem by a line; tapping a place chooses it. The right panel shows that place's stones in a row (the worn one first, with a tick, then spares, best first) and the chosen stone: mark, name, grade and level, what it gives, its trait in a box, what it would replace, and Equip / Take off / Break. Stacks into one column under 760 wide. The controller walks it by the nearest control in each direction (the old ring order, `KRest.padMove`, is gone).
+
 - **v0.97 (2026-11-28):** no magnifying loupe on iPhone: a quick double tap on the touch controls brought up iOS's loupe. The touch layer now cancels the touches themselves (`touchstart`/`touchend` `preventDefault`; its controls run on pointer events, which still arrive), and so does the game picture in play, except its buttons.
 
 - **v0.96 (2026-11-28):** nothing in the game can be selected: a quick double tap on iPhone selected the HUD's level number and opened the text menu. `user-select: none` and no long-press menu on the whole page, except the co-op code box.

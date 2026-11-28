@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.97';
+  const VERSION = 'v0.98';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -451,13 +451,6 @@
     // the nearest button in the direction pressed; one in line with this one beats one off to the side
     // down from a tab goes to the first control of that tab, in reading order
     if (a.dy > 0 && cur.classList.contains('tab')) { const f = [...wrap.querySelectorAll('.shell-body button')].filter(shown)[0]; if (f) { f.focus({ preventScroll: true }); f.scrollIntoView({ block: 'nearest' }); return; } }
-    // the runestone ring has its own order (KRest.padMove): rows as drawn, not nearest-by-distance
-    if (cur.closest('.ring') && window.KRest.padMove) {
-      const to = window.KRest.padMove(cur, a.dx, a.dy);
-      const go = to === 'up' ? wrap.querySelector('.tab[aria-selected="true"]') : to === 'down' ? $('btnLeave') : to;
-      if (go) { go.focus({ preventScroll: true }); go.scrollIntoView({ block: 'nearest' }); }
-      return;
-    }
     const pick = (pool) => {
     const r = cur.getBoundingClientRect();
     let best = null, bs = 1e9;

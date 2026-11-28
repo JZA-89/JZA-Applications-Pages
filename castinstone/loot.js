@@ -57,76 +57,92 @@
   // what breaking a stone gives (shards are spent at Lodestones, see treasure)
   const shardValue = r => Math.round((3 + 2 * r.level) * [1, 2.5, 6, 15][r.tier]);
   const tile = (r, attrs, sel) => r
-    ? `<button type="button" class="gemtile${sel ? ' sel' : ''}" style="--t:${css(RU.tiers[r.tier].color)}" ${attrs} title="${RU.types[r.type].name} · ${RU.tiers[r.tier].name} · level ${r.level}">${KIcon('rune')}<span class="lv">${r.level}</span></button>`
+    ? `<button type="button" class="gemtile${sel ? ' sel' : ''}" style="--t:${css(RU.tiers[r.tier].color)}" ${attrs} title="${RU.types[r.type].name} · ${RU.tiers[r.tier].name} · level ${r.level}">${runeIcon(r.type)}<span class="lv">${r.level}</span></button>`
     : `<span class="gemtile empty">${KIcon('rune')}</span>`;
 
+  // v0.98: each kind of runestone has its own mark, so stones can be told apart at a glance (they differed only by colour)
+  const RUNE_ICONS = {
+    glimmerBrow: 'M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6zM12 9.3a2.7 2.7 0 1 0 0 5.4 2.7 2.7 0 0 0 0-5.4z',
+    stormCrown: 'M4 19h16M5 19 3.5 8l5 4 3.5-7 3.5 7 5-4L19 19M12.8 11 11 14.5h2.4L11.6 18',
+    emberVisor: 'M4.5 18v-4a7.5 7.5 0 0 1 15 0v4zM8 14.5h8M12 2.8c1.1 1.6 2.2 2.5 2.2 3.8a2.2 2.2 0 0 1-4.4 0c0-1.3 1.1-2.2 2.2-3.8z',
+    deepCore: 'M12 2.5 20 12l-8 9.5L4 12zM12 8l3.4 4-3.4 4-3.4-4z',
+    magmaHeart: 'M12 20.5s-7.5-4.8-7.5-10.4A4.2 4.2 0 0 1 12 7.4a4.2 4.2 0 0 1 7.5 2.7c0 5.6-7.5 10.4-7.5 10.4zM12 10.2c1 1.4 1.9 2.1 1.9 3.3a1.9 1.9 0 0 1-3.8 0c0-1.2.9-1.9 1.9-3.3z',
+    tidalCore: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM5.5 13c2-2 3.5-2 5 0s3 2 4.5 0 2.5-2 3.5-.5M5.5 9.5c2-2 3.5-2 5 0s3 2 4.5 0',
+    crucible: 'M4.5 9h15L18 18.2a2 2 0 0 1-2 1.8H8a2 2 0 0 1-2-1.8zM9 6.5c0-1.6 1-2 1-3.5M14 6.5c0-1.6 1-2 1-3.5M8 14h8',
+    quarryFists: 'M13.5 3.5 20.5 10.5 17.5 13.5 10.5 6.5zM12 8.5l-8.5 8.5 3.5 3.5 8.5-8.5',
+    splitArms: 'M3 12h6.5M9.5 12 20 5M9.5 12H21M9.5 12 20 19M17 5h3v3M18 9.5l3 2.5-3 2.5M17 19h3v-3',
+    thriftArms: 'M12 3.5s5.5 5.8 5.5 9.6a5.5 5.5 0 0 1-11 0c0-3.8 5.5-9.6 5.5-9.6zM4 20 20 4',
+    mireArms: 'M3 19c3-2 6-2 9 0s6 2 9 0M5.5 15c1.2-3 3.6-4.5 6.5-4.5s5.3 1.5 6.5 4.5M8.5 6.5l1.2 2.2M15.5 6.5l-1.2 2.2M12 4.5v3',
+    springLegs: 'M6 20.5h12M6 3.5h12M8 17.5h8l-8-3h8l-8-3h8l-8-3h8',
+    anchorLegs: 'M12 3a2.2 2.2 0 1 0 0 4.4A2.2 2.2 0 0 0 12 3zM12 7.4V21M4.5 13.5a7.5 7.5 0 0 0 15 0M8 10.5h8M4.5 13.5l2.2 1.3M19.5 13.5l-2.2 1.3',
+    swiftLegs: 'M2.5 8h7M2 12h8M2.5 16h7M12.5 5.5l8.5 6.5-8.5 6.5z',
+    diverLegs: 'M3.5 19.5c4.5 0 8.5-3 10.5-8.5l2-6.5 2 6.5c1 3.2 2 6.5 2 8.5zM8 19.5c2.5-2 4-4.5 5-7',
+  };
+  const runeIcon = type => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${RUNE_ICONS[type] || ''}"/></svg>`;
+
   // ---------- the Runestones tab ----------
+  // Laid out like MORPHOS's Mutations tab: the golem in the middle of a panel with its four places round it (Head, Arms,
+  // Core, Legs), each showing the stone worn there by its own mark and name; beside it, the chosen place's stones in a row
+  // (the worn one first, ticked) and what the chosen stone does, with Equip, Take off and Break.
+  let place = null;    // the chosen place: 'head', 'core', 'arms' or 'legs'
   let picked = null;   // { slot } for a worn stone or { bag: index }
   let refocus = null;  // with a controller: what to put the cursor on after the tab is redrawn
+  const POS = { head: [50, 15], arms: [15, 50], core: [85, 50], legs: [50, 85] };   // where each place sits in the panel (%)
+  const ANCHOR = { head: [50, 33], arms: [37, 47], core: [63, 47], legs: [50, 66] }; // where its line meets the golem (%)
   window.KRest = {
     build(game, p, tab) {
       if (tab === 'forge') return this.forge(game, p);
       if (tab !== 'runes') return;
       const view = $('runesView');
-      const stone = picked && (picked.slot ? p.runes[picked.slot] : p.inventory[picked.bag]);
-      if (!stone) picked = null;
-      // The golem stands in the middle with its four sockets round it: Head above, Arms to the
-      // left, Core to the right, Legs below. Each socket has its spare stones beside it (best grade
-      // first, then highest level), so everything for one place is in one spot.
-      let html = '<div class="ring">';
-      for (const slot of RU.slots) {
-        const r = p.runes[slot];
-        const list = p.inventory.map((r2, i) => ({ r: r2, i })).filter(o => RU.types[o.r.type].slot === slot).sort((a, b) => b.r.tier - a.r.tier || b.r.level - a.r.level || a.i - b.i);
-        html += `<div class="station" data-slot="${slot}"><div class="rsock">${tile(r, `data-worn="${slot}"`, picked && picked.slot === slot)}<small>${RU.slotNames[slot]}</small></div>` +
-          `<div class="spares${list.length ? '' : ' none'}">${list.length ? list.map(o => tile(o.r, `data-bag="${o.i}"`, picked && picked.bag === o.i)).join('') : '<i>No spares</i>'}</div></div>`;
+      if (!place) place = RU.slots.find(s => p.runes[s]) || 'head';
+      let stone = picked && (picked.slot ? p.runes[picked.slot] : p.inventory[picked.bag]);
+      if (!stone || (picked.bag != null && RU.types[stone.type].slot !== place) || (picked.slot && picked.slot !== place)) {
+        // nothing chosen in this place: the worn stone, else its best spare
+        picked = p.runes[place] ? { slot: place } : null;
+        if (!picked) { const best = p.inventory.map((r, i) => ({ r, i })).filter(o => RU.types[o.r.type].slot === place).sort((a, b) => b.r.tier - a.r.tier || b.r.level - a.r.level)[0]; if (best) picked = { bag: best.i }; }
+        stone = picked && (picked.slot ? p.runes[picked.slot] : p.inventory[picked.bag]);
       }
-      html += `<div class="figure"><canvas id="dollGolem"></canvas></div><div class="bagcount">${KIcon('rune')}${p.inventory.length} of ${RU.bag} in the bag</div>`;
-      // the stone you picked
-      if (stone) {
-        const T = RU.types[stone.type], tier = RU.tiers[stone.tier], worn = !picked.slot && p.runes[T.slot];
-        html += `<div class="rune-card" style="--t:${css(tier.color)}"><div class="rn">${T.name}</div>
-          <div class="rm">${tier.name} · level ${stone.level} · ${RU.slotNames[T.slot]}</div>
-          <div class="rs">${statLines(stone)}</div>${T.trait ? `<div class="rt">${T.desc}</div>` : ''}
-          ${worn ? `<div class="rc">Replaces ${RU.types[worn.type].name} (${RU.tiers[worn.tier].name}, level ${worn.level}): ${statLines(worn)}</div>` : ''}
-          <div class="rb">${picked.slot ? '<button type="button" class="btn small" data-off>Take off</button>'
-            : `<button type="button" class="btn small primary" data-equip>Equip</button><button type="button" class="btn small" data-break><span class="cost">Break for ${KIcon('shard')}${shardValue(stone)}</span></button>`}</div></div>`;
-      } else html += '<div class="rune-card none">Pick a runestone to see what it does. The large socket by each name is the one worn; the smaller stones beside it are spares, which can be broken into shards for the Forge.</div>';
+      // the panel with the golem
+      let html = '<div class="rr"><div class="rr-body"><svg class="rr-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">';
+      for (const s of RU.slots) { const [x1, y1] = POS[s], [x2, y2] = ANCHOR[s], r = p.runes[s]; html += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" style="stroke:${r ? css(RU.tiers[r.tier].color) : '#d9cce83d'}" class="${s === place ? 'on' : ''}"/>`; }
+      html += '</svg><div class="rr-figure"><canvas id="dollGolem"></canvas></div>';
+      for (const s of RU.slots) {
+        const r = p.runes[s], n = p.inventory.filter(o => RU.types[o.type].slot === s).length;
+        html += `<button type="button" class="rr-node${s === place ? ' on' : ''}${r ? '' : ' empty'}" data-place="${s}" style="left:${POS[s][0]}%;top:${POS[s][1]}%;--t:${r ? css(RU.tiers[r.tier].color) : '#6a5f78'}" aria-label="${RU.slotNames[s]}: ${r ? RU.types[r.type].name : 'nothing worn'}">` +
+          `<span class="rr-disc">${r ? runeIcon(r.type) : KIcon('rune')}${r ? `<i class="lv">${r.level}</i>` : ''}${n ? `<i class="spare">${n}</i>` : ''}</span>` +
+          `<span class="rr-label"><b>${RU.slotNames[s]}</b><small>${r ? RU.types[r.type].name : 'Empty'}</small></span></button>`;
+      }
       html += '</div>';
+      // the side panel: this place's stones and the chosen one
+      const worn = p.runes[place], spares = p.inventory.map((r, i) => ({ r, i })).filter(o => RU.types[o.r.type].slot === place).sort((a, b) => b.r.tier - a.r.tier || b.r.level - a.r.level || a.i - b.i);
+      const chip = (r, attrs, sel, tick) => `<button type="button" class="rr-chip${sel ? ' sel' : ''}" style="--t:${css(RU.tiers[r.tier].color)}" ${attrs} title="${RU.types[r.type].name} · ${RU.tiers[r.tier].name} · level ${r.level}">${runeIcon(r.type)}<i class="lv">${r.level}</i>${tick ? '<i class="tick">✓</i>' : ''}</button>`;
+      html += `<div class="rr-side"><header class="rr-head"><b>${RU.slotNames[place]}</b><span></span><small>${(worn ? 1 : 0) + spares.length} found</small></header>`;
+      html += '<div class="rr-chips">' + (worn ? chip(worn, `data-worn="${place}"`, picked && picked.slot, true) : '<span class="rr-none">Nothing worn</span>') + (spares.length ? '<span class="rr-sep"></span>' + spares.map(o => chip(o.r, `data-bag="${o.i}"`, picked && picked.bag === o.i, false)).join('') : '') + '</div>';
+      if (stone) {
+        const T = RU.types[stone.type], tier = RU.tiers[stone.tier], other = !picked.slot && worn;
+        html += `<div class="rr-card" style="--t:${css(tier.color)}"><div class="rr-title"><span class="rr-big">${runeIcon(stone.type)}</span><div><h3>${T.name}</h3><p>${tier.name} · Level ${stone.level}${picked.slot ? ' · Worn' : ''}</p></div></div>
+          <div class="rr-stats">${statLines(stone)}</div>
+          ${T.trait ? `<div class="rr-trait">${T.desc}</div>` : `<p class="rr-desc">${T.desc}</p>`}
+          ${other ? `<p class="rr-cmp">Replaces ${RU.types[other.type].name} (${RU.tiers[other.tier].name}, level ${other.level}): ${statLines(other)}</p>` : ''}
+          <div class="rr-btns">${picked.slot ? '<button type="button" class="btn small" data-off>Take off</button>'
+            : `<button type="button" class="btn small primary" data-equip>Equip</button><button type="button" class="btn small" data-break>Break for ${KIcon('shard')}${shardValue(stone)}</button>`}</div></div>`;
+      } else html += `<div class="rr-card empty"><p class="rr-desc">No ${RU.slotNames[place].toLowerCase()} stone yet. Runestones drop from creatures and lie in relic caches.</p></div>`;
+      html += `<p class="rr-bag">${KIcon('rune')}${p.inventory.length} of ${RU.bag} spare stones carried</p></div></div>`;
       view.innerHTML = html;
       const c = $('dollGolem');
       KRender.preview(c, p.skin, p.slots);
-      c.style.width = (c.width * 5) + 'px'; c.style.height = (c.height * 5) + 'px';
-      // with a controller the cursor follows what you did: onto the card's button after picking a
-      // stone, onto the socket after equipping, back to the bag after taking off or breaking
-      if (refocus && document.body.dataset.device === 'pad') { const f = view.querySelector(refocus) || view.querySelector('[data-bag], [data-worn]'); if (f) f.focus({ preventScroll: true }); }
+      c.style.width = (c.width * 4) + 'px'; c.style.height = (c.height * 4) + 'px';
+      if (refocus && document.body.dataset.device === 'pad') { const f = view.querySelector(refocus) || view.querySelector('[data-place]'); if (f) f.focus({ preventScroll: true }); }
       refocus = null;
-      const rebuild = () => { window.cis.save(); this.build(game, p, 'runes'); };
-      view.querySelectorAll('[data-worn]').forEach(b => b.addEventListener('click', () => { picked = { slot: b.dataset.worn }; refocus = '[data-off]'; this.build(game, p, 'runes'); }));
-      view.querySelectorAll('[data-bag]').forEach(b => b.addEventListener('click', () => { picked = { bag: +b.dataset.bag }; refocus = '[data-equip]'; this.build(game, p, 'runes'); }));
+      const redraw = () => this.build(game, p, 'runes'), rebuild = () => { window.cis.save(); redraw(); };
+      view.querySelectorAll('[data-place]').forEach(b => b.addEventListener('click', () => { if (place !== b.dataset.place) { place = b.dataset.place; picked = null; } refocus = `[data-place="${place}"]`; redraw(); }));
+      view.querySelectorAll('[data-worn]').forEach(b => b.addEventListener('click', () => { picked = { slot: b.dataset.worn }; refocus = `[data-worn="${place}"]`; redraw(); }));
+      view.querySelectorAll('[data-bag]').forEach(b => b.addEventListener('click', () => { picked = { bag: +b.dataset.bag }; refocus = `[data-bag="${b.dataset.bag}"]`; redraw(); }));
       const on = (sel, fn) => { const b = view.querySelector(sel); if (b) b.addEventListener('click', fn); };
-      on('[data-equip]', () => { const slot = RU.types[stone.type].slot; window.cis.act('equip', picked.bag); picked = { slot }; refocus = `[data-worn="${slot}"]`; rebuild(); });
-      on('[data-off]', () => { window.cis.act('unequip', picked.slot); picked = null; refocus = '[data-bag]'; rebuild(); });
-      on('[data-break]', () => { window.cis.act('breakRune', picked.bag); picked = null; refocus = '[data-bag]'; window.cis.save(); window.cis.rest(); });
+      on('[data-equip]', () => { window.cis.act('equip', picked.bag); picked = { slot: place }; refocus = '[data-off]'; rebuild(); });
+      on('[data-off]', () => { window.cis.act('unequip', place); picked = null; refocus = `[data-place="${place}"]`; rebuild(); });
+      on('[data-break]', () => { window.cis.act('breakRune', picked.bag); picked = null; refocus = `[data-place="${place}"]`; window.cis.save(); window.cis.rest(); });
     },
-  };
-
-  // With a controller the ring is walked as four rows, as it is drawn: Head (socket, then its
-  // spares), the middle row (Arms spares, Arms socket, Core socket, Core spares), Legs, and the
-  // card's buttons. Left and right step along a row; up and down go to the nearest thing in the
-  // next row. Returns the button to move to, 'up' or 'down' to leave the ring, or null to stay.
-  window.KRest.padMove = (cur, dx, dy) => {
-    const ring = cur.closest('.ring');
-    if (!ring) return null;
-    const st = slot => [...ring.querySelectorAll(`.station[data-slot="${slot}"] button`)];
-    const arms = st('arms'), core = st('core');
-    const rows = [st('head'), arms.filter(b => b.dataset.bag).concat(arms.filter(b => b.dataset.worn), core), st('legs'), [...ring.querySelectorAll('.rune-card button')]].filter(r => r.length);
-    const ri = rows.findIndex(r => r.includes(cur));
-    if (ri < 0) return null;
-    if (dx) return rows[ri][rows[ri].indexOf(cur) + dx] || null;
-    const next = rows[ri + dy];
-    if (!next) return dy < 0 ? 'up' : 'down';
-    const cx = cur.getBoundingClientRect().left + cur.offsetWidth / 2;
-    return next.slice().sort((a, b) => Math.abs(a.getBoundingClientRect().left + a.offsetWidth / 2 - cx) - Math.abs(b.getBoundingClientRect().left + b.offsetWidth / 2 - cx))[0];
   };
 
   // ---------- the Forge tab: shards into stat points and stronger runestones ----------
@@ -139,7 +155,7 @@
       const r = p.runes[slot];
       if (!r) { html += `<div class="frow dim"><span class="gemtile empty">${KIcon('rune')}</span><div><b>${RU.slotNames[slot]}</b><span>Nothing worn</span></div><span></span></div>`; continue; }
       const c = T.levelUpCost(r), max = r.level >= T.maxRuneLevel, next = { ...r, level: r.level + 1 };
-      html += `<div class="frow"><span class="gemtile" style="--t:${css(RU.tiers[r.tier].color)}">${KIcon('rune')}<span class="lv">${r.level}</span></span><div><b style="color:${css(RU.tiers[r.tier].color)}">${RU.types[r.type].name}</b><span>Level ${r.level} → ${r.level + 1}: ${statLines(next)}</span></div>` +
+      html += `<div class="frow"><span class="gemtile" style="--t:${css(RU.tiers[r.tier].color)}">${runeIcon(r.type)}<span class="lv">${r.level}</span></span><div><b style="color:${css(RU.tiers[r.tier].color)}">${RU.types[r.type].name}</b><span>Level ${r.level} → ${r.level + 1}: ${statLines(next)}</span></div>` +
         `<button type="button" class="btn small" data-lvl="${slot}" ${!max && p.shards >= c ? '' : 'disabled'}>${max ? 'Highest level' : 'Strengthen ' + cost(c)}</button></div>`;
     }
     view.innerHTML = html;
