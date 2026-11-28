@@ -403,7 +403,15 @@ html, body { touch-action: none; overscroll-behavior: none; -webkit-text-size-ad
 .end-line { margin: 4px 0 0; max-width: 560px; font: italic 400 17px/1.45 var(--serif); color: #e6dbc9; text-align: center; } .end-line:empty { display: none; }
 
 /* ---------- the title screen (v0.79) ---------- */
-body[data-mode="start"] .hud { display: none; }
+/* v1.08: the game's display fades in after the view has slid into place, and out when the title or pause page comes up */
+.hud, #touch { transition: opacity .45s ease .32s; }
+body[data-mode="start"] .hud, body[data-mode="pause"] .hud { opacity: 0; pointer-events: none; transition: opacity .25s ease; }
+body[data-mode="start"] .hud *, body[data-mode="pause"] .hud * { pointer-events: none !important; }
+body[data-device="touch"][data-mode="play"] #touch { animation: hudIn .5s ease .3s both; }
+@keyframes hudIn { from { opacity: 0; } }
+.ts-wrap.in { animation: tsWrapIn .5s ease both; } .ts-wrap.out { animation: tsWrapOut .5s ease both; pointer-events: none; }
+@keyframes tsWrapIn { from { opacity: 0; } } @keyframes tsWrapOut { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .hud, #touch { transition: none; } .ts-wrap.in, .ts-wrap.out, body[data-device="touch"][data-mode="play"] #touch { animation: none; } }
 .ts-wrap { position: fixed; inset: 0; z-index: 11; overflow: hidden;
   background: radial-gradient(ellipse 70% 80% at 62% 55%, #0000 0%, #07050b55 55%, #07050be0 100%), linear-gradient(90deg, #07050bd0 0%, #07050b88 34%, #07050b00 62%); }
 .ts { position: absolute; left: max(6vw, 32px); top: 50%; transform: translateY(-50%) scale(var(--tss, 1)); transform-origin: 0 50%; display: grid; justify-items: start; gap: 0; animation: tsIn .9s cubic-bezier(.2, .7, .2, 1) both; }
@@ -506,7 +514,7 @@ body[data-mode="start"] .hud { display: none; }
   background: #120e19cc; box-shadow: inset 0 0 0 1px #ffffff14, 0 4px 14px #0008; border-left: calc(var(--u) * 3px) solid var(--gold); }
 .objective b { font: 600 max(10px, calc(var(--u) * 12.5px))/1.2 var(--serif); letter-spacing: .05em; color: var(--gold); }
 .objective span { font-size: max(10px, calc(var(--u) * 11.5px)); line-height: 1.35; color: var(--muted); } .objective span:empty { display: none; }
-body[data-mode="start"] .objective { display: none; }
+body[data-mode="start"] .objective, body[data-mode="pause"] .objective { display: none; }
 .shell.end { grid-template-rows: minmax(0, 1fr); place-items: center; background: radial-gradient(ellipse at 50% 30%, #4a2a1a 0%, #1b1219 50%, #0b0810 100%); }
 .end-body { width: min(820px, 100% - 44px); max-height: 100%; overflow-y: auto; display: grid; justify-items: center; gap: 14px; padding: 18px 0; text-align: center; }
 .end-body .logo { white-space: normal; font-size: 38px; letter-spacing: .1em; } .end-body .lede { margin: 0; max-width: 62ch; } .end-body .journey { width: 100%; } .end-body .note { margin: 0; }

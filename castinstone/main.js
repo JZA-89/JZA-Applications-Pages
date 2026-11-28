@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v1.07';
+  const VERSION = 'v1.08';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -287,6 +287,7 @@
   function regenLabel() { $('btnRegen').setAttribute('aria-checked', game.regen ? 'true' : 'false'); }
 
   // ---------- modes: start, help (spell book), pause, map, rest, play ----------
+  let began = false;   // this visit has been in play (the title is then the pause screen)
   let mode = 'start', confirmNew = false, panelTab = 'game', titleSub = false;   // titleSub: which page the title screen opened, if any
   const chip = (icon, text, cls = '') => `<span class="chip ${cls}">${KIcon(icon)}${text}</span>`;
   function showPanelTab(t) {
@@ -306,12 +307,15 @@
     $('mapWrap').hidden = m !== 'map';
     $('endWrap').hidden = m !== 'end';
     // the title screen covers the start; the pages open from it (titleSub) and have a way back
-    $('titleWrap').hidden = m !== 'start' || titleSub;
-    $('btnBack').hidden = m !== 'start';
-    $('panelWrap').hidden = m === 'play' || m === 'rest' || m === 'map' || m === 'end' || (m === 'start' && !titleSub);
-    if (m !== 'start') titleSub = false;
+    // v1.08: the pause screen is the title screen (Jaisah): the same page over the live cave, with Resume at the top. Its
+    // pages open from it (titleSub) and have a way back. `home`: either of the two.
+    const home = m === 'start' || m === 'pause';
+    showTitle(home && !titleSub);
+    $('btnBack').hidden = !home;
+    $('panelWrap').hidden = m === 'play' || m === 'rest' || m === 'map' || m === 'end' || (home && !titleSub);
+    if (!home) titleSub = false;
     confirmNew = false; $('btnNewCave').textContent = 'New game'; $('tsNew').textContent = 'New game'; $('tsNew').classList.remove('confirm');
-    if (m === 'play') { view.focus({ preventScroll: true }); return; }
+    if (m === 'play') { began = true; view.focus({ preventScroll: true }); return; }
     if (m === 'rest') { buildRest(); $('btnLeave').focus({ preventScroll: true }); return; }
     if (m === 'end') { buildEnd(); $('btnDescend').focus({ preventScroll: true }); return; }
     if (m === 'map') { drawBigMap(); $('btnMapClose').focus({ preventScroll: true }); return; }
@@ -332,15 +336,26 @@
       tile('crown', B.champs, champs.length, 'Champions', B.champs ? `+${KData.treasure.boons.champion.hp * B.champs} health and mana so far` : '+20 health and mana each') +
       tile('fire', B.cores, w.lair ? 1 : 0, w.lair ? KData.bosses[w.lair.boss].name : 'The last fight', w.lair ? (B.cores ? `${KData.bosses[w.lair.boss].core}: +40 mana` : `Guards the ${KData.bosses[w.lair.boss].core}`) : '') +
       tile('star', p.known.length, Object.keys(KData.specials).length, 'Special spells', 'Five circles');
-    showPanelTab(m === 'help' ? 'book' : m === 'start' && titleSub ? titleSub : 'game');
-    if (m === 'start' && !titleSub) { buildTitle(); return; }
+    showPanelTab(m === 'help' ? 'book' : home && titleSub ? titleSub : 'game');
+    if (m === 'help') showSeg($('viewBook'), 'special');   // v1.08: the spell book key opens on the special spells
+    if (home && !titleSub) { buildTitle(); return; }
     $('btnGo').focus({ preventScroll: true });
+  }
+  // The title page fades in and out (v1.08) instead of appearing and vanishing
+  let titleTimer = 0;
+  function showTitle(on) {
+    const el = $('titleWrap'); clearTimeout(titleTimer);
+    if (on) { if (el.hidden || el.classList.contains('out')) { el.hidden = false; el.classList.remove('out'); el.classList.remove('in'); void el.offsetWidth; el.classList.add('in'); } return; }
+    if (el.hidden) return;
+    if (mode !== 'play' || reduced.matches) { el.hidden = true; el.classList.remove('out'); return; }   // to another page: at once
+    el.classList.add('out'); titleTimer = setTimeout(() => { el.hidden = true; el.classList.remove('out'); }, 520);
   }
   function buildTitle() {
     const p = game.players[ME];
-    $('tsGo').textContent = hadSave ? 'Continue' : 'Begin';
-    $('tsNew').hidden = !hadSave;
-    $('tsSave').innerHTML = hadSave ? `<b>Level ${p.level}</b> · ${game.world.biomes[game.world.biomeAt(p.x, p.y - 8)].name} · ${KData.acts[game.act].name}` : '';
+    const paused = mode === 'pause', saved = hadSave || began;
+    $('tsGo').textContent = paused ? 'Resume' : hadSave ? 'Continue' : 'Begin';
+    $('tsNew').hidden = !saved || KNet.busy;
+    $('tsSave').innerHTML = KNet.on ? 'Co-op: the game goes on while this is open' : saved ? `<b>Level ${p.level}</b> · ${game.world.biomes[game.world.biomeAt(p.x, p.y - 8)].name} · ${KData.acts[game.act].name}` : '';
     if (KSave.unreadable) $('tsSave').textContent = 'Your saved game could not be read, so this is a new one. A copy of the old save has been kept.';   // v1.02
     $('tsVer').textContent = `Beta · ${VERSION}`;
     $('tsGo').focus({ preventScroll: true });
@@ -356,8 +371,9 @@
   }
   addEventListener('resize', fitTitle); if (window.visualViewport) visualViewport.addEventListener('resize', fitTitle);
   $('tsGo').addEventListener('click', () => $('btnGo').click());
-  for (const b of document.querySelectorAll('.ts-item[data-open]')) b.addEventListener('click', () => { titleSub = b.dataset.open; setMode('start'); });
-  $('btnBack').addEventListener('click', () => { titleSub = false; setMode('start'); });
+  for (const b of document.querySelectorAll('.ts-item[data-open]')) b.addEventListener('click', () => { titleSub = b.dataset.open; setMode(mode === 'pause' ? 'pause' : 'start'); });
+  const homeBack = () => { titleSub = false; setMode(mode === 'pause' ? 'pause' : 'start'); };   // from one of its pages back to the title or pause page
+  $('btnBack').addEventListener('click', homeBack);
   view.tabIndex = -1;
   const resume = () => setMode('play');
   // Reset the cave: rebuild it from its seed, keeping the golem's progress.
@@ -406,8 +422,8 @@
 
   KInput.attach(view, {
     blocked: () => mode !== 'play',
-    onClose: () => { if (mode !== 'start') resume(); else if (titleSub) { titleSub = false; setMode('start'); } },
-    onPause: () => { if (mode === 'start') { if (titleSub) { titleSub = false; setMode('start'); } return; } setMode(mode === 'play' ? 'pause' : 'play'); },
+    onClose: () => { if (titleSub && (mode === 'start' || mode === 'pause')) homeBack(); else if (mode !== 'start') resume(); },
+    onPause: () => { if (titleSub && (mode === 'start' || mode === 'pause')) return homeBack(); if (mode === 'start') return; setMode(mode === 'play' ? 'pause' : 'play'); },
     onHelp: () => setMode(mode === 'help' ? 'play' : 'help'),
     onMap: () => { if (mode === 'play') setMode('map'); else if (mode === 'map') setMode('play'); },
     onReset: () => {},
@@ -437,13 +453,13 @@
   // ---------- a controller in the menus ----------
   // The d-pad or left stick moves to the nearest button in that direction, A
   // presses it, B or Menu goes back to the game, LB and RB change tab.
-  const openWrap = () => mode === 'end' ? $('endWrap') : mode === 'rest' ? $('restWrap') : mode === 'map' ? $('mapWrap') : mode === 'start' && !titleSub ? $('titleWrap') : $('panelWrap');
+  const openWrap = () => mode === 'end' ? $('endWrap') : mode === 'rest' ? $('restWrap') : mode === 'map' ? $('mapWrap') : (mode === 'start' || mode === 'pause') && !titleSub ? $('titleWrap') : $('panelWrap');
   const shown = e => !e.disabled && e.offsetParent !== null;
   function padMenu(a) {
     if (mode === 'play') return;
     const wrap = openWrap();
     if (a.map && mode === 'map') { resume(); return; }   // v1.05: the map button closes the map it opened
-    if (a.pause || a.back) { if (mode !== 'start') resume(); else if (titleSub) { titleSub = false; setMode('start'); } return; }   // on a page opened from the title, back returns to it
+    if (a.pause || a.back) { if (titleSub && (mode === 'start' || mode === 'pause')) homeBack(); else if (mode !== 'start') resume(); return; }   // on a page opened from the title, back returns to it
     if (a.tab) {
       const tabs = [...wrap.querySelectorAll('.tab')].filter(shown);
       if (!tabs.length) return;
@@ -794,6 +810,7 @@
     return mode === 'play' ? a : { move: 0, moveY: 0, jump: false, cast: false, burst: false, moveSpell: false, away: true, aim: a.aim, aimDist: a.aimDist, events: a.events.filter(e => e.type === 'ui') };
   };
   let frameN = 0;
+  const look = { x: -1, y: -1 };   // where across the screen the golem stands (eased in frameBody)
   function frameBody(now) {
     if (KNet.syncFor > 120000) KNet.stop('The two games could not be matched up, so co-op was stopped. Your progress is saved.');   // v1.02: it could wait for ever
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
@@ -849,11 +866,19 @@
     // an aimed special spell shows where it will land
     let mark = null;
     if (mode === 'play' && !p.dead && p.recipe) { const sp = game.spec(p, 'shot'); if (sp && sp.special && p.mana >= sp.cost) mark = game.specialTarget(p, sp.id); }
-    const onTitle = mode === 'start' && !titleSub, wideTitle = onTitle && innerWidth > innerHeight && innerWidth > 640;
+    const onTitle = (mode === 'start' || mode === 'pause') && !titleSub, wideTitle = onTitle && innerWidth > innerHeight && innerWidth > 640;
+    // v1.08: the view slides between the title's framing (the golem to the right, or low on an upright screen) and play's
+    // (the golem in the middle), so Begin, Resume and Pause are one smooth move, not a jump
+    const homeNow = mode === 'start' || mode === 'pause', wideHome = homeNow && innerWidth > innerHeight && innerWidth > 640;   // the framing holds while one of the title's pages is open
+    const lookTX = wideHome ? 0.68 : 0.5, lookTY = homeNow && !wideHome ? 0.82 : 0.5, ease = reduced.matches ? 1 : 1 - Math.exp(-dt * 6);
+    if (look.x < 0) { look.x = lookTX; look.y = lookTY; }
+    look.x += (lookTX - look.x) * ease; look.y += (lookTY - look.y) * ease;
+    if (Math.abs(lookTX - look.x) < 0.0015) look.x = lookTX; if (Math.abs(lookTY - look.y) < 0.0015) look.y = lookTY;
+    const sliding = look.x !== lookTX || look.y !== lookTY;
     // v1.00: playing alone with a menu open, the scene cannot change: draw it once and leave it (as MORPHOS), so nothing
     // under the menu's blur repaints every frame
-    const still = !KNet.on && mode !== 'play' && !onTitle;
-    if (!(still && frozenDrawn)) R.draw(game, { reticle, mark, reduced: reduced.matches, dt: mode === 'play' || onTitle ? dt : 0, lookX: wideTitle ? 0.68 : 0.5, lookY: onTitle && !wideTitle ? 0.82 : 0.5 });   // the title screen's cave keeps its dust and embers moving
+    const still = !KNet.on && mode !== 'play' && !onTitle && !sliding;
+    if (!(still && frozenDrawn)) R.draw(game, { reticle, mark, reduced: reduced.matches, dt: mode === 'play' || onTitle ? dt : 0, lookX: look.x, lookY: look.y });   // the title screen's cave keeps its dust and embers moving
     frozenDrawn = still;
     fade();
     objective(dt);
@@ -914,7 +939,7 @@
       }
       acc = 0; mapTick = 0;
       coopSay(why, 'bad');
-      if (wasPlaying) { toast(why, 'big'); setMode('pause'); showPanelTab('coop'); }
+      if (wasPlaying) { toast(why, 'big'); titleSub = 'coop'; setMode('pause'); }
     },
   });
   $('btnHost').addEventListener('click', () => { save(); KNet.host(); });
