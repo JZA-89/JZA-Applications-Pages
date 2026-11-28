@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0d0a14">
 <meta name="description" content="Cast in Stone: a golem of living rock in a cave of falling sand. Type the elements to shape a spell. A browser game in beta, by JZA Applications.">
 <link rel="canonical" href="https://jza.app/castinstone/">
-<title>Cast in Stone | Beta · v0.82</title>
+<title>Cast in Stone | Beta · v0.83</title>
 <!-- added to a phone's home screen: the icon, a short name, and no browser bars -->
 <link rel="icon" type="image/png" href="icon-180.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="stylesheet" href="style.css?v=0.82">
+<link rel="stylesheet" href="style.css?v=0.83">
 </head>
 <body data-mode="start">
 
@@ -87,10 +87,12 @@
     <p class="ts-tag">Type the elements. <em>Shape the spell.</em></p>
     <nav class="ts-menu" aria-label="Title menu">
       <button type="button" class="ts-item ts-go" id="tsGo">Begin</button>
+      <button type="button" class="ts-item" id="tsNew" hidden>New game</button>
       <button type="button" class="ts-item" data-open="game">Your golem</button>
       <button type="button" class="ts-item" data-open="book">Spell book</button>
       <button type="button" class="ts-item" data-open="controls">Controls</button>
       <button type="button" class="ts-item" data-open="coop">Co-op</button>
+      <button type="button" class="ts-item" data-open="options">Options</button>
     </nav>
     <p class="ts-save" id="tsSave"></p>
   </div>
@@ -113,6 +115,7 @@
         <button type="button" class="tab" role="tab" data-tab="book" data-icon="book"><span>Spell book</span></button>
         <button type="button" class="tab" role="tab" data-tab="controls" data-icon="keys"><span>Controls</span></button>
         <button type="button" class="tab" role="tab" data-tab="coop" data-icon="crown"><span>Co-op</span></button>
+        <button type="button" class="tab" role="tab" data-tab="options" data-icon="sliders"><span>Options</span></button>
       </nav>
       <div class="chips" id="saveLine"></div>
       <button type="button" class="btn primary" id="btnGo">Start</button>
@@ -121,15 +124,42 @@
     <div class="shell-body">
       <div class="view view-game" data-view="game" id="viewGame">
         <p class="lede" id="panelLede">You are a golem of living rock, woken in a web of caves. Somewhere in it the Emberwyrm sleeps in a lake of magma, under three seals, and each seal is held by a champion. Break the seals, wake the wyrm and bring it down. Type elements to shape a spell. The further from the hub, the tougher it gets.</p>
+        <div class="deeper" id="deeperRow" hidden>
+          <div><b>The cave is beaten</b><span>Below it, the stone goes on. Your golem keeps everything it carries.</span></div>
+          <button type="button" class="btn primary" id="btnDeeper">Descend to the next cave</button>
+        </div>
         <h2 class="rule first" id="journeyTitle"><span>Your journey</span></h2>
         <div class="journey" id="journey"></div>
         <h2 class="rule"><span>Your golem</span></h2>
         <div class="golems" id="golems" role="radiogroup" aria-label="Your golem"></div>
-        <div class="game-actions">
-          <button type="button" class="btn ghost small" id="btnRegen" role="switch" title="On: health comes back slowly when nothing has hurt you for 6 seconds. Off: only a Lodestone or a spell heals you."></button>
-          <button type="button" class="btn small" id="btnDeeper" hidden>Descend to the next cave</button>
-          <button type="button" class="btn ghost small" id="btnPanelReset" hidden title="Rebuild the cave from its seed. Your golem keeps its progress.">Reset the cave</button>
-          <button type="button" class="btn ghost small" id="btnNewCave">New game</button>
+      </div>
+
+      <div class="view view-options" data-view="options" id="viewOptions" hidden>
+        <h2 class="rule first"><span>Play</span></h2>
+        <div class="opts">
+          <div class="opt">
+            <div class="opt-text"><b>Health regeneration</b><span>Health comes back slowly when nothing has hurt you for 6 seconds. Off is harder: only a Lodestone or a spell heals you.</span></div>
+            <button type="button" class="switch" id="btnRegen" role="switch" aria-checked="true" aria-label="Health regeneration"><i></i></button>
+          </div>
+          <div class="opt">
+            <div class="opt-text"><b>Music</b><span>The cave's music. The N key or the music button in the corner turns it on and off too.</span></div>
+            <button type="button" class="switch" id="optMusic" role="switch" aria-checked="true" aria-label="Music"><i></i></button>
+          </div>
+          <div class="opt">
+            <div class="opt-text"><b>Sound</b><span>Every sound in the game. The M key or the sound button in the corner turns it on and off too.</span></div>
+            <button type="button" class="switch" id="optSound" role="switch" aria-checked="true" aria-label="Sound"><i></i></button>
+          </div>
+        </div>
+        <h2 class="rule" id="caveTitle"><span>Your save</span></h2>
+        <div class="opts" id="caveOpts">
+          <div class="opt" id="rowReset">
+            <div class="opt-text"><b>Reset the cave</b><span>Rebuilds the cave as it was first made: what you dug fills back in and its creatures return. You wake at your Lodestone and keep everything you have found and earned.</span></div>
+            <button type="button" class="btn small" id="btnPanelReset">Reset</button>
+          </div>
+          <div class="opt warn" id="rowNew">
+            <div class="opt-text"><b>Start over</b><span id="newNote">A new cave and a new golem at level 1. The game saved on this device is replaced.</span></div>
+            <button type="button" class="btn small danger" id="btnNewCave">New game</button>
+          </div>
         </div>
       </div>
 
@@ -256,18 +286,18 @@
 
 <noscript><p class="noscript">Cast in Stone needs JavaScript.</p></noscript>
 
-<script src="dmath.js?v=0.82"></script>
-<script src="data.js?v=0.82"></script>
-<script src="recipe.js?v=0.82"></script>
-<script src="world.js?v=0.82"></script>
-<script src="audio.js?v=0.82"></script>
-<script src="input.js?v=0.82"></script>
-<script src="game.js?v=0.82"></script>
-<script src="save.js?v=0.82"></script>
-<script src="render.js?v=0.82"></script>
-<script src="loot.js?v=0.82"></script>
-<script src="net.js?v=0.82"></script>
-<script src="touch.js?v=0.82"></script>
-<script src="main.js?v=0.82"></script>
+<script src="dmath.js?v=0.83"></script>
+<script src="data.js?v=0.83"></script>
+<script src="recipe.js?v=0.83"></script>
+<script src="world.js?v=0.83"></script>
+<script src="audio.js?v=0.83"></script>
+<script src="input.js?v=0.83"></script>
+<script src="game.js?v=0.83"></script>
+<script src="save.js?v=0.83"></script>
+<script src="render.js?v=0.83"></script>
+<script src="loot.js?v=0.83"></script>
+<script src="net.js?v=0.83"></script>
+<script src="touch.js?v=0.83"></script>
+<script src="main.js?v=0.83"></script>
 </body>
 </html>

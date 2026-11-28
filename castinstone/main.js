@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.82';
+  const VERSION = 'v0.83';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -238,7 +238,7 @@
   };
   addEventListener('pagehide', save);
 
-  function regenLabel() { const b = $('btnRegen'); b.textContent = 'Health regeneration: ' + (game.regen ? 'On (easier)' : 'Off (harder)'); b.setAttribute('aria-checked', game.regen ? 'true' : 'false'); }
+  function regenLabel() { $('btnRegen').setAttribute('aria-checked', game.regen ? 'true' : 'false'); }
 
   // ---------- modes: start, help (spell book), pause, map, rest, play ----------
   let mode = 'start', confirmNew = false, panelTab = 'game', titleSub = false;   // titleSub: which page the title screen opened, if any
@@ -263,17 +263,15 @@
     $('btnBack').hidden = m !== 'start';
     $('panelWrap').hidden = m === 'play' || m === 'rest' || m === 'map' || m === 'end' || (m === 'start' && !titleSub);
     if (m !== 'start') titleSub = false;
-    confirmNew = false; $('btnNewCave').textContent = 'New game';
+    confirmNew = false; $('btnNewCave').textContent = 'New game'; $('tsNew').textContent = 'New game'; $('tsNew').classList.remove('confirm');
     if (m === 'play') { view.focus({ preventScroll: true }); return; }
     if (m === 'rest') { buildRest(); $('btnLeave').focus({ preventScroll: true }); return; }
     if (m === 'end') { buildEnd(); $('btnDescend').focus({ preventScroll: true }); return; }
     if (m === 'map') { drawBigMap(); $('btnMapClose').focus({ preventScroll: true }); return; }
     const p = game.players[ME], started = m !== 'start' || hadSave;
     $('panelEyebrow').textContent = KNet.on ? 'Co-op · the game goes on while this is open' : (m === 'start' ? KData.acts[game.act].name : `Paused · ${KData.acts[game.act].name}`);   // the version shows only in the title screen's corner
-    $('btnNewCave').hidden = KNet.busy; if (KNet.busy) $('btnPanelReset').hidden = true;
-    $('btnDeeper').hidden = !game.won || KNet.busy; regenLabel();
+    $('deeperRow').hidden = !game.won || KNet.busy; regenLabel(); showOpts();
     $('btnGo').textContent = m === 'start' ? (hadSave ? 'Continue' : 'Start') : 'Resume';
-    $('btnPanelReset').hidden = m === 'start' || KNet.busy;
     $('saveLine').innerHTML = !started ? '' : chip('star', `Level ${p.level}`) + (p.shards ? chip('shard', `${p.shards} shards`, 'teal') : '');
     $('panelLede').hidden = started;
     // the journey: what there is to find in this cave, and what it has given you
@@ -294,6 +292,7 @@
   function buildTitle() {
     const p = game.players[ME];
     $('tsGo').textContent = hadSave ? 'Continue' : 'Begin';
+    $('tsNew').hidden = !hadSave;
     $('tsSave').innerHTML = hadSave ? `<b>Level ${p.level}</b> · ${game.world.biomes[game.world.biomeAt(p.x, p.y - 8)].name} · ${KData.acts[game.act].name}` : '';
     $('tsVer').textContent = `Beta · ${VERSION}`;
     $('tsGo').focus({ preventScroll: true });
@@ -314,27 +313,44 @@
   view.tabIndex = -1;
   const resume = () => setMode('play');
   // Reset the cave: rebuild it from its seed, keeping the golem's progress.
+  // the Options tab: what can be done to the save here (in co-op, neither: the cave is the host's)
+  function showOpts() {
+    $('rowReset').hidden = mode === 'start' || KNet.busy;
+    $('rowNew').hidden = KNet.busy;
+    $('caveTitle').hidden = $('caveOpts').hidden = $('rowReset').hidden && $('rowNew').hidden;
+    $('optMusic').setAttribute('aria-checked', KAudio.music ? 'true' : 'false');
+    $('optSound').setAttribute('aria-checked', KAudio.muted ? 'false' : 'true');
+  }
   const resetMap = () => { game.reset(true); game.players[ME].skin = skin; acc = 0; mapTick = 0; save(); };
   $('btnGo').addEventListener('click', () => { const first = mode === 'start' && !hadSave && !toldPremise; KAudio.start(); resume(); if (first) { toldPremise = true; toast('Three champions hold the seals on the Emberwyrm. Find them.', 'big'); } });
   let toldPremise = false;
   addEventListener('pointerdown', () => KAudio.start(), { once: true });
   addEventListener('keydown', () => KAudio.start(), { once: true });
   const muteBtn = $('btnMute');
-  const showMute = () => { muteBtn.setAttribute('aria-pressed', KAudio.muted ? 'true' : 'false'); muteBtn.innerHTML = KIcon(KAudio.muted ? 'mute' : 'sound'); muteBtn.title = KAudio.muted ? 'Sound is off (M)' : 'Sound is on (M)'; };
+  const showMute = () => { muteBtn.setAttribute('aria-pressed', KAudio.muted ? 'true' : 'false'); muteBtn.innerHTML = KIcon(KAudio.muted ? 'mute' : 'sound'); muteBtn.title = KAudio.muted ? 'Sound is off (M)' : 'Sound is on (M)'; showOpts(); };
   muteBtn.addEventListener('click', () => { KAudio.start(); KAudio.setMuted(!KAudio.muted); showMute(); view.focus(); });
   showMute();
   const musicBtn = $('btnMusic');
-  const showMusic = () => { musicBtn.setAttribute('aria-pressed', KAudio.music ? 'false' : 'true'); musicBtn.innerHTML = KIcon(KAudio.music ? 'music' : 'nomusic'); musicBtn.title = KAudio.music ? 'Music is on (N)' : 'Music is off (N)'; };
+  const showMusic = () => { musicBtn.setAttribute('aria-pressed', KAudio.music ? 'false' : 'true'); musicBtn.innerHTML = KIcon(KAudio.music ? 'music' : 'nomusic'); musicBtn.title = KAudio.music ? 'Music is on (N)' : 'Music is off (N)'; showOpts(); };
   const toggleMusic = () => { KAudio.start(); KAudio.setMusic(!KAudio.music); showMusic(); };
   musicBtn.addEventListener('click', () => { toggleMusic(); view.focus(); });
   showMusic();
   $('btnPanelReset').addEventListener('click', () => { resetMap(); resume(); });
-  $('btnNewCave').addEventListener('click', () => {
-    // a second press confirms: this replaces the saved world and the golem's progress
-    if (!confirmNew) { confirmNew = true; $('btnNewCave').textContent = 'Press again to start over'; return; }
+  // a new game: a second press confirms, as it replaces the saved world and the golem's progress
+  function newGame() {
     game = new KGame.Game(randomSeed()); game.players[ME].skin = skin; window.cis.game = game;
-    KSave.clear(); save(); acc = 0; mapTick = 0; toasts.length = 0; resume();
+    KSave.clear(); save(); acc = 0; mapTick = 0; toasts.length = 0; KAudio.start(); resume();
+  }
+  $('btnNewCave').addEventListener('click', () => {
+    if (!confirmNew) { confirmNew = true; $('btnNewCave').textContent = 'Press again to confirm'; return; }
+    newGame();
   });
+  $('tsNew').addEventListener('click', () => {
+    if (!confirmNew) { confirmNew = true; $('tsNew').textContent = 'Start over? Press again'; $('tsNew').classList.add('confirm'); return; }
+    newGame();
+  });
+  $('optMusic').addEventListener('click', () => { toggleMusic(); showOpts(); });
+  $('optSound').addEventListener('click', () => { KAudio.start(); KAudio.setMuted(!KAudio.muted); showMute(); showOpts(); });
   $('btnPause').addEventListener('click', () => setMode('pause'));
   $('btnSpells').addEventListener('click', () => setMode('help'));
   $('btnMap').addEventListener('click', () => setMode('map'));
@@ -780,7 +796,7 @@
   const coopSay = (text, kind) => {
     const el = $('coopStatus'); el.textContent = text; el.dataset.kind = kind || ''; el.hidden = !text;
     $('btnHost').disabled = $('btnJoin').disabled = $('coopCode').disabled = KNet.busy;
-    $('btnNewCave').hidden = KNet.busy; if (KNet.busy) $('btnPanelReset').hidden = true; else $('btnPanelReset').hidden = mode === 'start';
+    showOpts();
     $('btnLeaveCoop').hidden = !KNet.busy; $('btnLeaveCoop').textContent = KNet.on ? 'Leave co-op' : 'Cancel';
   };
   KNet.init({

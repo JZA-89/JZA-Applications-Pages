@@ -692,6 +692,14 @@ Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
 
+## The menus tidied: an Options tab (v0.83)
+
+Jaisah: "why is there a new game button in the golem tab?" Each tab now holds one kind of thing:
+- **Golem**: the story (before you have a save), your journey, and the four golems. Nothing else. When the cave is beaten, a gold banner at the top offers *Descend to the next cave* (it was a small button among the others).
+- **Options** (new, fifth tab, sliders icon): *Play*: Health regeneration, Music and Sound as on/off switches, each with one line saying what it does (the Music and Sound switches mirror the corner buttons and the N and M keys). *Your save*: Reset the cave (pause only) and Start over (New game, in red, a second press confirms). In co-op the save section is hidden, as the cave is the host's.
+- **Title screen**: with a save, *New game* sits under Continue (a second press confirms: "Start over? Press again"), and *Options* is the last item.
+- The menu bar shows only the open tab's name below 1,160 wide (the others keep their icons), so all five tabs and the Continue button fit from a phone up; checked at eleven screen sizes (scratchpad `barfit.js`). The Back button no longer wraps.
+
 ## Swipe between menu tabs; the Home Screen strip (v0.82)
 
 - **Swipe** (Jaisah): on a touch screen, a sideways flick across a menu page (at least 60 points, clearly more sideways than up or down, under 0.7 s) moves to the next or previous tab, in the menu (Golem, Spell book, Controls, Co-op) and at a Lodestone (Stats, Runestones, Forge, Travel). It stops at the first and last tab, ignores flicks that start on a row of page buttons (`.seg`) or a text box, and the new page slides in (still with reduced motion). `swipeTabs` in main.js.
@@ -870,6 +878,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.83 (2026-11-28):** the menus tidied: settings and the save moved out of the Golem tab into a new Options tab with proper switches; New game also on the title screen; the next-cave offer is a banner.
 
 - **v0.82 (2026-11-28):** swipe left and right between menu and Lodestone tabs on touch screens, and no blank strip at the bottom when opened from the Home Screen.
 

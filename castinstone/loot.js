@@ -29,6 +29,7 @@
     golem: 'M8 3h8v5H8zM5 9h14v7H5zM8 16v5M16 16v5M3 11v4M21 11v4',
     keys: 'M3 7h18v10H3zM7 11h.01M11 11h.01M15 11h.01M8 14h8',
     stats: 'M5 20V10M12 20V4M19 20v-7',
+    sliders: 'M4 7h9M17 7h3M15 5v4M4 17h3M11 17h9M9 15v4',
     rune: 'M8 3h8l5 5v8l-5 5H8l-5-5V8zM12 8v8M9 11l3-3 3 3',
     anvil: 'M4 8h13a3 3 0 0 0 3-3M7 8v3a4 4 0 0 0 4 4h2M6 20h12M9 20l1-5h4l1 5',
     stone: 'M9 21V7l3-4 3 4v14zM7 21h10M12 9v5M10 11h4',
