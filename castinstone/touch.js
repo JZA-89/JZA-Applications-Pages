@@ -60,7 +60,7 @@ const KTouch = (() => {
     zone.addEventListener('pointerup', stickEnd); zone.addEventListener('pointercancel', stickEnd);
 
     // ----- the held buttons; Shot is also the aim
-    const ends = [() => stickEnd()];
+    const ends = [() => stickEnd()], byId = [stickEnd];   // byId: each one ends only its own finger's hold
     for (const b of root.querySelectorAll('[data-hold]')) {
       const name = b.dataset.hold, aims = name === 'cast', dot = b.querySelector('.t-aim');
       let id = null;
@@ -69,7 +69,7 @@ const KTouch = (() => {
         id = null; T[name] = false; b.classList.remove('on');
         if (aims) { T.aim = null; b.classList.remove('aiming'); dot.style.removeProperty('--kx'); dot.style.removeProperty('--ky'); }
       };
-      ends.push(() => end());
+      ends.push(() => end()); byId.push(end);
       b.addEventListener('pointerdown', e => { stop(e); if (id !== null) return; id = e.pointerId; try { b.setPointerCapture(e.pointerId); } catch {} T[name] = true; b.classList.add('on'); });
       b.addEventListener('pointermove', e => {
         if (!aims || e.pointerId !== id) return;
@@ -86,6 +86,12 @@ const KTouch = (() => {
     // ----- the taps
     for (const b of root.querySelectorAll('[data-el]')) b.addEventListener('pointerdown', e => { stop(e); KInput.queue({ type: 'load', el: b.dataset.el }); b.classList.add('on'); setTimeout(() => b.classList.remove('on'), 120); });
     root.querySelector('[data-undo]').addEventListener('pointerdown', e => { stop(e); KInput.queue({ type: 'undo' }); });
+    // v0.99: a lifted finger always lets go. iOS sometimes delivers the finger's pointerup somewhere other than the control
+    // that held it (or loses the hold), and the Shot button stayed pressed, casting on its own. So: a pointerup or cancel
+    // anywhere ends that finger's hold, so does losing the capture, and when no finger is left on the screen everything lets go.
+    for (const type of ['pointerup', 'pointercancel']) document.addEventListener(type, e => { for (const f of byId) f(e); }, true);
+    root.addEventListener('lostpointercapture', e => { for (const f of byId) f(e); }, true);
+    for (const type of ['touchend', 'touchcancel']) document.addEventListener(type, e => { if (!e.touches.length) for (const f of ends) f(); }, true);
     return { release() { for (const f of ends) f(); } };
   }
   return { build };
