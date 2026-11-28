@@ -146,6 +146,7 @@
   };
 
   // ---------- the Forge tab: shards into stat points and stronger runestones ----------
+  let forgeFocus = null;
   window.KRest.forge = (game, p) => {
     const T = KData.treasure, view = $('forgeView');
     const pc = T.pointCost(p.bought || 0), cost = n => `<span class="cost">${KIcon('shard')}${n}</span>`;
@@ -159,9 +160,12 @@
         `<button type="button" class="btn small" data-lvl="${slot}" ${!max && p.shards >= c ? '' : 'disabled'}>${max ? 'Highest level' : 'Strengthen ' + cost(c)}</button></div>`;
     }
     view.innerHTML = html;
-    const rebuild = () => { window.cis.save(); window.cis.rest(); };
-    view.querySelector('[data-buy]').addEventListener('click', () => { if (window.cis.act('buyPoint')) rebuild(); });
-    view.querySelectorAll('[data-lvl]').forEach(b => b.addEventListener('click', () => { if (window.cis.act('levelUpRune', b.dataset.lvl)) rebuild(); }));
+    // v1.03: with a controller the cursor stays on the button just pressed (it jumped to Buy, so a second press bought a point)
+    if (forgeFocus && document.body.dataset.device === 'pad') { const f = view.querySelector(forgeFocus); if (f) f.focus({ preventScroll: true }); }
+    forgeFocus = null;
+    const rebuild = sel => { forgeFocus = sel; window.cis.save(); window.cis.rest(); };
+    view.querySelector('[data-buy]').addEventListener('click', () => { if (window.cis.act('buyPoint')) rebuild('[data-buy]'); });
+    view.querySelectorAll('[data-lvl]').forEach(b => b.addEventListener('click', () => { if (window.cis.act('levelUpRune', b.dataset.lvl)) rebuild(`[data-lvl="${b.dataset.lvl}"]`); }));
   };
 
   // ---------- hover notes and map dots for things in the cave ----------

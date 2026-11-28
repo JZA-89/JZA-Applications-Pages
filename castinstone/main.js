@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v1.02';
+  const VERSION = 'v1.03';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -227,15 +227,17 @@
     buildControls();
   });
   // everything on screen that names a key: the element buttons, the spell book, the map and rest hints
-  function relabel() {
-    buildControls();
-    for (const b of $('els').children) { const el = b.dataset.el, e = elements[el]; b.querySelector('kbd').textContent = KInput.label('kbm', el); b.title = `${e.name} (${KInput.label('kbm', el)})`; }
+  const hintDev = () => KInput.device === 'pad' ? 'pad' : 'kbm';   // v1.03: hints name the controller's buttons while one is in use
+  function relabel(light) {
+    if (!light) buildControls();
+    for (const b of $('els').children) { const el = b.dataset.el, e = elements[el]; b.querySelector('kbd').textContent = KInput.label(hintDev(), el); b.title = `${e.name} (${KInput.label(hintDev(), el)})`; }
     for (const k of document.querySelectorAll('.form kbd[data-el]')) k.textContent = KInput.label('kbm', k.dataset.el);
-    for (const k of document.querySelectorAll('[data-key]')) k.textContent = KInput.label('kbm', k.dataset.key);
+    for (const k of document.querySelectorAll('[data-key]')) k.textContent = KInput.label(hintDev(), k.dataset.key);
     hud.near = -1; hud.name = '';
   }
   // pages inside a tab: a row of buttons (.seg), each showing one .segview
   const showSeg = (view, name) => {
+    KInput.cancelCapture();
     for (const b of view.querySelectorAll('.seg button')) b.setAttribute('aria-pressed', b.dataset.seg === name ? 'true' : 'false');
     for (const v of view.querySelectorAll('.segview')) v.hidden = v.dataset.segview !== name;
   };
@@ -288,7 +290,8 @@
   let mode = 'start', confirmNew = false, panelTab = 'game', titleSub = false;   // titleSub: which page the title screen opened, if any
   const chip = (icon, text, cls = '') => `<span class="chip ${cls}">${KIcon(icon)}${text}</span>`;
   function showPanelTab(t) {
-    panelTab = t;
+    panelTab = t; KInput.cancelCapture();
+    confirmNew = false; $('btnNewCave').textContent = 'New game';   // v1.03: New game does not stay armed when you look elsewhere
     for (const b of document.querySelectorAll('#panelTabs .tab')) b.setAttribute('aria-selected', b.dataset.tab === t ? 'true' : 'false');
     for (const v of document.querySelectorAll('#panel .view')) v.hidden = v.dataset.view !== t;
     if (t === 'book') renderSpecials();
@@ -296,7 +299,7 @@
   }
   for (const b of document.querySelectorAll('#panelTabs .tab')) b.addEventListener('click', () => showPanelTab(b.dataset.tab));
   function setMode(m) {
-    mode = m; frozenDrawn = false;
+    mode = m; frozenDrawn = false; KInput.cancelCapture();
     document.body.dataset.mode = m;
     KInput.clearHeld();
     $('restWrap').hidden = m !== 'rest';
@@ -412,6 +415,7 @@
     onMute: () => { KAudio.start(); KAudio.setMuted(!KAudio.muted); showMute(); },
     onMusic: () => toggleMusic(),
     onBindings: () => relabel(),
+    onNav: (dx, dy) => padMenu({ dx, dy }),
     // touch: with no finger aiming, aim at the nearest creature in view, if any
     autoAim: () => {
       const p = game.players[ME], c = game.chest(p), w = game.world; let best = null, bd = 185;
@@ -463,6 +467,13 @@
     // the nearest button in the direction pressed; one in line with this one beats one off to the side
     // down from a tab goes to the first control of that tab, in reading order
     if (a.dy > 0 && cur.classList.contains('tab')) { const f = [...wrap.querySelectorAll('.shell-body button')].filter(shown)[0]; if (f) { f.focus({ preventScroll: true }); f.scrollIntoView({ block: 'nearest' }); return; } }
+    // v1.03: the four places round the golem on the Runestones tab have fixed neighbours (as MORPHOS's ring), since the
+    // nearest-button rule sent Left from Core to Head
+    if (cur.classList.contains('rr-node')) {
+      const s = cur.dataset.place, to = a.dx < 0 ? (s === 'arms' ? null : 'arms') : a.dx > 0 ? (s === 'arms' ? 'core' : null) : a.dy < 0 ? (s === 'head' ? null : 'head') : a.dy > 0 ? (s === 'legs' ? null : 'legs') : null;
+      const go = to && wrap.querySelector(`.rr-node[data-place="${to}"]`);
+      if (go) { go.focus({ preventScroll: true }); return; }
+    }
     const pick = (pool) => {
     const r = cur.getBoundingClientRect();
     let best = null, bs = 1e9;
@@ -576,7 +587,7 @@
         const p = game.players[ME];
         let best = null, bd = 1e9;
         for (const id of game.found) { const l = game.world.lodestones[id]; if (!l) continue; const d = Math.hypot(l.x - p.x, l.y - p.y); if (d < bd) { bd = d; best = l; } }
-        const where = !best ? '' : bd < 40 ? ' · press F at the Lodestone here' : ` · nearest Lodestone ${Math.round(bd)} ${Math.abs(best.x - p.x) > Math.abs(best.y - p.y) ? (best.x < p.x ? 'west' : 'east') : (best.y < p.y ? 'up' : 'down')}`;
+        const where = !best ? '' : bd < 40 ? (KInput.device === 'touch' ? ' · tap the notice to rest here' : ` · press ${KInput.label(KInput.device === 'pad' ? 'pad' : 'kbm', 'rest')} at the Lodestone here`) : ` · nearest Lodestone ${Math.round(bd)} ${Math.abs(best.x - p.x) > Math.abs(best.y - p.y) ? (best.x < p.x ? 'west' : 'east') : (best.y < p.y ? 'up' : 'down')}`;
         toast(`Level ${e.level} · ${e.points} stat point${e.points === 1 ? '' : 's'} to spend at a Lodestone${where}`, 'big');
       }
       else if (e.type === 'found') toast(`Lodestone found · ${e.stone.hub ? 'the hub' : e.stone.region}`, 'stone');
@@ -601,6 +612,7 @@
   const hud = { hp: -1, mana: -1, maxHp: -1, maxMana: -1, q: null, name: '', flash: 0, mflash: 0, lv: '', boss: '', buffs: '' };
   function updateHud() {
     const p = game.players[ME];
+    if (KInput.device !== hud.dev) { hud.dev = KInput.device; relabel(true); }
     // health and mana: the liquid in the two orbs
     const hp = Math.round(p.hp);
     if (hp !== hud.hp || p.maxHp !== hud.maxHp) {
@@ -696,7 +708,7 @@
     }
     const w = game.world, x = Math.floor(wx), y = Math.floor(wy);
     for (const l of w.lodestones) if (Math.abs(wx - l.x) < 5 && wy > l.y - 15 && wy < l.y + 1)
-      return [game.found.has(l.id) ? 'Lodestone' : 'Lodestone (not yet found)', 'Touch it to make it your checkpoint and repair. Stand by it and press F to rest: spend points, change runestones, travel.'];
+      return [game.found.has(l.id) ? 'Lodestone' : 'Lodestone (not yet found)', 'Touch it to make it your checkpoint and repair. Stand by it and press ' + KInput.label('kbm', 'rest') + ' to rest: spend points, change runestones, travel.'];
     if (window.KLoot) { const d = window.KLoot.describe(game, wx, wy); if (d) return d; }
     if (!w.inb(x, y)) return null;
     const m = w.get(x, y);
@@ -923,7 +935,7 @@
     // the first minutes of a first golem: how to cast, in the same place the goal will be
     if (p.level === 1 && !game.depth && game.kills === 0 && game.played < 180 && !p.used && !p.lastSpell) {
       title = 'Shape a spell';
-      hint = KInput.device === 'touch' ? 'Tap two element buttons, then hold the gold button to cast' : KInput.device === 'pad' ? 'Press two of B X A Y, then hold RT to cast' : 'Press two of Q W E S, then hold the left mouse button to cast';
+      hint = KInput.device === 'touch' ? 'Tap two element buttons, then hold the gold button to cast' : KInput.device === 'pad' ? `Press two of ${KData.elementOrder.map(e => KInput.label('pad', e)).join(' ')}, then hold ${KInput.label('pad', 'shot')} to cast` : `Press two of ${KData.elementOrder.map(e => KInput.label('kbm', e)).join(' ')}, then hold ${KInput.label('kbm', 'shot')} to cast`;
     } else
     if (game.won) { title = `${bossName} has fallen`; hint = KNet.busy ? 'The cave is yours' : 'A deeper cave waits: open the menu to descend'; }
     else if (left > 0) {
@@ -955,7 +967,7 @@
     $('endEyebrow').textContent = `${A[game.act].name} is won` + (game.depth >= A.length ? ` · depth ${game.depth + 1}` : '');
     $('endTitle').textContent = `${B.name} has fallen`;
     $('endLine').textContent = A[game.act].ending || '';
-    $('endText').textContent = `The three seals are broken and the ${B.core} is yours. ` + (game.depth + 1 < A.length ? `Below lies ${next.name}: the ${next.biomes.map(b => b.name).join(', the ')}, creatures you have not met, three new champions and ${nb.name}.` : `The way down goes on. ${next.name} waits again, eight levels harder.`);
+    $('endText').textContent = `The three seals are broken and the ${B.core} is yours. ` + (game.depth + 1 < A.length ? `Below lies ${next.name}: the ${next.biomes.map(b => b.name).join(', the ')}, creatures you have not met, three new champions and ${nb.name.replace(/^The /, 'the ')}.` : `The way down goes on. ${next.name} waits again, eight levels harder.`);
     $('endNote').textContent = 'Everything below is eight levels stronger and the treasure is better. Your golem keeps its level, runestones, spells and shards. This cave is left behind for good.';
     $('endStats').innerHTML = tile('star', p.level, 'Level') + tile('stats', clock(game.played), 'Time in the cave') + tile('skull', game.kills, 'Creatures felled') + tile('heart', game.deaths, 'Times crumbled') + tile('book', `${p.known.length}<small> of ${Object.keys(KData.specials).length}</small>`, 'Special spells') + tile('stone', `${game.found.size}<small> of ${game.world.lodestones.length}</small>`, 'Lodestones');
     $('btnDescend').hidden = $('endNote').hidden = KNet.busy;

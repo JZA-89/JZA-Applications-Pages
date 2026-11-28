@@ -77,6 +77,7 @@ const KInput = (() => {
     bind[dev][action] = value; keep();
   }
   function startCapture(dev, action, done) { capture = { dev, action, done, at: performance.now() }; }
+  function cancelCapture() { if (capture) endCapture(false); }   // v1.03: leaving the page, another tab, Esc or a tap elsewhere
   function endCapture(ok) { const c = capture; capture = null; if (c && c.done) c.done(ok); }
   function resetBindings(dev) { bind[dev] = { ...DEFAULTS[dev] }; keep(); }
   const actionOf = code => { for (const a in bind.kbm) if (bind.kbm[a] === code) return a; return null; };
@@ -108,6 +109,7 @@ const KInput = (() => {
     hooks = h;
     document.body.dataset.device = device;
     addEventListener('keydown', e => {
+      if (capture && e.code === 'Escape') { e.preventDefault(); e.stopPropagation(); return endCapture(false); }   // Esc cancels a wait for a controller button too
       if (capture && capture.dev === 'kbm') {   // the Controls tab is waiting for a key
         e.preventDefault(); e.stopPropagation();
         if (e.repeat) return;
@@ -125,6 +127,8 @@ const KInput = (() => {
       if (hooks.blocked && hooks.blocked()) {
         if (act === 'map') { e.preventDefault(); hooks.onMap && hooks.onMap(); }
         if (code === 'Escape' || act === 'pause' || act === 'book') { e.preventDefault(); hooks.onClose && hooks.onClose(); }
+        const nav = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.code];   // v1.03: the arrow keys move through a menu
+        if (nav && hooks.onNav) { e.preventDefault(); hooks.onNav(nav[0], nav[1]); }
         return;
       }
       if (act || ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Backspace', 'Tab'].includes(code)) e.preventDefault();
@@ -279,5 +283,5 @@ const KInput = (() => {
   function clearHeld() { keys.clear(); mouse.b.fill(false); events = []; padHeld = NONE(); navHeld = 'wait'; touchDrop(); }
   function queue(e) { events.push(e); }
 
-  return { attach, sample, poll, clearHeld, queue, get device() { return device; }, mouse, touch, label, startCapture, resetBindings, get capturing() { return capture; }, get rev() { return rev; }, DEFAULTS };
+  return { attach, sample, poll, clearHeld, cancelCapture, queue, get device() { return device; }, mouse, touch, label, startCapture, resetBindings, get capturing() { return capture; }, get rev() { return rev; }, DEFAULTS };
 })();

@@ -301,7 +301,7 @@ h2.rule::before, h2.rule::after { content: ''; flex: 1; height: 1px; background:
 /* forge and travel */
 .forge-head { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
 .frow { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 8px; border-radius: 12px; background: #0b0810; box-shadow: inset 0 0 0 1px var(--line); }
-.frow b { display: block; font: 600 14px/1.2 var(--serif); letter-spacing: .04em; } .frow span { font-size: 12px; color: var(--dim); }
+.frow b { display: block; font: 600 14px/1.2 var(--serif); letter-spacing: .04em; } .frow > div > span { font-size: 12.5px; color: var(--dim); }   /* v1.03: only the line of text (it greyed the stone's icon, its level and the cost) */
 .frow.dim { opacity: .5; }
 .cost { display: inline-flex; align-items: center; gap: 5px; } .cost svg { width: 13px; height: 13px; color: #7fe9df; }
 .trips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -646,4 +646,46 @@ body[data-device="pad"] .rr-chip:focus { outline: 0; box-shadow: inset 0 0 0 2px
   .rr-side { padding: 10px 12px; gap: 8px; } .rr-chip { width: 40px; height: 40px; } .rr-chip svg { width: 20px; height: 20px; } .rr-title h3 { font-size: 17px; } .rr-big { width: 38px; height: 38px; }
   .rr-trait { padding: 7px 10px; font-size: 12.5px; } .rr-stats { font-size: 13px; }
 }
-@media (max-width: 760px) { .rr { grid-template-columns: 1fr; } .rr-body { height: 320px; } }
+@media (max-width: 760px) and (orientation: portrait) { .rr { grid-template-columns: 1fr; } .rr-body { height: 320px; } }   /* v1.03: upright only: on a small phone on its side it pushed the stone's details off the screen */
+@media (max-width: 760px) and (orientation: landscape) { .rr { grid-template-columns: minmax(0, 1fr) minmax(250px, 1fr); } }
+
+/* ---------- v1.03: audit of the screens ---------- */
+/* the lines on the Runestones tab meet the discs: a place is anchored on its disc, not on the middle of disc and label */
+.rr-node { --d: 58px; }
+.rr-node[data-place="arms"], .rr-node[data-place="core"] { transform: translate(-50%, calc(var(--d) / -2)); }
+.rr-node[data-place="head"], .rr-node[data-place="legs"] { transform: translate(calc(var(--d) / -2), -50%); }
+@media (max-height: 520px) { .rr-node { --d: 46px; } }
+/* the Forge's stone tiles keep their grade's colour and a proper level badge; the cost reads on the gold button */
+.frow .gemtile .lv { right: -3px; bottom: -3px; min-width: 18px; height: 18px; padding: 0 4px; display: grid; place-items: center; border-radius: 9px; font: 800 11px/1 "Avenir Next", system-ui, sans-serif; color: #1a1210; background: var(--t); box-shadow: 0 0 0 2px #0d0a13; text-shadow: none; }
+.frow .gemtile { overflow: visible; clip-path: none; border-radius: 50%; background: radial-gradient(circle at 40% 32%, color-mix(in srgb, var(--t) 28%, #1d1727), #0d0a13 78%); box-shadow: inset 0 0 0 2px var(--t); }
+.frow .gemtile::before { display: none; } .frow .gemtile.empty { box-shadow: inset 0 0 0 2px #3a3249; }
+.frow .btn.primary .cost, .frow .btn.primary .cost svg { color: #2a1c06; } .frow .btn .cost { color: var(--ink); }
+/* key hints: none on a touch screen; Leave's Esc only with a keyboard */
+body[data-device="touch"] .btn kbd, body[data-device="pad"] #btnLeave kbd { display: none; }
+/* a phone held upright */
+@media (orientation: portrait) {
+  /* the boss's bar goes under the gauges, clear of the map and the corner buttons */
+  body[data-device="touch"] .bossbar { top: calc(var(--u) * 250px); width: 86%; }
+  body[data-device="touch"] .has-boss .objective, body[data-device="touch"].has-boss .objective { top: calc(var(--u) * 330px); }
+}
+@media (max-width: 640px) {
+  /* the Lodestone screen keeps your stat points and shards in sight, on a row of their own */
+  #restWrap .bar .chips { display: flex; order: 4; width: 100%; margin: 0; justify-content: flex-start; }
+  .seg { flex-wrap: wrap; overflow: visible; }   /* the page buttons wrap; the third was cut off */
+}
+/* things a finger presses are at least 40 across on a touch screen */
+body[data-device="touch"] .orbbtn { min-width: 40px; min-height: 40px; }
+body[data-device="touch"] .btn.small, body[data-device="touch"] .seg button, body[data-device="touch"] .tab, body[data-device="touch"] .rebind, body[data-device="touch"] .book button { min-height: 40px; }
+body[data-device="touch"] .plus { min-width: 40px; min-height: 40px; }
+body[data-device="touch"] .ts-item { padding-top: 9px; padding-bottom: 9px; }
+body[data-device="touch"] .switch { width: 60px; height: 36px; } body[data-device="touch"] .switch i { width: 28px; height: 28px; } body[data-device="touch"] .switch[aria-checked="true"] i { transform: translateX(24px); }
+/* nothing in the game's own display under 10, nothing in a menu under 11 */
+.gem small { font-size: max(10px, calc(var(--u) * 9px)); letter-spacing: .08em; }
+.gem.big small { font-size: 11px; letter-spacing: .1em; }
+.gem-pts { top: calc(var(--u) * -14px); right: calc(var(--u) * -12px); }   /* clear of the word LEVEL */
+.hud kbd { font-size: max(10px, calc(var(--u) * 10px)); }
+.rr-disc .lv, .rr-chip .lv, .rr-disc .spare { font-size: 11px; }
+.golem small { font-size: 12.5px; } .mod { font-size: 12.5px; }
+@media (max-height: 520px) { .mod, .keyrow, .keygrid .keyrow, .bind-foot .note, .form dl { font-size: 12.5px; } }
+.rest-id .gem.big small { display: none; } .rest-id .gem.big strong { font-size: 22px; }   /* the word LEVEL was 7 high there; the location line beside it says where and what */
+@media (max-width: 720px) and (orientation: landscape) { .bossbar { width: 30%; left: 46%; } }   /* a small phone: clear of the map and the corner buttons */

@@ -879,6 +879,19 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 
 ## Decision log
 
+- **v1.03 (2026-11-28): full audit, batch 3: screens and controls.**
+  - Forge with a controller: the cursor stays on the button pressed (it jumped to Buy, so a second press bought a stat point). Forge tiles keep their grade's colour with a level badge, and the cost reads on the gold button (`.frow span` had greyed all three).
+  - The level-up notice and the Lodestone note name the Rest key as bound, per device (they said F; Rest is R).
+  - Key hints follow the device: the element buttons, minimap and map show the controller's buttons while one is in use (`relabel(true)` on a device change); none show on touch; Leave's Esc only with a keyboard. The first objective lists the element keys as bound.
+  - Rebinding can always be cancelled: Esc (also while waiting for a controller button), changing tab or page, or closing the menu (`KInput.cancelCapture`).
+  - New game does not stay armed after looking at another tab.
+  - The arrow keys move through menus (as the d-pad does); the four places on the Runestones tab have fixed neighbours for the controller.
+  - Phone upright: the boss bar sits under the gauges (it covered the Map and Spell book buttons); the Lodestone screen keeps stat points and shards on a row of their own; the Spell book's page buttons wrap. Small phone on its side: the Runestones tab stays in two columns (its details were off the screen); the boss bar is narrower.
+  - Runestones tab: the lines meet the Arms and Core discs.
+  - Touch targets are at least 40 across (corner buttons, small buttons, page buttons, tabs, plus buttons, switches, title items). Text floors: nothing in the HUD under 10, in menus under 11 (the LEVEL label, key hints, rune badges, golem descriptions, control rows on phones).
+  - Wording: the end note says eight levels (not four); Options no longer names keys; "the Hollow King" mid-sentence.
+  - Not done: the controller's map button does not close the map (B does); the co-op code shows before the connection service has answered.
+
 - **v1.02 (2026-11-28): full audit, batch 2: saves and co-op.**
   - A save that fails to store (storage full) is retried after the usual 20 s, not every frame (it cost most of the frame rate), with one notice. Saves from older cave versions (`castinstone.save.v1`–`v12`), which nothing can load, are removed at start.
   - A save that is there but cannot be read is copied to `castinstone.save.bad` before anything replaces it, and the title says so (it used to say Continue and silently start a new game).
