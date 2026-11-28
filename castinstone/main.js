@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.93';
+  const VERSION = 'v0.94';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -46,6 +46,12 @@
     if (key === fitKey) return;
     fitKey = key;
     if (VV) { stage.style.top = top + 'px'; stage.style.left = left + 'px'; }
+    // v0.94: the menus, the title and the touch controls take the visible area too, like the game picture. On Jaisah's iPad the
+    // page's own area (what position: fixed; inset: 0 fills) is wider than the screen, so they were cut off on the right,
+    // while the game picture, sized from the visible area, always fitted.
+    const ds = document.documentElement.style;
+    ds.setProperty('--vw', W + 'px'); ds.setProperty('--vh', H + 'px');
+    ds.setProperty('--vx', (VV ? Math.round(VV.offsetLeft) : 0) + 'px'); ds.setProperty('--vy', (VV ? Math.round(VV.offsetTop) : 0) + 'px');
     if (Math.min(W, H) >= 600) { VW = 432; VH = 243; } else { VW = 384; VH = 216; }
     SIGHT = Math.round(224 * VW / 384); SIGHT_END = Math.round(290 * VW / 384); R.sightR = SIGHT_END + 2;
     R.setView(wide ? Math.min(VW * 2, Math.round(VH * W / H)) : VW, wide ? VH : Math.min(Math.round(VW * 2.25), Math.round(VW * H / W)));

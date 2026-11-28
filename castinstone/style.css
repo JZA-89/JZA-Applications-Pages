@@ -606,3 +606,6 @@ h3.circle small { font: 700 11.5px/1 "Avenir Next", system-ui, sans-serif; lette
 .bar .back { white-space: nowrap; flex: none; }
 .ts-menu .ts-save { margin: -6px 0 12px; }   /* v0.85: the save's details sit under Continue */
 @media (max-width: 900px) { #saveLine { display: none; } }   /* the level chip beside Start: on narrow screens it would push Start off the edge */
+/* v0.94: every full-screen layer covers the visible area (set by main.js fit), not the page's own area, which an iPad can make
+   wider than the screen */
+.panel-wrap, .ts-wrap, #touch { right: auto; bottom: auto; left: var(--vx, 0px); top: var(--vy, 0px); width: var(--vw, 100%); height: var(--vh, 100%); }
