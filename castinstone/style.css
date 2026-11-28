@@ -609,3 +609,9 @@ h3.circle small { font: 700 11.5px/1 "Avenir Next", system-ui, sans-serif; lette
 /* v0.94: every full-screen layer covers the visible area (set by main.js fit), not the page's own area, which an iPad can make
    wider than the screen */
 .panel-wrap, .ts-wrap, #touch { right: auto; bottom: auto; left: var(--vx, 0px); top: var(--vy, 0px); width: var(--vw, 100%); height: var(--vh, 100%); }
+/* v0.95: offered when a newer version is on the server */
+.update-banner { position: fixed; z-index: 30; left: 50%; top: calc(var(--vy, 0px) + max(10px, env(safe-area-inset-top))); transform: translateX(-50%); display: grid; gap: 2px; justify-items: center;
+  padding: 9px 18px; border: 0; border-radius: 12px; cursor: pointer; font: 600 13px/1.3 "Avenir Next", "Segoe UI", system-ui, sans-serif; color: #2a1c06;
+  background: linear-gradient(180deg, #ffe3a3, #ffd37a 45%, #d9a84e); box-shadow: inset 0 1px 0 #fff8, 0 2px 0 #7a5a22, 0 0 0 1px #000, 0 6px 20px #000a; }
+.update-banner[hidden] { display: none; }
+.update-banner b { font: 600 15px/1.2 var(--serif); letter-spacing: .04em; } .update-banner span { font-size: 12.5px; }

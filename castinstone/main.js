@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.94';
+  const VERSION = 'v0.95';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -65,6 +65,26 @@
     stage.style.setProperty('--hx', (h <= 600 ? 0 : Math.max(0, Math.round((w - h * 16 / 9) / 2))) + 'px');
     R.resize(w, h);
   }
+  // v0.95: a version check, as in MORPHOS. The browser (above all a Home Screen copy on an iPad) can keep an old copy of
+  // this page; ask the server, bypassing every cache, which version is current, and offer a reload when this copy is older.
+  // Only the page itself is fetched; nothing is sent.
+  const pageVersion = (document.title.match(/v(\d+)\.(\d+)/) || []).slice(1).map(Number);
+  let versionCheckedAt = 0;
+  async function checkForUpdate() {
+    if (!pageVersion.length || !location.protocol.startsWith('http') || (versionCheckedAt && performance.now() - versionCheckedAt < 5 * 60000)) return;
+    versionCheckedAt = performance.now();
+    try {
+      const r = await fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return;
+      const m = (await r.text()).match(/<title>[^<]*v(\d+)\.(\d+)/); if (!m) return;
+      const live = [+m[1], +m[2]], newer = live[0] > pageVersion[0] || (live[0] === pageVersion[0] && live[1] > pageVersion[1]);
+      if (!newer) return;
+      const b = $('updateBanner'); b.dataset.v = live[0] + '.' + live[1];
+      b.innerHTML = `<b>v${live[0]}.${String(live[1]).padStart(2, '0')} is ready</b><span>Tap to reload. Your game is saved.</span>`; b.hidden = false;
+    } catch (e) {}
+  }
+  $('updateBanner').addEventListener('click', () => { try { save(); } catch (e) {} location.replace(location.pathname + '?v=' + ($('updateBanner').dataset.v || Date.now())); });
+  setTimeout(checkForUpdate, 3000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkForUpdate(); });
   addEventListener('resize', askFit);
   // the page never scrolls (as in MORPHOS): if Safari ever shifts it, put it back
   addEventListener('scroll', () => { if (scrollX || scrollY) scrollTo(0, 0); }, { passive: true });
