@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v1.11';
+  const VERSION = 'v1.12';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -526,6 +526,7 @@
       t.setAttribute('aria-selected', t.dataset.tab === restTab ? 'true' : 'false');
       const dot = t.querySelector('.dot'); if (dot) dot.remove();
       if (t.dataset.tab === 'stats' && p.points > 0) t.insertAdjacentHTML('beforeend', '<i class="dot"></i>');
+      if (t.dataset.tab === 'runes' && p.inventory.some(o => o.fresh)) t.insertAdjacentHTML('beforeend', '<i class="dot new"></i>');
     }
     for (const v of document.querySelectorAll('.rest-view')) v.hidden = v.dataset.view !== restTab;
     // stats

@@ -10,7 +10,7 @@ const KGame = (() => {
   const { M, spells, spellKey, player: PD, dummy: DD, step: DT } = KData;
   const { World, makeRng, STATE, SOLID, ST } = KWorld;
   const counts = new Int32Array(KData.materials.length);
-  const UI_CALLS = new Set(['spendPoint', 'equip', 'unequip', 'buyPoint', 'levelUpRune', 'breakRune', 'travel', 'setRegen']);
+  const UI_CALLS = new Set(['spendPoint', 'equip', 'unequip', 'buyPoint', 'levelUpRune', 'breakRune', 'travel', 'setRegen', 'seeRune']);
   // water: how much of the weight it carries when fully under, the extra for things that float, drag, and splashes
   const WATER = { lift: 0.72, floatLift: 1.1, dragX: 2.5, dragY: 3, shotDrag: 4, entry: 0.45, paddle: 22, splashFrom: 45, splashMax: 14 };
   const MUD_COAT = 2.5;     // seconds a mud hit keeps slowing
@@ -271,7 +271,7 @@ const KGame = (() => {
         for (const p of this.players) {
           if (p.dead || Math.abs(p.x - L.x) > 10 || Math.abs((p.y - p.h / 2) - L.y) > 14) continue;
           if (p.inventory.length >= RU.bag) { if (!L.fullWarned) { this.events.push({ p: p.id, type: 'toast', text: 'Your bag of runestones is full. Break some at a Lodestone.' }); L.fullWarned = true; } continue; }
-          p.inventory.push(L.rune); L.taken = true; this.sfx('rune', L.x, L.y);
+          L.rune.fresh = 1; p.inventory.push(L.rune); L.taken = true; this.sfx('rune', L.x, L.y);
           const T = RU.types[L.rune.type];
           this.events.push({ p: p.id, type: 'toast', kind: 'loot', text: `Found: ${T.name} · ${RU.tiers[L.rune.tier].name} · level ${L.rune.level}` });
           this.events.push({ type: 'save' });
@@ -320,7 +320,7 @@ const KGame = (() => {
       // a runestone a grade better than a drop would usually be; deep caches may hold the Crucible
       const crucible = this.rand() < T.crucibleChance(c.level) && !this.hasRune(p, 'crucible');
       const rune = crucible ? this.makeRune(c.level, { type: 'crucible', tier: 2 }) : this.makeRune(c.level, { tier: Math.min(2, RU.tierFor(c.level, this.rand()) + 1) });
-      if (p.inventory.length < RU.bag) p.inventory.push(rune); else this.dropRune(c.x, c.y - 6, rune);
+      if (p.inventory.length < RU.bag) { rune.fresh = 1; p.inventory.push(rune); } else this.dropRune(c.x, c.y - 6, rune);
       this.events.push({ p: p.id, type: 'toast', kind: 'loot', text: `Relic cache opened · ${RU.types[rune.type].name} (${RU.tiers[rune.tier].name}) · ${shards} shards` });
       if (this.rand() < KData.treasure.tomeChance) this.tome(p, null, KData.treasure.tierFor(c.level));
       this.gainXp(p, T.xp(c.level), 'cache');
@@ -953,7 +953,7 @@ const KGame = (() => {
       const second = this.makeRune(b.level + 1, { tier: 2 + (this.rand() < 0.4 ? 1 : 0) });
       // straight into the bag (it usually dies under the magma); dropped beside you only if the bag is full
       for (const r of [first, second]) {
-        if (p.inventory.length < RU.bag) { p.inventory.push(r); this.events.push({ type: 'toast', kind: 'loot', text: `Found: ${RU.types[r.type].name} · ${RU.tiers[r.tier].name} · level ${r.level}` }); }
+        if (p.inventory.length < RU.bag) { r.fresh = 1; p.inventory.push(r); this.events.push({ type: 'toast', kind: 'loot', text: `Found: ${RU.types[r.type].name} · ${RU.tiers[r.tier].name} · level ${r.level}` }); }
         else this.dropRune(p.x, p.y - 10, r);
       }
       for (const s of b.trail.filter((_, i) => i % 6 === 0)) this.burst(s.x, s.y, 8, [[255, 140, 50], [90, 40, 36], [255, 220, 140]], 160);
@@ -969,11 +969,13 @@ const KGame = (() => {
       const r = p.inventory[index];
       if (!r || !KData.runes.types[r.type]) return;
       const slot = KData.runes.types[r.type].slot;
-      p.inventory.splice(index, 1);
+      p.inventory.splice(index, 1); delete r.fresh;
       if (p.runes[slot]) p.inventory.push(p.runes[slot]);
       p.runes[slot] = r;
       this.applyStats(p);
     }
+    // a found runestone is new until it has been looked at in the Runestones tab (v1.12)
+    seeRune(p, index) { const r = p.inventory[index]; if (r) delete r.fresh; }
     unequip(p, slot) {
       if (!p.runes[slot] || p.inventory.length >= KData.runes.bag) return;
       p.inventory.push(p.runes[slot]); p.runes[slot] = null;
@@ -2202,7 +2204,7 @@ const KGame = (() => {
         // a champion falls for good: a Legendary runestone, a tome and shards
         const q = a.lastHitBy, RU = KData.runes, r = this.makeRune(a.level + 1, { tier: 3 });
         q.shards = (q.shards || 0) + KData.champions.shards * a.level;
-        if (q.inventory.length < RU.bag) q.inventory.push(r); else this.dropRune(a.x, a.y - a.h / 2, r);
+        if (q.inventory.length < RU.bag) { r.fresh = 1; q.inventory.push(r); } else this.dropRune(a.x, a.y - a.h / 2, r);
         this.events.push({ type: 'toast', kind: 'big', text: `${a.champion} has fallen · ${RU.types[r.type].name} (Legendary) · ${KData.champions.shards * a.level} shards` });
         this.events.push({ type: 'toast', kind: 'stone', text: `You are greater for it: +${KData.treasure.boons.champion.hp} maximum health and mana while you are in this cave` });
         this.tome(q, null, Math.min(4, KData.treasure.tierFor(a.level) + 1), true);

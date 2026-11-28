@@ -109,18 +109,18 @@
       for (const s of RU.slots) {
         const r = p.runes[s], n = p.inventory.filter(o => RU.types[o.type].slot === s).length;
         html += `<button type="button" class="rr-node${s === place ? ' on' : ''}${r ? '' : ' empty'}" data-place="${s}" style="left:${POS[s][0]}%;top:${POS[s][1]}%;--t:${r ? css(RU.tiers[r.tier].color) : '#6a5f78'}" aria-label="${RU.slotNames[s]}: ${r ? RU.types[r.type].name : 'nothing worn'}">` +
-          `<span class="rr-disc">${r ? runeIcon(r.type) : KIcon('rune')}${r ? `<i class="lv">${r.level}</i>` : ''}${n ? `<i class="spare">${n}</i>` : ''}</span>` +
+          `<span class="rr-disc">${r ? runeIcon(r.type) : KIcon('rune')}${r ? `<i class="lv">${r.level}</i>` : ''}${n ? `<i class="spare${p.inventory.some(o => o.fresh && RU.types[o.type].slot === s) ? ' new' : ''}">${n}</i>` : ''}</span>` +
           `<span class="rr-label"><b>${RU.slotNames[s]}</b><small>${r ? RU.types[r.type].name : 'Empty'}</small></span></button>`;
       }
       html += '</div>';
       // the side panel: this place's stones and the chosen one
       const worn = p.runes[place], spares = p.inventory.map((r, i) => ({ r, i })).filter(o => RU.types[o.r.type].slot === place).sort((a, b) => b.r.tier - a.r.tier || b.r.level - a.r.level || a.i - b.i);
-      const chip = (r, attrs, sel, tick) => `<button type="button" class="rr-chip${sel ? ' sel' : ''}" style="--t:${css(RU.tiers[r.tier].color)}" ${attrs} title="${RU.types[r.type].name} · ${RU.tiers[r.tier].name} · level ${r.level}">${runeIcon(r.type)}<i class="lv">${r.level}</i>${tick ? '<i class="tick">✓</i>' : ''}</button>`;
+      const chip = (r, attrs, sel, tick) => `<button type="button" class="rr-chip${sel ? ' sel' : ''}" style="--t:${css(RU.tiers[r.tier].color)}" ${attrs} title="${RU.types[r.type].name} · ${RU.tiers[r.tier].name} · level ${r.level}">${runeIcon(r.type)}<i class="lv">${r.level}</i>${tick ? '<i class="tick">✓</i>' : ''}${r.fresh && !sel ? '<i class="new"></i>' : ''}</button>`;
       html += `<div class="rr-side"><header class="rr-head"><b>${RU.slotNames[place]}</b><span></span><small>${(worn ? 1 : 0) + spares.length} found</small></header>`;
       html += '<div class="rr-chips">' + (worn ? chip(worn, `data-worn="${place}"`, picked && picked.slot, true) : '<span class="rr-none">Nothing worn</span>') + (spares.length ? '<span class="rr-sep"></span>' + spares.map(o => chip(o.r, `data-bag="${o.i}"`, picked && picked.bag === o.i, false)).join('') : '') + '</div>';
       if (stone) {
         const T = RU.types[stone.type], tier = RU.tiers[stone.tier], other = !picked.slot && worn;
-        html += `<div class="rr-card" style="--t:${css(tier.color)}"><div class="rr-title"><span class="rr-big">${runeIcon(stone.type)}</span><div><h3>${T.name}</h3><p>${tier.name} · Level ${stone.level}${picked.slot ? ' · Worn' : ''}</p></div></div>
+        html += `<div class="rr-card" style="--t:${css(tier.color)}"><div class="rr-title"><span class="rr-big">${runeIcon(stone.type)}</span><div><h3>${T.name}</h3><p>${tier.name} · Level ${stone.level}${picked.slot ? ' · Worn' : stone.fresh ? ' · <b class="rr-new">New</b>' : ''}</p></div></div>
           <div class="rr-stats">${statLines(stone)}</div>
           ${T.trait ? `<div class="rr-trait">${T.desc}</div>` : `<p class="rr-desc">${T.desc}</p>`}
           ${other ? `<p class="rr-cmp">Replaces ${RU.types[other.type].name} (${RU.tiers[other.tier].name}, level ${other.level}): ${statLines(other)}</p>` : ''}
@@ -129,6 +129,9 @@
       } else html += `<div class="rr-card empty"><p class="rr-desc">No ${RU.slotNames[place].toLowerCase()} stone yet. Runestones drop from creatures and lie in relic caches.</p></div>`;
       html += `<p class="rr-bag">${KIcon('rune')}${p.inventory.length} of ${RU.bag} spare stones carried</p></div></div>`;
       view.innerHTML = html;
+      // the stone on show has now been looked at: its mark goes (through act, so both devices agree in co-op)
+      if (stone && stone.fresh && picked.bag != null) { window.cis.act('seeRune', picked.bag); if (!KNet.on) window.cis.save(); }
+      { const t = $('tabRunes'), d = t.querySelector('.dot'), any = p.inventory.some(o => o.fresh); if (d && !any) d.remove(); else if (!d && any) t.insertAdjacentHTML('beforeend', '<i class="dot new"></i>'); }
       const c = $('dollGolem');
       KRender.preview(c, p.skin, p.slots);
       c.style.width = (c.width * 4) + 'px'; c.style.height = (c.height * 4) + 'px';

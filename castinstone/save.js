@@ -54,7 +54,7 @@ const KSave = (() => {
     if (Number.isInteger(s.skin)) p.skin = num(s.skin, 0, KData.golems.length - 1, 0);
     const RU = KData.runes;
     const okRune = r => r && typeof r.type === 'string' && Object.prototype.hasOwnProperty.call(RU.types, r.type) && Number.isInteger(r.tier) && r.tier >= 0 && r.tier < RU.tiers.length && Number.isFinite(r.level)
-      ? { id: String(r.id || ''), type: r.type, tier: r.tier, level: num(r.level, 1, 99, 1) } : null;
+      ? Object.assign({ id: String(r.id || ''), type: r.type, tier: r.tier, level: num(r.level, 1, 99, 1) }, r.fresh ? { fresh: 1 } : null) : null;
     if (s.runes) for (const slot of RU.slots) { const r = okRune(s.runes[slot]); p.runes[slot] = r && RU.types[r.type].slot === slot ? r : null; }
     if (Array.isArray(s.inventory)) p.inventory = s.inventory.map(okRune).filter(Boolean).slice(0, RU.bag);
     p.shards = num(s.shards, 0, 1e7, 0); p.bought = num(s.bought, 0, 999, 0);

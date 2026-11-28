@@ -615,6 +615,10 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
 .rr-disc .lv, .rr-chip .lv { position: absolute; right: -3px; bottom: -3px; min-width: 20px; height: 20px; padding: 0 4px; display: grid; place-items: center; border-radius: 10px; font: 800 11px/1 "Avenir Next", system-ui, sans-serif; font-style: normal; color: #1a1210; background: var(--t); box-shadow: 0 0 0 2px #0d0a13; }
 .rr-disc .spare { position: absolute; left: -4px; top: -4px; min-width: 20px; height: 20px; padding: 0 5px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font: 700 11px/1 "Avenir Next", system-ui, sans-serif; font-style: normal; color: var(--ink); background: #3a3249; box-shadow: 0 0 0 2px #0d0a13; }
 .rr-disc .spare::before { content: '+'; }
+.rr-disc .spare.new { color: #fff; background: #e5484d; box-shadow: 0 0 0 2px #0d0a13, 0 0 10px #e5484d; }
+.rr-chip .new { position: absolute; right: -2px; top: -2px; width: 12px; height: 12px; border-radius: 50%; background: #e5484d; box-shadow: 0 0 0 2px #0d0a13, 0 0 8px #e5484d; }
+.rr-new { color: #ff7b7f; }
+.tab .dot.new { background: #e5484d; box-shadow: 0 0 8px #e5484d; }
 .rr-label { display: grid; gap: 3px; text-align: center; }
 .rr-node[data-place="head"] .rr-label, .rr-node[data-place="legs"] .rr-label { text-align: left; }
 .rr-label b { font: 600 12px/1 var(--serif); letter-spacing: .2em; text-transform: uppercase; color: var(--ink); }
