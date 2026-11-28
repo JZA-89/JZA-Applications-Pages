@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.92';
+  const VERSION = 'v0.93';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -66,14 +66,24 @@
   addEventListener('orientationchange', () => { askFit(); setTimeout(askFit, 350); });   // iOS reports the new size a moment late
   // how far the golem sees: clear to SIGHT cells (the corner of a 16:9 screen), black by SIGHT_END
   let SIGHT = 224, SIGHT_END = 290;   // set by fit() with the view's size
-  let fadeWas = '';
+  // v0.93: the darkness is one large ring drawn once per screen size and slid under the golem with a transform,
+  // instead of a new full-screen gradient every frame (which Safari repainted under the HUD, and the HUD flickered)
+  const fadeRing = document.createElement('div'); fadeRing.className = 'fade-ring'; $('fade').appendChild(fadeRing);
+  let fadeKey = '', fadeR = 0, fadeWas = '';
   function fade() {
     const p = game.players[ME], s = stage.clientWidth / V.w;
-    const css = `radial-gradient(circle at ${Math.round((p.x - R.cam.x + 0.5) * s)}px ${Math.round((p.y - 8 - R.cam.y) * s)}px, #0000 ${Math.round(SIGHT * s)}px, #000 ${Math.round(SIGHT_END * s)}px)`;
     // on a screen no wider or taller than the golem's sight there is nothing to fade: drop the layer altogether
     const need = Math.hypot(V.w / 2, V.h / 2) > SIGHT + 4 || R.cam.x <= 0 || R.cam.y <= 0 || R.cam.x >= game.world.w - V.w || R.cam.y >= game.world.h - V.h;
     if ($('fade').hidden === need) $('fade').hidden = !need;
-    if (need && css !== fadeWas) { fadeWas = css; $('fade').style.background = css; }
+    if (!need) return;
+    const key = Math.round(SIGHT * s) + ',' + Math.round(SIGHT_END * s) + ',' + stage.clientWidth + ',' + stage.clientHeight;
+    if (key !== fadeKey) {   // only when the screen's size changes
+      fadeKey = key; fadeR = Math.ceil(Math.hypot(stage.clientWidth, stage.clientHeight)) + 4;
+      fadeRing.style.width = fadeRing.style.height = (fadeR * 2) + 'px';
+      fadeRing.style.background = `radial-gradient(circle at 50% 50%, #0000 ${Math.round(SIGHT * s)}px, #000 ${Math.round(SIGHT_END * s)}px)`;
+    }
+    const x = Math.round((p.x - R.cam.x + 0.5) * s) - fadeR, y = Math.round((p.y - 8 - R.cam.y) * s) - fadeR, t = `translate3d(${x}px, ${y}px, 0)`;
+    if (t !== fadeWas) { fadeWas = t; fadeRing.style.transform = t; }
   }
   // full screen (where the browser allows it; an iPhone does not)
   const fullScreen = () => { const d = document; try { if (d.fullscreenElement) d.exitFullscreen(); else if (d.documentElement.requestFullscreen) d.documentElement.requestFullscreen().catch(() => {}); } catch (x) {} };
@@ -591,10 +601,18 @@
     // the recipe: seven sockets, the first one the form
     const qsig = p.queue.join('+') + (p.used ? '!' : '');
     if (qsig !== hud.q) {
+      // v0.93: the seven sockets are made once and changed in place; only a socket whose element changed is redrawn
+      // (and only it plays the drop-in animation)
       hud.q = qsig;
-      let h = '';
-      for (let i = 0; i < KData.recipe.max; i++) { const e = p.queue[i]; h += `<span class="sock${i === 0 ? ' form' : ''}${e ? ' on' : ''}"${e ? ` style="--c:${elements[e].css}"` : ''}>${e ? KIcon(e) : ''}</span>`; }
-      const qn = $('queue'); qn.innerHTML = h; qn.classList.toggle('used', !!p.used);
+      const qn = $('queue');
+      if (qn.children.length !== KData.recipe.max) { let h = ''; for (let i = 0; i < KData.recipe.max; i++) h += `<span class="sock${i === 0 ? ' form' : ''}"></span>`; qn.innerHTML = h; }
+      for (let i = 0; i < KData.recipe.max; i++) {
+        const e = p.queue[i] || '', sk = qn.children[i];
+        if (sk.dataset.el === e) continue;
+        sk.dataset.el = e; sk.classList.toggle('on', !!e);
+        if (e) { sk.style.setProperty('--c', elements[e].css); sk.innerHTML = KIcon(e); } else { sk.style.removeProperty('--c'); sk.innerHTML = ''; }
+      }
+      qn.classList.toggle('used', !!p.used);
     }
     if (p.slotFlash > 0.3 && hud.flash <= 0.3) { const s = $('queue'); s.classList.remove('flash'); void s.offsetWidth; s.classList.add('flash'); }
     hud.flash = p.slotFlash;
