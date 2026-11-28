@@ -588,6 +588,13 @@ h3.circle small { font: 700 11.5px/1 "Avenir Next", system-ui, sans-serif; lette
   padding: 9px 18px; border: 0; border-radius: 12px; cursor: pointer; font: 600 13px/1.3 "Avenir Next", "Segoe UI", system-ui, sans-serif; color: #2a1c06;
   background: linear-gradient(180deg, #ffe3a3, #ffd37a 45%, #d9a84e); box-shadow: inset 0 1px 0 #fff8, 0 2px 0 #7a5a22, 0 0 0 1px #000, 0 6px 20px #000a; }
 .update-banner[hidden] { display: none; }
+/* the "Saved" mark (v1.13): bottom right of the visible area, over the game and the menus; never pressed */
+.saved-mark { position: fixed; z-index: 29; left: calc(var(--vx, 0px) + var(--vw, 100vw) - max(14px, env(safe-area-inset-right)));
+  top: calc(var(--vy, 0px) + var(--vh, 100vh) - max(12px, env(safe-area-inset-bottom))); transform: translate(-100%, -100%); display: flex; align-items: center; gap: 6px;
+  padding: 6px 11px 6px 9px; border-radius: 999px; font: 600 12.5px/1 "Avenir Next", "Segoe UI", system-ui, sans-serif; letter-spacing: .04em; color: #d9cce8;
+  background: #14101ccc; box-shadow: inset 0 0 0 1px #ffffff1f; pointer-events: none; opacity: 0; transition: opacity .5s ease; }
+.saved-mark.on { opacity: 1; transition-duration: .18s; }
+.saved-mark svg { width: 13px; height: 13px; fill: none; stroke: #7fe0a8; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .update-banner b { font: 600 15px/1.2 var(--serif); letter-spacing: .04em; } .update-banner span { font-size: 12.5px; }
 /* v0.96: nothing in the game can be selected or long-pressed into the text menu (a quick double tap on iPhone selected the
    HUD's level number); only the co-op code box takes text */
@@ -706,3 +713,5 @@ body[data-device="touch"] .switch { width: 60px; height: 36px; } body[data-devic
 /* v1.09: on a page opened from the title or pause page, Back takes the place of the name (with both, the name was squeezed to
    "CAST IN STO" and wrapped); the title page behind it already says what this is */
 #btnBack:not([hidden]) + .bar-id { display: none; }
+/* on touch, in play, the right thumb covers the bottom right corner: the mark sits under the round buttons instead */
+body[data-device="touch"][data-mode="play"] .saved-mark { top: calc(var(--vy, 0px) + max(10px, env(safe-area-inset-top)) + var(--u) * 62px); transform: translate(-100%, 0); }

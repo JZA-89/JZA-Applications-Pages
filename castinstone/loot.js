@@ -137,14 +137,14 @@
       c.style.width = (c.width * 4) + 'px'; c.style.height = (c.height * 4) + 'px';
       if (refocus && document.body.dataset.device === 'pad') { const f = view.querySelector(refocus) || view.querySelector('[data-place]'); if (f) f.focus({ preventScroll: true }); }
       refocus = null;
-      const redraw = () => this.build(game, p, 'runes'), rebuild = () => { window.cis.save(); redraw(); };
+      const redraw = () => this.build(game, p, 'runes'), rebuild = () => { window.cis.save(true); redraw(); };
       view.querySelectorAll('[data-place]').forEach(b => b.addEventListener('click', () => { if (place !== b.dataset.place) { place = b.dataset.place; picked = null; } refocus = `[data-place="${place}"]`; redraw(); }));
       view.querySelectorAll('[data-worn]').forEach(b => b.addEventListener('click', () => { picked = { slot: b.dataset.worn }; refocus = `[data-worn="${place}"]`; redraw(); }));
       view.querySelectorAll('[data-bag]').forEach(b => b.addEventListener('click', () => { picked = { bag: +b.dataset.bag }; refocus = `[data-bag="${b.dataset.bag}"]`; redraw(); }));
       const on = (sel, fn) => { const b = view.querySelector(sel); if (b) b.addEventListener('click', fn); };
       on('[data-equip]', () => { window.cis.act('equip', picked.bag); picked = { slot: place }; refocus = '[data-off]'; rebuild(); });
       on('[data-off]', () => { window.cis.act('unequip', place); picked = null; refocus = `[data-place="${place}"]`; rebuild(); });
-      on('[data-break]', () => { window.cis.act('breakRune', picked.bag); picked = null; refocus = `[data-place="${place}"]`; window.cis.save(); window.cis.rest(); });
+      on('[data-break]', () => { window.cis.act('breakRune', picked.bag); picked = null; refocus = `[data-place="${place}"]`; window.cis.save(true); window.cis.rest(); });
     },
   };
 
@@ -166,7 +166,7 @@
     // v1.03: with a controller the cursor stays on the button just pressed (it jumped to Buy, so a second press bought a point)
     if (forgeFocus && document.body.dataset.device === 'pad') { const f = view.querySelector(forgeFocus); if (f) f.focus({ preventScroll: true }); }
     forgeFocus = null;
-    const rebuild = sel => { forgeFocus = sel; window.cis.save(); window.cis.rest(); };
+    const rebuild = sel => { forgeFocus = sel; window.cis.save(true); window.cis.rest(); };
     view.querySelector('[data-buy]').addEventListener('click', () => { if (window.cis.act('buyPoint')) rebuild('[data-buy]'); });
     view.querySelectorAll('[data-lvl]').forEach(b => b.addEventListener('click', () => { if (window.cis.act('levelUpRune', b.dataset.lvl)) rebuild(`[data-lvl="${b.dataset.lvl}"]`); }));
   };

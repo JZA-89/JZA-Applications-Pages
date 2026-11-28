@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v1.12';
+  const VERSION = 'v1.13';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -266,14 +266,20 @@
 
   // ---------- saving ----------
   let saveTimer = 0, saveFailed = false;
-  function save() {
+  // v1.13: a small "Saved" mark shows for a moment after the saves a player would wonder about (resting, changes at a
+  // Lodestone, finding things), never after the 20-second saves
+  let savedT = 0;
+  function savedMark() { const m = $('savedMark'); m.classList.add('on'); clearTimeout(savedT); savedT = setTimeout(() => m.classList.remove('on'), 1600); }
+  function save(show) {
     // as a guest in co-op only the golem's progress goes home; the cave is the host's
-    if (guestGame) { if (game.players[ME]) KSave.storeGuest(game.players[ME]); saveTimer = 0; return; }
+    if (guestGame) { if (game.players[ME]) { KSave.storeGuest(game.players[ME]); if (show === true) savedMark(); } saveTimer = 0; return; }
     if (KNet.state === 'sync' && KNet.role === 'guest') return;
     // v1.02: whether or not it worked, wait the usual time before trying again (a failing save was retried every frame,
     // which cost most of the frame rate), and say so once
     saveTimer = 0;
-    if (!KSave.store(game) && !saveFailed) { saveFailed = true; toast('The game could not be saved: this browser\'s storage for jza.app may be full.', 'big'); }
+    const ok = KSave.store(game);
+    if (ok && show === true) savedMark();
+    if (!ok && !saveFailed) { saveFailed = true; toast('The game could not be saved: this browser\'s storage for jza.app may be full.', 'big'); }
   }
   // A menu choice that changes the golem. Alone it happens at once; in co-op it travels with the
   // button presses, so both devices make it on the same step (the panel is rebuilt when it lands).
@@ -541,7 +547,7 @@
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'plus'; b.textContent = '+'; b.disabled = p.points <= 0;
       b.setAttribute('aria-label', `Add a point to ${s.name}`);
-      b.addEventListener('click', () => { if (act('spendPoint', s.id)) { buildRest(); save(); const nb = grid.querySelectorAll('.plus')[P.stats.indexOf(s)]; if (nb && !nb.disabled) nb.focus({ preventScroll: true }); } });
+      b.addEventListener('click', () => { if (act('spendPoint', s.id)) { buildRest(); save(true); const nb = grid.querySelectorAll('.plus')[P.stats.indexOf(s)]; if (nb && !nb.disabled) nb.focus({ preventScroll: true }); } });
       row.appendChild(b);
       grid.appendChild(row);
     }
@@ -557,7 +563,7 @@
       const d = here ? Math.round(Math.hypot(l.x - here.x, l.y - here.y)) : 0;
       b.innerHTML = `<b>${l.hub ? 'The hub' : l.region}</b><span>Level ${l.level}</span><small>${isHere ? 'You are here' : d + ' away'}</small>`;
       b.disabled = isHere;
-      b.addEventListener('click', () => { act('travel', l.id); save(); resume(); });
+      b.addEventListener('click', () => { act('travel', l.id); save(true); resume(); });
       tl.appendChild(b);
     }
     const unfound = game.world.lodestones.length - game.found.size;
@@ -610,9 +616,9 @@
         toast(`Level ${e.level} · ${e.points} stat point${e.points === 1 ? '' : 's'} to spend at a Lodestone${where}`, 'big');
       }
       else if (e.type === 'found') toast(`Lodestone found · ${e.stone.hub ? 'the hub' : e.stone.region}`, 'stone');
-      else if (e.type === 'ending') { save(); endAt = 2.2; }
-      else if (e.type === 'rest') { save(); if (e.p === ME) KAudio.play('rest', 0, 0, 0, 0, 1); if (mode === 'play') setMode('rest'); }
-      else if (e.type === 'save') save();
+      else if (e.type === 'ending') { save(true); endAt = 2.2; }
+      else if (e.type === 'rest') { save(true); if (e.p === ME) KAudio.play('rest', 0, 0, 0, 0, 1); if (mode === 'play') setMode('rest'); }
+      else if (e.type === 'save') save(true);
       else if (e.type === 'died') toast('Your golem crumbled. It rises again at the last Lodestone.', 'died');
       else if (e.type === 'toast') toast(e.text, e.kind || '');
       else if (e.type === 'learn') { const S = KData.specials[e.id]; toast(`${e.how === 'tome' ? 'A tome' : 'Discovered'}: ${S.name} · ${S.seq.map(x => elements[x].name).join(', ')} · ${S.cost} mana`, 'big'); }
