@@ -566,3 +566,10 @@ body[data-mode="start"] .objective { display: none; }
 /* the five circles in the special spells list */
 h3.circle { display: flex; align-items: baseline; gap: 10px; margin: 16px 0 8px; font: 600 13px/1 var(--serif); letter-spacing: .14em; text-transform: uppercase; color: var(--gold); }
 h3.circle small { font: 700 11.5px/1 "Avenir Next", system-ui, sans-serif; letter-spacing: 0; text-transform: none; color: var(--muted); }
+/* v0.82: a swipe between menu tabs slides the new page in */
+.slide-l { animation: slideL .2s ease-out; } .slide-r { animation: slideR .2s ease-out; }
+@keyframes slideL { from { opacity: 0; transform: translateX(28px); } }
+@keyframes slideR { from { opacity: 0; transform: translateX(-28px); } }
+@media (prefers-reduced-motion: reduce) { .slide-l, .slide-r { animation: none; } }
+/* v0.82: opened from the Home Screen, iOS reports the screen short by the status bar's height; 100vh is the full height there */
+@media (display-mode: standalone), (display-mode: fullscreen) { .panel-wrap, .ts-wrap, #touch { bottom: auto; height: max(100%, 100vh); } }

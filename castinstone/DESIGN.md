@@ -692,6 +692,11 @@ Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
 
+## Swipe between menu tabs; the Home Screen strip (v0.82)
+
+- **Swipe** (Jaisah): on a touch screen, a sideways flick across a menu page (at least 60 points, clearly more sideways than up or down, under 0.7 s) moves to the next or previous tab, in the menu (Golem, Spell book, Controls, Co-op) and at a Lodestone (Stats, Runestones, Forge, Travel). It stops at the first and last tab, ignores flicks that start on a row of page buttons (`.seg`) or a text box, and the new page slides in (still with reduced motion). `swipeTabs` in main.js.
+- **The blank strip at the bottom** (iPad, opened from the Home Screen): with the see-through status bar, iOS reports the screen shorter by the status bar's height while the page still runs under it, so the menus stopped short of the bottom. In that mode the menus, title and touch layer are now `100vh` tall, and `fit()` takes the larger of the reported height and `100vh` (`STANDALONE`, `vhProbe`).
+
 ## Sprites redrawn; a testing switch for the spell book (v0.81)
 
 - **Sprites** (Jaisah: "some of them look a bit half-assed"): the delver, Cinder spitter (a round glowing mouth), Rootboar (bristled back, tusk), shard slinger (a shard held up to throw), glowmoth, ash wraith, lasher, mirehopper, geode and the three v0.80 creatures are redrawn with a lit top edge, a shadowed underside and clearer faces; the delver, boar, tinder beetle and rime crawler have two-frame walks. Walking creatures now step only while they move (`still` in `drawEnemy`); flyers keep their flap or pulse. Sizes stay close to each creature's body, so nothing about hits changed.
@@ -865,6 +870,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.82 (2026-11-28):** swipe left and right between menu and Lodestone tabs on touch screens, and no blank strip at the bottom when opened from the Home Screen.
 
 - **v0.81 (2026-11-28):** the weaker creature sprites redrawn, walkers step only while moving, and a `?dev` switch that shows every special spell in the Spell book for testing.
 
