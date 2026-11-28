@@ -879,6 +879,8 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 
 ## Decision log
 
+- **v0.84 (2026-11-28):** the menu no longer flashes up while the game loads: `#panelWrap` starts hidden in the page and `setMode` shows it (the browser drew the page's own HTML, the menu, before the scripts arrived).
+
 - **v0.83 (2026-11-28):** the menus tidied: settings and the save moved out of the Golem tab into a new Options tab with proper switches; New game also on the title screen; the next-cave offer is a banner.
 
 - **v0.82 (2026-11-28):** swipe left and right between menu and Lodestone tabs on touch screens, and no blank strip at the bottom when opened from the Home Screen.
