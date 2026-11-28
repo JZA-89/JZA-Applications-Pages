@@ -11,12 +11,13 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.99';
+  const VERSION = 'v1.00';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
   let game = KSave.load() || new KGame.Game(randomSeed());
   const hadSave = KSave.exists();
+  let frozenDrawn = false;   // a still menu scene already drawn (frame)
   let ME = 0;            // which golem is this device's: 0, or 1 as the guest in co-op
   let guestGame = false; // true while `game` is a friend's cave (never stored as this device's save)
   const R = new KRender.Renderer(view, glow);
@@ -45,7 +46,7 @@
     const key = W + ',' + H + ',' + top + ',' + left;
     if (key === fitKey) return;
     fitKey = key;
-    if (VV) { stage.style.top = top + 'px'; stage.style.left = left + 'px'; }
+
     // v0.94: the menus, the title and the touch controls take the visible area too, like the game picture. On Jaisah's iPad the
     // page's own area (what position: fixed; inset: 0 fills) is wider than the screen, so they were cut off on the right,
     // while the game picture, sized from the visible area, always fitted.
@@ -57,6 +58,8 @@
     R.setView(wide ? Math.min(VW * 2, Math.round(VH * W / H)) : VW, wide ? VH : Math.min(Math.round(VW * 2.25), Math.round(VW * H / W)));
     const s = Math.min(W / V.w, H / V.h), w = Math.floor(V.w * s), h = Math.floor(V.h * s);
     stage.style.width = w + 'px'; stage.style.height = h + 'px';
+    // v1.00: placed on whole pixels (centring by a half translate could land on half a pixel and blur the picture)
+    stage.style.left = ((VV ? Math.round(VV.offsetLeft) : 0) + Math.round((W - w) / 2)) + 'px'; stage.style.top = ((VV ? Math.round(VV.offsetTop) : 0) + Math.round((H - h) / 2)) + 'px';
     // The HUD keeps to a 16:9 frame in the middle (--hx is the margin each side), so on a very wide
     // monitor it is not out in the corners. A phone is too short to give any width away.
     stage.style.setProperty('--u', Math.max(0.55, Math.min(1.5, Math.min(w / 1280, h / 720))).toFixed(3));
@@ -91,7 +94,7 @@
   // the page never scrolls (as in MORPHOS): if Safari ever shifts it, put it back
   addEventListener('scroll', () => { if (scrollX || scrollY) scrollTo(0, 0); }, { passive: true });
   if (window.visualViewport) { visualViewport.addEventListener('resize', askFit); visualViewport.addEventListener('scroll', askFit); }
-  addEventListener('orientationchange', () => { askFit(); setTimeout(askFit, 350); });   // iOS reports the new size a moment late
+  addEventListener('orientationchange', () => { askFit(); setTimeout(askFit, 250); setTimeout(askFit, 700); });   // iOS reports the new size a moment late (as MORPHOS)   // iOS reports the new size a moment late
   // how far the golem sees: clear to SIGHT cells (the corner of a 16:9 screen), black by SIGHT_END
   let SIGHT = 224, SIGHT_END = 290;   // set by fit() with the view's size
   // v0.93: the darkness is one large ring drawn once per screen size and slid under the golem with a transform,
@@ -185,7 +188,7 @@
         : `<div class="special unknown"><b>Unknown</b><span class="pairc">${S[id].seq.map(() => '<i></i>').join('')}</span><span>Not yet learned.</span></div>`).join('') + '</div>';
     }
     $('specials').innerHTML = html;
-    const pk = $('btnPeek'); if (pk) pk.addEventListener('click', () => { peekAll = !peekAll; try { localStorage.setItem('castinstone.dev.peek', peekAll ? '1' : ''); } catch (e) {} renderSpecials(); $('btnPeek').focus(); });
+    const pk = $('btnPeek'); if (pk) pk.addEventListener('click', () => { peekAll = !peekAll; try { localStorage.setItem('castinstone.dev.peek', peekAll ? '1' : ''); } catch (e) {} renderSpecials(); $('btnPeek').focus({ preventScroll: true }); });
   }
 
   // ---------- controls, as key caps ----------
@@ -252,7 +255,7 @@
     return b;
   });
   function pickGolem(i) {
-    skin = i; game.players[ME].skin = i;
+    skin = i; game.players[ME].skin = i; frozenDrawn = false;
     golemBtns.forEach((b, k) => b.setAttribute('aria-checked', k === i ? 'true' : 'false'));
     try { localStorage.setItem('castinstone.golem', String(i)); } catch {}
   }
@@ -289,7 +292,7 @@
   }
   for (const b of document.querySelectorAll('#panelTabs .tab')) b.addEventListener('click', () => showPanelTab(b.dataset.tab));
   function setMode(m) {
-    mode = m;
+    mode = m; frozenDrawn = false;
     document.body.dataset.mode = m;
     KInput.clearHeld();
     $('restWrap').hidden = m !== 'rest';
@@ -361,16 +364,15 @@
   const resetMap = () => { game.reset(true); game.players[ME].skin = skin; acc = 0; mapTick = 0; save(); };
   $('btnGo').addEventListener('click', () => { const first = mode === 'start' && !hadSave && !toldPremise; KAudio.start(); resume(); if (first) { toldPremise = true; toast('Three champions hold the seals on the Emberwyrm. Find them.', 'big'); } });
   let toldPremise = false;
-  addEventListener('pointerdown', () => KAudio.start(), { once: true });
-  addEventListener('keydown', () => KAudio.start(), { once: true });
+  for (const type of ['pointerdown', 'pointerup', 'click', 'keydown']) addEventListener(type, () => KAudio.start(), { capture: true, passive: true });   // v1.00: every time, as MORPHOS (iOS can interrupt sound at any point)
   const muteBtn = $('btnMute');
   const showMute = () => { muteBtn.setAttribute('aria-pressed', KAudio.muted ? 'true' : 'false'); muteBtn.innerHTML = KIcon(KAudio.muted ? 'mute' : 'sound'); muteBtn.title = KAudio.muted ? 'Sound is off (M)' : 'Sound is on (M)'; showOpts(); };
-  muteBtn.addEventListener('click', () => { KAudio.start(); KAudio.setMuted(!KAudio.muted); showMute(); view.focus(); });
+  muteBtn.addEventListener('click', () => { KAudio.start(); KAudio.setMuted(!KAudio.muted); showMute(); view.focus({ preventScroll: true }); });
   showMute();
   const musicBtn = $('btnMusic');
   const showMusic = () => { musicBtn.setAttribute('aria-pressed', KAudio.music ? 'false' : 'true'); musicBtn.innerHTML = KIcon(KAudio.music ? 'music' : 'nomusic'); musicBtn.title = KAudio.music ? 'Music is on (N)' : 'Music is off (N)'; showOpts(); };
   const toggleMusic = () => { KAudio.start(); KAudio.setMusic(!KAudio.music); showMusic(); };
-  musicBtn.addEventListener('click', () => { toggleMusic(); view.focus(); });
+  musicBtn.addEventListener('click', () => { toggleMusic(); view.focus({ preventScroll: true }); });
   showMusic();
   $('btnPanelReset').addEventListener('click', () => { resetMap(); resume(); });
   // a new game: a second press confirms, as it replaces the saved world and the golem's progress
@@ -417,7 +419,12 @@
   });
   const touchPad = KTouch.build($('touch'));
   $('restPrompt').addEventListener('pointerdown', e => { e.stopPropagation(); KInput.queue({ type: 'interact' }); });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) { save(); if (mode === 'play') setMode('pause'); } });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { KInput.clearHeld(); save(); if (mode === 'play') setMode('pause'); } else KAudio.wake(); });
+  // v1.00: as MORPHOS: losing focus (Control Centre, a notification, a call, Slide Over) lets go of everything held and pauses,
+  // since iOS can end the touches without telling the page
+  document.addEventListener('contextmenu', e => { if (!e.target.closest('input, textarea')) e.preventDefault(); }, { capture: true });
+  addEventListener('blur', () => { KInput.clearHeld(); if (mode === 'play') setMode('pause'); });
+  addEventListener('pagehide', () => { KInput.clearHeld(); save(); });
   // ---------- a controller in the menus ----------
   // The d-pad or left stick moves to the nearest button in that direction, A
   // presses it, B or Menu goes back to the game, LB and RB change tab.
@@ -499,7 +506,7 @@
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'plus'; b.textContent = '+'; b.disabled = p.points <= 0;
       b.setAttribute('aria-label', `Add a point to ${s.name}`);
-      b.addEventListener('click', () => { if (act('spendPoint', s.id)) { buildRest(); save(); const nb = grid.querySelectorAll('.plus')[P.stats.indexOf(s)]; if (nb && !nb.disabled) nb.focus(); } });
+      b.addEventListener('click', () => { if (act('spendPoint', s.id)) { buildRest(); save(); const nb = grid.querySelectorAll('.plus')[P.stats.indexOf(s)]; if (nb && !nb.disabled) nb.focus({ preventScroll: true }); } });
       row.appendChild(b);
       grid.appendChild(row);
     }
@@ -768,8 +775,13 @@
     const a = KInput.sample(origin);
     return mode === 'play' ? a : { move: 0, moveY: 0, jump: false, cast: false, burst: false, moveSpell: false, away: true, aim: a.aim, aimDist: a.aimDist, events: a.events.filter(e => e.type === 'ui') };
   };
+  let frameN = 0;
   function frame(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    // v1.00, as MORPHOS: the size is checked every frame (fit() returns at once when nothing changed), so a size iOS changes
+    // without telling the page is caught within a frame; and every 20 frames the page is put back if anything scrolled it
+    fit();
+    if (++frameN % 20 === 0) { const vv = window.visualViewport; if (scrollX || scrollY || document.documentElement.scrollTop || document.body.scrollTop || (vv && Math.abs(vv.offsetTop) > 1)) { scrollTo(0, 0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; } }
     const padAct = KInput.poll(mode === 'play', now);
     if (padAct) padMenu(padAct);
     if (KNet.on) {
@@ -819,7 +831,11 @@
     let mark = null;
     if (mode === 'play' && !p.dead && p.recipe) { const sp = game.spec(p, 'shot'); if (sp && sp.special && p.mana >= sp.cost) mark = game.specialTarget(p, sp.id); }
     const onTitle = mode === 'start' && !titleSub, wideTitle = onTitle && innerWidth > innerHeight && innerWidth > 640;
-    R.draw(game, { reticle, mark, reduced: reduced.matches, dt: mode === 'play' || onTitle ? dt : 0, lookX: wideTitle ? 0.68 : 0.5, lookY: onTitle && !wideTitle ? 0.82 : 0.5 });   // the title screen's cave keeps its dust and embers moving
+    // v1.00: playing alone with a menu open, the scene cannot change: draw it once and leave it (as MORPHOS), so nothing
+    // under the menu's blur repaints every frame
+    const still = !KNet.on && mode !== 'play' && !onTitle;
+    if (!(still && frozenDrawn)) R.draw(game, { reticle, mark, reduced: reduced.matches, dt: mode === 'play' || onTitle ? dt : 0, lookX: wideTitle ? 0.68 : 0.5, lookY: onTitle && !wideTitle ? 0.82 : 0.5 });   // the title screen's cave keeps its dust and embers moving
+    frozenDrawn = still;
     fade();
     objective(dt);
     friendMark();

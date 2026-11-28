@@ -34,14 +34,14 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 
 /* ---------- stage: fills the screen; the HUD keeps to a 16:9 frame in its middle (--hx each side) ---------- */
 /* --sab: the iPad's home-indicator margin; HUD pieces along the bottom sit above it (as in MORPHOS) */
-#stage { --sab: env(safe-area-inset-bottom, 0px); position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 960px; height: 540px; overflow: hidden; background: #14101f; }
+/* v1.00: fills the screen until fit() sizes it (a fixed 960 x 540 could overflow a phone and widen the page), placed on whole pixels by fit() */
+#stage { --sab: env(safe-area-inset-bottom, 0px); position: fixed; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; background: #14101f; }
 #stage > canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #view { image-rendering: pixelated; image-rendering: crisp-edges; cursor: none; touch-action: none; }
 #glow { pointer-events: none; mix-blend-mode: screen; }
 #fade { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-.fade-ring { position: absolute; left: 0; top: 0; will-change: transform; }   /* black beyond the golem's sight (main.js fade) */
-/* v0.93: the HUD is its own layer, so the game's canvases repainting under it every frame never redraw it (Safari flickered it) */
-.hud { will-change: transform; position: absolute; top: 0; bottom: 0; left: max(var(--hx, 0px), env(safe-area-inset-left, 0px)); right: max(var(--hx, 0px), env(safe-area-inset-right, 0px)); pointer-events: none; font-size: max(10px, calc(var(--u) * 12px)); }
+.fade-ring { position: absolute; left: 0; top: 0; }   /* black beyond the golem's sight (main.js fade) */
+.hud { position: absolute; top: 0; bottom: 0; left: max(var(--hx, 0px), env(safe-area-inset-left, 0px)); right: max(var(--hx, 0px), env(safe-area-inset-right, 0px)); pointer-events: none; font-size: max(10px, calc(var(--u) * 12px)); }
 .hud button { pointer-events: auto; }
 
 /* ---------- top left: the corner map ---------- */
@@ -331,7 +331,7 @@ body[data-device="pad"] .tab:focus { outline-offset: -2px; }
 /* ---------- touch controls (touch.js). --t is one button's width ---------- */
 /* v0.92: clipped: the Shot button's aim dot, dragged towards the edge, poked past the screen, and iPad Safari then widened the
    whole page to fit it, so menus were cut off on the right until reload */
-#touch { position: fixed; inset: 0; z-index: 5; display: none; overflow: hidden; will-change: transform; pointer-events: none; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+#touch { position: fixed; inset: 0; z-index: 5; display: none; overflow: hidden; pointer-events: none; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
   --t: clamp(46px, 14vmin, 80px); --sr: calc(env(safe-area-inset-right, 0px) + 3vmin); --sl: env(safe-area-inset-left, 0px); --sb: calc(env(safe-area-inset-bottom, 0px) + 4vmin); }
 body[data-device="touch"][data-mode="play"] #touch { display: block; }
 .t-zone { position: absolute; left: 0; bottom: 0; width: 44%; height: 70%; pointer-events: auto; touch-action: none; }

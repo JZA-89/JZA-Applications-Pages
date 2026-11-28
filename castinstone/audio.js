@@ -21,8 +21,10 @@ const KAudio = (() => {
   try { muted = localStorage.getItem('castinstone.mute') === '1'; } catch {}
   const loops = new Map();
 
+  // v1.00: back in view: resume sound if it was started before (never creates it without a touch)
+  function wake() { if (ctx && ctx.state !== 'running' && ctx.state !== 'closed') ctx.resume().catch(() => {}); }
   function start() {
-    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    if (ctx) { if (ctx.state !== 'running' && ctx.state !== 'closed') ctx.resume().catch(() => {}); return; }   // v1.00: also 'interrupted' (a call, Siri)
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     ctx = new AC();
@@ -292,5 +294,5 @@ const KAudio = (() => {
     if (r() < a * 0.07) tone('sine', 1100 + r() * 900, 2600, 0.04, 0.04 + 0.04 * a, (r() - 0.5) * 0.6);
   }
 
-  return { start, play, hold, ambience, setMuted, setMood, setMusic, probe, get muted() { return muted; }, get music() { return musicOn; } };
+  return { start, wake, play, hold, ambience, setMuted, setMood, setMusic, probe, get muted() { return muted; }, get music() { return musicOn; } };
 })();

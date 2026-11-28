@@ -39,11 +39,13 @@ const KTouch = (() => {
     const reach = () => base.offsetWidth * 0.5;
     const stickEnd = e => {
       if (e && e.pointerId !== stickId) return;
+      if (stickId !== null) try { if (zone.hasPointerCapture(stickId)) zone.releasePointerCapture(stickId); } catch {}
       stickId = null; T.move = 0; T.moveY = 0; T.tilt = 0;
       base.classList.remove('on'); base.style.removeProperty('--x'); base.style.removeProperty('--y'); knob.style.removeProperty('--kx'); knob.style.removeProperty('--ky');
     };
     zone.addEventListener('pointerdown', e => {
       stop(e);
+      if (stickId !== null && !zone.hasPointerCapture(stickId)) stickEnd();   // v1.00: a hold whose release was lost never blocks a new one (as MORPHOS)
       if (stickId !== null) return;
       stickId = e.pointerId; try { zone.setPointerCapture(e.pointerId); } catch {}
       const r = zone.getBoundingClientRect(); sx = e.clientX; sy = e.clientY;
@@ -66,11 +68,12 @@ const KTouch = (() => {
       let id = null;
       const end = e => {
         if (e && e.pointerId !== id) return;
+        if (id !== null) try { if (b.hasPointerCapture(id)) b.releasePointerCapture(id); } catch {}
         id = null; T[name] = false; b.classList.remove('on');
         if (aims) { T.aim = null; b.classList.remove('aiming'); dot.style.removeProperty('--kx'); dot.style.removeProperty('--ky'); }
       };
       ends.push(() => end()); byId.push(end);
-      b.addEventListener('pointerdown', e => { stop(e); if (id !== null) return; id = e.pointerId; try { b.setPointerCapture(e.pointerId); } catch {} T[name] = true; b.classList.add('on'); });
+      b.addEventListener('pointerdown', e => { stop(e); if (id !== null && !b.hasPointerCapture(id)) end(); if (id !== null) return; id = e.pointerId; try { b.setPointerCapture(e.pointerId); } catch {} T[name] = true; b.classList.add('on'); });
       b.addEventListener('pointermove', e => {
         if (!aims || e.pointerId !== id) return;
         const r = b.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), d = Math.hypot(dx, dy), dead = r.width * 0.3;
