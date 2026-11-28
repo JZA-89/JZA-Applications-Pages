@@ -28,6 +28,9 @@ const KTouch = (() => {
          <button type="button" class="t-btn t-shot" data-hold="cast" aria-label="Shot. Drag to aim"><i class="t-aim"></i>${KIcon('shot')}</button>
        </div>`;
     const stop = e => { e.preventDefault(); e.stopPropagation(); };
+    // v0.97: iOS's own touch handling (the magnifying loupe on a held or double tap, text selection) never starts on the
+    // controls: every control here is driven by pointer events, so the touches themselves can be cancelled
+    for (const type of ['touchstart', 'touchend']) root.addEventListener(type, e => { if (e.cancelable) e.preventDefault(); }, { passive: false });
     root.addEventListener('contextmenu', stop);
 
     // ----- the run stick

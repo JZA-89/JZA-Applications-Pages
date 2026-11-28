@@ -879,6 +879,8 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 
 ## Decision log
 
+- **v0.97 (2026-11-28):** no magnifying loupe on iPhone: a quick double tap on the touch controls brought up iOS's loupe. The touch layer now cancels the touches themselves (`touchstart`/`touchend` `preventDefault`; its controls run on pointer events, which still arrive), and so does the game picture in play, except its buttons.
+
 - **v0.96 (2026-11-28):** nothing in the game can be selected: a quick double tap on iPhone selected the HUD's level number and opened the text menu. `user-select: none` and no long-press menu on the whole page, except the co-op code box.
 
 - **v0.95 (2026-11-28):** a version check, as in MORPHOS (Jaisah: Safari showed v0.94 while the Home Screen copy still ran v0.92; the Home Screen copy keeps its own cache). Three seconds after opening, and when the game comes back into view (at most every 5 minutes), it fetches its own page bypassing every cache, reads the version from the `<title>`, and if it is newer shows a gold banner at the top: tapping it saves and reloads the page at `?v=<new version>`. Nothing is sent. Keep the title in the form `Cast in Stone | Beta · vX.YY` or the check stops working. `privacy.html` describes the check.

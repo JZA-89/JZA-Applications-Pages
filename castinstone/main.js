@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.96';
+  const VERSION = 'v0.97';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -85,6 +85,8 @@
   $('updateBanner').addEventListener('click', () => { try { save(); } catch (e) {} location.replace(location.pathname + '?v=' + ($('updateBanner').dataset.v || Date.now())); });
   setTimeout(checkForUpdate, 3000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) checkForUpdate(); });
+  // v0.97: the same for touches on the game picture in play (not its buttons, which work by click): no loupe, no selection
+  stage.addEventListener('touchstart', e => { if (mode === 'play' && e.cancelable && !e.target.closest('button, a, input, #mapBox')) e.preventDefault(); }, { passive: false });
   addEventListener('resize', askFit);
   // the page never scrolls (as in MORPHOS): if Safari ever shifts it, put it back
   addEventListener('scroll', () => { if (scrollX || scrollY) scrollTo(0, 0); }, { passive: true });
