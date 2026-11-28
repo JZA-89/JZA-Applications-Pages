@@ -130,9 +130,9 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%); background: #0a0710; }
 .sock::before { content: ''; position: absolute; inset: calc(var(--u) * 2px); clip-path: inherit; background: radial-gradient(circle at 50% 35%, #241d30, #0d0a13); }
 .sock.on::before { background: radial-gradient(circle at 40% 30%, color-mix(in srgb, var(--c) 70%, #fff) 0%, var(--c) 45%, color-mix(in srgb, var(--c) 55%, #000) 100%); }
-.sock.on { background: color-mix(in srgb, var(--c) 45%, #000); filter: drop-shadow(0 0 calc(var(--u) * 5px) color-mix(in srgb, var(--c) 75%, transparent)); animation: sockIn .16s ease-out; }
+.sock.on { background: color-mix(in srgb, var(--c) 45%, #000); animation: sockIn .16s ease-out; }   /* v0.90: no drop-shadow filter: with the clip-path, Safari repainted it every frame of the game behind and the sockets flickered (and the clip cut the glow off anyway) */
 /* v0.88/v0.89: sized in units and centred by position, not by grid: Safari on iPad drew the form socket's icon tiny, then off centre */
-.sock svg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: calc(var(--u) * 15px); height: calc(var(--u) * 15px); min-width: 9px; min-height: 9px; stroke-width: 2.6; }
+.sock svg { position: absolute; inset: 0; margin: auto; width: calc(var(--u) * 15px); height: calc(var(--u) * 15px); min-width: 9px; min-height: 9px; stroke-width: 2.6; }
 .sock.form svg { width: calc(var(--u) * 20px); height: calc(var(--u) * 20px); min-width: 12px; min-height: 12px; }
 .sock.form { width: calc(var(--u) * 34px); height: calc(var(--u) * 34px); min-width: 20px; min-height: 20px; margin-right: calc(var(--u) * 4px); }
 .queue.flash .sock { animation: shake .3s; }
@@ -546,7 +546,7 @@ body[data-mode="start"] .objective { display: none; }
 
 /* co-op: where a friend is when they are off the screen */
 .friend { position: absolute; z-index: 2; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 2px; pointer-events: none; }
-.friend i { width: calc(var(--u) * 26px); height: calc(var(--u) * 26px); min-width: 18px; min-height: 18px; background: #78e6ff; clip-path: polygon(100% 50%, 20% 8%, 36% 50%, 20% 92%); filter: drop-shadow(0 0 6px #78e6ff); }
+.friend i { width: calc(var(--u) * 26px); height: calc(var(--u) * 26px); min-width: 18px; min-height: 18px; background: #78e6ff; clip-path: polygon(100% 50%, 20% 8%, 36% 50%, 20% 92%); }
 .friend span { font-size: max(10px, calc(var(--u) * 11px)); font-weight: 700; color: #bff3ff; text-shadow: 0 1px 3px #000; }
 
 /* changing the controls: each action with the key it is on, as a button */

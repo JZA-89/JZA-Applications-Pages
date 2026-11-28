@@ -879,6 +879,8 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 
 ## Decision log
 
+- **v0.90 (2026-11-28):** the recipe sockets (and the co-op friend arrow) no longer have a glow filter on a clipped shape: on iPad Safari repainted it every frame of the game behind and they flickered; the clip cut the glow off anyway. Their icons are centred by `inset: 0; margin: auto`, with no transform.
+
 - **v0.89 (2026-11-28):** the recipe sockets no longer use a grid to centre their icon (Safari on iPad still drew the form socket's icon off centre): each icon is placed at the socket's centre directly, and sockets never shrink in their row (`flex: none`).
 
 - **v0.88 (2026-11-28):** the recipe sockets' icons are sized in HUD units, not percent (Safari on iPad drew the first, larger socket's icon tiny). HUD pieces along the bottom (cockpit, rest prompt, buffs, the look card) sit above the iPad's home-indicator margin (`--sab`, `env(safe-area-inset-bottom)`), as MORPHOS's HUD does; on Jaisah's iPad the bottom of the cockpit was cut off.
