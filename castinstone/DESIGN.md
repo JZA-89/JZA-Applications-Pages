@@ -879,6 +879,8 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 
 ## Decision log
 
+- **v0.89 (2026-11-28):** the recipe sockets no longer use a grid to centre their icon (Safari on iPad still drew the form socket's icon off centre): each icon is placed at the socket's centre directly, and sockets never shrink in their row (`flex: none`).
+
 - **v0.88 (2026-11-28):** the recipe sockets' icons are sized in HUD units, not percent (Safari on iPad drew the first, larger socket's icon tiny). HUD pieces along the bottom (cockpit, rest prompt, buffs, the look card) sit above the iPad's home-indicator margin (`--sab`, `env(safe-area-inset-bottom)`), as MORPHOS's HUD does; on Jaisah's iPad the bottom of the cockpit was cut off.
 
 - **v0.87 (2026-11-28):** set up for the Home Screen like MORPHOS, which sizes correctly on Jaisah's iPad: no manifest link, no `apple-mobile-web-app-capable` and no status bar style. With them iPadOS reported a wrong screen size (a strip along the bottom with `black-translucent`; with `black` in v0.86, a page wider and taller than the screen, cut off on the right). `manifest.webmanifest` stays in the folder, unlinked. Also: the chips in a menu bar never shrink (the stat points pill was clipped); the level chip beside Start hides below 900 wide. Both bars checked at 13 screen sizes (scratchpad `barfit2.js`). Lesson: copy what already works on Jaisah's devices (MORPHOS) before guessing at iOS behaviour.

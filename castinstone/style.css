@@ -126,13 +126,13 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .ck-mid { display: grid; justify-items: center; gap: calc(var(--u) * 8px); padding: calc(var(--u) * 9px) calc(var(--u) * 12px) calc(var(--u) * 10px); border-radius: calc(var(--u) * 14px);
   background: linear-gradient(180deg, #2b2437e6 0%, #1a1523eb 50%, #120e19f0 100%); box-shadow: inset 0 1px 0 #ffffff1f, 0 0 0 1px #000000b3, 0 8px 26px #000a; }
 .queue { display: flex; align-items: center; gap: calc(var(--u) * 6px); }
-.sock { --c: transparent; position: relative; width: calc(var(--u) * 26px); height: calc(var(--u) * 26px); min-width: 16px; min-height: 16px; display: grid; place-items: center; color: #1a1210;
+.sock { --c: transparent; position: relative; width: calc(var(--u) * 26px); height: calc(var(--u) * 26px); min-width: 16px; min-height: 16px; flex: none; display: block; color: #1a1210;
   clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%); background: #0a0710; }
 .sock::before { content: ''; position: absolute; inset: calc(var(--u) * 2px); clip-path: inherit; background: radial-gradient(circle at 50% 35%, #241d30, #0d0a13); }
 .sock.on::before { background: radial-gradient(circle at 40% 30%, color-mix(in srgb, var(--c) 70%, #fff) 0%, var(--c) 45%, color-mix(in srgb, var(--c) 55%, #000) 100%); }
 .sock.on { background: color-mix(in srgb, var(--c) 45%, #000); filter: drop-shadow(0 0 calc(var(--u) * 5px) color-mix(in srgb, var(--c) 75%, transparent)); animation: sockIn .16s ease-out; }
-/* v0.88: sized in units, not percent: Safari on iPad drew the form socket's icon tiny */
-.sock svg { position: relative; width: calc(var(--u) * 15px); height: calc(var(--u) * 15px); min-width: 9px; min-height: 9px; stroke-width: 2.6; }
+/* v0.88/v0.89: sized in units and centred by position, not by grid: Safari on iPad drew the form socket's icon tiny, then off centre */
+.sock svg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: calc(var(--u) * 15px); height: calc(var(--u) * 15px); min-width: 9px; min-height: 9px; stroke-width: 2.6; }
 .sock.form svg { width: calc(var(--u) * 20px); height: calc(var(--u) * 20px); min-width: 12px; min-height: 12px; }
 .sock.form { width: calc(var(--u) * 34px); height: calc(var(--u) * 34px); min-width: 20px; min-height: 20px; margin-right: calc(var(--u) * 4px); }
 .queue.flash .sock { animation: shake .3s; }
