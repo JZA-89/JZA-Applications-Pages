@@ -879,6 +879,8 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 
 ## Decision log
 
+- **v0.96 (2026-11-28):** nothing in the game can be selected: a quick double tap on iPhone selected the HUD's level number and opened the text menu. `user-select: none` and no long-press menu on the whole page, except the co-op code box.
+
 - **v0.95 (2026-11-28):** a version check, as in MORPHOS (Jaisah: Safari showed v0.94 while the Home Screen copy still ran v0.92; the Home Screen copy keeps its own cache). Three seconds after opening, and when the game comes back into view (at most every 5 minutes), it fetches its own page bypassing every cache, reads the version from the `<title>`, and if it is newer shows a gold banner at the top: tapping it saves and reloads the page at `?v=<new version>`. Nothing is sent. Keep the title in the form `Cast in Stone | Beta · vX.YY` or the check stops working. `privacy.html` describes the check.
 
 - **v0.94 (2026-11-28):** the menus are sized to the visible area, like the game picture. On Jaisah's iPad the page's own area (what `position: fixed; inset: 0` fills) stayed wider than the screen even after a fresh start, so every menu was cut off on the right, while the game picture, sized from `visualViewport` since v0.75, always fitted. `fit()` now sets `--vw`, `--vh`, `--vx`, `--vy` from the visible area, and `.panel-wrap`, `.ts-wrap` and `#touch` use them. (v0.92's clipping of the touch layer stays.)
