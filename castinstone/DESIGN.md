@@ -879,6 +879,8 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 
 ## Decision log
 
+- **v1.06 (2026-11-28):** a champion is never within 600 cells of the hub (Jaisah saw one within shot of where a new game starts); if its region has no home that far out it takes one in another region, and failing that the furthest home there is. Over 120 caves the nearest is now 918 cells out, and every cave has three.
+
 - **v1.05 (2026-11-28): the rest of the audit (Jaisah: "fix those other issues as well"). New save key `castinstone.save.v14`: the cave is built differently, so everyone starts again.**
   - *Cave generation:* the lair's lake is sealed with rock all round and underneath as the very last step (tunnels, seams and set pieces made after the lake left gaps, so in some caves it drained for ever and its chunks never slept: the lake's step cost fell from 0.7–2.2 ms to 0.06–0.5); a Lodestone never stands in or under magma, acid or oil, the hub's is always on a floor, and each is settled onto the floor once everything else is built; "high" relic caches are no longer cut into rock (about one in six was sealed in). Every cave has three champions (a region with no suitable home borrows one). Checked over 75 caves: 0 Lodestones in liquid, 0 sealed high caches, 0 leaking lakes, 2 of 1,125 stones one cell above the floor.
   - *Thunderstorm and Maelstrom:* 12 and 14 a strike (were 28 and 34). On one soaked target that is about 300 for 90 mana and about 1,050 for 170, in line with Inferno and Avalanche; they were three and two and a half times that.

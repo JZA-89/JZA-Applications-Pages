@@ -105,8 +105,12 @@ const KGame = (() => {
         const hub = this.world.hub, out2 = k => Math.hypot(hub.x - H[k].x, hub.y - H[k].y);
         const best = ok => H.map((h, k) => k).filter(k => H[k].biome === biome && !out.has(k) && ok(k)).sort((a, b) => H[b].level - H[a].level || out2(b) - out2(a) || a - b)[0];
         // v1.05: always three: if the region has no ground home clear of the others, any home clear of them, then any home at all
-        let i = best(k => ground(k) && far(k)); if (i == null) i = best(far); if (i == null) i = best(() => true);
-        if (i == null) i = H.map((h, k) => k).filter(k => !out.has(k) && far(k)).sort((a, b) => H[b].level - H[a].level || a - b)[0];
+        // v1.06 (Jaisah saw one within shot of where a new game starts): never within 600 cells of the hub, more than a
+        // screen and a half away. If the region has nothing that far, the champion goes to the furthest home there is.
+        const away = k => out2(k) >= 600;
+        let i = best(k => ground(k) && far(k) && away(k)); if (i == null) i = best(k => far(k) && away(k));
+        if (i == null) i = H.map((h, k) => k).filter(k => !out.has(k) && far(k) && away(k)).sort((a, b) => (H[b].biome === biome) - (H[a].biome === biome) || H[b].level - H[a].level || a - b)[0];
+        if (i == null) i = H.map((h, k) => k).filter(k => !out.has(k)).sort((a, b) => out2(b) - out2(a) || a - b)[0];
         if (i != null) { picked.push(i); out.set(i, kind); }
       });
       return out;
