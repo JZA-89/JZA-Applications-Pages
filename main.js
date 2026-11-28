@@ -2285,7 +2285,11 @@
   /* ------------------------------------------------------------------
      14. Cast in Stone cave — the golem exploring and fighting on its own.
          A strip of falling-sand cave three screens long, in the game's
-         look (strata, rock, loose earth, water, steam), with the game's
+         look as of v1.08 (the Rose Hollows' strata with a pale crust on
+         open faces, faceted slate, a back wall with far pillars, lichen and
+         roots, a Lodestone, lanterns and crystal, and the game's lighting:
+         dark but for what the golem, lamps, crystal and flames throw),
+         loose earth, water and steam, with the game's
          Brute golem (sprite rows from castinstone/data.js) and three of
          its creatures (crawler, glowmoth, shard slinger). Nothing is on
          a timer: the golem decides what to do from what is in front of
@@ -2315,16 +2319,24 @@
     var STONE = { h: [214, 206, 192], m: [150, 143, 138], d: [96, 90, 94], s: [52, 44, 54], k: [20, 16, 24], g: [122, 172, 150], e: [255, 236, 196] };
     var GOLEM = ["...kkkkk.kkk.kkkkk...", "..khhgghkhhhkhhhghk..", ".khhhmmshhmmshhhmmhk.", ".khmmmmshLmRshmmmmdk.", ".ksmmddssmddsmmmddsk.", "khsssssssssssssssshhk", "khhhhhshhhhhhshhhhmdk", "khmmmmshhhmcmshmmmmdk", "kdmmddshmmcmmssmmdddk",
       ".ksssshmmmmcmmsssssk.", ".khhhsmmmmcmmdshhhhk.", "khhmmssmmmddddshhmmhk", "khmmmsssssdsssshmmmdk", "kdmddshhhsshhhsmmdddk", ".kdddshmmdkdmmsddddk.", "..kkkkmmdk.kmddkkkk..", ".....kdddk.kdddk....."];
+    /* the game's sprites as they are now (render.js: CRAWLER and its two leg rows, and the v0.81 glowmoth and shard slinger) */
+    var CRAWL = ["....kkkkkk.....", "..kkhhhhhhkk...", ".khhmmsmmsmhkk.", "khmmmsmmmsmmhek", "kmmmmsmmmsmmmek", "kddddsdddsddddk", ".kdddddddddddk."];
     var ART = {
-      crawler: ["..kkkkkkk..", ".kmmmmmmmk.", "kmmdmmmdmek", "kmmmmmmmmmk", ".kdkdkdkdk.", ".k.k.k.k.k."],
-      moth: [".www.....www.", "wwwww...wwwww", "wwwwwkbkwwwww", ".wwwkbbbekww.", "..wwkbbbkww..", ".....kbk....."],
-      slinger: ["....kkk....", "...kmhmk.pp", "...kemek.pp", "...kmmmk.k.", "..kkmmmkkk.", ".kmhmmmmk..", ".kmmmmmdk..", ".kmmmmmdk..", "..kmmmdk...", "..kdkkdk...", "..kdk.kdk..", ".kkk..kkk.."]
+      crawler: [CRAWL.concat([".d.d..d.d..d.d."]), CRAWL.concat(["..d.d..d.d..d.d"])],
+      moth: [[".kk.......kk.", "kwwk.k.k.kwwk", "kwvwk.k.kwvwk", "kwwvwkbkwvwwk", ".kwwwkbekwwk.", "..kwvkbbkvwk.", "...kk.kk.kk.."],
+             [".............", "....k...k....", ".....kbk.....", ".kkkkbekkkkk.", "kwvwwkbkwwvwk", "kwwvwkbkwvwwk", ".kkkk.k.kkkk."]],
+      slinger: [["........kk.", "...kkk.kppk", "..khhmk.kpk", "..kmhek.kk.", "..kkmkkkmk.", ".kmhmmmmk..", ".kmmmmmdk..", ".kmmmmmdk..", "..kmmmdk...", "..kdkkdk...", "..kdk.kdk..", ".kkk..kkk.."]]
     };
     var COL = {
-      crawler: { k: [30, 26, 40], m: [112, 104, 128], d: [78, 72, 94], e: [255, 70, 160] },
-      moth: { w: [222, 196, 244], k: [40, 30, 50], b: [124, 104, 146], e: [255, 70, 160] },
+      crawler: { k: [14, 10, 20], h: [154, 144, 174], m: [108, 100, 128], d: [72, 64, 88], s: [50, 42, 62], e: [255, 70, 160] },
+      moth: { w: [222, 196, 244], v: [170, 140, 200], k: [40, 30, 50], b: [124, 104, 146], e: [255, 70, 160] },
       slinger: { k: [26, 20, 18], m: [150, 120, 96], h: [196, 166, 132], d: [100, 78, 66], p: [168, 160, 150], e: [255, 70, 160] }
     };
+    /* the Rose Hollows' colours (data.js biomes[0]) and the game's slate */
+    var STRATA = [[124, 76, 92], [142, 92, 96], [104, 64, 90], [160, 114, 104], [92, 58, 84], [132, 84, 100]], CRUST = [200, 150, 118], BGC = [30, 22, 46];
+    var BAY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+    var em = new Uint8Array(W * H);   /* per pixel: 1 gives its own light (flames, eyes, lamps), 2 is deep in the ground */
+    var decor = [], motes = [];
     /* what each creature is weak to: the recipe the golem types for it, the spell's name, and how it is cast */
     var ANSWER = {
       crawler: { q: ["fire", "fire"], name: "Fireball", kind: "Shot", cast: "fireball", dmg: 34 },
@@ -2367,6 +2379,11 @@
     var foe = function (kind, x) { var y = kind === "moth" ? floorAt(x, 50) - 30 : floorAt(x, 50); return { kind: kind, x: x, y: y, hy: y, vx: 0, vy: 0, hp: HP[kind], st: "idle", t: 0, face: -1, hurt: 0, dead: false, cd: 1 }; };
     var reset = function () {
       run++; build();
+      /* what stands in the cave, as in the game: a Lodestone where the golem wakes, lanterns on posts, crystal in the roof */
+      decor = [{ kind: "stone", x: 46, y: floorAt(46, 50) }];
+      [78, 204, 338, 430, 520].forEach(function (lx) { if (!solid(lx, 50)) decor.push({ kind: "lamp", x: lx, y: floorAt(lx, 50) }); });
+      [58, 128, 232, 300, 380, 474, 556].forEach(function (cx, n) { var cy = 50; while (cy > 3 && !solid(cx, cy)) cy--; decor.push({ kind: "crystal", x: cx + (n % 2 ? 2 : -1), y: cy - 2 - (n % 3) }); });
+      motes = []; for (var mk = 0; mk < 26; mk++) motes.push({ x: Math.random() * W, y: 20 + Math.random() * 70, p: Math.random() * 6.28 });
       S = { t: 0, queue: [], want: null, typeT: 0, spell: "", kind: "", gold: false, parts: [], shots: [], nums: [], bolt: null, flash: 0, shake: 0, recoil: 0, fade: 0, fadeIn: 1, cam: 0, stuck: 0, lastX: 0,
         golem: { x: 20, y: floorAt(20, 50), vx: 0, vy: 0, hp: 100, ground: true, hurt: 0, cd: 0, fly: false, bored: {} },
         foes: [foe("crawler", 104), foe("moth", 210), foe("crawler", 236), foe("slinger", 352), foe("crawler", 424), foe("moth", 492), foe("slinger", 548)] };
@@ -2534,46 +2551,78 @@
       /* the end of the cave, or the end of the golem: fade, and begin another */
       if (g.x > WW - 22 || g.hp <= 0) { S.fade = Math.min(1, S.fade + dt * 1.4); if (S.fade >= 1) reset(); }
     };
-    var plot = function (px, py, r, g, b) { px = Math.round(px) - S.cam; py = Math.round(py); if (px >= 0 && py >= 0 && px < W && py < H) buf[py * W + px] = pk(r, g, b); };
+    var plot = function (px, py, r, g, b, e) { px = Math.round(px) - S.cam; py = Math.round(py); if (px >= 0 && py >= 0 && px < W && py < H) { buf[py * W + px] = pk(r, g, b); em[py * W + px] = e || EMON ? 1 : 0; } };
+    var EMON = 0;   /* while set, everything plotted gives its own light (shots, the bolt) */
     var sprite = function (rows, cx, feet, flip, colour) {
       var w = rows[0].length, h = rows.length, ox = Math.round(cx) - (w >> 1), oy = Math.round(feet) - h;
       for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
         var ch = rows[y][flip ? w - 1 - x : x];
         if (ch === ".") continue;
         var c = colour(ch, y, h);
-        plot(ox + x + (c.dx || 0), oy + y + (c.dy || 0), c[0], c[1], c[2]);
+        plot(ox + x + (c.dx || 0), oy + y + (c.dy || 0), c[0], c[1], c[2], c.em);
       }
     };
     var draw = function () {
-      var x, y, i, c, wx, cam = S.cam;
+      var x, y, i, c, wx, cam = S.cam, o, k, col, far = cam >> 1;
+      var isOpen = function (q) { return q === EMPTY || q === STEAM || q === WATER; };
+      /* the cave, as the game draws it: strata of dusky rose and plum blended with an ordered dot pattern, a pale crust on
+         every open face (brightest on top), faceted slate, a back wall with far pillars that move at half speed, lichen on
+         the floors and roots under the roofs. Lit afterwards (see the lights below). */
       for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
-        wx = x + cam; c = cells[y * WW + wx]; i = y * W + x;
-        if (c === EMPTY) { var v = hash(wx >> 1, y >> 1) < 0.04 ? 8 : 0; buf[i] = pk(22 + v, 17 + v, 34 + v * 2); }
-        else if (c === DIRT) {
-          var band = Math.floor((y + Math.sin(wx / 17) * 3 + Math.sin(wx / 5.3) * 1.2) / 8) & 1, sp = hash(wx, y) < 0.5 ? 0 : 6;
-          if (y > 0 && cells[(y - 1) * WW + wx] === EMPTY && hash(wx, 9) < 0.6) buf[i] = pk(122, 172, 150);
-          else buf[i] = band ? pk(132 + sp, 84 + sp, 100 + sp) : pk(150 + sp, 100 + sp, 104 + sp);
+        wx = x + cam; o = y * WW + wx; c = cells[o]; i = y * W + x; em[i] = 0;
+        var up = y > 0 ? cells[o - WW] : ROCK, dn = y < H - 1 ? cells[o + WW] : ROCK, lf = wx > 0 ? cells[o - 1] : ROCK, rt = wx < WW - 1 ? cells[o + 1] : ROCK;
+        if (c === EMPTY || c === STEAM) {
+          var pil = Math.sin((x + far) / 19) * Math.sin((x + far) / 7 + 1.3) + Math.sin(y / 23 + (x + far) / 31), dk = pil > 0.55 ? 9 : pil > 0.3 && BAY[(y & 3) * 4 + (x & 3)] < 6 ? 9 : 0;
+          col = [BGC[0] - dk, BGC[1] - dk * 0.8, BGC[2] - dk * 1.2];
+          if (dn === DIRT && hash(wx, y + 68) < 0.42) col = [96 + hash(wx, 3) * 40, 150 + hash(wx, 4) * 30, 128];            /* lichen */
+          else if (up === DIRT && hash(wx, 71) < 0.22) col = [70, 56, 52];                                                    /* a root */
+          if (c === STEAM) col = [(col[0] + 204 * 2) / 3, (col[1] + 206 * 2) / 3, (col[2] + 230 * 2) / 3];
+          buf[i] = pk(col[0], col[1], col[2]);
+        } else if (c === DIRT) {
+          var d = isOpen(up) || isOpen(dn) || isOpen(lf) || isOpen(rt) ? 1 : (y > 1 && isOpen(cells[o - 2 * WW])) || (y < H - 2 && isOpen(cells[o + 2 * WW])) || isOpen(cells[o - 2]) || isOpen(cells[o + 2]) || isOpen(cells[o - WW - 1]) || isOpen(cells[o - WW + 1]) || isOpen(cells[o + WW - 1]) || isOpen(cells[o + WW + 1]) ? 2 : 3;
+          var bf = (y + Math.sin(wx / 17) * 3 + Math.sin(wx / 5.3) * 1.2) / 7, bi = Math.floor(bf), st = STRATA[((bf - bi) * 16 > BAY[(y & 3) * 4 + (wx & 3)] + 8 ? bi + 1 : bi) % 6];
+          if (d === 1) col = isOpen(up) ? [CRUST[0] * 1.2 + 14, CRUST[1] * 1.18 + 12, CRUST[2] * 1.12 + 12] : CRUST;
+          else if (d === 2) col = [(CRUST[0] + st[0]) / 2, (CRUST[1] + st[1]) / 2, (CRUST[2] + st[2]) / 2];
+          else { col = hash(wx, y) < 0.06 ? [st[0] * 0.7, st[1] * 0.7, st[2] * 0.75] : st; em[i] = 2; }
+          buf[i] = pk(Math.min(255, col[0]), Math.min(255, col[1]), Math.min(255, col[2]));
+        } else if (c === ROCK) {
+          var fa = hash((wx + (y >> 2)) >> 3, y >> 3), edge = isOpen(up) || isOpen(dn) || isOpen(lf) || isOpen(rt);
+          col = hash(wx, y) < 0.07 ? [22, 24, 40] : [34 + 32 * fa, 40 + 36 * fa, 64 + 46 * fa];
+          if (edge) col = [col[0] + 26, col[1] + 28, col[2] + 30]; else em[i] = 2;
+          buf[i] = pk(col[0], col[1], col[2]);
+        } else if (c === EARTH) { var ee = hash(wx, y) * 18; buf[i] = pk(172 + ee, 128 + ee, 118 + ee); }
+        else {   /* water: a bright line along its top, the back wall showing faintly through */
+          var top = up !== WATER, wv = hash(wx, y + Math.floor(S.t * 8)) < 0.08 ? 30 : 0;
+          buf[i] = top ? pk(130, 180, 255) : pk(40 + wv, 84 + wv, 186);
         }
-        else if (c === ROCK) { var r = hash(wx >> 2, y >> 2) < 0.5 ? 0 : 8; buf[i] = hash(wx, y) < 0.08 ? pk(30, 34, 52) : pk(44 + r, 52 + r, 80 + r); }
-        else if (c === EARTH) { var e = hash(wx, y) * 18; buf[i] = pk(172 + e, 128 + e, 118 + e); }
-        else if (c === WATER) buf[i] = pk(44 + (hash(wx, y + Math.floor(S.t * 8)) < 0.1 ? 40 : 0), 90, 198);
-        else buf[i] = pk(204, 206, 230);
       }
+      /* what stands in the cave: drawn over open back wall only, as the game's decor is */
+      for (k = 0; k < decor.length; k++) {
+        var dc = decor[k], dy2;
+        if (dc.x < cam - 12 || dc.x > cam + W + 12) continue;
+        if (dc.kind === "lamp") { for (dy2 = 1; dy2 <= 11; dy2++) plot(dc.x, dc.y - dy2, 84, 60, 48); plot(dc.x + 1, dc.y - 11, 84, 60, 48); plot(dc.x + 2, dc.y - 11, 84, 60, 48); for (dy2 = 0; dy2 < 3; dy2++) { plot(dc.x + 2, dc.y - 10 + dy2, 255, 214, 130, 1); plot(dc.x + 3, dc.y - 10 + dy2, 255, 190, 96, 1); } }
+        else if (dc.kind === "stone") { for (dy2 = 1; dy2 <= 12; dy2++) for (var sx2 = -2; sx2 <= 2; sx2++) { if (dy2 === 12 && Math.abs(sx2) === 2) continue; plot(dc.x + sx2, dc.y - dy2, sx2 === -2 ? 150 : 112, sx2 === -2 ? 144 : 106, sx2 === -2 ? 176 : 140); } [[0, 9], [0, 8], [-1, 7], [1, 7], [0, 6], [0, 5], [0, 4]].forEach(function (q) { plot(dc.x + q[0], dc.y - q[1], 206, 176, 255, 1); }); for (sx2 = -4; sx2 <= 4; sx2++) plot(dc.x + sx2, dc.y, 96, 90, 122); }
+        else { [[0, 0], [1, 0], [-1, 0], [0, -1], [0, 1], [1, 1], [2, 1], [-1, -1]].forEach(function (q, n) { plot(dc.x + q[0], dc.y + q[1], n % 3 ? 96 : 170, n % 3 ? 226 : 255, n % 3 ? 214 : 240, 1); }); }
+      }
+      /* dust in the air */
+      if (!reducedMotion) for (k = 0; k < motes.length; k++) { var mo = motes[k]; mo.p += 0.02; mo.x += Math.sin(mo.p) * 0.05 + 0.02; mo.y += Math.cos(mo.p * 0.7) * 0.03; if (mo.x > W) mo.x -= W; var mi = Math.round(mo.y) * W + Math.round(mo.x); if (mi >= 0 && mi < buf.length && cells[Math.round(mo.y) * WW + Math.round(mo.x) + cam] === EMPTY && em[mi] === 0) buf[mi] = pk(150, 138, 176); }
       /* the creatures: white when hit, eyes bright while they warn */
       for (i = 0; i < S.foes.length; i++) {
         var f = S.foes[i];
         if (f.dead || f.x < cam - 12 || f.x > cam + W + 12) continue;
-        (function (f) { var C = COL[f.kind], warn = f.st === "windup" && Math.sin(f.t * 40) > 0; sprite(ART[f.kind], f.x, f.y + (f.kind === "crawler" && f.st === "windup" ? -1 : 0), f.face > 0 ? f.kind !== "slinger" : f.kind === "slinger", function (ch) { return f.hurt > 0 ? [255, 246, 236] : ch === "e" && warn ? [255, 255, 255] : (ch === "w" || ch === "p") && warn ? [255, 240, 255] : C[ch]; }); })(f);
+        (function (f) { var C = COL[f.kind], warn = f.st === "windup" && Math.sin(f.t * 40) > 0, fr = ART[f.kind], rows = fr[fr.length > 1 && (f.kind === "moth" || Math.abs(f.vx) > 4) ? Math.floor(S.t * (f.kind === "moth" ? 8 : 10)) & 1 : 0];
+          sprite(rows, f.x, f.y + (f.kind === "crawler" && f.st === "windup" ? -1 : 0), f.face > 0 ? f.kind !== "slinger" : f.kind === "slinger", function (ch) { var q = (f.hurt > 0 ? [255, 246, 236] : ch === "e" && warn ? [255, 255, 255] : (ch === "w" || ch === "p") && warn ? [255, 240, 255] : C[ch]).slice(); q.em = ch === "e" || f.hurt > 0; return q; }); })(f);
       }
       /* the golem: it breathes, leans back from a cast, flashes when hurt; its two lights show the recipe */
       var g = S.golem, breathe = !reducedMotion && Math.sin(S.t * 2.4) > 0.5, e0 = ELRGB[S.queue[0]], e1 = ELRGB[S.queue[1] || S.queue[0]];
       sprite(GOLEM, g.x, g.y, false, function (ch, y, h) {
         var col = g.hurt > 0.35 ? [255, 246, 236] : ch === "L" ? (e0 || [58, 30, 34]) : ch === "R" ? (e1 || [58, 30, 34]) : ch === "c" ? (e0 ? [(e0[0] + e1[0]) >> 1, (e0[1] + e1[1]) >> 1, (e0[2] + e1[2]) >> 1] : STONE.s) : STONE[ch];
-        col = col.slice();
+        col = col.slice(); col.em = g.hurt > 0.35 || ((ch === "L" || ch === "R" || ch === "c") && !!e0) || ch === "e";
         if (y < h - 3) { col.dy = breathe ? -1 : 0; if (S.recoil > 0 && y < h * 0.45) col.dx = -1; }
         return col;
       });
       /* shots, the bolt, particles, damage numbers */
+      EMON = 1;
       for (i = 0; i < S.shots.length; i++) {
         var p = S.shots[i], k;
         if (p.kind === "fireball") { for (k = 1; k <= 5; k++) plot(p.x - p.vx * k * 0.006, p.y - p.vy * k * 0.006, 255, 150 - k * 16, 44); plot(p.x, p.y, 255, 245, 200); plot(p.x + 1, p.y, 255, 170, 70); plot(p.x, p.y + 1, 255, 170, 70); plot(p.x - 1, p.y, 255, 170, 70); plot(p.x, p.y - 1, 255, 170, 70); }
@@ -2581,7 +2630,23 @@
         else { plot(p.x, p.y, 200, 190, 180); plot(p.x + 1, p.y, 150, 143, 138); plot(p.x, p.y + 1, 150, 143, 138); }
       }
       if (S.bolt) { var B = S.bolt, n = 14, lx = B.x0, ly = B.y0; for (k = 1; k <= n; k++) { var tx = B.x0 + (B.x1 - B.x0) * k / n + (k < n ? (Math.random() - 0.5) * 5 : 0), ty = B.y0 + (B.y1 - B.y0) * k / n + (k < n ? (Math.random() - 0.5) * 5 : 0); for (var s2 = 0; s2 <= 4; s2++) plot(lx + (tx - lx) * s2 / 4, ly + (ty - ly) * s2 / 4, 255, 246, 190); lx = tx; ly = ty; } }
-      for (i = 0; i < S.parts.length; i++) { var q = S.parts[i]; if (q.kind === "fire") plot(q.x, q.y, 255, 150 + hash(i, 1) * 80, 50); else if (q.kind === EARTH) plot(q.x, q.y, 184, 140, 128); else if (q.kind === WATER) plot(q.x, q.y, 90, 150, 240); else plot(q.x, q.y, 214, 216, 236); }
+      EMON = 0;
+      for (i = 0; i < S.parts.length; i++) { var q = S.parts[i]; if (q.kind === "fire") plot(q.x, q.y, 255, 150 + hash(i, 1) * 80, 50, 1); else if (q.kind === EARTH) plot(q.x, q.y, 184, 140, 128); else if (q.kind === WATER) plot(q.x, q.y, 90, 150, 240); else plot(q.x, q.y, 214, 216, 236); }
+      /* the light, as in the game: the cave is dark but for what the golem, lanterns, crystal, the Lodestone and flames throw.
+         Each light fades with distance; the inside of the ground stays darker than its lit faces; flames and eyes keep their own colour. */
+      var LT = [[g.x, g.y - 8, 88, 1, 255, 236, 210]];
+      for (k = 0; k < decor.length; k++) { var dl = decor[k]; if (dl.x < cam - 50 || dl.x > cam + W + 50) continue; if (dl.kind === "lamp") LT.push([dl.x + 2, dl.y - 9, 40, 0.85, 255, 196, 110]); else if (dl.kind === "stone") LT.push([dl.x, dl.y - 7, 26, 0.55, 190, 160, 255]); else LT.push([dl.x, dl.y, 17, 0.5, 110, 235, 222]); }
+      for (k = 0; k < S.shots.length; k++) if (S.shots[k].kind === "fireball") LT.push([S.shots[k].x, S.shots[k].y, 30, 1, 255, 150, 60]);
+      if (S.bolt) LT.push([S.bolt.x1, S.bolt.y1, 44, 1.1, 255, 246, 170]);
+      for (k = 0; k < LT.length; k++) { LT[k][0] -= cam; LT[k][7] = LT[k][2] * LT[k][2]; }
+      for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+        i = y * W + x; if (em[i] === 1) continue;
+        var lr = 0.3, lg = 0.27, lb = 0.4;
+        for (k = 0; k < LT.length; k++) { var q2 = LT[k], ddx = x - q2[0], ddy = y - q2[1], dd = ddx * ddx + ddy * ddy; if (dd < q2[7]) { var ff = 1 - Math.sqrt(dd) / q2[2]; ff = ff * ff * q2[3]; lr += ff * q2[4] / 255; lg += ff * q2[5] / 255; lb += ff * q2[6] / 255; } }
+        if (em[i] === 2) { lr *= 0.62; lg *= 0.62; lb *= 0.66; }
+        var u0 = buf[i], cr = (u0 & 255) * lr, cg = ((u0 >> 8) & 255) * lg, cb = ((u0 >> 16) & 255) * lb;
+        buf[i] = pk(cr > 255 ? 255 : cr, cg > 255 ? 255 : cg, cb > 255 ? 255 : cb);
+      }
       for (i = 0; i < S.nums.length; i++) { var nm = S.nums[i], str = String(nm.v), nx0 = nm.x - str.length * 2, ny0 = nm.y - nm.t * 12; for (k = 0; k < str.length; k++) { var gl = DIG[+str[k]]; for (var rr = 0; rr < 5; rr++) for (var cc = 0; cc < 3; cc++) if (gl[rr] >> (2 - cc) & 1) { if (nm.red) plot(nx0 + k * 4 + cc, ny0 + rr, 255, 110, 100); else plot(nx0 + k * 4 + cc, ny0 + rr, 140, 255, 150); } } }
       /* the golem's health, top left, as in the game's orb colour */
       for (x = 0; x < 34; x++) for (y = 0; y < 3; y++) buf[(4 + y) * W + 5 + x] = x === 0 || x === 33 ? pk(20, 16, 24) : x < 1 + 32 * Math.max(0, g.hp) / 100 ? pk(232, 90, 78) : pk(52, 46, 58);

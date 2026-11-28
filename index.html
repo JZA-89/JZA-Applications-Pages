@@ -1209,7 +1209,7 @@
   .cs-sockets { display: flex; align-items: center; gap: 5px; }
   .cs-sockets i { --c: transparent; width: 18px; height: 18px; background: #0a0710; clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%); box-shadow: inset 0 0 0 2px #241d30; transition: background 0.12s; }
   .cs-sockets i:first-child { width: 24px; height: 24px; margin-right: 3px; }
-  .cs-sockets i.on { background: var(--c); filter: drop-shadow(0 0 5px var(--c)); box-shadow: none; }
+  .cs-sockets i.on { background: var(--c); box-shadow: inset 0 0 0 2px #0006; }   /* as the game's sockets: no glow filter on the cut shape */
   .cs-plate { margin: 0; text-align: right; line-height: 1.15; min-width: 0; }
   .cs-plate b { display: block; font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif; font-weight: 600; font-size: 1.05rem; letter-spacing: 0.04em; color: #efe6d8; transition: color 0.2s; }
   .cs-plate span { font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: #9a8f82; }
@@ -2242,6 +2242,6 @@
 </main>
 
 <script src="dock.js?v=15" id="jza-dock-script"></script>
-<script src="main.js?v=25"></script>
+<script src="main.js?v=26"></script>
 </body>
 </html>
