@@ -7,7 +7,7 @@
    broken save never replaces a good one. */
 
 const KSave = (() => {
-  const KEY = 'castinstone.save.v13';   // a new key whenever cave generation changes (v13: v0.78); older saves do not fit
+  const KEY = 'castinstone.save.v14';   // a new key whenever cave generation changes (v14: v1.05); older saves do not fit
   const VERSION = 1;
 
   // a golem's progress (also what a guest brings to a co-op game, and takes home)
@@ -88,8 +88,9 @@ const KSave = (() => {
     return game;
   }
 
-  function valid(d) {
+  function valid(d, light) {
     if (!d || d.v !== VERSION || !Number.isFinite(d.seed) || !d.player || !Number.isFinite(d.player.level)) return false;
+    if (light) { for (const k in d.chunks) if (typeof d.chunks[k] !== 'string' || d.chunks[k].indexOf('|') < 1) return false; return true; }   // v1.05: the text was just made here
     for (const k in d.chunks) { const parts = d.chunks[k].split('|'); if (parts.length !== 2) return false; atob(parts[0]); atob(parts[1]); }
     return true;
   }
@@ -99,7 +100,7 @@ const KSave = (() => {
       const data = serialize(game);
       const text = JSON.stringify(data);
       // check before storing (cheaply: rebuilding the cave would freeze the game)
-      if (!valid(JSON.parse(text))) return false;
+      if (!valid(data, true)) return false;
       localStorage.setItem(KEY, text);
       return text.length;
     } catch (e) { return false; }
@@ -111,7 +112,7 @@ const KSave = (() => {
   function load() {
     let t = null;
     try { t = localStorage.getItem(KEY); } catch (e) { return null; }
-    try { for (let v = 1; v < 13; v++) localStorage.removeItem('castinstone.save.v' + v); } catch (e) {}
+    try { for (let v = 1; v < 14; v++) localStorage.removeItem('castinstone.save.v' + v); } catch (e) {}
     if (!t) return null;
     let g = null;
     try { g = restore(JSON.parse(t)); } catch (e) { g = null; }

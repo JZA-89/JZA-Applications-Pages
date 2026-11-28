@@ -118,6 +118,7 @@ const KWorld = (() => {
       const k = cy * cw + cx;
       this.awake[k] = 3; this.dirty[k] = 1;
       if (this.changed) this.changed[k] = 1;
+      if (this.stale) this.stale[k] = 1;
       const lx = x & (this.cs - 1), ly = y & (this.cs - 1), e = this.cs - 1;
       if (lx === 0 && cx > 0) { this.awake[k - 1] = 3; }
       if (lx === e && cx < cw - 1) { this.awake[k + 1] = 3; }
@@ -496,7 +497,7 @@ const KWorld = (() => {
       if (s.length !== cs * cs * 4) return false;
       let n = 0;
       for (const a of [this.mat, this.shade, this.life, this.charge]) for (let y = 0; y < cs; y++) { let i = (y0 + y) * w + x0; for (let x = 0; x < cs; x++) a[i++] = s.charCodeAt(n++); }
-      this.dirty[k] = 1; this.rev[k]++;
+      this.dirty[k] = 1; this.rev[k]++; if (this.stale) this.stale[k] = 1;
       return true;
     }
     // everything about the cave that is not a cell: where things are, and which chunks are awake or changed
@@ -516,7 +517,9 @@ const KWorld = (() => {
     syncStart(seed) { this.tick = 0; this.stamp.fill(0); this.rand = makeRng(seed); this.dirty.fill(1); }
 
     saveChunks() {
-      const out = {}, cs = this.cs;
+      // v1.05: each chunk's saved text is kept and made again only if the chunk has changed since the last save (late in a
+      // cave every save re-encoded hundreds of chunks: 8 to 50 ms, a visible hitch every 20 s)
+      const out = {}, cs = this.cs, kept = this._enc || (this._enc = new Map()), stale = this.stale || (this.stale = new Uint8Array(this.changed.length).fill(1));
       const enc = bytes => {
         const runs = [];
         for (let i = 0; i < bytes.length;) { let n = 1; while (i + n < bytes.length && bytes[i + n] === bytes[i] && n < 255) n++; runs.push(bytes[i], n); i += n; }
@@ -525,9 +528,10 @@ const KWorld = (() => {
       };
       for (let k = 0; k < this.changed.length; k++) {
         if (!this.changed[k]) continue;
+        if (!stale[k] && kept.has(k)) { out[k] = kept.get(k); continue; }
         const cx = k % this.cw, cy = (k / this.cw) | 0, m = new Uint8Array(cs * cs), l = new Uint8Array(cs * cs);
         for (let y = 0; y < cs; y++) for (let x = 0; x < cs; x++) { const i = (cy * cs + y) * this.w + cx * cs + x; m[y * cs + x] = this.mat[i]; l[y * cs + x] = this.life[i]; }
-        out[k] = enc(m) + '|' + enc(l);
+        out[k] = enc(m) + '|' + enc(l); kept.set(k, out[k]); stale[k] = 0;
       }
       return out;
     }
@@ -542,7 +546,7 @@ const KWorld = (() => {
           if (v >= N) continue;
           this.mat[i] = v; this.life[i] = l[y * cs + x] || 0; this.charge[i] = 0;
         }
-        this.changed[k] = 1; this.awake[k] = 3; this.dirty[k] = 1; this.rev[k]++;
+        this.changed[k] = 1; this.awake[k] = 3; this.dirty[k] = 1; this.rev[k]++; if (this.stale) this.stale[k] = 1;
       }
     }
 
@@ -912,7 +916,7 @@ const KWorld = (() => {
             // an alcove dug into the ceiling
             let y = Math.round(n.y);
             while (y > 12 && !SOLID[mat[y * w + Math.round(n.x)]]) y--;
-            if (y > 14 && solidAround(Math.round(n.x), y - 6, 4, [M.DIRT, M.MOSS, M.ROCK, M.CRYSTAL])) {
+            if (y > 14 && solidAround(Math.round(n.x), y - 6, 4, [M.DIRT, M.MOSS, M.CRYSTAL])   /* v1.05: not rock: the alcove is not dug through rock, so the cache was sealed in */) {
               for (let yy = y - 9; yy <= y + 1; yy++) for (let xx = Math.round(n.x) - 5; xx <= n.x + 5; xx++) if (mat[yy * w + xx] !== M.ROCK) mat[yy * w + xx] = M.EMPTY;
               for (let xx = Math.round(n.x) - 6; xx <= n.x + 6; xx++) if (!SOLID[mat[(y - 2) * w + xx]]) mat[(y - 2) * w + xx] = M.DIRT; // a shelf to sit on
               addCache(n.x, y - 3, 'high', n); placed = true;
@@ -1178,14 +1182,19 @@ const KWorld = (() => {
       for (let i = far.length - 1; i > 0; i--) { const j = (R() * (i + 1)) | 0; [far[i], far[j]] = [far[j], far[i]]; }
       // Lodestones: one in the hub next to where you start, the rest spread through the cave
       this.lodestones = [];
-      const hubStone = this.standSpot(this.spawn.x - 18, this.spawn.y - 4, 16) || { x: this.spawn.x - 18, y: this.spawn.y };
+      // v1.05: a Lodestone never stands in or under magma, acid or oil, and always on a floor
+      const dry = sp => { for (let yy = sp.y - 20; yy <= sp.y; yy += 2) for (let xx = sp.x - 10; xx <= sp.x + 10; xx += 2) { const q = mat[yy * w + xx]; if (q === M.MAGMA || q === M.ACID || q === M.OIL) return false; } return true; };
+      const stoneIn = (n, tries, head) => { for (let k = 0; k < tries; k++) { const sp = spotIn(n, 1, head, k === 0); if (sp && dry(sp)) return sp; } return null; };
+      let hubStone = null;
+      for (const dx of [-18, 18, -10, 10, -26, 26, 0]) { const sp = this.standSpot(this.spawn.x + dx, this.spawn.y - 4, 16); if (sp && Math.abs(sp.y - this.spawn.y) < 24 && dry(sp)) { hubStone = sp; break; } }
+      if (!hubStone) hubStone = { x: this.spawn.x, y: this.floorBelow(this.spawn.x, this.spawn.y - 4) };
       this.lodestones.push({ id: 0, x: hubStone.x, y: hubStone.y, hub: true });
       if (lairNode) {
         // the chamber nearest the lair always gets a Lodestone
         // the nearest chamber to the lair with room for one gets a Lodestone
         const byDist = nodes.filter(n => !n.hub && !n.lair).sort((a, b) => Math.hypot(a.x - lairNode.x, a.y - lairNode.y) - Math.hypot(b.x - lairNode.x, b.y - lairNode.y));
         for (const near of byDist.slice(0, 4)) {
-          const sp = spotIn(near, 30, 16);
+          const sp = stoneIn(near, 30, 16);
           if (sp) { this.lodestones.push({ id: this.lodestones.length, x: sp.x, y: sp.y, nearLair: true }); break; }
         }
       }
@@ -1193,7 +1202,7 @@ const KWorld = (() => {
         if (n.lair) continue;
         if (this.lodestones.length >= C.lodestones) break;
         if (this.lodestones.some(l => Math.hypot(l.x - n.x, l.y - n.y) < 260)) continue;
-        const sp = spotIn(n, 12, 16);
+        const sp = stoneIn(n, 12, 16);
         if (sp) this.lodestones.push({ id: this.lodestones.length, x: sp.x, y: sp.y });
       }
       for (const l of this.lodestones) { l.region = this.biomes[this.biomeAt(l.x, l.y - 8)].name; l.level = this.levelAt(l.x, l.y); }
@@ -1224,8 +1233,25 @@ const KWorld = (() => {
         }
       }
 
+      // v1.05: last of all, once every later step has had its say:
+      // the lair's lake is sealed all round and underneath with rock (tunnels, seams and set pieces made after the lake could
+      // leave gaps under it, and it drained for ever)
+      if (this.lair) {
+        const L = this.lair, x0 = Math.max(12, Math.floor(L.x - L.rx * 1.2) - 6), x1 = Math.min(w - 13, Math.ceil(L.x + L.rx * 1.2) + 6), y0 = L.surface, y1 = Math.min(h - 13, Math.ceil(L.y + L.ry * 1.75) + 6);
+        const seal = [];
+        for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+          const i = y * w + x, m = mat[i];
+          if (m === M.MAGMA || m === M.ROCK || HARD[m]) continue;
+          let near = false;
+          for (let dy = -4; dy <= 4 && !near; dy++) for (let dx = -4; dx <= 4; dx++) if (mat[i + dy * w + dx] === M.MAGMA && this.life[i + dy * w + dx] === 255) { near = true; break; }
+          if (near) seal.push(i);
+        }
+        for (const i of seal) { mat[i] = M.ROCK; this.life[i] = 0; }
+      }
       // specks left by the last steps (shelves under high caches are 13 cells and stay)
       { const keep = World.MIN_PIECE; World.MIN_PIECE = 10; this.cleanup(0, 0, w, h, M.EMPTY, true); World.MIN_PIECE = keep; }
+      // v1.05: and each Lodestone stands on the floor as it now is (after the specks have gone)
+      for (const l of this.lodestones) { const sp = this.standSpot(l.x, l.y - 2, 0); if (sp) l.y = sp.y; }
       this.changed = new Uint8Array(this.cw * this.ch); // chunks changed since generation (for saving)
       this.broken.length = 0;   // crystal crumbled while the cave was made gives no shards
     }

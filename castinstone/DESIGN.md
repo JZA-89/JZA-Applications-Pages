@@ -879,6 +879,14 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 
 ## Decision log
 
+- **v1.05 (2026-11-28): the rest of the audit (Jaisah: "fix those other issues as well"). New save key `castinstone.save.v14`: the cave is built differently, so everyone starts again.**
+  - *Cave generation:* the lair's lake is sealed with rock all round and underneath as the very last step (tunnels, seams and set pieces made after the lake left gaps, so in some caves it drained for ever and its chunks never slept: the lake's step cost fell from 0.7–2.2 ms to 0.06–0.5); a Lodestone never stands in or under magma, acid or oil, the hub's is always on a floor, and each is settled onto the floor once everything else is built; "high" relic caches are no longer cut into rock (about one in six was sealed in). Every cave has three champions (a region with no suitable home borrows one). Checked over 75 caves: 0 Lodestones in liquid, 0 sealed high caches, 0 leaking lakes, 2 of 1,125 stones one cell above the floor.
+  - *Thunderstorm and Maelstrom:* 12 and 14 a strike (were 28 and 34). On one soaked target that is about 300 for 90 mana and about 1,050 for 170, in line with Inferno and Avalanche; they were three and two and a half times that.
+  - *Co-op:* matching the two games up again keeps each hurt creature's and the boss's health and where the guest stood (it reset the fight and moved the guest to the host); the host's code is only shown as usable while the connection service answers.
+  - *Saving:* each changed chunk's saved text is kept and made again only when that chunk changes (late in a cave a save cost 8 to 50 ms every 20 s; a save with nothing changed now costs nothing), and the save is checked as an object, not parsed again.
+  - The controller's map button closes the map as well as opening it.
+  - Still open: a modified client can send a guest a false cave (the guest's own golem is not yet protected from it); one glow sprite per 8 x 8 square of magma.
+
 - **v1.04 (2026-11-28): full audit, batch 4: performance.** Measured by the audit (JavaScript per frame, phone-sized view, processor slowed 4x to stand in for a phone): hub 18 ms, fight 35, flood 62, boss 57, menus under 2.
   - The renderer's kept ground colours are thrown away only when ground itself changes (`world.rev` is bumped in `put`/`swap` when a solid or powder is involved, no longer on every waking). Liquids, gas and fire moving through open cells are drawn from the live cell (`drawCells` checks any kept flag other than ground against the cell). The audit measured chunk rebuilds a frame falling from 62 to 24 in a flood and 60 to 8 in a boss fight (7 to 16% of the frame). Checked against a full rebuild with water, oil, magma, fire and digging on screen.
   - The orbs' wave moves by `transform` only and rests outside play (it animated `background-position`, which cost style work every frame and kept repainting under the paused menu's blur).

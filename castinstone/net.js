@@ -95,11 +95,13 @@ const KNet = (() => {
   // ----- host: wait in a mailbox named after the code -----
   async function host() {
     reset(); role = 'host'; state = 'waiting'; me = 0; code = rnd(5, LETTERS);
-    const my = session, box = 'cis-h-' + code, until = performance.now() + 15 * 60000;
+    const my = session, box = 'cis-h-' + code, until = performance.now() + 15 * 60000; let down = false;
     say(`Your code is ${code}. Waiting for a friend to join…`, 'code');
     while (my === session && state === 'waiting' && performance.now() < until) {
       let offers = [];
-      try { offers = await sigRecv(box); } catch (e) { say(`Your code is ${code}. The connection service cannot be reached; trying again…`, 'code'); }
+      // v1.05: the code is only shown as usable while the connection service answers
+      try { offers = await sigRecv(box); if (down) { down = false; say(`Your code is ${code}. Waiting for a friend to join…`, 'code'); } }
+      catch (e) { down = true; say('The connection service cannot be reached, so nobody can join yet. Trying again…', 'bad'); await wait(2000); }
       if (my !== session || state !== 'waiting') return;
       const o = offers.find(m => m && typeof m.sdp === 'string' && typeof m.id === 'string');
       if (o) {
@@ -155,14 +157,23 @@ const KNet = (() => {
     data.chunks = {};
     rtt = Math.max(20, Math.min(400, rtt));
     delay = Math.max(2, Math.min(9, Math.ceil((rtt / 2 + 14) / (1000 / 60)) + 1));
-    pend = { save: JSON.parse(JSON.stringify(data)), guest: guestPlayer, syncSeed: (Math.random() * 2147483647) | 0, delay, epoch: epoch + 1 };
+    // v1.05: what a rebuild would otherwise reset: each hurt creature's health, the boss's, and where the guest stood
+    const gq = game.players[1], live = { foes: game.enemies.filter(e => !e.dead && e.hp < e.maxHp).slice(0, 400).map(e => [e.id, Math.round(e.hp)]), boss: game.boss && !game.boss.dead ? Math.round(game.boss.hp) : null,
+      guestAt: gq ? { x: Math.round(gq.x), y: Math.round(gq.y), checkpoint: gq.checkpoint } : null };
+    pend = { save: JSON.parse(JSON.stringify(data)), guest: guestPlayer, live, syncSeed: (Math.random() * 2147483647) | 0, delay, epoch: epoch + 1 };
     sendBig('world', { ...pend, meta: game.world.meta(), hashes: b64(game.world.chunkHashes()) });
   }
   // both: build the game on the cave and reset the step count
   function build(world) {
     const game = KSave.restore(pend.save, world);
     if (!game) throw Error('save');
-    game.addPlayer(pend.guest);
+    const gp = game.addPlayer(pend.guest), lv = pend.live;
+    if (lv && typeof lv === 'object') {
+      if (Array.isArray(lv.foes)) for (const f of lv.foes.slice(0, 400)) { const e = Array.isArray(f) && game.enemies[f[0]]; if (e && !e.dead && Number.isFinite(f[1])) e.hp = Math.max(1, Math.min(e.maxHp, f[1])); }
+      if (game.boss && Number.isFinite(lv.boss)) game.boss.hp = Math.max(1, Math.min(game.boss.maxHp, lv.boss));
+      const at = lv.guestAt;
+      if (at && Number.isFinite(at.x) && Number.isFinite(at.y) && at.x > 8 && at.y > 8 && at.x < world.w - 8 && at.y < world.h - 8 && !game.collides(gp, at.x, at.y)) { gp.x = at.x; gp.y = at.y; if (Number.isInteger(at.checkpoint) && game.found.has(at.checkpoint)) gp.checkpoint = at.checkpoint; }
+    }
     world.syncStart(pend.syncSeed);
     delay = pend.delay; epoch = pend.epoch; frame = 0; mine = new Map(); theirs = new Map(); sums = new Map(); theirSums = new Map();
     H.setGame(game, me);
@@ -196,7 +207,7 @@ const KNet = (() => {
         setTimeout(() => {   // after the message is on screen: building takes a second or two
           if (my !== session) return;
           try {
-          pend = { save: b.save, guest: b.guest, syncSeed: b.syncSeed | 0, delay: Math.max(2, Math.min(9, b.delay | 0)), epoch: b.epoch | 0 };
+          pend = { save: b.save, guest: b.guest, live: b.live, syncSeed: b.syncSeed | 0, delay: Math.max(2, Math.min(9, b.delay | 0)), epoch: b.epoch | 0 };
           const w = new KWorld.World(b.save.seed, b.meta.lift | 0, (b.meta.act | 0) % KData.acts.length);
           w.adopt(b.meta);
           const theirsH = new Uint32Array(unb64(b.hashes).buffer), mineH = w.chunkHashes(), need = [];

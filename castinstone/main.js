@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v1.04';
+  const VERSION = 'v1.05';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -442,6 +442,7 @@
   function padMenu(a) {
     if (mode === 'play') return;
     const wrap = openWrap();
+    if (a.map && mode === 'map') { resume(); return; }   // v1.05: the map button closes the map it opened
     if (a.pause || a.back) { if (mode !== 'start') resume(); else if (titleSub) { titleSub = false; setMode('start'); } return; }   // on a page opened from the title, back returns to it
     if (a.tab) {
       const tabs = [...wrap.querySelectorAll('.tab')].filter(shown);

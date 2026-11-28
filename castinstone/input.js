@@ -241,12 +241,12 @@ const KInput = (() => {
     else if (down(14) || lx < -0.6) dir = 'left'; else if (down(15) || lx > 0.6) dir = 'right';
     // a direction already held when the menu opened does nothing until it is let go
     if (navHeld === 'wait') { if (dir) dir = null; else navHeld = null; }
-    const act = { dx: 0, dy: 0, accept: pressed(0), back: pressed(1), tab: pressed(4) ? -1 : pressed(5) ? 1 : 0, pause: pressed(bind.pad.pause) };
+    const act = { dx: 0, dy: 0, accept: pressed(0), back: pressed(1), tab: pressed(4) ? -1 : pressed(5) ? 1 : 0, pause: pressed(bind.pad.pause), map: pressed(bind.pad.map) };
     if (dir && (dir !== navHeld || now >= navAt)) {
       navAt = now + (dir !== navHeld ? 380 : 130); navHeld = dir;
       act.dx = dir === 'left' ? -1 : dir === 'right' ? 1 : 0; act.dy = dir === 'up' ? -1 : dir === 'down' ? 1 : 0;
     } else if (!dir && navHeld !== 'wait') navHeld = null;
-    return act.dx || act.dy || act.accept || act.back || act.tab || act.pause ? act : null;
+    return act.dx || act.dy || act.accept || act.back || act.tab || act.pause || act.map ? act : null;
   }
 
   // Called once per fixed step. origin(): the player's chest in client pixels.

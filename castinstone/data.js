@@ -296,7 +296,7 @@ const KData = (() => {
     stoneskin: { tier: 3, name: 'Stoneskin', seq: [E, E, L, E, E], cost: 80, cd: 1,
       desc: 'For 10 seconds you take 60% less damage.', time: 10, reduce: 0.6 },
     thunderstorm: { tier: 3, name: 'Thunderstorm', seq: [W, W, L, W, L], cost: 90, cd: 1.5,
-      desc: 'A storm hangs at your pointer for 6 seconds: rain soaks everything under it and lightning strikes again and again.', power: 28, radius: 80, time: 6, every: 0.35, range: 200, air: true },
+      desc: 'A storm hangs at your pointer for 6 seconds: rain soaks everything under it and lightning strikes again and again.', power: 12, radius: 80, time: 6, every: 0.35,   /* v1.05: 12 a strike (was 28): 17 strikes on a soaked target came to 670 for 90 mana, three times its circle */ range: 200, air: true },
     inferno: { tier: 3, name: 'Inferno', seq: [F, F, L, F, F], cost: 100, cd: 1.5,
       desc: 'Three rings of fire burst out from you, each wider than the last.', power: 70, radii: [32, 58, 86] },
     sanctuary: { tier: 3, name: 'Sanctuary', seq: [W, E, L, E, W], cost: 110, cd: 2,
@@ -309,7 +309,7 @@ const KData = (() => {
     avalanche: { tier: 4, name: 'Avalanche', seq: [E, E, W, E, E, E], cost: 150, cd: 2,
       desc: 'Nine boulders drop from the roof across the ground around your pointer, smashing through dirt.', power: 115, count: 9, spread: 70, range: 220 },
     maelstrom: { tier: 4, name: 'Maelstrom', seq: [W, L, W, L, W, L], cost: 170, cd: 2,
-      desc: 'A storm that follows you for 12 seconds, wider and faster than a Thunderstorm.', power: 34, radius: 115, time: 12, every: 0.24 },
+      desc: 'A storm that follows you for 12 seconds, wider and faster than a Thunderstorm.', power: 14, radius: 115, time: 12, every: 0.24 },   // v1.05: 14 a strike (was 34): about 1,050 on one target for 170 mana, in line with Avalanche
     phoenix: { tier: 4, name: 'Phoenix', seq: [F, W, F, W, F, F], cost: 160, cd: 2,
       desc: 'For 60 seconds, a blow that would break you instead restores half your health in a burst of flame. Once.', time: 60, power: 90, radius: 60 },
     titan: { tier: 4, name: 'Titan', seq: [E, F, E, L, E, E], cost: 180, cd: 2,

@@ -103,7 +103,10 @@ const KGame = (() => {
         const ground = k => { const t = H[k].kind || 'crawler'; return t === 'crawler' || t === 'warden'; };
         // the region's highest-level floor, and of those the furthest from the hub (the first region surrounds the hub, so its champion must not be on the doorstep)
         const hub = this.world.hub, out2 = k => Math.hypot(hub.x - H[k].x, hub.y - H[k].y);
-        const i = H.map((h, k) => k).filter(k => H[k].biome === biome && ground(k) && far(k)).sort((a, b) => H[b].level - H[a].level || out2(b) - out2(a) || a - b)[0];
+        const best = ok => H.map((h, k) => k).filter(k => H[k].biome === biome && !out.has(k) && ok(k)).sort((a, b) => H[b].level - H[a].level || out2(b) - out2(a) || a - b)[0];
+        // v1.05: always three: if the region has no ground home clear of the others, any home clear of them, then any home at all
+        let i = best(k => ground(k) && far(k)); if (i == null) i = best(far); if (i == null) i = best(() => true);
+        if (i == null) i = H.map((h, k) => k).filter(k => !out.has(k) && far(k)).sort((a, b) => H[b].level - H[a].level || a - b)[0];
         if (i != null) { picked.push(i); out.set(i, kind); }
       });
       return out;
