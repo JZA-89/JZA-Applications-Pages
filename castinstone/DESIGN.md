@@ -879,6 +879,8 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 
 ## Decision log
 
+- **v0.91 (2026-11-28):** on touch, the aim marker shows only while you drag the Shot button to aim by hand; a plain press aims at the nearest creature by itself and shows no marker (Jaisah). Mouse and controller unchanged.
+
 - **v0.90 (2026-11-28):** the recipe sockets (and the co-op friend arrow) no longer have a glow filter on a clipped shape: on iPad Safari repainted it every frame of the game behind and they flickered; the clip cut the glow off anyway. Their icons are centred by `inset: 0; margin: auto`, with no transform.
 
 - **v0.89 (2026-11-28):** the recipe sockets no longer use a grid to centre their icon (Safari on iPad still drew the form socket's icon off centre): each icon is placed at the socket's centre directly, and sockets never shrink in their row (`flex: none`).

@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.90';
+  const VERSION = 'v0.91';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -769,7 +769,9 @@
     const p = game.players[ME];
     let reticle = null;
     if (mode === 'play') {
-      if (KInput.device !== 'kbm') { const c = game.chest(p); reticle = { x: c.x + Math.cos(p.aim) * 26, y: c.y + Math.sin(p.aim) * 26 }; }
+      // v0.91: on touch the aim marker shows only while a thumb drags the Shot button to aim by hand; a plain press aims itself
+      if (KInput.device === 'touch' && KInput.touch.aim == null) reticle = null;
+      else if (KInput.device !== 'kbm') { const c = game.chest(p); reticle = { x: c.x + Math.cos(p.aim) * 26, y: c.y + Math.sin(p.aim) * 26 }; }
       else if (KInput.mouse.moved) reticle = R.clientToWorld(KInput.mouse.x, KInput.mouse.y);
     }
     // an aimed special spell shows where it will land
