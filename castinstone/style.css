@@ -453,7 +453,7 @@ body[data-mode="start"] .hud { display: none; }
   .ts-logo { font-size: min(10vw, 72px); letter-spacing: .06em; } .ts-tag { margin-left: 0; }
   .ts-menu { justify-items: center; } .ts-item { margin-left: 0; padding-left: 4px; } .ts-item::before { display: none; }
 }
-@media (max-height: 520px) and (orientation: landscape) { .ts-tag { margin-bottom: 16px; } .ts-menu { gap: 0; } .ts-item { padding-top: 3px; padding-bottom: 3px; } .ts-save { margin-top: 10px; } }
+@media (max-height: 520px) and (orientation: landscape) { .ts-tag { margin-bottom: 16px; } .ts-menu { gap: 0; } .ts-item { padding-top: 3px; padding-bottom: 3px; } }
 @media (prefers-reduced-motion: reduce) { .ts { animation: none; } .ts-item { transition: none; } }
 
 /* ---------- menus: what is on each tab, sized to fit ---------- */
@@ -599,3 +599,4 @@ h3.circle small { font: 700 11.5px/1 "Avenir Next", system-ui, sans-serif; lette
 .ts-item.confirm { color: #f0a493; }
 @media (max-width: 640px) { .opt { gap: 14px; padding: 12px 14px; } .deeper { flex-direction: column; align-items: stretch; } }
 .bar .back { white-space: nowrap; flex: none; }
+.ts-menu .ts-save { margin: -6px 0 12px; }   /* v0.85: the save's details sit under Continue */
