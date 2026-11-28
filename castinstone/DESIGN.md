@@ -692,6 +692,11 @@ Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
 
+## Sprites redrawn; a testing switch for the spell book (v0.81)
+
+- **Sprites** (Jaisah: "some of them look a bit half-assed"): the delver, Cinder spitter (a round glowing mouth), Rootboar (bristled back, tusk), shard slinger (a shard held up to throw), glowmoth, ash wraith, lasher, mirehopper, geode and the three v0.80 creatures are redrawn with a lit top edge, a shadowed underside and clearer faces; the delver, boar, tinder beetle and rime crawler have two-frame walks. Walking creatures now step only while they move (`still` in `drawEnemy`); flyers keep their flap or pulse. Sizes stay close to each creature's body, so nothing about hits changed.
+- **Testing switch** (for Jaisah, not players): opening the game with `?dev` in the address (jza.app/castinstone/?dev; remembered on that device, `?dev=0` forgets it) adds a switch at the top of the Spell book's Special spells list that shows every spell's name, sequence and description, marked "not learned". It only changes that list: a spell still has to be typed to be cast, and typing one learns it as before.
+
 ## Creatures that aim, dodge and call each other; three new ones; endings; title fit (v0.80)
 
 - **Lobbed shots now reach and aim** (Jaisah: "the cannon dudes don't even aim at me"). `game.lobAt` had the height in the arc formula with the wrong sign (the game measures down, the formula wants up), so a target above was treated as below; and a throw too slow to reach (the Cinder spitter's 175 reaches about 80 cells, but it fired at anything within 190) fell short. Now it throws just hard enough when it must, uses the high arc for a target well above (coming down onto its ledge, not rising into it), and leads a moving target by its flight time (`q`). The Cinder spitter uses it too (it had its own copy); so do the slinger, the warden's boulder and the Hollow King's rain. Checked with scratchpad `aim.js`: spitter, slinger and geode now hit a golem standing still on level ground near and far and on a ledge above.
@@ -860,6 +865,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.81 (2026-11-28):** the weaker creature sprites redrawn, walkers step only while moving, and a `?dev` switch that shows every special spell in the Spell book for testing.
 
 - **v0.80 (2026-11-28):** ranged creatures reach and aim (the arc formula had the wrong sign), creatures alert each other and some dodge, a new creature per cave (tinder beetle, rime crawler, blight bladder), a line for each cave's ending, a title theme and a resting chord, and the title fits an iPad. Jaisah: more variety and enemies that do more; endings, but nothing cringy; no healing pick-ups ("there's already a heal spell. Git gud").
 

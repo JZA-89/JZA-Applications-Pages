@@ -559,3 +559,10 @@ body[data-mode="start"] .objective { display: none; }
 @media (max-width: 640px) { .segview.keygrid, #keysPad { grid-template-columns: 1fr; } .bind-foot { flex-direction: column; align-items: flex-start; } }
 /* the level gem's ring and glow reach past its box: the rest bar must not clip them (only the words beside it are cut short) */
 .bar-id.rest-id { overflow: visible; padding: 6px 0 6px 6px; } .rest-id .gem.big { flex: none; } .rest-words { overflow: hidden; }
+
+/* testing: a special spell shown before it is learned */
+.special.peek { opacity: .66; box-shadow: inset 0 0 0 1px var(--line); }
+#btnPeek { margin: 2px 0 6px; }
+/* the five circles in the special spells list */
+h3.circle { display: flex; align-items: baseline; gap: 10px; margin: 16px 0 8px; font: 600 13px/1 var(--serif); letter-spacing: .14em; text-transform: uppercase; color: var(--gold); }
+h3.circle small { font: 700 11.5px/1 "Avenir Next", system-ui, sans-serif; letter-spacing: 0; text-transform: none; color: var(--muted); }

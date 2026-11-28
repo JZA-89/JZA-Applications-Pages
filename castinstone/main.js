@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.80';
+  const VERSION = 'v0.81';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -124,20 +124,26 @@
       book.appendChild(btn);
     }
   }
-  // special spells: the ones you know show their sequence; the rest stay hidden
+  // special spells: the ones you know show their sequence; the rest stay hidden.
+  // For testing only: opening the game with ?dev in the address (remembered on this device; ?dev=0 forgets it)
+  // adds a switch here that shows every spell's sequence. It changes nothing in the game itself.
+  const DEV = (() => { try { const q = new URLSearchParams(location.search).get('dev'); if (q !== null) localStorage.setItem('castinstone.dev', q === '0' ? '' : '1'); return localStorage.getItem('castinstone.dev') === '1'; } catch (e) { return false; } })();
+  let peekAll = false; try { peekAll = DEV && localStorage.getItem('castinstone.dev.peek') === '1'; } catch (e) {}
   function renderSpecials() {
     const known = game.players[ME].known, S = KData.specials, ids = Object.keys(S);
     $('specialsTitle').textContent = `Special spells · ${known.length} of ${ids.length}`;
     // by tier: the number of elements tells you how long an unknown one is
     const TIER = ['', 'First circle · three elements', 'Second circle · four elements', 'Third circle · five elements', 'Fourth circle · six elements', 'Fifth circle · seven elements'];
     let html = '<p class="note" style="margin:0 0 4px">Type one in its exact order, then left click. Tomes in relic caches, rune tablets, champions and the Emberwyrm teach them; the deeper the cave, the higher the circle.</p>';
+    if (DEV) html += `<button type="button" class="btn ghost small" id="btnPeek" role="switch" aria-checked="${peekAll}">Testing: ${peekAll ? 'showing every spell' : 'show every spell'}</button>`;
     for (let t = 1; t <= 5; t++) {
       const list = ids.filter(id => S[id].tier === t), have = list.filter(id => known.includes(id)).length;
-      html += `<h3 class="circle">${TIER[t]}<small>${have} of ${list.length}</small></h3><div class="specials">` + list.map(id => known.includes(id)
-        ? `<div class="special"><b>${S[id].name}<small>${S[id].cost} mana</small></b><span class="pairc">${dots(S[id].seq)}</span><span>${S[id].desc}</span></div>`
+      html += `<h3 class="circle">${TIER[t]}<small>${have} of ${list.length}</small></h3><div class="specials">` + list.map(id => known.includes(id) || peekAll
+        ? `<div class="special${known.includes(id) ? '' : ' peek'}"><b>${S[id].name}<small>${known.includes(id) ? '' : 'not learned · '}${S[id].cost} mana</small></b><span class="pairc">${dots(S[id].seq)}</span><span>${S[id].desc}</span></div>`
         : `<div class="special unknown"><b>Unknown</b><span class="pairc">${S[id].seq.map(() => '<i></i>').join('')}</span><span>Not yet learned.</span></div>`).join('') + '</div>';
     }
     $('specials').innerHTML = html;
+    const pk = $('btnPeek'); if (pk) pk.addEventListener('click', () => { peekAll = !peekAll; try { localStorage.setItem('castinstone.dev.peek', peekAll ? '1' : ''); } catch (e) {} renderSpecials(); $('btnPeek').focus(); });
   }
 
   // ---------- controls, as key caps ----------
