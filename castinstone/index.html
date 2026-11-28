@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0d0a14">
 <meta name="description" content="Cast in Stone: a golem of living rock in a cave of falling sand. Fire, water, earth, lightning. And stone. A browser game in beta, by JZA Applications.">
 <link rel="canonical" href="https://jza.app/castinstone/">
-<title>Cast in Stone | Beta · v1.13</title>
+<title>Cast in Stone | Beta · v1.15</title>
 <!-- added to a phone's home screen: the icon, a short name, and no browser bars -->
 <link rel="icon" type="image/png" href="icon-180.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -14,7 +14,7 @@
 <!-- v0.87: set up like MORPHOS, which sizes correctly on Jaisah's iPad: no web-app manifest and no status bar or
      full-screen settings. Those put iPadOS in a mode whose reported screen size is wrong (a strip along the bottom
      in v0.82, the page wider and taller than the screen in v0.86). -->
-<link rel="stylesheet" href="style.css?v=1.13">
+<link rel="stylesheet" href="style.css?v=1.15">
 </head>
 <body data-mode="start">
 
@@ -283,22 +283,26 @@
   </section>
 </div>
 
-<div class="saved-mark" id="savedMark" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>Saved</div>
+<div class="saved-mark" id="savedMark" aria-hidden="true"><svg viewBox="0 0 36 36">
+  <circle class="sm-track" cx="18" cy="18" r="16"/><circle class="sm-arc" cx="18" cy="18" r="16"/>
+  <g class="sm-chip"><rect x="12" y="12" width="12" height="12" rx="2"/><rect x="15.75" y="15.75" width="4.5" height="4.5" rx=".6"/>
+    <path d="M15.5 9v3M20.5 9v3M15.5 24v3M20.5 24v3M9 15.5h3M9 20.5h3M24 15.5h3M24 20.5h3"/></g>
+  <path class="sm-tick" d="M12 18.6l4.2 4.2 8.3-9"/></svg></div>
 <button type="button" class="update-banner" id="updateBanner" hidden></button>
 <noscript><p class="noscript">Cast in Stone needs JavaScript.</p></noscript>
 
-<script src="dmath.js?v=1.13"></script>
-<script src="data.js?v=1.13"></script>
-<script src="recipe.js?v=1.13"></script>
-<script src="world.js?v=1.13"></script>
-<script src="audio.js?v=1.13"></script>
-<script src="input.js?v=1.13"></script>
-<script src="game.js?v=1.13"></script>
-<script src="save.js?v=1.13"></script>
-<script src="render.js?v=1.13"></script>
-<script src="loot.js?v=1.13"></script>
-<script src="net.js?v=1.13"></script>
-<script src="touch.js?v=1.13"></script>
-<script src="main.js?v=1.13"></script>
+<script src="dmath.js?v=1.15"></script>
+<script src="data.js?v=1.15"></script>
+<script src="recipe.js?v=1.15"></script>
+<script src="world.js?v=1.15"></script>
+<script src="audio.js?v=1.15"></script>
+<script src="input.js?v=1.15"></script>
+<script src="game.js?v=1.15"></script>
+<script src="save.js?v=1.15"></script>
+<script src="render.js?v=1.15"></script>
+<script src="loot.js?v=1.15"></script>
+<script src="net.js?v=1.15"></script>
+<script src="touch.js?v=1.15"></script>
+<script src="main.js?v=1.15"></script>
 </body>
 </html>

@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v1.13';
+  const VERSION = 'v1.15';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -269,7 +269,7 @@
   // v1.13: a small "Saved" mark shows for a moment after the saves a player would wonder about (resting, changes at a
   // Lodestone, finding things), never after the 20-second saves
   let savedT = 0;
-  function savedMark() { const m = $('savedMark'); m.classList.add('on'); clearTimeout(savedT); savedT = setTimeout(() => m.classList.remove('on'), 1600); }
+  function savedMark() { if (mode !== 'play' && mode !== 'rest') return;   /* never over the title page (a new cave saves as it opens) */ const m = $('savedMark'); m.classList.remove('on'); void m.offsetWidth; m.classList.add('on');   /* start the animation afresh */ clearTimeout(savedT); savedT = setTimeout(() => m.classList.remove('on'), 2350); }
   function save(show) {
     // as a guest in co-op only the golem's progress goes home; the cave is the host's
     if (guestGame) { if (game.players[ME]) { KSave.storeGuest(game.players[ME]); if (show === true) savedMark(); } saveTimer = 0; return; }

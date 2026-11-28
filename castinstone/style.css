@@ -588,13 +588,29 @@ h3.circle small { font: 700 11.5px/1 "Avenir Next", system-ui, sans-serif; lette
   padding: 9px 18px; border: 0; border-radius: 12px; cursor: pointer; font: 600 13px/1.3 "Avenir Next", "Segoe UI", system-ui, sans-serif; color: #2a1c06;
   background: linear-gradient(180deg, #ffe3a3, #ffd37a 45%, #d9a84e); box-shadow: inset 0 1px 0 #fff8, 0 2px 0 #7a5a22, 0 0 0 1px #000, 0 6px 20px #000a; }
 .update-banner[hidden] { display: none; }
-/* the "Saved" mark (v1.13): bottom right of the visible area, over the game and the menus; never pressed */
+/* the "Saved" mark (v1.15): a circle at the bottom right of the visible area, over the game and the menus; never pressed.
+   A memory chip inside a turning ring; the ring closes, the chip becomes a tick, and it fades. */
 .saved-mark { position: fixed; z-index: 29; left: calc(var(--vx, 0px) + var(--vw, 100vw) - max(14px, env(safe-area-inset-right)));
-  top: calc(var(--vy, 0px) + var(--vh, 100vh) - max(12px, env(safe-area-inset-bottom))); transform: translate(-100%, -100%); display: flex; align-items: center; gap: 6px;
-  padding: 6px 11px 6px 9px; border-radius: 999px; font: 600 12.5px/1 "Avenir Next", "Segoe UI", system-ui, sans-serif; letter-spacing: .04em; color: #d9cce8;
-  background: #14101ccc; box-shadow: inset 0 0 0 1px #ffffff1f; pointer-events: none; opacity: 0; transition: opacity .5s ease; }
-.saved-mark.on { opacity: 1; transition-duration: .18s; }
-.saved-mark svg { width: 13px; height: 13px; fill: none; stroke: #7fe0a8; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  top: calc(var(--vy, 0px) + var(--vh, 100vh) - max(12px, env(safe-area-inset-bottom))); transform: translate(-100%, -100%); width: 40px; height: 40px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 30%, #2a2338, #100c18 75%); box-shadow: 0 4px 14px #000a; pointer-events: none; opacity: 0; }
+.saved-mark svg { display: block; width: 100%; height: 100%; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.sm-track { stroke: #ffffff1f; stroke-width: 1.5; }
+.sm-arc { stroke: var(--gold); stroke-width: 2; stroke-dasharray: 24 76.6; transform-origin: 18px 18px; transform: rotate(-90deg); }
+.sm-chip { stroke: var(--gold); stroke-width: 1.4; transform-origin: 18px 18px; }
+.sm-tick { stroke: #7fe0a8; stroke-width: 2.6; stroke-dasharray: 19; stroke-dashoffset: 19; }
+.saved-mark.on { animation: smShow 2.3s ease both; }
+.saved-mark.on .sm-arc { animation: smArc 2.3s cubic-bezier(.45, .05, .55, .95) both; }
+.saved-mark.on .sm-chip { animation: smChip 2.3s ease both; }
+.saved-mark.on .sm-tick { animation: smTick 2.3s ease both; }
+@keyframes smShow { 0% { opacity: 0; } 7%, 84% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes smArc { 0% { transform: rotate(-90deg); stroke-dasharray: 24 76.6; stroke: var(--gold); } 44% { transform: rotate(630deg); stroke-dasharray: 24 76.6; stroke: var(--gold); }
+  56%, 100% { transform: rotate(630deg); stroke-dasharray: 100.6 0; stroke: #7fe0a8; } }
+@keyframes smChip { 0%, 44% { opacity: 1; transform: scale(1); } 54%, 100% { opacity: 0; transform: scale(.55); } }
+@keyframes smTick { 0%, 50% { stroke-dashoffset: 19; } 64%, 100% { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {   /* no turning: the closed ring and the tick, fading in and out */
+  .saved-mark.on .sm-arc, .saved-mark.on .sm-chip, .saved-mark.on .sm-tick { animation: none; }
+  .saved-mark .sm-arc { stroke-dasharray: 100.6 0; stroke: #7fe0a8; } .saved-mark .sm-chip { opacity: 0; } .saved-mark .sm-tick { stroke-dashoffset: 0; }
+}
 .update-banner b { font: 600 15px/1.2 var(--serif); letter-spacing: .04em; } .update-banner span { font-size: 12.5px; }
 /* v0.96: nothing in the game can be selected or long-pressed into the text menu (a quick double tap on iPhone selected the
    HUD's level number); only the co-op code box takes text */
