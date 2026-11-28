@@ -703,7 +703,7 @@ Jaisah: "why is there a new game button in the golem tab?" Each tab now holds on
 ## Swipe between menu tabs; the Home Screen strip (v0.82)
 
 - **Swipe** (Jaisah): on a touch screen, a sideways flick across a menu page (at least 60 points, clearly more sideways than up or down, under 0.7 s) moves to the next or previous tab, in the menu (Golem, Spell book, Controls, Co-op) and at a Lodestone (Stats, Runestones, Forge, Travel). It stops at the first and last tab, ignores flicks that start on a row of page buttons (`.seg`) or a text box, and the new page slides in (still with reduced motion). `swipeTabs` in main.js.
-- **The blank strip at the bottom** (iPad, opened from the Home Screen): with the see-through status bar, iOS reports the screen shorter by the status bar's height while the page still runs under it, so the menus stopped short of the bottom. In that mode the menus, title and touch layer are now `100vh` tall, and `fit()` takes the larger of the reported height and `100vh` (`STANDALONE`, `vhProbe`).
+- **The blank strip at the bottom** (iPad, opened from the Home Screen): with the see-through status bar, iOS reports the screen shorter by the status bar's height while the page still runs under it, so the menus stopped short of the bottom. (v0.82 stretched the menus and view to `100vh`; that cut off the HUD and was undone in v0.86, see the decision log.)
 
 ## Sprites redrawn; a testing switch for the spell book (v0.81)
 
@@ -878,6 +878,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.86 (2026-11-28):** the Home Screen strip, second try. v0.82's stretch to `100vh` cut off the bottom of the HUD on Jaisah's iPad (the page really is shown shorter, so the strip is outside the page), so it is undone. Instead the status bar style is `black`, not `black-translucent`: iPadOS sized the page for the screen less the status bar but drew it from the very top, under the status bar, leaving that much uncovered at the bottom; with `black` the page starts below the status bar. iOS reads this setting when the icon is added, so the icon must be removed and added again. Not testable here; if the strip remains, try `default`.
 
 - **v0.85 (2026-11-28):** on the title screen the save's details (level, region, cave) sit directly under Continue, which they describe, not below the whole menu (Jaisah).
 

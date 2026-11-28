@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.85';
+  const VERSION = 'v0.86';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -28,8 +28,6 @@
   // ---------- layout: the HUD scales with the stage (--u = stage width / 1280) ----------
   let VW = 432, VH = 243;   // cells shown on a 16:9 screen (fit() picks them)
   let fitKey = '', fitAsked = false;
-  const STANDALONE = navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches);
-  const vhProbe = document.createElement('div'); vhProbe.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:100vh;visibility:hidden;pointer-events:none'; document.body.appendChild(vhProbe);
   // at most once a frame, however many times the browser reports a change
   const askFit = () => { if (fitAsked) return; fitAsked = true; requestAnimationFrame(() => { fitAsked = false; fit(); }); };
   function fit() {
@@ -38,10 +36,9 @@
     // Nobody sees further for it: past SIGHT cells from the golem the picture fades to black (fade()).
     // v0.66: a computer or tablet shows 432 x 243 (about what Noita shows); a phone, whose screen is small anyway, 384 x 216.
     // the visible area (on iPhone Safari's bars come and go, and innerHeight can lag behind them)
-    const VV = window.visualViewport, W = Math.round(VV ? VV.width : innerWidth);
-    // v0.82: opened from the Home Screen, iOS reports the screen shorter by the status bar's height while the page
-    // still runs under the (see-through) status bar, which left a blank strip along the bottom; 100vh there is the full height
-    const H = Math.max(Math.round(VV ? VV.height : innerHeight), STANDALONE ? Math.round(vhProbe.getBoundingClientRect().height) : 0), wide = W / H >= 16 / 9;
+    // (v0.86: always the area the browser reports. v0.82 stretched it to 100vh on the Home Screen, but on an iPad that is
+    // taller than the area really shown, so the bottom of the HUD was cut off)
+    const VV = window.visualViewport, W = Math.round(VV ? VV.width : innerWidth), H = Math.round(VV ? VV.height : innerHeight), wide = W / H >= 16 / 9;
     const top = VV ? Math.round(VV.offsetTop + H / 2) : null, left = VV ? Math.round(VV.offsetLeft + W / 2) : null;
     // v0.77: nothing to do unless the size or place really changed (Safari reports the visible area moving many times
     // a second while a finger is on an iPad; re-fitting every time cleared the picture and made it flicker)
