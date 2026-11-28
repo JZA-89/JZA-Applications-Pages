@@ -699,3 +699,6 @@ body[data-device="touch"] .switch { width: 60px; height: 36px; } body[data-devic
 @media (max-height: 520px) { .mod, .keyrow, .keygrid .keyrow, .bind-foot .note, .form dl { font-size: 12.5px; } }
 .rest-id .gem.big small { display: none; } .rest-id .gem.big strong { font-size: 22px; }   /* the word LEVEL was 7 high there; the location line beside it says where and what */
 @media (max-width: 720px) and (orientation: landscape) { .bossbar { width: 30%; left: 46%; } }   /* a small phone: clear of the map and the corner buttons */
+/* v1.09: on a page opened from the title or pause page, Back takes the place of the name (with both, the name was squeezed to
+   "CAST IN STO" and wrapped); the title page behind it already says what this is */
+#btnBack:not([hidden]) + .bar-id { display: none; }
