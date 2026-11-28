@@ -356,7 +356,9 @@ body[data-device="pad"] .tab:focus { outline-offset: -2px; }
 .keyrow .k { flex-wrap: wrap; }
 
 /* ---------- touch controls (touch.js). --t is one button's width ---------- */
-#touch { position: fixed; inset: 0; z-index: 5; display: none; pointer-events: none; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+/* v0.92: clipped: the Shot button's aim dot, dragged towards the edge, poked past the screen, and iPad Safari then widened the
+   whole page to fit it, so menus were cut off on the right until reload */
+#touch { position: fixed; inset: 0; z-index: 5; display: none; overflow: hidden; pointer-events: none; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
   --t: clamp(46px, 14vmin, 80px); --sr: calc(env(safe-area-inset-right, 0px) + 3vmin); --sl: env(safe-area-inset-left, 0px); --sb: calc(env(safe-area-inset-bottom, 0px) + 4vmin); }
 body[data-device="touch"][data-mode="play"] #touch { display: block; }
 .t-zone { position: absolute; left: 0; bottom: 0; width: 44%; height: 70%; pointer-events: auto; touch-action: none; }

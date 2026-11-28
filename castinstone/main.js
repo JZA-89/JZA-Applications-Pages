@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.91';
+  const VERSION = 'v0.92';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -60,6 +60,8 @@
     R.resize(w, h);
   }
   addEventListener('resize', askFit);
+  // the page never scrolls (as in MORPHOS): if Safari ever shifts it, put it back
+  addEventListener('scroll', () => { if (scrollX || scrollY) scrollTo(0, 0); }, { passive: true });
   if (window.visualViewport) { visualViewport.addEventListener('resize', askFit); visualViewport.addEventListener('scroll', askFit); }
   addEventListener('orientationchange', () => { askFit(); setTimeout(askFit, 350); });   // iOS reports the new size a moment late
   // how far the golem sees: clear to SIGHT cells (the corner of a 16:9 screen), black by SIGHT_END

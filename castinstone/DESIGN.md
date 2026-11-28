@@ -879,6 +879,8 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 
 ## Decision log
 
+- **v0.92 (2026-11-28):** the real cause of the menus cut off on the right on iPad: dragging the Shot button to aim moves its dot up to 0.8 of the button's width outside it, past the screen's right edge (measured: to 1,222 on a 1,194-wide screen), and iPad Safari then widens the whole page to fit it, so the menus were laid out wider than the screen until a reload. The touch layer now clips its contents (`#touch { overflow: hidden }`), and the page is scrolled back if Safari ever shifts it (as MORPHOS does). Lesson: any layer that can draw past the screen edge must clip.
+
 - **v0.91 (2026-11-28):** on touch, the aim marker shows only while you drag the Shot button to aim by hand; a plain press aims at the nearest creature by itself and shows no marker (Jaisah). Mouse and controller unchanged.
 
 - **v0.90 (2026-11-28):** the recipe sockets (and the co-op friend arrow) no longer have a glow filter on a clipped shape: on iPad Safari repainted it every frame of the game behind and they flickered; the clip cut the glow off anyway. Their icons are centred by `inset: 0; margin: auto`, with no transform.
