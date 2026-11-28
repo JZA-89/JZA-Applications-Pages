@@ -879,6 +879,17 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 
 ## Decision log
 
+- **v1.01 (2026-11-28): full audit, batch 1: exploits, traps and rule bugs.** Four independent reviews (rules, screens, performance, saves/co-op/generation). Fixed here:
+  - *Respawn and travel* put the golem 14 cells right of the Lodestone wherever the floor was; in 8 of 75 caves that was the bottom of a magma lake, an endless death loop. `game.stoneSpot` now picks a place on the stone's own ledge with no magma, acid or fire, and arriving gives 2.5 s of safety. (Checked at 150 Lodestones.)
+  - *Bosses* could be killed from outside their lair, where they never wake: they take no damage until woken (`engaged`); the lair's bounds reach the lake floor; the Heartroot starts shut; the Emberwyrm's rage is cleared when it resets; its spit uses the shared arc (`lobAt`: its own copy still had the height's sign wrong).
+  - *Free immunity:* holding Wall climb away from a wall, or any Lift, made fire, magma and acid harmless at no cost. A held spell now keeps only your own flames off you (`flameT`), not magma or acid.
+  - *Mana:* a stat point gives 6 mana, as the Stats screen says and v0.47 decided (it gave 10); runestone mana follows the same scale.
+  - *Thrifty arms* no longer makes special spells free; *Prism's* half cost counts when checking what you can afford; *Stillness* cannot be chained (cooldown 14 s, longer than its 6 s).
+  - *Champions:* Reset the cave no longer brings fallen champions back with their rewards; a champion that dies to a hazard nobody caused still breaks its seal; the last-seal notice names the cave's own boss.
+  - Burning now wears off on creatures fixed in place; the weak-spot bonus is no longer lost when someone else is in the blast; the notices for tablets and champions say "while you are in this cave" (the gifts end on descending, as designed).
+  - *Water on magma* (Jaisah): the water always boils off and the magma it touched cools only 40% of the time, so a splash hisses away; under standing water the crust thickens a layer every few seconds to 6 cells (`world.chill`), so a flooded pool gets a floor and a shallow one sets solid.
+  - Left for Jaisah to decide: Maelstrom and Thunderstorm do several times the damage of their circles (each strike soaks its target first, so always gets the wet bonus).
+
 - **v1.00 (2026-11-28): the iPhone/iPad audit** (Jaisah, after repeated iOS bugs: "we never had these issues on MORPHOS"). An independent review compared every touch, layout, drawing and lifecycle path with MORPHOS's `ui.js`/`morphos.css`; each difference that could fail on iOS now follows MORPHOS:
   1. *Stuck controls:* a touch control whose release iOS never delivered kept its finger's id, so every later press was ignored and Shot kept casting while the other thumb stayed on the stick. Now, as MORPHOS (`ui.js` pad), a press on a control that no longer holds its finger's capture starts afresh (`hasPointerCapture`), and ending a hold releases the capture.
   2. *Losing focus* (Control Centre, a notification, a call, Slide Over) lets go of everything held and pauses (`blur`), as MORPHOS; `pagehide` and going hidden let go too.

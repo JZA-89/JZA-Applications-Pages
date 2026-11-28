@@ -44,8 +44,8 @@ const KWorld = (() => {
   for (const r of reactions) { REACTIVE[r.a] = 1; if (STATE[r.b] !== ST.static) REACTIVE[r.b] = 1; }
   for (const r of reactions) {
     const both = REACTIVE[r.a] && REACTIVE[r.b] && r.b !== M.EMPTY, chance = both ? r.chance : 1 - (1 - r.chance) * (1 - r.chance);
-    REACT[r.a * N + r.b] = { chance, ra: r.ra, rb: r.rb, blast: r.blast || 0 };
-    REACT[r.b * N + r.a] = { chance, ra: r.rb, rb: r.ra, blast: r.blast || 0 };
+    REACT[r.a * N + r.b] = { chance, ra: r.ra, rb: r.rb, blast: r.blast || 0, ka: r.keepA || 0, kb: 0 };   // ka, kb: the chance that side is left as it was
+    REACT[r.b * N + r.a] = { chance, ra: r.rb, rb: r.ra, blast: r.blast || 0, ka: 0, kb: r.keepA || 0 };
   }
 
   // Put a short list in a random order, asking the dice in a fixed sequence. (Never shuffle with
@@ -133,6 +133,18 @@ const KWorld = (() => {
       this.wakeAt(i % this.w, (i / this.w) | 0);
     }
     set(x, y, m) { if (this.inb(x, y)) this.put(y * this.w + x, m); }
+    // v1.01: magma under a crust that has water standing on it goes on cooling: the magma cell below the new crust cell at i
+    // is given a few seconds to live (a lake's magma is otherwise permanent), and when it sets it does the same to the one
+    // below it, until the crust is 6 thick. So a flooded pool hardens from the top, a layer every few seconds.
+    chill(i) {
+      const w = this.w, mat = this.mat, below = i + w;
+      if (below >= mat.length || mat[below] !== M.MAGMA || this.life[below] !== 255) return;
+      let k = 1, wet = false;
+      for (; k <= 7; k++) { const c = mat[i - k * w]; if (c === M.WATER || c === M.STEAM) { wet = true; break; } if (c !== M.DIRT) break; }
+      if (!wet || k > 6) return;
+      this.life[below] = 150 + ((this.rand() * 90) | 0);
+      this.wakeAt(below % w, (below / w) | 0);
+    }
 
     swap(i, j) {
       const { mat, shade, life, charge, stamp } = this;
@@ -206,8 +218,9 @@ const KWorld = (() => {
         if (this.inb(nx, ny)) {
           const j = ny * w + nx, r = REACT[m * N + mat[j]];
           if (r && R() < r.chance) {
-            if (r.ra !== m) this.put(i, r.ra);
-            if (r.rb !== mat[j]) this.put(j, r.rb);
+            const mj = mat[j];
+            if (r.ra !== m && !(r.ka && R() < r.ka)) { this.put(i, r.ra); if (m === M.MAGMA && r.ra === M.DIRT) this.chill(i); }
+            if (r.rb !== mj && !(r.kb && R() < r.kb)) { this.put(j, r.rb); if (mj === M.MAGMA && r.rb === M.DIRT) this.chill(j); }
             if (r.blast && this.blasts.length < 24 && R() < r.blast) this.blasts.push(nx, ny);   // gas going off (game.blastsTick)
             return;
           }
@@ -227,7 +240,7 @@ const KWorld = (() => {
           if (this.life[i] > 0) this.life[i]--;
           if (this.life[i] === 0) {
             if (st === ST.gas) this.put(i, R() < materials[m].condense ? M.WATER : M.EMPTY);
-            else if (COOL[m]) { this.put(i, COOL[m]); if (this.cooled.length < 4000) this.cooled.push(i); }   // cooled magma is checked for crumbs (settle)
+            else if (COOL[m]) { this.put(i, COOL[m]); if (mat[i - w] !== M.DIRT && this.cooled.length < 4000) this.cooled.push(i); if (m === M.MAGMA) this.chill(i); }   // cooled magma is checked for crumbs (settle)
             else this.put(i, M.EMPTY);
             return;
           }

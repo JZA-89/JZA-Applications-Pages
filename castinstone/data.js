@@ -67,7 +67,9 @@ const KData = (() => {
   // and b becomes rb. Checked in both orders, so list each pair once.
   const reactions = [
     { a: M.FIRE,  b: M.WATER, chance: 0.7,  ra: M.EMPTY, rb: M.STEAM },  // fire boils water
-    { a: M.MAGMA, b: M.WATER, chance: 0.5,  ra: M.DIRT,  rb: M.STEAM },  // magma quenched
+    // v1.01: the water always boils off; the magma it touched cools only some of the time (keepA), so a splash hisses away and
+    // it takes a good deal of water to crust a pool over. Under standing water the crust then thickens (world.js chill).
+    { a: M.MAGMA, b: M.WATER, chance: 0.5,  ra: M.DIRT,  rb: M.STEAM, keepA: 0.6 },  // magma quenched
     { a: M.FIRE,  b: M.MOSS,  chance: 0.06, ra: M.FIRE,  rb: M.FIRE  },  // moss catches
     { a: M.MAGMA, b: M.MOSS,  chance: 0.2,  ra: M.MAGMA, rb: M.FIRE  },
     { a: M.FIRE,  b: M.MUD,   chance: 0.04, ra: M.FIRE,  rb: M.DIRT  },  // fire bakes mud
@@ -321,7 +323,7 @@ const KData = (() => {
       desc: 'One colossal bolt from above onto the ground under your pointer. What survives the strike is hit again by the lightning that leaps from it.', power: 380, radius: 34, chainPower: 110, chainRadius: 115, range: 240 },
     worldbreaker: { tier: 5, name: 'Worldbreaker', seq: [E, E, L, E, F, E, E], cost: 300, cd: 3,
       desc: 'The cave itself breaks: everything far around you is hurt, hurled and slowed, and the dirt near you is torn open.', power: 200, radius: 260 },
-    stillness: { tier: 5, name: 'Stillness', seq: [L, W, L, E, L, W, L], cost: 300, cd: 3,
+    stillness: { tier: 5, name: 'Stillness', seq: [L, W, L, E, L, W, L], cost: 300, cd: 14,
       desc: 'For 6 seconds every creature in the cave is frozen in place, bosses too. You are not.', time: 6 },
   };
   function spellKey(a, b) { return a <= b ? a + '+' + b : b + '+' + a; }
@@ -643,7 +645,7 @@ const KData = (() => {
         case 'attack': return `+${Math.round(v * 10) / 10} Attack`;
         case 'defence': return `+${Math.round(v * 10) / 10} Defence`;
         case 'vitality': return `+${Math.round(v * 10)} maximum health`;
-        case 'mana': return `+${Math.round(v * 10)} maximum mana`;
+        case 'mana': return `+${Math.round(v * 6)} maximum mana`;
         case 'focus': return `${pct(8 * v)} mana refill`;
         case 'speed': return `${pct(5 * v)} run speed`;
         default: return `${pct(6 * v)} ${this.statNames[k]}`;

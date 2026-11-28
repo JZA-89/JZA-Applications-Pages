@@ -49,6 +49,7 @@ const KGame = (() => {
       const champs = this.championHomes();
       this.enemies = this.world.enemyHomes.map((home, i) => this.makeEnemy(home, i, champs.get(i)));
       this.makeChampions(champs);
+      if (this.defeated) for (const e of this.enemies) if (e.champion && this.defeated.has('champ:' + e.kind)) { e.dead = true; e.hp = 0; }   // v1.01: Reset the cave brought them back, with their rewards
       this.makeTablets();
     }
 
@@ -84,7 +85,7 @@ const KGame = (() => {
           const got = this.tome(p, null, KData.treasure.tierFor(t.level), true);
           if (!got) { const n = 20 * t.level; p.shards = (p.shards || 0) + n; this.events.push({ p: p.id, type: 'toast', kind: 'shard', text: `A rune tablet you can already read · ${n} shards` }); }
           this.sfx('cache', t.x, t.y); this.gainXp(p, 15 * t.level, 'tablet');
-          this.events.push({ type: 'toast', kind: 'stone', text: `Rune tablet read · +${KData.treasure.boons.tablet.mana} maximum mana, for good` });
+          this.events.push({ type: 'toast', kind: 'stone', text: `Rune tablet read · +${KData.treasure.boons.tablet.mana} maximum mana while you are in this cave` });
           this.fx.push({ kind: 'flash', x: t.x, y: t.y - 6, r: 30, t: 0, T: 0.5, color: [150, 240, 230] });
           this.events.push({ type: 'save' });
           break;
@@ -222,7 +223,7 @@ const KGame = (() => {
       const hpFrac = p.hp / p.maxHp, mFrac = p.mana / p.maxMana;
       const B = this.boons();
       p.maxHp = PD.hp + 10 * v('vitality') + B.hp;
-      p.maxMana = PD.mana + 10 * v('mana') + B.mana;
+      p.maxMana = PD.mana + 6 * v('mana') + B.mana;   // v1.01: 6 a point, as the Stats screen says and v0.47 decided (it gave 10)
       p.hp = Math.min(p.maxHp, Math.max(1, hpFrac * p.maxHp));
       p.mana = Math.min(p.maxMana, mFrac * p.maxMana);
       p.regenMul = 1 + 0.08 * v('focus') + B.regen;
@@ -715,7 +716,7 @@ const KGame = (() => {
       if (L.boss !== 'emberwyrm') {   // the King and the Heartroot hang in the air over the lake; x, y are their middle
         const x = L.x, y = L.surface - 44;
         this.boss = { kind: 'boss', type: L.boss, boss: true, level, x, y, vx: 0, vy: 0, w: 30, h: 36, segR: 16, home: { x, y }, hp, maxHp: hp, stats, dead: false, state: 'idle', t: 0, flash: 0,
-          engaged: false, awayT: 0, touchT: 0, cd: 2, n: 0, strikes: [], trail: [{ x, y }], facing: 1, lastHurt: -9 };
+          engaged: false, shut: L.boss === 'heartroot', awayT: 0, touchT: 0, cd: 2, n: 0, strikes: [], trail: [{ x, y }], facing: 1, lastHurt: -9 };
         return;
       }
       const x = L.x, y = L.surface + 18;
@@ -752,14 +753,14 @@ const KGame = (() => {
       if (b.wetT > 0) b.wetT -= DT;
       if (b.slowT > 0) b.slowT -= DT;
       if (b.burnT > 0) b.burnT -= DT;
-      const inLair = q => { const ax = (q.x - L.x) / (L.rx * 1.15), ay = (q.y - L.y) / (L.ry * 1.5); return ax * ax + ay * ay < 1; };
+      const inLair = q => { const ax = (q.x - L.x) / (L.rx * 1.15), ay = (q.y - L.y) / (L.ry * 2); return ax * ax + ay * ay < 1; };   // v1.01: down to the lake's floor
       let p = null, best = 1e9;
       for (const q of this.players) if (!q.dead && inLair(q)) { const d = Math.hypot(q.x - b.x, q.y - b.y); if (d < best) { best = d; p = q; } }
       if (!p) {
         b.awayT += DT;
         if (b.engaged && b.awayT > B.reset) {
           // calm again: heals, and returns to the deepest magma in its lair
-          b.engaged = false; b.hp = b.maxHp; b.state = 'swim'; b.stranded = false;
+          b.engaged = false; b.raged = false; b.hp = b.maxHp; b.state = 'swim'; b.stranded = false;
           if (w.get(Math.round(b.x), Math.round(b.y - 6)) !== M.MAGMA) {
             let best = null;
             for (let x = Math.floor(L.x - L.rx); x <= L.x + L.rx && !best; x += 3) for (let y = Math.floor(L.y + L.ry * 1.6); y > L.surface; y -= 2) if (w.get(x, y) === M.MAGMA && w.get(x, y - 6) === M.MAGMA) { best = { x, y }; break; }
@@ -912,11 +913,9 @@ const KGame = (() => {
           if (b.t > 0.6 + b.spat * 0.3 && b.spat < n) {
             b.spat++;
             const mx = b.x + b.facing * 9, my = b.y - 10, dx = p.x + (this.rand() - 0.5) * 24 - mx, dy = (p.y - 6) - my, g = 380, v = 230;
-            const disc = v * v * v * v - g * (g * dx * dx + 2 * dy * v * v);
-            // a high lob that comes down on you over ledges
-            const an = disc >= 0 ? Math.atan2(v * v + Math.sqrt(disc), g * Math.abs(dx)) : Math.PI / 3;
+            const lob = this.lobAt(mx, my, mx + dx, my + dy, v, g);   // v1.01: the shared arc (its own copy had the height's sign wrong)
             this.sfx('magma', mx, my, 0.9);
-            this.projectiles.push({ kind: 'blob', sp: { power: B.globPower, count: B.glob, mat: 'MAGMA' }, key: 'earth+fire', owner: b, x: mx, y: my, vx: Math.cos(an) * v * Math.sign(dx || 1), vy: -Math.sin(an) * v, g, age: 0 });
+            this.projectiles.push({ kind: 'blob', sp: { power: B.globPower, count: B.glob, mat: 'MAGMA' }, key: 'earth+fire', owner: b, x: mx, y: my, vx: lob.vx, vy: lob.vy, g, age: 0 });
           }
           if (b.spat >= n && b.t > 0.6 + n * 0.3 + 0.4) { b.spat = 0; set('swim'); }
           break;
@@ -1032,7 +1031,7 @@ const KGame = (() => {
     travel(p, id) {
       const l = this.world.lodestones[id];
       if (!l || !this.found.has(id)) return;
-      Object.assign(p, { x: l.x + 14, y: this.world.floorBelow(l.x + 14, l.y - 10), vx: 0, vy: 0 });
+      Object.assign(p, { ...this.stoneSpot(l), vx: 0, vy: 0, safeT: 2.5 });
       if (p.id) p.checkpoint = id; else this.checkpoint = id;
       p.calmT = 5;
       for (const e of this.enemies) e.lastSeen = -9;
@@ -1164,6 +1163,7 @@ const KGame = (() => {
       const moveActive = !!a.moveSpell, movePressed = moveActive && !p.moveWas;
       p.moveWas = moveActive;
       if (p.safeT > 0) p.safeT -= DT;
+      if (p.flameT > 0) p.flameT -= DT;
       for (const e of a.events) if (e.type === 'interact' && p.nearStone) { this.events.push({ p: p.id, type: 'rest', stone: p.nearStone }); p.calmT = 5; }   // resting heals; it does not bring creatures back (v0.70)
 
       // mana refills on its own, faster on the ground
@@ -1209,8 +1209,8 @@ const KGame = (() => {
         if (mode !== 'move' && p.lock > 0) continue;
         let cost = sp.cost;
         if (this.has(p, 'swift') && (sp.kind === 'blink' || sp.kind === 'dash' || sp.kind === 'blastdash')) cost *= 0.5;
-        if (p.mana < cost) { if (pressed) { p.manaFlash = 0.35; this.sfx('nomana', p.x, p.y); this.tooBig(p, cost); } continue; }
-        if (mode === 'shot' && this.has(p, 'thrifty') && ++p.shotCount % 4 === 0) cost = 0;
+        if (p.mana < (p.prismT > 0 ? cost * 0.5 : cost)) { if (pressed) { p.manaFlash = 0.35; this.sfx('nomana', p.x, p.y); this.tooBig(p, cost); } continue; }
+        if (mode === 'shot' && !sp.special && this.has(p, 'thrifty') && ++p.shotCount % 4 === 0) cost = 0;   // v1.01: never a special spell
         p.cds[cdKey] = sp.cd;
         if (mode !== 'move') p.lock = 0.12;
         this.spend(p, cost); p.calmT = 0;   // casting ends the calm after a rest
@@ -1545,7 +1545,7 @@ const KGame = (() => {
         }
         if (p.mana <= 0) { p.channels.lift = null; p.liftArmed = false; return; }
       }
-      p.safeT = Math.max(p.safeT || 0, 0.4);
+      p.flameT = Math.max(p.flameT || 0, 0.4);   // v1.01: a Lift keeps your own flames off you, not magma or acid
       if (sp.guard) { p.guard = sp.guard; p.guardT = 0.2; }
       p.rising = false; p.coyote = 0;
       const steer = (speed, acc) => { const tx = (p.moveX || 0) * speed; p.vx += Math.sign(tx - p.vx) * Math.min(Math.abs(tx - p.vx), acc * DT); };
@@ -1645,7 +1645,7 @@ const KGame = (() => {
       const key = p.channels[mode], sp = this.spec(p, mode), R = this.rand, w = this.world;
       const dx = Math.cos(p.aim), dy = Math.sin(p.aim), c = this.chest(p);
       let drain = sp.drain;
-      if (mode === 'move') p.safeT = Math.max(p.safeT || 0, 0.4);
+      if (mode === 'move') p.flameT = Math.max(p.flameT || 0, 0.4);
       if (sp.kind === 'jet') {
         for (let i = 0; i < sp.perTick; i++) {
           const an = p.aim + (R() - 0.5) * 2 * sp.spread, s = sp.speed * (0.85 + R() * 0.3);
@@ -2034,14 +2034,17 @@ const KGame = (() => {
     }
 
     hitRadius(x, y, r, dmg, knock, except, src, spell) {
+      const at = this._at;
       for (const a of this.actors) {
         if (a.dead || a === except) continue;
         let cx = a.x, cy = a.y - a.h / 2, d = Math.hypot(cx - x, cy - y);
         if (a.kind === 'boss') { const n = this.bossNearest(a, x, y); cx = n.x; cy = n.y; d = Math.max(0, n.d - a.segR); }
         if (d > r) continue;
         const f = 1 - (d / r) * 0.6, nx = (cx - x) / (d || 1), ny = (cy - y) / (d || 1);
+        this._at = at && at.a === a ? at : null;   // v1.01: the weak-spot mark goes to the one struck (it was lost if anyone else was in the blast)
         this.hurt(a, dmg * f, nx * knock * f, ny * knock * f - 60 * f, 'blast', src, spell);
       }
+      this._at = null;
     }
 
     // Damage from stats. base: the spell's power (or a hazard's rate).
@@ -2080,7 +2083,7 @@ const KGame = (() => {
 
     hurt(a, amount, kx, ky, kind, src, spell) {
       if (a.dead || amount <= 0 || a.away) return;
-      if (a.kind === 'boss' && this.sealsLeft() > 0) return;   // sealed
+      if (a.kind === 'boss' && (this.sealsLeft() > 0 || !a.engaged)) return;   // sealed, or (v1.01) not yet woken: it could be killed from outside its lair, where it never fights back
       if (a.kind === 'boss' && a.shut) amount *= KData.bosses[a.type].shut;   // the Heartroot, closed
       if (a.kind === 'player' && src && src.kind === 'player' && src !== a) amount *= 0.3;   // co-op: a friend's spell hurts, but much less
       if (src && src.kind === 'player') { a.lastHitBy = src; a.lastHitAt = this.time; }
@@ -2185,20 +2188,20 @@ const KGame = (() => {
       // experience to whoever hit it last (hazards a player caused count for 8 s)
       if (a.kind !== 'player' && a.kind !== 'dummy' && a.lastHitBy && this.time - a.lastHitAt < 8 && !a.lastHitBy.dead)
         this.shareXp(a, a.lastHitBy, Math.max(1, Math.round(KData.progression.killXp(a.level || 1, a.kind, a.elite) * (a.champion ? KData.champions.xp : 1) * KData.progression.underLevel(a.lastHitBy.level - (a.level || 1)))), 'kill');
+      if (a.champion) { this.defeated.add('champ:' + a.kind); for (const pl of this.players) this.applyStats(pl); }   // v1.01: however it fell
       if (a.champion && a.lastHitBy) {
         // a champion falls for good: a Legendary runestone, a tome and shards
         const q = a.lastHitBy, RU = KData.runes, r = this.makeRune(a.level + 1, { tier: 3 });
-        this.defeated.add('champ:' + a.kind); for (const pl of this.players) this.applyStats(pl);
         q.shards = (q.shards || 0) + KData.champions.shards * a.level;
         if (q.inventory.length < RU.bag) q.inventory.push(r); else this.dropRune(a.x, a.y - a.h / 2, r);
         this.events.push({ type: 'toast', kind: 'big', text: `${a.champion} has fallen · ${RU.types[r.type].name} (Legendary) · ${KData.champions.shards * a.level} shards` });
-        this.events.push({ type: 'toast', kind: 'stone', text: `You are greater for it: +${KData.treasure.boons.champion.hp} maximum health and mana, for good` });
+        this.events.push({ type: 'toast', kind: 'stone', text: `You are greater for it: +${KData.treasure.boons.champion.hp} maximum health and mana while you are in this cave` });
         this.tome(q, null, Math.min(4, KData.treasure.tierFor(a.level) + 1), true);
         this.sfx('level', a.x, a.y, 1.2); this.shake = Math.max(this.shake, 5);
         this.events.push({ type: 'save' });
       }
       if (a.kind === 'player') { this.deaths++; this.events.push({ p: a.id, type: 'died' }); } else if (a.kind !== 'dummy') this.kills++;
-      if (a.champion) { const n = this.sealsLeft(); this.events.push({ type: 'toast', kind: 'big', text: n ? `A seal breaks. ${n === 1 ? 'One remains' : n + ' remain'}.` : 'The last seal breaks. The Emberwyrm can be woken.' }); }
+      if (a.champion) { const n = this.sealsLeft(); this.events.push({ type: 'toast', kind: 'big', text: n ? `A seal breaks. ${n === 1 ? 'One remains' : n + ' remain'}.` : `The last seal breaks. ${this.world.lair ? KData.bosses[this.world.lair.boss].name : 'The last one'} can be woken.` }); }
       if (a.kind === 'player') ;
       else if (a.kind !== 'dummy' && a.lastHitBy && (a.elite || a.boss || this.rand() < KData.runes.dropChance)) {
         const n = a.boss ? 2 : 1;
@@ -2225,6 +2228,7 @@ const KGame = (() => {
       const E = KData.enemies[e.kind];
       e.flash = Math.max(0, e.flash - DT);
       if (e.wetT > 0) e.wetT -= DT;
+      if ((e.anchored || e.noclip || e.ghost) && e.burnT > 0) e.burnT -= DT;   // v1.01: these skip physics, where burning is counted down
       e.asleep = !e.dead && !this.players.some(q => Math.abs(q.x - e.x) < E.awake && Math.abs(q.y - e.y) < E.awake * 0.7);
       if (e.asleep) return;
       if (e.dead) return;   // the dead stay dead until their time is up (returnTick)
@@ -2571,7 +2575,7 @@ const KGame = (() => {
       const B = KData.bosses[b.type], L = this.world.lair, w = this.world;
       b.flash = Math.max(0, b.flash - DT); b.t += DT; b.touchT = Math.max(0, b.touchT - DT);
       for (const k of ['wetT', 'slowT', 'burnT']) if (b[k] > 0) b[k] -= DT;
-      const inLair = q => { const ax = (q.x - L.x) / (L.rx * 1.15), ay = (q.y - L.y) / (L.ry * 1.5); return ax * ax + ay * ay < 1; };
+      const inLair = q => { const ax = (q.x - L.x) / (L.rx * 1.15), ay = (q.y - L.y) / (L.ry * 2); return ax * ax + ay * ay < 1; };   // v1.01: down to the lake's floor
       const near = this.players.filter(q => !q.dead && inLair(q));
       let p = null, best = 1e9;
       for (const q of near) { const d = Math.hypot(q.x - b.x, q.y - b.y); if (d < best) { best = d; p = q; } }
@@ -2638,7 +2642,7 @@ const KGame = (() => {
       const B = KData.bosses[b.type], L = this.world.lair, w = this.world;
       b.flash = Math.max(0, b.flash - DT); b.t += DT; b.touchT = Math.max(0, b.touchT - DT);
       for (const k of ['wetT', 'slowT', 'burnT']) if (b[k] > 0) b[k] -= DT;
-      const inLair = q => { const ax = (q.x - L.x) / (L.rx * 1.15), ay = (q.y - L.y) / (L.ry * 1.5); return ax * ax + ay * ay < 1; };
+      const inLair = q => { const ax = (q.x - L.x) / (L.rx * 1.15), ay = (q.y - L.y) / (L.ry * 2); return ax * ax + ay * ay < 1; };   // v1.01: down to the lake's floor
       const near = this.players.filter(q => !q.dead && inLair(q));
       let p = null, best = 1e9;
       for (const q of near) { const d = Math.hypot(q.x - b.x, q.y - b.y); if (d < best) { best = d; p = q; } }
@@ -3431,11 +3435,26 @@ const KGame = (() => {
         anchored: e.kind === 'spitter' || e.kind === 'geode', ghost: e.kind === 'delver' });
     }
 
+    // v1.01: where a golem appears at a Lodestone: on the stone's own ledge, never in magma, acid or fire and never down a
+    // drop. (It was always 14 cells to the right, wherever the floor was: sometimes the bottom of a magma lake, for ever.)
+    stoneSpot(l) {
+      const w = this.world, bad = (x, y) => { for (let yy = y - 16; yy <= y; yy += 3) for (let xx = x - 6; xx <= x + 6; xx += 3) { const m = w.get(xx, yy); if (m === M.MAGMA || m === M.ACID || m === M.FIRE || m === M.EMBER) return true; } return false; };
+      let best = null, score = 1e9;
+      for (const dx of [14, -14, 8, -8, 20, -20, 26, -26, 0, 34, -34, 44, -44]) {
+        const s = w.standSpot(l.x + dx, l.y - 4, 16);
+        if (!s || bad(s.x, s.y)) continue;
+        const sc = Math.abs(s.y - l.y) * 3 + Math.abs(dx);   // level with the stone first, then near it
+        if (sc < score) { score = sc; best = s; }
+        if (Math.abs(s.y - l.y) <= 6) break;
+      }
+      return best || { x: l.x, y: w.floorBelow(l.x, l.y - 10) };
+    }
+
     respawn(p) {
       // back at the last Lodestone touched (the hub's at first)
       const l = this.world.lodestones[p.id ? p.checkpoint ?? this.checkpoint : this.checkpoint] || this.world.lodestones[0];
-      const s = l ? { x: l.x + 14, y: this.world.floorBelow(l.x + 14, l.y - 10) } : this.world.spawn;
-      Object.assign(p, { x: s.x, y: s.y, vx: 0, vy: 0, hp: p.maxHp, dead: false, mana: p.maxMana, manaWait: 0, dashT: 0, slam: null, lastHurt: -9, burnT: 0, slowT: 0 });
+      const s = l ? this.stoneSpot(l) : this.world.spawn;
+      Object.assign(p, { x: s.x, y: s.y, vx: 0, vy: 0, safeT: 2.5, hp: p.maxHp, dead: false, mana: p.maxMana, manaWait: 0, dashT: 0, slam: null, lastHurt: -9, burnT: 0, slowT: 0 });
       this.endAllChannels(p);
       p.calmT = 5;
       this.calmEnemies(p);   // v0.72: dying does not bring the dead back, only time does (returnTick)
@@ -3571,10 +3590,10 @@ const KGame = (() => {
       a.inMud = counts[M.MUD] > 4;
       const proof = this.has(a, 'magmaproof') || a.safeT > 0;
       const by = a.kind !== 'player' && (counts[M.FIRE] || counts[M.EMBER] || counts[M.ACID]) ? this.culprit(a.x, a.y) : null;   // a creature burnt or dissolved: whose doing
-      const fireMul = proof ? 0 : this.affinity(a, 'fire');
-      if (counts[M.FIRE] && fireMul) { this.hurt(a, PD.hurt.fire * fireMul * DT * Math.min(1, counts[M.FIRE] / 4), 0, 0, 'fire', by); if (a.kind !== 'player') a.burnT = Math.max(a.burnT || 0, 1.5); }
+      const fireMul = proof ? 0 : this.affinity(a, 'fire'), flameMul = a.flameT > 0 ? 0 : fireMul;   // flameT: your own held spell's flames
+      if (counts[M.FIRE] && flameMul) { this.hurt(a, PD.hurt.fire * fireMul * DT * Math.min(1, counts[M.FIRE] / 4), 0, 0, 'fire', by); if (a.kind !== 'player') a.burnT = Math.max(a.burnT || 0, 1.5); }
       if (counts[M.MAGMA] && fireMul) this.hurt(a, PD.hurt.magma * fireMul * DT * Math.min(1, counts[M.MAGMA] / 4), 0, 0, 'magma');
-      if (counts[M.EMBER] && fireMul) this.hurt(a, PD.hurt.ember * fireMul * DT * Math.min(1, counts[M.EMBER] / 3), 0, 0, 'fire', by);
+      if (counts[M.EMBER] && flameMul) this.hurt(a, PD.hurt.ember * fireMul * DT * Math.min(1, counts[M.EMBER] / 3), 0, 0, 'fire', by);
       if (counts[M.ACID] && !(a.safeT > 0) && !a.flying) this.hurt(a, PD.hurt.acid * DT * Math.min(1, counts[M.ACID] / 4), 0, 0, 'acid', by);
       if (a.inWater) { a.wetT = KData.statuses.wet.time; a.burnT = 0; }
       if (a.burnT > 0) {
