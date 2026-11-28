@@ -879,6 +879,15 @@ Measured in desktop Chromium with a water jet running for 600 steps: simulation 
 
 ## Decision log
 
+- **v1.02 (2026-11-28): full audit, batch 2: saves and co-op.**
+  - A save that fails to store (storage full) is retried after the usual 20 s, not every frame (it cost most of the frame rate), with one notice. Saves from older cave versions (`castinstone.save.v1`–`v12`), which nothing can load, are removed at start.
+  - A save that is there but cannot be read is copied to `castinstone.save.bad` before anything replaces it, and the title says so (it used to say Continue and silently start a new game).
+  - Loaded names are checked as the table's own (`hasOwnProperty`): `"constructor"` passed as an element and froze the save on Continue, and in co-op one such message froze both games. Skin must be a whole number.
+  - Health and mana are restored after the cave's gifts are loaded (a reload healed you).
+  - An error in one frame no longer stops the game: the frame is wrapped, the next is always asked for; alone a notice shows, in co-op it stops co-op.
+  - Co-op: the Health regeneration switch now works (it sent true/false, which co-op drops); a guest that cannot build the cave ends co-op with a message; matching up has a two-minute limit; gas blasts waiting to go off are sent with the cave; a second `hello` mid-game is ignored.
+  - Not done: a resync still resets creatures and the boss to full health (needs their state sent across); a modified client can still send a false cave to a guest.
+
 - **v1.01 (2026-11-28): full audit, batch 1: exploits, traps and rule bugs.** Four independent reviews (rules, screens, performance, saves/co-op/generation). Fixed here:
   - *Respawn and travel* put the golem 14 cells right of the Lodestone wherever the floor was; in 8 of 75 caves that was the bottom of a magma lake, an endless death loop. `game.stoneSpot` now picks a place on the stone's own ledge with no magma, acid or fire, and arriving gives 2.5 s of safety. (Checked at 150 Lodestones.)
   - *Bosses* could be killed from outside their lair, where they never wake: they take no damage until woken (`engaged`); the lair's bounds reach the lake floor; the Heartroot starts shut; the Emberwyrm's rage is cleared when it resets; its spit uses the shared arc (`lobAt`: its own copy still had the height's sign wrong).

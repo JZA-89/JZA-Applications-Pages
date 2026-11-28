@@ -496,11 +496,12 @@ const KWorld = (() => {
     meta() {
       const b64 = a => { let s = ''; for (let i = 0; i < a.length; i += 4096) s += String.fromCharCode.apply(null, a.subarray(i, i + 4096)); return btoa(s); };
       return { spawn: this.spawn, caches: this.caches, dummySpots: this.dummySpots, hub: this.hub, lair: this.lair, nodes: this.nodes, edges: this.edges, enemyHomes: this.enemyHomes, lodestones: this.lodestones,
-        broken: this.broken, cooled: this.cooled, bw: this.bw, lift: this.lift, act: this.act, biomeMap: b64(this.biomeMap), awake: b64(this.awake), changed: b64(this.changed) };
+        broken: this.broken, cooled: this.cooled, blasts: this.blasts, bw: this.bw, lift: this.lift, act: this.act, biomeMap: b64(this.biomeMap), awake: b64(this.awake), changed: b64(this.changed) };
     }
     adopt(m) {
       const put = (a, text) => { const s = atob(text); if (s.length === a.length) for (let i = 0; i < a.length; i++) a[i] = s.charCodeAt(i); };
       for (const k of ['spawn', 'caches', 'dummySpots', 'hub', 'lair', 'nodes', 'edges', 'enemyHomes', 'lodestones', 'broken', 'cooled']) this[k] = m[k];
+      this.blasts = Array.isArray(m.blasts) ? m.blasts.filter(Number.isFinite).slice(0, 48) : [];   // v1.02: gas blasts waiting to go off
       this.lift = m.lift | 0;
       put(this.biomeMap, m.biomeMap); put(this.awake, m.awake); put(this.changed, m.changed);
     }

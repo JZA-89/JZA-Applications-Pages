@@ -34,6 +34,7 @@ const KNet = (() => {
   let H = {};                 // hooks from main.js
   let pc = null, dc = null, role = null, state = 'off', code = '', session = 0;
   let me = 0, frame = 0, delay = 3, mine = new Map(), theirs = new Map(), sums = new Map(), theirSums = new Map();
+  let syncAt = 0;   // when the two games began matching up (main.js gives up after a minute)
   let lastStep = 0, parts = {}, pend = null, resyncs = [], pingAt = 0, rtt = 60, epoch = 0;
 
   const say = (text, kind) => H.status && H.status(text, kind || '');
@@ -76,7 +77,7 @@ const KNet = (() => {
 
   function wire(ch) {
     dc = ch; const my = session;
-    dc.onopen = () => { if (my !== session) return; state = 'sync'; if (role === 'guest') { say('Connected. Sending your golem…'); send({ t: 'hello', v: H.version, player: H.myPlayer() }); } else say('A friend has connected…'); };
+    dc.onopen = () => { if (my !== session) return; state = 'sync'; syncAt = performance.now(); if (role === 'guest') { say('Connected. Sending your golem…'); send({ t: 'hello', v: H.version, player: H.myPlayer() }); } else say('A friend has connected…'); };
     dc.onmessage = e => { if (my !== session) return; let m; try { m = JSON.parse(e.data); } catch (x) { return; } try { got(m); } catch (x) { console.error(x); end('Something went wrong in co-op, so it was stopped.'); } };
     dc.onclose = () => { if (my === session && state !== 'off') end('The connection to the other player was lost.', true); };
   }
@@ -149,7 +150,7 @@ const KNet = (() => {
 
   // host: stop, and send the save and the cave's chunk numbers
   function beginSync(guestPlayer) {
-    state = 'sync'; say('Sending the cave…');
+    state = 'sync'; syncAt = performance.now(); say('Sending the cave…');
     const game = H.game(), data = KSave.serialize(game);
     data.chunks = {};
     rtt = Math.max(20, Math.min(400, rtt));
@@ -167,7 +168,7 @@ const KNet = (() => {
     H.setGame(game, me);
     return game;
   }
-  const okEvent = e => e && (e.type === 'load' ? !!KData.elements[e.el] : e.type === 'clear' || e.type === 'undo' || e.type === 'interact' ? true
+  const okEvent = e => e && (e.type === 'load' ? typeof e.el === 'string' && Object.prototype.hasOwnProperty.call(KData.elements, e.el) : e.type === 'clear' || e.type === 'undo' || e.type === 'interact' ? true
     : e.type === 'ui' && typeof e.name === 'string' && e.name.length < 20 && Array.isArray(e.args) && e.args.length < 4 && e.args.every(v => Number.isFinite(v) || (typeof v === 'string' && /^[a-z]{1,16}$/.test(v))));
 
   function got(m) {
@@ -181,7 +182,7 @@ const KNet = (() => {
         return;
       }
       case 'hello':   // host: a guest and its golem
-        if (role !== 'host') return;
+        if (role !== 'host' || state !== 'sync' || pend) return;   // v1.02: only as a connection starts (a later one could rebuild the game with any golem)
         if (m.v !== H.version) { send({ t: 'no', why: `The host is on ${H.version} and you are on ${String(m.v).slice(0, 12)}. Both of you need to reload the page.` }); say('Your friend has a different version of the game. Both of you need to reload the page.', 'bad'); return; }
         pend = { guestFirst: m.player }; pingAt = performance.now(); send({ t: 'ping' });
         return;
@@ -190,10 +191,11 @@ const KNet = (() => {
       case 'no': end(String(m.why || 'The host refused the connection.').slice(0, 300)); return;
       case 'world': {   // guest: the host's save; build the cave and ask for what differs
         if (role !== 'guest') return;
-        state = 'sync'; H.pause(); say('Building the cave…');
+        state = 'sync'; syncAt = performance.now(); H.pause(); say('Building the cave…');
         const b = m.big, my = session;
         setTimeout(() => {   // after the message is on screen: building takes a second or two
           if (my !== session) return;
+          try {
           pend = { save: b.save, guest: b.guest, syncSeed: b.syncSeed | 0, delay: Math.max(2, Math.min(9, b.delay | 0)), epoch: b.epoch | 0 };
           const w = new KWorld.World(b.save.seed, b.meta.lift | 0, (b.meta.act | 0) % KData.acts.length);
           w.adopt(b.meta);
@@ -202,6 +204,7 @@ const KNet = (() => {
           pend.world = w; pend.need = need.length; pend.got = 0;
           send({ t: 'need', ids: need });
           if (!need.length) { build(w); send({ t: 'ready' }); }
+          } catch (e) { end('The cave could not be built, so co-op was stopped.'); }   // v1.02: it hung on "Building the cave…"
         }, 60);
         return;
       }
@@ -293,6 +296,7 @@ const KNet = (() => {
     get busy() { return state !== 'off'; },
     get state() { return state; }, get role() { return role; }, get code() { return code; }, get me() { return me; },
     get behind() { return theirs.size - delay; },          // how many steps the other device is ahead of this one
+    get syncFor() { return state === 'sync' ? performance.now() - syncAt : 0; },
     get waited() { return state === 'on' ? performance.now() - lastStep : 0; },   // ms since the last step ran
     get frame() { return frame; }, get delay() { return delay; }, get resyncs() { return resyncs.length; },
   };

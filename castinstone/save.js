@@ -49,11 +49,11 @@ const KSave = (() => {
     p.alloc = {};
     for (const st of KData.progression.stats) if (s.alloc && Number.isFinite(s.alloc[st.id])) p.alloc[st.id] = num(s.alloc[st.id], 0, 999, 0);
     const q = Array.isArray(s.queue) ? s.queue : Array.isArray(s.slots) ? s.slots : [];   // slots: saves from before recipes
-    p.queue = q.filter(e => KData.elements[e]).slice(0, KData.recipe.max);
-    if (Array.isArray(s.known)) p.known = s.known.filter(k => KData.specials[k]);
-    if (Number.isFinite(s.skin)) p.skin = num(s.skin, 0, KData.golems.length - 1, 0);
+    p.queue = q.filter(e => typeof e === 'string' && Object.prototype.hasOwnProperty.call(KData.elements, e)).slice(0, KData.recipe.max);   // v1.02: own names only ('constructor' passed and froze the save)
+    if (Array.isArray(s.known)) p.known = [...new Set(s.known.filter(k => typeof k === 'string' && Object.prototype.hasOwnProperty.call(KData.specials, k)))];
+    if (Number.isInteger(s.skin)) p.skin = num(s.skin, 0, KData.golems.length - 1, 0);
     const RU = KData.runes;
-    const okRune = r => r && RU.types[r.type] && Number.isInteger(r.tier) && r.tier >= 0 && r.tier < RU.tiers.length && Number.isFinite(r.level)
+    const okRune = r => r && typeof r.type === 'string' && Object.prototype.hasOwnProperty.call(RU.types, r.type) && Number.isInteger(r.tier) && r.tier >= 0 && r.tier < RU.tiers.length && Number.isFinite(r.level)
       ? { id: String(r.id || ''), type: r.type, tier: r.tier, level: num(r.level, 1, 99, 1) } : null;
     if (s.runes) for (const slot of RU.slots) { const r = okRune(s.runes[slot]); p.runes[slot] = r && RU.types[r.type].slot === slot ? r : null; }
     if (Array.isArray(s.inventory)) p.inventory = s.inventory.map(okRune).filter(Boolean).slice(0, RU.bag);
@@ -61,7 +61,7 @@ const KSave = (() => {
     game.applyStats(p);
     p.hp = num(s.hp, 1, p.maxHp, p.maxHp); p.mana = num(s.mana, 0, p.maxMana, p.maxMana);
   }
-  const okRuneOf = r => { const RU = KData.runes; return r && RU.types[r.type] && Number.isInteger(r.tier) && r.tier >= 0 && r.tier < RU.tiers.length && Number.isFinite(r.level) ? { id: String(r.id || ''), type: r.type, tier: r.tier, level: Math.max(1, Math.min(99, r.level)) } : null; };
+  const okRuneOf = r => { const RU = KData.runes; return r && typeof r.type === 'string' && Object.prototype.hasOwnProperty.call(RU.types, r.type) && Number.isInteger(r.tier) && r.tier >= 0 && r.tier < RU.tiers.length && Number.isFinite(r.level) ? { id: String(r.id || ''), type: r.type, tier: r.tier, level: Math.max(1, Math.min(99, r.level)) } : null; };
 
   // world: in co-op, a cave already built (the host's), used as it is
   function restore(data, world) {
@@ -81,6 +81,8 @@ const KSave = (() => {
       if (game.collides(p, p.x, p.y)) game.respawn(p);
     } else game.respawn(p);
     if (game.loadExtra && data.extra) game.loadExtra(data.extra);
+    // v1.02: health and mana as saved, set once the cave's gifts are known (set before, a reload healed you)
+    p.hp = num(s.hp, 1, p.maxHp, p.maxHp); p.mana = num(s.mana, 0, p.maxMana, p.maxMana);
     // runestones lying in the cave
     if (Array.isArray(data.loot)) for (const L of data.loot.slice(0, 60)) { const r = okRuneOf(L.rune); if (r && Number.isFinite(L.x) && Number.isFinite(L.y)) game.loot.push({ x: L.x, y: L.y, vx: 0, vy: 0, rune: r, t: 1 }); }
     return game;
@@ -102,8 +104,19 @@ const KSave = (() => {
       return text.length;
     } catch (e) { return false; }
   }
+  // v1.02: a save that is there but cannot be read is kept aside (castinstone.save.bad) before anything replaces it, and
+  // `unreadable` says so; saves from older versions of the cave, which nothing can load, are removed so they do not fill the
+  // browser's storage (it is shared with the rest of jza.app)
+  let unreadable = false;
   function load() {
-    try { const t = localStorage.getItem(KEY); return t ? restore(JSON.parse(t)) : null; } catch (e) { return null; }
+    let t = null;
+    try { t = localStorage.getItem(KEY); } catch (e) { return null; }
+    try { for (let v = 1; v < 13; v++) localStorage.removeItem('castinstone.save.v' + v); } catch (e) {}
+    if (!t) return null;
+    let g = null;
+    try { g = restore(JSON.parse(t)); } catch (e) { g = null; }
+    if (!g) { unreadable = true; try { localStorage.setItem('castinstone.save.bad', t); } catch (e) {} }
+    return g;
   }
   function exists() { try { return !!localStorage.getItem(KEY); } catch (e) { return false; } }
   function clear() { try { localStorage.removeItem(KEY); } catch (e) {} }
@@ -123,5 +136,5 @@ const KSave = (() => {
     } catch (e) { return false; }
   }
 
-  return { serialize, restore, store, load, exists, clear, KEY, packPlayer, applyPlayer, storeGuest };
+  return { serialize, restore, store, load, exists, clear, KEY, packPlayer, applyPlayer, storeGuest, get unreadable() { return unreadable; } };
 })();

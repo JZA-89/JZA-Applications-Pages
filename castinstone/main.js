@@ -11,12 +11,13 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v1.01';
+  const VERSION = 'v1.02';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
-  let game = KSave.load() || new KGame.Game(randomSeed());
-  const hadSave = KSave.exists();
+  const loaded = KSave.load();
+  let game = loaded || new KGame.Game(randomSeed());
+  const hadSave = !!loaded;   // v1.02: a save that loaded (one that could not be read is kept aside, see KSave.load)
   let frozenDrawn = false;   // a still menu scene already drawn (frame)
   let ME = 0;            // which golem is this device's: 0, or 1 as the guest in co-op
   let guestGame = false; // true while `game` is a friend's cave (never stored as this device's save)
@@ -262,12 +263,15 @@
   pickGolem(skin);
 
   // ---------- saving ----------
-  let saveTimer = 0;
+  let saveTimer = 0, saveFailed = false;
   function save() {
     // as a guest in co-op only the golem's progress goes home; the cave is the host's
     if (guestGame) { if (game.players[ME]) KSave.storeGuest(game.players[ME]); saveTimer = 0; return; }
     if (KNet.state === 'sync' && KNet.role === 'guest') return;
-    if (KSave.store(game)) saveTimer = 0;
+    // v1.02: whether or not it worked, wait the usual time before trying again (a failing save was retried every frame,
+    // which cost most of the frame rate), and say so once
+    saveTimer = 0;
+    if (!KSave.store(game) && !saveFailed) { saveFailed = true; toast('The game could not be saved: this browser\'s storage for jza.app may be full.', 'big'); }
   }
   // A menu choice that changes the golem. Alone it happens at once; in co-op it travels with the
   // button presses, so both devices make it on the same step (the panel is rebuilt when it lands).
@@ -334,6 +338,7 @@
     $('tsGo').textContent = hadSave ? 'Continue' : 'Begin';
     $('tsNew').hidden = !hadSave;
     $('tsSave').innerHTML = hadSave ? `<b>Level ${p.level}</b> · ${game.world.biomes[game.world.biomeAt(p.x, p.y - 8)].name} · ${KData.acts[game.act].name}` : '';
+    if (KSave.unreadable) $('tsSave').textContent = 'Your saved game could not be read, so this is a new one. A copy of the old save has been kept.';   // v1.02
     $('tsVer').textContent = `Beta · ${VERSION}`;
     $('tsGo').focus({ preventScroll: true });
     fitTitle();
@@ -776,7 +781,8 @@
     return mode === 'play' ? a : { move: 0, moveY: 0, jump: false, cast: false, burst: false, moveSpell: false, away: true, aim: a.aim, aimDist: a.aimDist, events: a.events.filter(e => e.type === 'ui') };
   };
   let frameN = 0;
-  function frame(now) {
+  function frameBody(now) {
+    if (KNet.syncFor > 120000) KNet.stop('The two games could not be matched up, so co-op was stopped. Your progress is saved.');   // v1.02: it could wait for ever
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
     // v1.00, as MORPHOS: the size is checked every frame (fit() returns at once when nothing changed), so a size iOS changes
     // without telling the page is caught within a frame; and every 20 frames the page is put back if anything scrolled it
@@ -842,6 +848,15 @@
     updateHud();
     updateLook();
     updateMap();
+  }
+  // v1.02: an error in one frame never stops the game for good (the next frame was only asked for at the end of this one)
+  let frameErrors = 0, frameErrorAt = -1e9;
+  function frame(now) {
+    try { frameBody(now); }
+    catch (e) {
+      console.error(e);
+      if (now - frameErrorAt > 5000) { frameErrorAt = now; frameErrors++; try { if (KNet.busy) KNet.stop('Something went wrong in the game, so co-op was stopped. Your progress is saved.'); else toast('Something went wrong for a moment. If it keeps happening, reload the page.', 'big'); } catch (x) {} }
+    }
     requestAnimationFrame(frame);
   }
   setMode('start');
@@ -957,7 +972,8 @@
   }
   $('btnDescend').addEventListener('click', descend);
   $('btnDeeper').addEventListener('click', descend);
-  $('btnRegen').addEventListener('click', () => { act('setRegen', !game.regen); regenLabel(); save(); });
+  $('btnRegen').addEventListener('click', () => { act('setRegen', game.regen ? 0 : 1);   // a number: co-op passes on only numbers and short words
+    regenLabel(); save(); });
   $('btnStay').addEventListener('click', resume);
 
   buildControls();
