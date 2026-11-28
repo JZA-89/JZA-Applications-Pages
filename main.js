@@ -2293,7 +2293,9 @@
          Brute golem (sprite rows from castinstone/data.js) and three of
          its creatures (crawler, glowmoth, shard slinger). Nothing is on
          a timer: the golem decides what to do from what is in front of
-         it. It walks; jumps a step; bores a thick wall with a Stone spear
+         it. Nothing happens through a wall: the golem fights only what it
+         can see, creatures wake only on seeing it, and a moth is stopped
+         by earth like anything else. It walks; jumps a step; bores a thick wall with a Stone spear
          and digs through the rest by walking, as in the game; flies over
          water on an Earth spray; and when a creature is near it types
          the recipe that creature is weak to and fights: Fireball for a
@@ -2351,6 +2353,7 @@
     var shown = "";
     var at = function (x, y) { x = Math.round(x); y = Math.round(y); return x < 0 || x >= WW || y < 0 || y >= H ? ROCK : cells[y * WW + x]; };
     var solid = function (x, y) { var c = at(x, y); return c === DIRT || c === ROCK || c === EARTH; };
+    var los = function (x0, y0, x1, y1) { var n = Math.ceil(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) / 2), k; for (k = 1; k < n; k++) if (solid(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n)) return false; return true; };
     var floorAt = function (x, y) { y = Math.round(y); while (y < H - 2 && !solid(x, y + 1)) y++; return y; };
 
     var build = function () {
@@ -2362,8 +2365,9 @@
         for (y = 0; y < H; y++) {
           c = y < ce || y > fl ? DIRT : EMPTY;
           if (c === DIRT && (y < 8 + hash(x >> 3, 1) * 8 || y > 110 - hash(x >> 3, 2) * 6)) c = ROCK;
-          if (x >= 150 && x < 174 && y >= ce && y <= fl) c = DIRT;        /* a thick wall: bored, then dug */
-          if (x >= 452 && x < 460 && y >= ce && y <= fl) c = DIRT;        /* a thin one: dug */
+          var rag = Math.sin(y / 5 + k) * 2.5 + Math.sin(y / 2.3 + x / 9) * 1.2;   /* ragged faces, as dug earth has */
+          if (x >= 150 + rag && x < 176 - rag * 0.7 && y >= ce && y <= fl) c = DIRT;        /* a thick wall: bored, then dug */
+          if (x >= 452 + rag * 0.6 && x < 461 - rag * 0.5 && y >= ce && y <= fl) c = DIRT;        /* a thin one: dug */
           if (x >= 262 && x < 310 && y > fl && y <= fl + 15) c = y > fl + 1 ? WATER : EMPTY;   /* a pool */
           cells[y * WW + x] = c;
         }
@@ -2415,9 +2419,10 @@
     var think = function (dt) {
       var g = S.golem, i, f, near = null, nd = 1e9;
       g.cd = Math.max(0, g.cd - dt); g.hurt = Math.max(0, g.hurt - dt);
-      for (i = 0; i < S.foes.length; i++) { f = S.foes[i]; var d = Math.abs(f.x - g.x); if (!f.dead && d < nd && f.x > g.x - 30) { nd = d; near = f; } }
+      /* only a creature it can see: nothing is fought through a wall */
+      for (i = 0; i < S.foes.length; i++) { f = S.foes[i]; var d = Math.abs(f.x - g.x); if (!f.dead && d < nd && f.x > g.x - 30 && los(g.x, g.y - 10, f.x, f.y - 3)) { nd = d; near = f; } }
       var move = 1, jump = false;
-      if (near && nd < 78 && !solid(g.x + 9, g.y - 8)) {
+      if (near && nd < 78) {
         /* a creature: stop, type what it is weak to, and cast; jump a crawler's lunge */
         move = nd < 26 ? -0.6 : 0;
         if (type(ANSWER[near.kind], dt) && g.cd <= 0) cast(ANSWER[near.kind], near);
@@ -2426,22 +2431,27 @@
         /* over the water on a spray of earth */
         type(SPRAY, dt);
         var below = floorAt(g.x + 4, g.y), wet = at(g.x + 6, below) === WATER || at(g.x + 6, g.y + 3) === WATER || at(g.x + 10, floorAt(g.x + 10, g.y)) === WATER;
+        if (solid(g.x + 7, g.y - 3) || solid(g.x + 7, g.y - 8)) g.flyY -= 46 * dt;   /* the far bank is higher: climb over it */
         g.vy += ((g.flyY - g.y) * 6 - g.vy) * Math.min(1, 6 * dt);
         if (Math.random() < 0.8) S.parts.push({ x: g.x + (Math.random() - 0.5) * 5, y: g.y + 1, vx: (Math.random() - 0.5) * 26, vy: 90 + Math.random() * 40, kind: EARTH, life: 3 });
         if (!wet && below - g.y < 14 && S.t - g.flyAt > 0.6) g.fly = false;
       } else {
-        var wallX = Math.round(g.x + 7), wall = solid(wallX, g.y - 8) || solid(wallX, g.y - 13), low = solid(wallX, g.y - 2) && !solid(wallX, g.y - 7);
+        /* the column that stops it (the same one the movement below tests), so no sliver is ever left standing */
+        var wallX = Math.round(g.x + 6), colS = function (cx) { return solid(cx, g.y - 8) || solid(cx, g.y - 14) || solid(cx, g.y - 17); };
+        var wall = colS(wallX) || colS(wallX + 1), low = !wall && (solid(wallX, g.y - 3) || solid(wallX + 1, g.y - 3));
+        if (low && (solid(g.x, g.y - 22) || solid(wallX, g.y - 22) || solid(g.x, g.y - 19))) { low = false; wall = true; }   /* a ledge with no room to jump it (inside a tunnel): dig it away */
         var ahead = floorAt(g.x + 12, g.y - 6), water = at(g.x + 12, ahead) === WATER || at(g.x + 12, g.y + 2) === WATER;
         if (water && g.ground) { g.fly = true; g.flyY = g.y - 12; g.flyAt = S.t; g.ground = false; }
         else if (low && g.ground) jump = true;
         else if (wall) {
-          var thick = 0; while (thick < 40 && solid(wallX + thick, g.y - 8)) thick++;
+          var thick = 0, w0 = solid(wallX, g.y - 8) ? wallX : wallX + 1; while (thick < 40 && solid(w0 + thick, g.y - 8)) thick++;
           var key = Math.round(wallX / 30);
-          if (thick > 12 && !g.bored[key]) { move = 0; if (type(SPEAR, dt) && g.cd <= 0) { cast(SPEAR, null); g.bored[key] = true; } }
-          else if (at(wallX, g.y - 8) !== ROCK) {
+          if (thick > 14 && !g.bored[key]) { move = 0; if (type(SPEAR, dt) && g.cd <= 0) { cast(SPEAR, null); g.bored[key] = true; } }
+          else if (at(wallX, g.y - 8) !== ROCK && at(wallX + 1, g.y - 8) !== ROCK) {
             /* dig by walking into it: a column at a time, with crumbs */
+            move = 0.3;   /* digging is slow going */
             g.digT = (g.digT || 0) + dt;
-            if (g.digT > 0.07) { g.digT = 0; for (var yy = Math.round(g.y) - 17; yy <= g.y; yy++) { var ci = yy * WW + wallX; if (cells[ci] === DIRT || cells[ci] === EARTH) { cells[ci] = EMPTY; if (Math.random() < 0.12) S.parts.push({ x: wallX, y: yy, vx: -20 - Math.random() * 40, vy: -20 - Math.random() * 40, kind: EARTH, life: 2 }); } } }
+            if (g.digT > 0.1) { g.digT = 0; for (var dk = 0; dk < 4; dk++) { var dxk = wallX + dk, roof = Math.round(g.y) - 19 + (hash(dxk, 5) < 0.4 ? 1 : 0) + (dk === 3 ? 1 : 0); for (var yy = roof; yy <= g.y; yy++) { var ci = yy * WW + dxk; if (cells[ci] === DIRT || cells[ci] === EARTH) { cells[ci] = EMPTY; if (Math.random() < 0.16) S.parts.push({ x: dxk, y: yy, vx: -18 - Math.random() * 46, vy: -30 - Math.random() * 50, kind: EARTH, life: 2 }); } } } }
           } else jump = g.ground;
         }
         if (!near || nd > 90) { if (S.want && S.want !== SPEAR && S.want !== SPRAY && S.t - (g.calmAt || 0) > 1.2) { S.want = null; S.queue = []; S.spell = ""; S.kind = ""; S.gold = false; } } else g.calmAt = S.t;
@@ -2470,21 +2480,21 @@
         f.t += dt; f.cd -= dt; dx = g.x - f.x; d = Math.abs(dx); f.face = dx < 0 ? -1 : 1;
         var touch = Math.abs(dx) < 9 && Math.abs((g.y - 8) - (f.y - 3)) < 11;
         if (f.kind === "crawler") {
-          if (f.st === "idle") { f.vx = 0; if (d < 70) { f.st = "chase"; f.t = 0; } }
+          if (f.st === "idle") { f.vx = 0; if (d < 70 && los(f.x, f.y - 4, g.x, g.y - 9)) { f.st = "chase"; f.t = 0; } }
           else if (f.st === "chase") { f.vx = f.face * 20; if (d < 18 && f.cd <= 0) { f.st = "windup"; f.t = 0; f.vx = 0; } }
           else if (f.st === "windup") { f.vx = 0; if (f.t > 0.5) { f.st = "lunge"; f.t = 0; f.vx = f.face * 115; f.vy = -40; f.struck = false; } }
           else if (f.st === "lunge") { if (touch && !f.struck) { f.struck = true; hitGolem(14, f.face); } if (f.t > 0.3) { f.st = "chase"; f.t = 0; f.cd = 1.1; } }
           f.vy += 320 * dt; f.x += f.vx * dt; if (solid(f.x + f.face * 6, f.y - 3)) f.x -= f.vx * dt;
           var fy = f.y + f.vy * dt; if (f.vy > 0 && solid(f.x, fy + 1)) { f.y = floorAt(f.x, Math.max(2, f.y - 6)); f.vy = 0; } else f.y = fy;
         } else if (f.kind === "moth") {
-          if (f.st === "idle") { f.y = f.hy + Math.sin(S.t * 2 + i) * 3; if (d < 82) { f.st = "hover"; f.t = 0; } }
-          else if (f.st === "hover") { f.x += ((g.x - f.face * 30) - f.x) * Math.min(1, 1.6 * dt); f.y += ((g.y - 34) - f.y) * Math.min(1, 1.6 * dt); if (f.t > 1.2 && f.cd <= 0) { f.st = "windup"; f.t = 0; } }
+          if (f.st === "idle") { f.y = f.hy + Math.sin(S.t * 2 + i) * 3; if (d < 82 && los(f.x, f.y - 3, g.x, g.y - 9)) { f.st = "hover"; f.t = 0; } }
+          else if (f.st === "hover") { var mx = f.x + ((g.x - f.face * 30) - f.x) * Math.min(1, 1.6 * dt), my = f.y + ((g.y - 34) - f.y) * Math.min(1, 1.6 * dt); if (!solid(mx + (mx > f.x ? 6 : -6), f.y - 3)) f.x = mx; if (!solid(f.x, my - 7) && !solid(f.x, my + 1)) f.y = my; if (f.t > 1.2 && f.cd <= 0 && los(f.x, f.y - 3, g.x, g.y - 9)) { f.st = "windup"; f.t = 0; } }
           else if (f.st === "windup") { if (f.t > 0.5) { f.st = "swoop"; f.t = 0; var L = Math.hypot(dx, g.y - 8 - f.y) || 1; f.vx = dx / L * 120; f.vy = (g.y - 8 - f.y) / L * 120; f.struck = false; } }
-          else if (f.st === "swoop") { f.x += f.vx * dt; f.y += f.vy * dt; if (touch && !f.struck) { f.struck = true; hitGolem(10, f.face); } if (f.t > 0.42 || solid(f.x, f.y + 1)) { f.st = "hover"; f.t = 0; f.cd = 1.4; } }
+          else if (f.st === "swoop") { if (solid(f.x + f.vx * dt + (f.vx > 0 ? 6 : -6), f.y + f.vy * dt - 3)) { f.vx = 0; f.vy = 0; f.t = 1; } f.x += f.vx * dt; f.y += f.vy * dt; if (touch && !f.struck) { f.struck = true; hitGolem(10, f.face); } if (f.t > 0.42 || solid(f.x, f.y + 1)) { f.st = "hover"; f.t = 0; f.cd = 1.4; } }
         } else {
           f.y = floorAt(f.x, Math.max(2, f.y - 6) ); if (f.vy) { f.vy += 400 * dt; f.hy = (f.hy || 0); }
-          if (f.st === "idle") { if (d < 96) { f.st = "ready"; f.t = 0; } }
-          else if (f.st === "ready") { if (f.cd <= 0 && d < 110) { f.st = "windup"; f.t = 0; } }
+          if (f.st === "idle") { if (d < 96 && los(f.x, f.y - 10, g.x, g.y - 9)) { f.st = "ready"; f.t = 0; } }
+          else if (f.st === "ready") { if (f.cd <= 0 && d < 110 && los(f.x, f.y - 10, g.x, g.y - 9)) { f.st = "windup"; f.t = 0; } }
           else if (f.st === "windup") { if (f.t > 0.6) { f.st = "ready"; f.t = 0; f.cd = 2.1; var T = Math.max(0.5, d / 120); S.shots.push({ kind: "shard", x: f.x + f.face * 4, y: f.y - 11, vx: dx / T, vy: (g.y - 8 - (f.y - 11)) / T - 100 * T, g: 200, dmg: 12 }); } }
         }
       }
