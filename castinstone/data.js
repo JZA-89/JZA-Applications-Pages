@@ -421,6 +421,17 @@ const KData = (() => {
     lasher: { name: 'Lasher', float: 0.8, desc: 'Barely moves. It throws out a vine and drags you to its mouth. Get out of its sight, or kill it while it pulls. Weak to fire.', w: 9, h: 13, hp: 95, attack: 13, defence: 8,
       walk: 12, reach: 100, wind: 0.5, pullTime: 1.1, pull: 420, every: 3.5, power: 24, knock: 140, affinity: { fire: 1.5, water: 0.7 }, xp: 1.4, spawn: { weights: [0, 0, 0], from: 99 } },
   });
+  // v0.80: one new creature for each cave, each built round that cave's materials (the generator never places them:
+  // each cave's remix turns some of its crawlers or moths into them)
+  Object.assign(enemies, {
+    tinder: { name: 'Tinder beetle', float: -0.2, dodge: true, desc: 'Scrapes up sparks, then charges, leaving fire behind it, and bursts into flame when it dies. Near oil, gas or wood it sets everything off. Water puts it out.', w: 11, h: 7, hp: 64, attack: 10, defence: 7,
+      walk: 30, run: 125, see: 165, scrape: 0.7, chargeTime: 1.2, every: 2.6, power: 16, knock: 150, burst: 14, affinity: { fire: 0, water: 1.7, earth: 0.9 }, xp: 1.2, spawn: { weights: [0, 0, 0], from: 99 } },
+    rime: { name: 'Rime crawler', float: -0.2, dodge: true, desc: 'Keeps its distance and spits frost on an arc. Where it lands water freezes solid and ice grows, and a hit chills you. Fire cracks it.', w: 12, h: 7, hp: 80, attack: 11, defence: 9,
+      walk: 26, near: 55, far: 120, range: 185, windup: 0.6, every: 2.5, speed: 170, power: 13, chill: 2.2, freeze: 8, affinity: { fire: 1.6, water: 0.3, lightning: 0.9 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
+    bladder: { name: 'Blight bladder', desc: 'A floating sac of acid. It drifts towards you and bursts when it is close or popped, and the acid eats the ground and you. Pop it from far off; lightning pops it best.', w: 11, h: 11, hp: 40, attack: 12, defence: 3,
+      fly: 28, trigger: 26, swell: 0.7, acid: 46, power: 22, affinity: { lightning: 1.8, earth: 0.8 }, xp: 1.3, spawn: { weights: [0, 0, 0], from: 99 } },
+  });
+  enemies.crawler.dodge = enemies.frog.dodge = enemies.slinger.dodge = true;   // these sometimes jump clear of a spell coming at them
   // shared by every enemy kind
   for (const k in enemies) Object.assign(enemies[k], { sight: enemies.crawler.sight, sense: enemies.crawler.sense, hearing: enemies.crawler.hearing, forget: enemies.crawler.forget,
     respawn: 25, awake: 380, respawnClear: 300, perLevel: enemies.crawler.perLevel }, { ...enemies[k] });
@@ -522,13 +533,19 @@ const KData = (() => {
   // the generator's five become, by region: [kind, from level, share of 100]), champions and last boss.
   // Past the last act they come round again, eight levels higher each time.
   const acts = [
-    { name: 'The Waking Cave', biomes, remix, boss: 'emberwyrm', order: ['warden', 'moth', 'delver'], champions: { warden: 'The Slate Colossus', moth: 'The Lantern Queen', delver: 'Deepjaw' } },
-    { name: 'The Sunless Deep', biomes: biomesDeep, boss: 'hollowking', order: ['shade', 'urchin', 'wraith'], champions: { shade: 'The Mirror', urchin: 'The Thousand Spines', wraith: 'The Pale Regent' },
+    { name: 'The Waking Cave', ending: 'The lake goes still. Under it the stone is warm, and it goes down further than anyone dug.', biomes, remix, boss: 'emberwyrm', order: ['warden', 'moth', 'delver'], champions: { warden: 'The Slate Colossus', moth: 'The Lantern Queen', delver: 'Deepjaw' } },
+    { name: 'The Sunless Deep', ending: 'The crown rolls into the black water and does not come up. Something below has stopped holding its breath.', biomes: biomesDeep, boss: 'hollowking', order: ['shade', 'urchin', 'wraith'], champions: { shade: 'The Mirror', urchin: 'The Thousand Spines', wraith: 'The Pale Regent' },
       // nothing of the first cave's crawlers, moths or spitters is left down here; delvers and wardens live in both
       remix: { crawler: [[['shade', 0, 60], ['urchin', 0, 40]], [['urchin', 0, 60], ['shade', 0, 40]], [['shade', 0, 50], ['urchin', 0, 50]]], moth: [[['wraith', 0, 50], ['shade', 0, 25], ['urchin', 0, 25]], [['wraith', 0, 50], ['urchin', 0, 30], ['shade', 0, 20]], [['wraith', 0, 60], ['shade', 0, 20], ['urchin', 0, 20]]], spitter: [[['geode', 0, 100]], [['geode', 0, 100]], [['geode', 0, 100]]] } },
-    { name: 'The Root of the World', biomes: biomesRoot, boss: 'heartroot', order: ['boar', 'mender', 'lasher'], champions: { boar: 'The Tusk', mender: 'The Gardener', lasher: 'The Strangler' },
+    { name: 'The Root of the World', ending: 'The root lets go. The cave settles, grain by grain, and for the first time since you woke, nothing moves but you.', biomes: biomesRoot, boss: 'heartroot', order: ['boar', 'mender', 'lasher'], champions: { boar: 'The Tusk', mender: 'The Gardener', lasher: 'The Strangler' },
       remix: { crawler: [[['boar', 0, 45], ['lasher', 0, 55]], [['boar', 0, 60], ['lasher', 0, 40]], [['lasher', 0, 50], ['boar', 0, 50]]], moth: [[['mender', 0, 45], ['lasher', 0, 30], ['boar', 0, 25]], [['mender', 0, 40], ['boar', 0, 35], ['lasher', 0, 25]], [['mender', 0, 45], ['boar', 0, 30], ['lasher', 0, 25]]], spitter: [[['geode', 0, 100]], [['geode', 0, 100]], [['geode', 0, 100]]] } },
   ];
+  // the new creatures take a share of each cave's mix: tinder beetles where there is coal and oil, rime crawlers where
+  // there is ice, blight bladders in the root caves
+  acts[0].remix.crawler[0].push(['tinder', 1, 22]); acts[0].remix.crawler[2].push(['tinder', 1, 22]);
+  const share = (act, base, biome, kind, part) => { const R = acts[act].remix[base]; R[biome] = [[kind, 0, part], ...R[biome].map(([k, f, s]) => [k, f, Math.round(s * (100 - part) / 100)])]; };
+  share(1, 'crawler', 0, 'rime', 30); share(1, 'crawler', 1, 'rime', 30);
+  for (const b of [0, 1, 2]) share(2, 'moth', b, 'bladder', 30);
   const cave = { returnAfter: 480, returnJitter: 0.25, returnClear: 480,   // a killed creature comes back 6 to 10 minutes later (v0.72), out of every golem's sight
     chambers: 104, spacing: 150, hubRadius: 320, regionDistance: 800, levelEvery: 200, depthLevels: 8,
     tunnel: [12, 17], plugChance: 0.16, loopChance: 0.55, lodestones: 15, stoneReach: 46, stoneUp: 30, stoneDown: 50,   // how near counts as at a Lodestone: sideways, above it, below it

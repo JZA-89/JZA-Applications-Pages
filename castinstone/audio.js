@@ -44,6 +44,8 @@ const KAudio = (() => {
   const CAVE_CHORDS = [[50, 57, 64, 65], [46, 53, 57, 62], [53, 60, 67, 69], [48, 55, 62, 64], [45, 52, 55, 60]];
   const DRIPS = [74, 77, 79, 81, 84, 86, 89];          // high notes for the bell drips
   // the boss: low notes that clash
+  // the title's tune: [note, seconds after it starts, loudness]
+  const THEME = [[74, 0, 0.07], [81, 0.9, 0.06], [79, 1.8, 0.06], [77, 2.7, 0.055], [76, 3.6, 0.055], [74, 4.5, 0.06], [69, 6.3, 0.05], [74, 8.1, 0.04]];
   const BOSS_CHORDS = [[38, 44, 51], [38, 45, 53, 56], [37, 44, 50], [38, 44, 53, 55]];
 
   function buildMusic() {
@@ -95,11 +97,24 @@ const KAudio = (() => {
   function musicTick() {
     if (!ctx || !mus || ctx.state !== 'running') return;
     const now = ctx.currentTime, on = musicOn && !muted && !document.hidden;
-    mus.cave.gain.setTargetAtTime(on && mood === 'cave' ? 1 : 0, now, 0.9);
+    mus.cave.gain.setTargetAtTime(on && (mood === 'cave' || mood === 'title') ? 1 : 0, now, 0.9);
     mus.boss.gain.setTargetAtTime(on && mood === 'boss' ? 1 : 0, now, 0.6);
     if (!on) { mus.nextChord = mus.nextDrip = mus.nextBossChord = mus.nextBeat = mus.nextBell = 0; return; }
     const ahead = now + 0.4;
-    if (mood === 'cave') {
+    if (mood === 'title') {
+      // the title theme (v0.80): the cave's chords, and over them a slow bell tune that comes back every 15 s
+      if (mus.nextChord < now) mus.nextChord = now + 0.1;
+      if ((mus.nextTheme || 0) < now) mus.nextTheme = now + 1.2;
+      while (mus.nextChord < ahead) {
+        const ch = CAVE_CHORDS[mus.chord++ % CAVE_CHORDS.length];
+        ch.forEach((m, i) => pad(mus.cave, hz(m), mus.nextChord + i * 0.6, 17, 0.05, i < 2 ? 'sine' : 'triangle', 900, 4.5));
+        mus.nextChord += 13;
+      }
+      while (mus.nextTheme < ahead) {
+        for (const [n, at, v] of THEME) bell(mus.cave, hz(n), mus.nextTheme + at, v, 3.4);
+        mus.nextTheme += 15;
+      }
+    } else if (mood === 'cave') {
       if (mus.nextChord < now) mus.nextChord = now + 0.1;
       if (mus.nextDrip < now) mus.nextDrip = now + 2;
       while (mus.nextChord < ahead) {
@@ -203,6 +218,7 @@ const KAudio = (() => {
     rune: (v, p) => { [660, 880, 1320].forEach((f, k) => tone('triangle', f, f, 0.25, v * 0.25, p, k * 0.07)); },
     cache: (v, p) => { [523, 659, 784, 1046].forEach((f, k) => tone('triangle', f, f, 0.35, v * 0.28, p, k * 0.08)); },
     level: (v, p) => { [392, 523, 659, 784].forEach((f, k) => tone('triangle', f, f * 1.002, 0.45, v * 0.3, p, k * 0.1)); },
+    rest: (v, p) => { [392, 494, 587, 784].forEach((f, k) => tone('triangle', f, f, 1.6, v * 0.16, p, k * 0.09)); noise('highpass', 5000, 3000, 1, 0.9, v * 0.06, p, 0.1); },   // resting at a Lodestone: a soft rising chord
     stone: (v, p) => { [262, 392, 523].forEach((f, k) => tone('sine', f, f, 1.2, v * 0.25, p, k * 0.04)); },
     nomana: (v, p) => { tone('square', 220, 180, 0.08, v * 0.12, p); },
     // warnings: an enemy is about to attack

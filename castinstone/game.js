@@ -1054,7 +1054,7 @@ const KGame = (() => {
       stats.defence = E.defence + E.perLevel.defence * L;
       const hp = Math.round(E.hp * (1 + E.perLevel.hp * L) * (elite ? EL.hp : 1));
       return { kind, id: i, home, level: home.level, elite, x: home.x, y: home.y, vx: 0, vy: 0, w: E.w, h: E.h,
-        flying: kind === 'moth' || kind === 'wisp' || kind === 'wraith' || kind === 'mender', noclip: kind === 'wraith', anchored: kind === 'spitter' || kind === 'geode', ghost: kind === 'delver', face: home.face || 1, fireT: 1 + this.rand() * 2,
+        flying: kind === 'moth' || kind === 'wisp' || kind === 'wraith' || kind === 'mender' || kind === 'bladder', noclip: kind === 'wraith', anchored: kind === 'spitter' || kind === 'geode', ghost: kind === 'delver', face: home.face || 1, fireT: 1 + this.rand() * 2,
         hp, maxHp: hp, stats, grounded: false, dead: false, respawnT: 0, lastHurt: -9, flash: 0, asleep: true,
         facing: i % 2 ? 1 : -1, dir: i % 2 ? 1 : -1, state: 'patrol', t: 0, lastSeen: -9, hit: false };
     }
@@ -1922,10 +1922,21 @@ const KGame = (() => {
         this.sfx('explosion', x, y, pr.mini ? 0.5 : 1);
         this.shake = Math.max(this.shake, 3);
       } else if (pr.kind === 'blob') {
+        if (sp.chill) {
+          // frost (a rime crawler): it chills whoever it hits or lands beside, and water round it freezes solid
+          if (hit) this.hurt(hit, sp.power, pr.vx * 0.2, -30, 'ice', pr.owner, pr.key);
+          for (const q of this.players) if (!q.dead && Math.hypot(q.x - px, (q.y - q.h / 2) - py) < 14) q.slowT = Math.max(q.slowT || 0, sp.chill);
+          const w = this.world, R2 = sp.freeze * sp.freeze;
+          for (let y = Math.floor(py - sp.freeze); y <= py + sp.freeze; y++) for (let x = Math.floor(px - sp.freeze); x <= px + sp.freeze; x++) if ((x - px) * (x - px) + (y - py) * (y - py) <= R2 && w.get(x, y) === M.WATER && !this.players.some(q => !q.dead && Math.abs(x - q.x) <= q.w / 2 + 1 && y >= q.y - q.h - 1 && y <= q.y + 1)) w.set(x, y, M.ICE);   // never round a golem's own body: it would be stuck, then broken free
+          this.fillBlob(Math.floor(px), Math.floor(py), M.ICE, sp.count);   // no clean-up here: frozen water is a block standing in liquid, meant to stay, and plainly seen
+          this.burst(px, py, 10, [[206, 232, 250], [150, 200, 240]], 70);
+          this.sfx('splash', px, py, 0.6);
+        } else {
         if (hit) this.hurt(hit, sp.power, pr.vx * 0.3, -40, 'magma', pr.owner, pr.key);
         this.fillBlob(Math.floor(px), Math.floor(py), M[sp.mat], sp.count);
         this.burst(px, py, 8, [[255, 168, 64], [255, 120, 40]], 70);
         this.sfx('magma', px, py, 0.7);
+        }
       } else if (pr.kind === 'boulder') {
         const s = Math.hypot(pr.vx, pr.vy) || 1;
         if (sp.splash) this.hitRadius(pr.x, pr.y, sp.splash, sp.power, sp.knock, pr.owner, pr.owner, pr.key);   // Avalanche: each boulder shatters
@@ -2161,6 +2172,13 @@ const KGame = (() => {
 
     kill(a) {
       if (a.kind === 'boss') return this.bossDefeated(a);
+      if (a.kind === 'bladder') this.bladderBurst(a);   // popped or burst, it splashes acid
+      if (a.kind === 'tinder') {                         // it goes up in flame
+        const w = this.world, cx = Math.round(a.x), cy = Math.round(a.y - 3), E = KData.enemies.tinder;
+        for (let k = 0; k < 30; k++) { const an = this.rand() * Math.PI * 2, r = this.rand() * 8, x = Math.round(cx + Math.cos(an) * r), y = Math.round(cy + Math.sin(an) * r); if (w.get(x, y) === M.EMPTY) w.set(x, y, M.FIRE); }
+        for (const q of this.players) { if (q.dead) continue; const d = Math.hypot(q.x - cx, (q.y - q.h / 2) - cy); if (d < 16) this.hurt(q, E.burst * (1 - d / 32), Math.sign(q.x - cx || 1) * 100, -50, 'fire', a, null); }
+        this.burst(cx, cy, 14, [[255, 200, 120], [255, 130, 50]], 110);
+      }
       this.sfx('crumble', a.x, a.y - a.h / 2, a.kind === 'player' ? 1.2 : 0.8);
       a.dead = true; a.hp = 0;
       if (a.kind !== 'player' && a.kind !== 'dummy') a.backT = Math.round(KData.cave.returnAfter * (1 + (this.rand() - 0.5) * 2 * KData.cave.returnJitter));   // 6 to 10 minutes
@@ -2213,7 +2231,7 @@ const KGame = (() => {
       // just risen at a Lodestone, or just left one: nothing hunts you for a few seconds unless you hurt it
       if (this.time - (e.lastHurt ?? -9) > 2 && this.players.every(q => q.dead || q.calmT > 0)) { e.lastSeen = -9; if (!e.flying) e.vx *= 0.9; return; }
       const g0 = e.grounded;   // on the ground before it chose this step's move (hazardGuard)
-      if (e.kind === 'crawler') { this.crawlerTick(e); return this.hazardGuard(e, g0); }
+      if (e.kind === 'crawler') { this.crawlerTick(e); this.packAlarm(e); this.dodgeTick(e, KData.enemies.crawler, g0); return this.hazardGuard(e, g0); }
       e.t = (e.t || 0) + DT;
       const w = this.world;
       let p = null, best = 1e9;
@@ -2234,7 +2252,124 @@ const KGame = (() => {
       const slow = (e.inMud || e.slowT > 0) ? 0.35 : 1;
       if (e.champion && this.championTick(e, p, aware, set, w)) return this.hazardGuard(e, g0);
       this['tick_' + e.kind](e, E, p, aware, see, set, slow, w);
+      if (see) this.packAlarm(e, p);
+      this.dodgeTick(e, E, g0);
       this.hazardGuard(e, g0);
+    }
+    // v0.80: a creature that sees a golem tells those near it (within 140 across, 90 up or down), so a fight starts
+    // as a group, not one at a time. At most every 1.5 s each.
+    packAlarm(e, p) {
+      if (!p) { p = this.players.find(q => !q.dead && this.time - (e.lastSeen ?? -9) < 0.1); if (!p) return; }
+      if (this.time - (e.alarmAt ?? -9) < 1.5) return;
+      e.alarmAt = this.time;
+      for (const o of this.enemies) if (o !== e && !o.dead && !o.asleep && !o.champion && Math.abs(o.x - e.x) < 140 && Math.abs(o.y - e.y) < 90 && this.time - (o.lastSeen ?? -9) > 1) { o.lastSeen = this.time; o.knownX = p.x; }
+    }
+    // v0.80: creatures that can (crawlers, mirehoppers, slingers, tinder beetles, rime crawlers) sometimes jump clear of
+    // a golem's spell flying straight at them: about one time in three, at most every 1.6 s, only from the ground.
+    dodgeTick(e, E, g0) {
+      if (!E.dodge || !g0 || e.dead || this.time - (e.dodgeAt ?? -9) < 1.6 || (e.state !== 'chase' && e.state !== 'idle' && e.state !== 'patrol')) return;
+      const cx = e.x, cy = e.y - e.h / 2;
+      for (const pr of this.projectiles) {
+        if (!pr.owner || pr.owner.kind !== 'player') continue;
+        const dx = cx - pr.x, dy = cy - pr.y, d = Math.hypot(dx, dy), v = Math.hypot(pr.vx, pr.vy) || 1;
+        if (d > 64 || dx * pr.vx + dy * pr.vy <= 0) continue;                 // far, or flying away
+        const off = (dx * pr.vy - dy * pr.vx) / v;                            // how far off its line the creature stands
+        if (Math.abs(off) > 12 || this.rand() > 0.035) continue;
+        e.vy = -150; e.vx = (Math.sign(dx) || 1) * 60; e.grounded = false; e.dodgeAt = this.time;   // a hop up and away from it
+        return;
+      }
+    }
+
+    // ---------- v0.80: the new creatures ----------
+    // Tinder beetle: scrapes up sparks (the warning), then charges, leaving fire behind it; bursts into flame when it dies.
+    tick_tinder(e, E, p, aware, see, set, slow, w) {
+      e.fireT = (e.fireT ?? 1) - DT * slow;
+      switch (e.state) {
+        case 'idle': if (e.grounded) e.vx *= Math.exp(-10 * DT); if (aware) set('chase'); break;
+        case 'chase':
+          if (!aware || !p) { set('idle'); break; }
+          e.dir = Math.sign((see ? p.x : e.knownX ?? p.x) - e.x) || 1;
+          if (e.grounded) {
+            e.vx += (e.dir * E.walk * slow - e.vx) * Math.min(1, 5 * DT);
+            const fx = Math.round(e.x + e.dir * (e.w / 2 + 1));
+            if (SOLID[w.get(fx, Math.round(e.y - 3))] && this.time - (e.jumpedAt || -9) > 0.5) { e.vy = -160; e.jumpedAt = this.time; }
+          }
+          if (see && e.grounded && e.fireT <= 0 && Math.abs(p.y - e.y) < 20 && Math.abs(p.x - e.x) < E.see) { set('windup'); this.sfx('warnSpitter', e.x, e.y, 0.7); }
+          break;
+        case 'windup':
+          e.vx *= Math.exp(-12 * DT);
+          if (this.rand() < 0.5) this.burst(e.x - e.dir * 4, e.y - 2, 1, [[255, 210, 120], [255, 140, 50]], 60);
+          if (e.t > E.scrape / Math.sqrt(slow)) { e.hit = false; set('lunge'); }
+          break;
+        case 'lunge': {
+          this.contactHit(e, E);
+          if (e.grounded) e.vx = e.dir * E.run * slow;
+          const bx = Math.round(e.x - e.dir * (e.w / 2 + 1)), by = Math.round(e.y - 1);
+          if (w.get(bx, by) === M.EMPTY && this.rand() < 0.6) w.set(bx, by, M.FIRE);
+          if (e.t > E.chargeTime || (e.t > 0.25 && Math.abs(e.vx) < 10)) { e.fireT = E.every; set('chase'); }
+          break;
+        }
+        default: set('idle');
+      }
+      e.facing = e.dir || 1;
+    }
+    // Rime crawler: keeps its distance, rears up (the warning), and spits frost on an arc.
+    tick_rime(e, E, p, aware, see, set, slow, w) {
+      e.fireT = (e.fireT ?? 1.2) - DT * slow;
+      switch (e.state) {
+        case 'idle': if (e.grounded) e.vx *= Math.exp(-10 * DT); if (aware) set('chase'); break;
+        case 'chase': {
+          if (!aware || !p) { set('idle'); break; }
+          const dx = p.x - e.x, d = Math.abs(dx); e.dir = Math.sign(dx) || 1;
+          const want = d < E.near ? -e.dir : d > E.far ? e.dir : 0;
+          if (e.grounded) {
+            e.vx += (want * E.walk * slow - e.vx) * Math.min(1, 6 * DT);
+            const fx = Math.round(e.x + (want || e.dir) * (e.w / 2 + 1));
+            if (want && SOLID[w.get(fx, Math.round(e.y - 3))] && this.time - (e.jumpedAt || -9) > 0.6) { e.vy = -160; e.jumpedAt = this.time; }
+          }
+          if (see && e.fireT <= 0 && Math.hypot(dx, p.y - e.y) < E.range) { set('windup'); this.sfx('warnSpitter', e.x, e.y, 0.6); }
+          break;
+        }
+        case 'windup':
+          e.vx *= Math.exp(-12 * DT);
+          if (e.t > E.windup / Math.sqrt(slow)) {
+            if (p) {
+              const mx = e.x + e.dir * 6, my = e.y - e.h + 1, v = this.lobAt(mx, my, p.x, p.y - 6, E.speed, 380, p);
+              this.projectiles.push({ kind: 'blob', sp: { power: E.power, count: 7, mat: 'ICE', chill: E.chill, freeze: E.freeze }, key: 'water+water', owner: e, x: mx, y: my, vx: v.vx, vy: v.vy, g: 380, age: 0 });
+              this.sfx('splash', mx, my, 0.6);
+            }
+            e.fireT = E.every; set('chase');
+          }
+          break;
+        default: set('idle');
+      }
+      e.facing = e.dir || 1;
+    }
+    // Blight bladder: drifts towards you, swells (the warning) when close, and bursts into acid; popping it bursts it too.
+    tick_bladder(e, E, p, aware, see, set, slow, w) {
+      const steer = (tx, ty, speed, rate) => { const dx = tx - e.x, dy = ty - e.y, d = Math.hypot(dx, dy) || 1; e.vx += (dx / d * speed - e.vx) * Math.min(1, rate * DT); e.vy += (dy / d * speed - e.vy) * Math.min(1, rate * DT); };
+      switch (e.state) {
+        case 'chase':
+          if (!aware || !p) { set('idle'); break; }
+          steer(p.x, p.y - p.h / 2 - 4, E.fly * slow, 1.5);
+          if (Math.hypot(p.x - e.x, (p.y - p.h / 2) - (e.y - e.h / 2)) < E.trigger) { set('windup'); this.sfx('warnSpitter', e.x, e.y, 0.8); }
+          break;
+        case 'windup':
+          e.vx *= Math.exp(-6 * DT); e.vy *= Math.exp(-6 * DT);
+          if (e.t > E.swell) { e.lastHitBy = null; this.kill(e); }
+          break;
+        default:
+          steer(e.home.x + Math.sin(this.time * 0.5 + e.id) * 18, e.home.y + Math.cos(this.time * 0.7 + e.id) * 8, E.fly * 0.4, 2);
+          if (aware) set('chase');
+      }
+      e.facing = p ? (Math.sign(p.x - e.x) || 1) : 1;
+    }
+    // a bladder bursting: acid splashed round it, and whoever is close is burnt
+    bladderBurst(e) {
+      const E = KData.enemies.bladder, w = this.world, cx = Math.round(e.x), cy = Math.round(e.y - e.h / 2);
+      for (let k = 0; k < E.acid; k++) { const an = this.rand() * Math.PI * 2, r = 2 + this.rand() * 9, x = Math.round(cx + Math.cos(an) * r), y = Math.round(cy + Math.sin(an) * r); if (w.get(x, y) === M.EMPTY) w.set(x, y, M.ACID); }
+      for (const q of this.players) { if (q.dead) continue; const d = Math.hypot(q.x - cx, (q.y - q.h / 2) - cy); if (d < 32) this.hurt(q, E.power * (1 - d / 32 * 0.5), Math.sign(q.x - cx || 1) * 120, -60, "acid", e, null); }   // it bursts 26 away: the splash reaches past that
+      this.burst(cx, cy, 18, [[170, 244, 80], [214, 255, 150]], 120); this.sfx('splash', cx, cy, 1);
     }
     // v0.73: creatures on foot keep out of what hurts them. With fire, embers, magma or acid just ahead of
     // their feet they stop at the edge (one on patrol turns round); standing in it, they step out towards
@@ -2822,13 +2957,7 @@ const KGame = (() => {
         e.fireT = E.every;
         if (!p || !see || Math.hypot(p.x - e.x, p.y - e.y) > E.range) return;
         const mx = e.x + e.face * 5, my = e.y - 7;
-        const dx = p.x - mx, dy = (p.y - 6) - my, g = 380, v = E.speed;
-        // aim on a falling arc: the lower of the two angles that reach the target
-        const disc = v * v * v * v - g * (g * dx * dx + 2 * dy * v * v);
-        let an;
-        if (disc >= 0) an = Math.atan2(v * v - Math.sqrt(disc), g * Math.abs(dx));
-        else an = Math.PI / 4;
-        const vx = Math.cos(an) * v * Math.sign(dx || 1), vy = -Math.sin(an) * v;
+        const g = 380, { vx, vy } = this.lobAt(mx, my, p.x, p.y - 6, E.speed, g, p);   // reaches, and leads you if you are moving
         const sp = { power: E.power, count: E.glob, mat: 'MAGMA' };
         this.projectiles.push({ kind: 'blob', sp, key: 'earth+fire', owner: e, x: mx, y: my, vx, vy, g, age: 0 });
         this.sfx('magma', mx, my, 0.6);
@@ -2865,7 +2994,7 @@ const KGame = (() => {
           if (p) e.dir = Math.sign(p.x - e.x) || e.dir;
           if (e.t > E.throwWind / Math.sqrt(slow)) {
             if (p) {
-              const v = this.lobAt(e.x + e.dir * 6, e.y - e.h, p.x, p.y - 6, E.throwSpeed, 380);
+              const v = this.lobAt(e.x + e.dir * 6, e.y - e.h, p.x, p.y - 6, E.throwSpeed, 380, p);
               this.projectiles.push({ kind: 'boulder', sp: { power: E.throwPower, knock: 220, dig: 4, rubble: 8, vis: 1.3 * (e.champion ? 1.5 : 1) }, key: 'earth+earth', owner: e, x: e.x + e.dir * 6, y: e.y - e.h, vx: v.vx, vy: v.vy, g: 380, age: 0 });
               this.sfx('earth', e.x, e.y, 0.8);
             }
@@ -2902,10 +3031,21 @@ const KGame = (() => {
 
     // the velocity that throws something from (x, y) to land on (tx, ty) at speed v under gravity g:
     // the lower of the two arcs that reach, or 45 degrees if it is out of reach
-    lobAt(x, y, tx, ty, v, g) {
-      const dx = tx - x, dy = ty - y, disc = v * v * v * v - g * (g * dx * dx + 2 * dy * v * v);
-      const an = disc >= 0 ? Math.atan2(v * v - Math.sqrt(disc), g * Math.abs(dx)) : Math.PI / 4;
-      return { vx: Math.cos(an) * v * Math.sign(dx || 1), vy: -Math.sin(an) * v };
+    // A throw on a falling arc from (x, y) to (tx, ty), on the lower of the two arcs that reach it. v.0.80: when
+    // the target is out of reach at speed v it throws just hard enough to get there (it used to fall short past about
+    // v²/g), and given q (who it is thrown at) it aims where q will be when the throw lands.
+    lobAt(x, y, tx, ty, v, g, q) {
+      const solve = (TX, TY) => {
+        const dx = TX - x, dy = TY - y, need = Math.sqrt(Math.max(1, g * (-dy + Math.hypot(dx, dy)))) * 1.06;
+        const V = Math.max(v, need), disc = V * V * V * V - g * (g * dx * dx - 2 * dy * V * V);   // dy is downwards here; the formula wants height upwards (it had the wrong sign before v0.80)
+        // a target well above is reached on the high arc, coming down onto it, not rising into the ledge it stands on
+        const hi = dy < -16 ? 1 : -1, an = disc >= 0 ? Math.atan2(V * V + hi * Math.sqrt(disc), g * Math.abs(dx)) : Math.PI / 4;
+        const vx = Math.cos(an) * V * Math.sign(dx || 1), vy = -Math.sin(an) * V;
+        return { vx, vy, t: Math.abs(dx) / Math.max(20, Math.abs(vx)) };
+      };
+      let s = solve(tx, ty);
+      if (q) for (let k = 0; k < 2; k++) { const lead = Math.min(1.2, s.t); s = solve(tx + (q.vx || 0) * lead, ty + (q.grounded ? 0 : (q.vy || 0) * lead * 0.5)); }
+      return s;
     }
     // a warden's ground wave: it follows the floor and hits a golem standing in its way
     updateWaves() {
@@ -2945,7 +3085,7 @@ const KGame = (() => {
           if (p) e.dir = Math.sign(p.x - e.x) || e.dir;
           if (e.t > E.windup / Math.sqrt(slow)) {
             if (p) {
-              const mx = e.x + e.dir * 5, my = e.y - e.h, v = this.lobAt(mx, my, p.x + p.vx * 0.25, p.y - 6, E.speed, 380);
+              const mx = e.x + e.dir * 5, my = e.y - e.h, v = this.lobAt(mx, my, p.x, p.y - 6, E.speed, 380, p);
               this.projectiles.push({ kind: 'boulder', sp: { power: E.power, knock: E.knock, dig: 2, rubble: 0, vis: 0.7 }, key: 'earth+earth', owner: e, x: mx, y: my, vx: v.vx, vy: v.vy, g: 380, age: 0 });
               this.sfx('spear', mx, my, 0.6);
             }

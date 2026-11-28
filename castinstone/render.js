@@ -138,7 +138,17 @@ const KRender = (() => {
     lasher: [["...ggg...", "..gkkkg..", ".gktttkg.", ".gktttkg.", "..gkkkg..", "...gdg...", "..gdgdg..", "...gdg...", "..gdgdg..", "...gdg...", "..gdddg..", ".gddgddg.", "gdg...gdg"]],
     heartroot: [["......kdk.kdk....", "......kdk.kdk....", ".....kddkkddk....", "...kkkrrrrrrkkk..", "..krrrrrrrrrrrrk.", ".krrhrrrrrrrrhrrk", ".krrrrrkkkrrrrrrk", "krrrrrkoookrrrrrk", "krrrrkoooookrrrrk", "krrrrkoooookrrrrk", "krrrrrkoookrrrrrk", ".krrrrrkkkrrrrrk.", ".krrhrrrrrrrhrrk.", "..krrrrrrrrrrrk..", "...kkrrrrrrrkk...", ".....kkrrrkk.....", ".......kdk.......", "......kd.dk......"]],
   });
+  Object.assign(ENEMY_ART, {
+    tinder: [["...kkkkk...", "..kcccccck.", ".kcchccccek", "kccccccccck", "kfffffffffk", ".kdk.kdk.k.", ".k...k...k."],
+             ["...kkkkk...", "..kcccccck.", ".kcchccccek", "kccccccccck", "kfffffffffk", "..kdk.kdk.k", "..k...k...k"]],
+    rime: [["...kkkkkk...", ".kkiiiiiikk.", "kiihiiiiiiek", "kiiiiiiiiiwk", "kbbbbbbbbbbk", ".kdkdkkdkdk.", ".k.k....k.k."]],
+    bladder: [["....kkk....", "..kkgggkk..", ".kgggggggk.", ".kgghggggk.", "kggggggoggk", "kgggeggeggk", "kgggggggggk", ".kgggggggk.", "..kkgggkk..", "....kdk....", ".....d....."],
+              ["....kkk....", "..kkgggkk..", ".kgggggggk.", ".kgghgoggk.", "kgggggggggk", "kgggeggeggk", "kgogggggggk", ".kgggggggk.", "..kkgggkk..", "....kdk....", "....d......"]],
+  });
   const ENEMY_COL = {
+    tinder: { k: [26, 14, 12], c: [78, 44, 30], h: [126, 80, 54], f: [255, 140, 50], d: [44, 26, 20], e: [255, 210, 110] },
+    rime: { k: [18, 30, 46], i: [124, 172, 210], h: [206, 232, 250], b: [92, 132, 172], d: [40, 60, 80], w: [226, 246, 255], e: [170, 240, 255] },
+    bladder: { k: [30, 40, 16], g: [150, 200, 70], h: [222, 255, 160], o: [192, 240, 92], e: [255, 232, 92], d: [70, 90, 40] },
     moth: { w: [222, 196, 244], k: [40, 30, 50], b: [124, 104, 146], e: [255, 70, 160] },
     delver: { k: [24, 16, 20], m: [122, 98, 92], h: [154, 126, 112], d: [84, 66, 64], t: [240, 230, 210], e: [255, 70, 160] },
     spitter: { k: [24, 14, 18], m: [92, 62, 60], h: [134, 92, 82], d: [60, 40, 42], o: [255, 140, 50] },

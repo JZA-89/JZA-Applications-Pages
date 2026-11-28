@@ -692,6 +692,19 @@ Saves moved to `castinstone.save.v5` (the cave is generated differently).
 
 Checked: box tests of every reaction (scratchpad `mt.js`), material counts in all three acts, screenshots of each material and of the darkness, and the usual soak, save, three-act, co-op and performance runs.
 
+## Creatures that aim, dodge and call each other; three new ones; endings; title fit (v0.80)
+
+- **Lobbed shots now reach and aim** (Jaisah: "the cannon dudes don't even aim at me"). `game.lobAt` had the height in the arc formula with the wrong sign (the game measures down, the formula wants up), so a target above was treated as below; and a throw too slow to reach (the Cinder spitter's 175 reaches about 80 cells, but it fired at anything within 190) fell short. Now it throws just hard enough when it must, uses the high arc for a target well above (coming down onto its ledge, not rising into it), and leads a moving target by its flight time (`q`). The Cinder spitter uses it too (it had its own copy); so do the slinger, the warden's boulder and the Hollow King's rain. Checked with scratchpad `aim.js`: spitter, slinger and geode now hit a golem standing still on level ground near and far and on a ledge above.
+- **A creature that sees you alerts those near it** (`game.packAlarm`: within 140 across and 90 up or down, at most every 1.5 s), so a fight starts as a group.
+- **Some creatures dodge** (`game.dodgeTick`, `dodge: true`: crawler, mirehopper, slinger, tinder beetle, rime crawler): from the ground, at most every 1.6 s, when a golem's spell is flying at them within 64 cells and 12 off its line, a 3.5% chance a step (about one time in three) to hop up and away.
+- **One new creature in each cave**, each built round that cave's materials (spawned through each cave's `remix`):
+  - **Tinder beetle** (the Waking Cave: Rose Hollows and Ember Veins, 22% of crawler homes from level 1): scrapes up sparks for 0.7 s, then charges at 125 for up to 1.2 s leaving fire behind it, every 2.6 s; bursts into flame when it dies (fire round it, 14 to whoever is close). Fire does nothing to it; water 1.7×.
+  - **Rime crawler** (the Sunless Deep: Glass Warrens and Sunless Sea, 30% of crawler homes): keeps 55 to 120 away and spits frost on an arc (`lobAt`) every 2.5 s: on landing, water within 8 freezes (never round a golem's own body), a little ice grows, and a golem within 14 is chilled (slowed) for 2.2 s. Fire 1.6×, water 0.3×.
+  - **Blight bladder** (the Root of the World, 30% of moth homes): floats towards you, swells for 0.7 s when within 26, and bursts into acid (46 cells; 22 falling to 11 within 32); popping it bursts it too, so pop it from far off. Lightning 1.8×.
+- **Each cave's ending has one line** (`acts[i].ending`, shown under the title on the end page), short and plain.
+- **Sound:** a title theme (the cave's chords with a slow bell tune every 15 s, mood `title`), and a soft rising chord when you rest at a Lodestone (`rest`).
+- **The title fits any screen** (Jaisah, on iPad: it ran off the screen): `fitTitle` measures the title and shrinks it as one piece to fit the visible area.
+
 ## The title screen (v0.79)
 
 Jaisah: the start screen looked "in development". The game now opens on a title screen (`#titleWrap`, `.ts-*` in style.css): the live cave behind it (the waking hall, its dust and embers moving: `R.draw` gets the real frame time on the title, and `render.ambient` uses it), the HUD hidden, a dark wash on the left for the text, the name large in carved stone with a gold *in*, the line "Type the elements. Shape the spell.", and a short menu: Begin (Continue with a save), Your golem, Spell book, Controls, Co-op. Under the menu, with a save, one quiet line: level, region and cave. The version is only in the bottom-right corner, small. On a wide screen the camera stands the golem right of centre (`lookX` 0.68) so the hall sits beside the menu; upright or narrow, the title is centred and the golem stands low (`lookY` 0.82). Each menu line opens that tab of the existing pages (`titleSub`), which then have a Back button; Back, Esc and B return to the title. The controller moves through the title menu like any page (`openWrap`). The pages' heading no longer shows "Beta · version", only the cave's name.
@@ -847,6 +860,8 @@ Measured with scratchpad `pf.js` (times per function per frame in four situation
 Measured in desktop Chromium with a water jet running for 600 steps: simulation 0.22 ms a step, drawing 1.5 ms a frame. The simulation only touches awake chunks; the renderer draws the visible 320 × 180 cells each frame. The game pauses when the tab is hidden. Screen shake is off with reduced motion.
 
 ## Decision log
+
+- **v0.80 (2026-11-28):** ranged creatures reach and aim (the arc formula had the wrong sign), creatures alert each other and some dodge, a new creature per cave (tinder beetle, rime crawler, blight bladder), a line for each cave's ending, a title theme and a resting chord, and the title fits an iPad. Jaisah: more variety and enemies that do more; endings, but nothing cringy; no healing pick-ups ("there's already a heal spell. Git gud").
 
 - **v0.79 (2026-11-28):** a title screen over the live cave (Jaisah: the start looked "in development").
 

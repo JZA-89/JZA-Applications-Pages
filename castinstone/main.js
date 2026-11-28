@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v0.79';
+  const VERSION = 'v0.80';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -286,7 +286,17 @@
     $('tsSave').innerHTML = hadSave ? `<b>Level ${p.level}</b> · ${game.world.biomes[game.world.biomeAt(p.x, p.y - 8)].name} · ${KData.acts[game.act].name}` : '';
     $('tsVer').textContent = `Beta · ${VERSION}`;
     $('tsGo').focus({ preventScroll: true });
+    fitTitle();
   }
+  // The title shrinks as one piece until it fits the visible area with a margin (v0.80: on an iPad it ran off the screen)
+  function fitTitle() {
+    const t = $('ts'); if (!t || $('titleWrap').hidden) return;
+    t.style.setProperty('--tss', 1);
+    const VV = window.visualViewport, W = VV ? VV.width : innerWidth, H = VV ? VV.height : innerHeight, r = t.getBoundingClientRect();
+    const s = Math.min(1, (W * 0.88) / r.width, (H * 0.86) / r.height);
+    t.style.setProperty('--tss', s.toFixed(3));
+  }
+  addEventListener('resize', fitTitle); if (window.visualViewport) visualViewport.addEventListener('resize', fitTitle);
   $('tsGo').addEventListener('click', () => $('btnGo').click());
   for (const b of document.querySelectorAll('.ts-item[data-open]')) b.addEventListener('click', () => { titleSub = b.dataset.open; setMode('start'); });
   $('btnBack').addEventListener('click', () => { titleSub = false; setMode('start'); });
@@ -481,7 +491,7 @@
       }
       else if (e.type === 'found') toast(`Lodestone found · ${e.stone.hub ? 'the hub' : e.stone.region}`, 'stone');
       else if (e.type === 'ending') { save(); endAt = 2.2; }
-      else if (e.type === 'rest') { save(); if (mode === 'play') setMode('rest'); }
+      else if (e.type === 'rest') { save(); if (e.p === ME) KAudio.play('rest', 0, 0, 0, 0, 1); if (mode === 'play') setMode('rest'); }
       else if (e.type === 'save') save();
       else if (e.type === 'died') toast('Your golem crumbled. It rises again at the last Lodestone.', 'died');
       else if (e.type === 'toast') toast(e.text, e.kind || '');
@@ -710,7 +720,7 @@
     KAudio.ambience(mode === 'play' && !me.dead ? { fire: Math.min(1, (AM.fire || 0) / 120), magma: Math.min(1, (AM.magma || 0) / 1500), acid: Math.min(1, (AM.acid || 0) / 300) } : {});
     // music: calm in the cave, ominous while a boss or champion is fighting you
     const foe = game.boss && !game.boss.dead && game.boss.engaged ? game.boss : game.championNear(me);
-    KAudio.setMood(foe && !me.dead ? 'boss' : 'cave');
+    KAudio.setMood(mode === 'start' ? 'title' : foe && !me.dead ? 'boss' : 'cave');
     const p = game.players[ME];
     let reticle = null;
     if (mode === 'play') {
@@ -825,6 +835,7 @@
     const A = KData.acts, B = KData.bosses[game.world.lair.boss], next = A[(game.depth + 1) % A.length], nb = KData.bosses[next.boss];
     $('endEyebrow').textContent = `${A[game.act].name} is won` + (game.depth >= A.length ? ` · depth ${game.depth + 1}` : '');
     $('endTitle').textContent = `${B.name} has fallen`;
+    $('endLine').textContent = A[game.act].ending || '';
     $('endText').textContent = `The three seals are broken and the ${B.core} is yours. ` + (game.depth + 1 < A.length ? `Below lies ${next.name}: the ${next.biomes.map(b => b.name).join(', the ')}, creatures you have not met, three new champions and ${nb.name}.` : `The way down goes on. ${next.name} waits again, eight levels harder.`);
     $('endNote').textContent = 'Everything below is eight levels stronger and the treasure is better. Your golem keeps its level, runestones, spells and shards. This cave is left behind for good.';
     $('endStats').innerHTML = tile('star', p.level, 'Level') + tile('stats', clock(game.played), 'Time in the cave') + tile('skull', game.kills, 'Creatures felled') + tile('heart', game.deaths, 'Times crumbled') + tile('book', `${p.known.length}<small> of ${Object.keys(KData.specials).length}</small>`, 'Special spells') + tile('stone', `${game.found.size}<small> of ${game.world.lodestones.length}</small>`, 'Lodestones');
