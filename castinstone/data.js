@@ -76,9 +76,11 @@ const KData = (() => {
     { a: M.MAGMA, b: M.MUD,   chance: 0.08, ra: M.MAGMA, rb: M.DIRT  },
     { a: M.WATER, b: M.EARTH, chance: 0.01, ra: M.EMPTY, rb: M.MUD   },  // earth soaks
     // wood catches and burns down as embers; oil and gas burn; `blast` is the chance that a cell catching also goes off with a bang (world.blasts)
-    { a: M.FIRE,  b: M.WOOD,  chance: 0.12, ra: M.FIRE,  rb: M.EMBER },
+    // v1.11: wood catches and passes fire on more slowly (a beam was all alight within 2.5 s of the first flame, before any
+    // water could matter), and water puts an ember out almost at once
+    { a: M.FIRE,  b: M.WOOD,  chance: 0.045, ra: M.FIRE,  rb: M.EMBER },
     { a: M.MAGMA, b: M.WOOD,  chance: 0.2,  ra: M.MAGMA, rb: M.EMBER },
-    { a: M.EMBER, b: M.WOOD,  chance: 0.05, ra: M.EMBER, rb: M.EMBER },
+    { a: M.EMBER, b: M.WOOD,  chance: 0.012, ra: M.EMBER, rb: M.EMBER },
     { a: M.FIRE,  b: M.OIL,   chance: 0.45, ra: M.FIRE,  rb: M.FIRE  },
     { a: M.MAGMA, b: M.OIL,   chance: 0.6,  ra: M.MAGMA, rb: M.FIRE  },
     { a: M.EMBER, b: M.OIL,   chance: 0.4,  ra: M.EMBER, rb: M.FIRE  },
@@ -90,7 +92,7 @@ const KData = (() => {
     { a: M.MAGMA, b: M.COAL,  chance: 0.12, ra: M.MAGMA, rb: M.EMBER },
     { a: M.EMBER, b: M.COAL,  chance: 0.012, ra: M.EMBER, rb: M.EMBER },
     { a: M.EMBER, b: M.EMPTY, chance: 0.03, ra: M.EMBER, rb: M.FIRE  },
-    { a: M.EMBER, b: M.WATER, chance: 0.5,  ra: M.COAL,  rb: M.STEAM },
+    { a: M.EMBER, b: M.WATER, chance: 0.9,  ra: M.COAL,  rb: M.STEAM },
     { a: M.EMBER, b: M.MOSS,  chance: 0.1,  ra: M.EMBER, rb: M.FIRE  },
     // ice melts
     { a: M.FIRE,  b: M.ICE,   chance: 0.25, ra: M.EMPTY, rb: M.WATER },

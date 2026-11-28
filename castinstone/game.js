@@ -1998,7 +1998,9 @@ const KGame = (() => {
             const a = this.actorAt(pt.x, pt.y, pt.owner);
             if (a) { a.vx += pt.vx * pt.push; a.vy += pt.vy * pt.push * 0.6; pt.pushed = true; pt.vx *= 0.3; if (pt.dmg) this.hurt(a, pt.dmg, 0, 0, 'jet', pt.owner, pt.key); }
           }
-          if (pt.mat === M.WATER && m === M.FIRE) { w.set(ix, iy, M.STEAM); pt.life = 0; break; }
+          // v1.11: thrown water does not stop at the flames: it puts out the embers behind them too (world.douse)
+          if (pt.mat === M.WATER && m === M.FIRE) { w.set(ix, iy, M.STEAM); w.douse(iy * w.w + ix); pt.life = 0; break; }
+          if (pt.mat === M.WATER && m === M.EMBER) { w.set(ix, iy, M.COAL); w.douse(iy * w.w + ix); pt.life = 0; pt.landed = true; break; }
           if (pt.mat === M.MUD) {
             // mud that hits someone coats them and slows them for a while
             const a = this.actorAt(pt.x, pt.y, pt.owner);

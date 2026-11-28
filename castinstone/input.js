@@ -126,7 +126,7 @@ const KInput = (() => {
       if (!e.repeat && (act === 'full' || act === 'mute' || act === 'music')) { e.preventDefault(); const h = hooks[act === 'full' ? 'onFull' : act === 'mute' ? 'onMute' : 'onMusic']; h && h(); return; }
       if (hooks.blocked && hooks.blocked()) {
         if (act === 'map') { e.preventDefault(); hooks.onMap && hooks.onMap(); }
-        if (code === 'Escape' || act === 'pause' || act === 'book') { e.preventDefault(); hooks.onClose && hooks.onClose(); }
+        if (code === 'Escape' || act === 'pause' || act === 'book' || (act === 'rest' && !e.repeat && hooks.resting && hooks.resting())) { e.preventDefault(); hooks.onClose && hooks.onClose(); }   // v1.11: the Rest key leaves the Lodestone screen too
         const nav = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.code];   // v1.03: the arrow keys move through a menu
         if (nav && hooks.onNav) { e.preventDefault(); hooks.onNav(nav[0], nav[1]); }
         return;

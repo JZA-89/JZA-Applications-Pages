@@ -11,7 +11,7 @@
 
 (() => {
   const { elements, elementOrder, view: V, step: STEP } = KData;
-  const VERSION = 'v1.10';
+  const VERSION = 'v1.11';
 
   const $ = id => document.getElementById(id);
   const stage = $('stage'), view = $('view'), glow = $('glow');
@@ -431,6 +431,7 @@
     onMute: () => { KAudio.start(); KAudio.setMuted(!KAudio.muted); showMute(); },
     onMusic: () => toggleMusic(),
     onBindings: () => relabel(),
+    resting: () => mode === 'rest',
     onNav: (dx, dy) => padMenu({ dx, dy }),
     // touch: with no finger aiming, aim at the nearest creature in view, if any
     autoAim: () => {

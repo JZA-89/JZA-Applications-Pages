@@ -143,6 +143,21 @@ const KWorld = (() => {
     // v1.01: magma under a crust that has water standing on it goes on cooling: the magma cell below the new crust cell at i
     // is given a few seconds to live (a lake's magma is otherwise permanent), and when it sets it does the same to the one
     // below it, until the crust is 6 thick. So a flooded pool hardens from the top, a layer every few seconds.
+    // v1.11: water soaks in. When water puts out an ember (cell i), the embers and flames within three cells of it mostly go
+    // out with it, so a jet or a bucket of water puts out a patch of a burning beam, not one cell at a time (which the
+    // embers beside it relit at once: water could not put out burning wood).
+    douse(i) {
+      const w = this.w, mat = this.mat, x0 = i % w, y0 = (i / w) | 0;
+      if (mat[i] === M.COAL) this.life[i] = 255;
+      for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
+        const x = x0 + dx, y = y0 + dy;
+        if ((!dx && !dy) || dx * dx + dy * dy > 10 || x < 1 || y < 1 || x >= w - 1 || y >= this.h - 1) continue;
+        const j = y * w + x, m = mat[j];
+        if (m === M.EMBER) { if (this.rand() < 0.7) { this.put(j, M.COAL); this.life[j] = 255; } }
+        else if (m === M.FIRE) { if (this.rand() < 0.7) this.put(j, M.STEAM); }
+        else if (m === M.WOOD || m === M.COAL) this.life[j] = 255;   // and what is beside it is soaked
+      }
+    }
     chill(i) {
       const w = this.w, mat = this.mat, below = i + w;
       if (below >= mat.length || mat[below] !== M.MAGMA || this.life[below] !== 255) return;
@@ -225,10 +240,15 @@ const KWorld = (() => {
         const nx = x + (d === 0 ? 1 : d === 1 ? -1 : 0), ny = y + (d === 2 ? 1 : d === 3 ? -1 : 0);
         if (this.inb(nx, ny)) {
           const j = ny * w + nx, r = REACT[m * N + mat[j]];
+          // v1.11: wet wood. Water touching wood or charred wood (coal) soaks it (its `life`, unused otherwise, counts how wet),
+          // and a soaked cell shrugs off a few attempts to light it, drying a little each time.
+          if (m === M.WATER && (mat[j] === M.WOOD || mat[j] === M.COAL) && this.life[j] < 200) this.life[j] = 255;
           if (r && R() < r.chance) {
             const mj = mat[j];
-            if (r.ra !== m && !(r.ka && R() < r.ka)) { this.put(i, r.ra); if (m === M.MAGMA && r.ra === M.DIRT) this.chill(i); }
-            if (r.rb !== mj && !(r.kb && R() < r.kb)) { this.put(j, r.rb); if (mj === M.MAGMA && r.rb === M.DIRT) this.chill(j); }
+            if (r.rb === M.EMBER && (mj === M.WOOD || mj === M.COAL) && this.life[j] > 0) { this.life[j] = Math.max(0, this.life[j] - 36); return; }
+            if (r.ra === M.EMBER && (m === M.WOOD || m === M.COAL) && this.life[i] > 0) { this.life[i] = Math.max(0, this.life[i] - 36); return; }
+            if (r.ra !== m && !(r.ka && R() < r.ka)) { this.put(i, r.ra); if (m === M.MAGMA && r.ra === M.DIRT) this.chill(i); else if (m === M.EMBER && r.ra === M.COAL) this.douse(i); }
+            if (r.rb !== mj && !(r.kb && R() < r.kb)) { this.put(j, r.rb); if (mj === M.MAGMA && r.rb === M.DIRT) this.chill(j); else if (mj === M.EMBER && r.rb === M.COAL) this.douse(j); }
             if (r.blast && this.blasts.length < 24 && R() < r.blast) this.blasts.push(nx, ny);   // gas going off (game.blastsTick)
             return;
           }
